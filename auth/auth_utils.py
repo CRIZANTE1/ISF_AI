@@ -1,9 +1,8 @@
-# FILE: auth/auth_utils.py (VERSÃO MULTI-TENANT)
-
 import streamlit as st
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import ADMIN_SHEET_NAME, UNITS_SHEET_NAME
+from .login_page import show_logout_button
 
 def is_oidc_available():
     try:
@@ -113,3 +112,50 @@ def can_edit():
 
 def can_view():
     return get_user_role() in ['admin', 'editor', 'viewer']
+
+def on_unit_change():
+    """Callback para limpar o cache quando a UO é alterada."""
+    st.cache_data.clear()
+
+def setup_sidebar():
+    """
+    Configura a barra lateral, incluindo o seletor de UO para admins.
+    Retorna True se uma UO está selecionada e pronta para uso, False caso contrário.
+    """
+    # Exibe o botão de logout em todas as páginas para usuários logados
+    if is_user_logged_in():
+        show_logout_button()
+
+    role, assigned_unit = get_user_info()
+    
+    selected_unit = None
+    # Lógica de seleção de UO para o Super Admin
+    if role == 'admin' and assigned_unit == '*':
+        _, units_df = get_matrix_data()
+        unit_options = ["Selecione uma UO..."] + units_df['nome_unidade'].tolist()
+        
+        # Usa o session_state para lembrar a seleção entre as páginas
+        current_selection = st.session_state.get('current_unit_name', "Selecione uma UO...")
+        selected_index = unit_options.index(current_selection) if current_selection in unit_options else 0
+
+        selected_unit = st.sidebar.selectbox(
+            "Selecionar Unidade Operacional:", 
+            unit_options, 
+            index=selected_index,
+            on_change=on_unit_change,
+            key='unit_selector'
+        )
+    else:
+        # Usuário normal tem uma UO fixa
+        selected_unit = assigned_unit
+
+    # Processa a seleção
+    if selected_unit and selected_unit != "Selecione uma UO...":
+        if initialize_unit_session(selected_unit):
+            st.sidebar.success(f"Visão da UO: **{selected_unit}**")
+            return True  # UO selecionada e inicializada com sucesso
+        else:
+            return False # Falha ao inicializar a UO
+    
+    # Se nenhuma UO foi selecionada
+    return False
