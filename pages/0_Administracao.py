@@ -166,15 +166,66 @@ def show_admin_page():
     if tab_dashboard:
         with tab_dashboard:
             st.header("Visão Geral do Status de Todos os Equipamentos")
-            if st.button("Recarregar Dados de Todas as UOs"): st.cache_data.clear(); st.rerun()
+            if st.button("Recarregar Dados de Todas as UOs"):
+                st.cache_data.clear()
+                st.rerun()
+
             _, units_df = get_matrix_data()
-            if units_df.empty: st.warning("Nenhuma UO cadastrada para exibir.")
+
+            if units_df.empty:
+                st.warning("Nenhuma Unidade Operacional cadastrada para exibir.")
             else:
-                with st.spinner("Buscando e consolidando dados..."):
+                with st.spinner("Buscando e consolidando dados de todas as planilhas..."):
                     all_summaries = get_global_status_summary(units_df)
                 
-                sub_tab_ext, sub_tab_hose, sub_tab_shelter, sub_tab_scba = st.tabs(["🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 Conjuntos Autônomos"])
+                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba = st.tabs([
+                    "📈 Visão Geral Consolidada", "🔥 Extintores (Detalhes)", "💧 Mangueiras (Detalhes)", 
+                    "🧯 Abrigos (Detalhes)", "💨 SCBA (Detalhes)"
+                ])
                 
+                with tab_overview:
+                    st.subheader("Painel de Pendências Globais")
+                    st.info("Resumo das pendências (equipamentos vencidos ou não conformes) em todas as UOs.")
+
+                    # Extrai os dados de pendência de cada DataFrame
+                    df_ext_pending = all_summaries.get("Extintores", pd.DataFrame()).rename(columns={"Com Pendência": "Extintores"})
+                    df_hose_pending = all_summaries.get("Mangueiras", pd.DataFrame()).rename(columns={"Com Pendência": "Mangueiras"})
+                    df_shelter_pending = all_summaries.get("Abrigos", pd.DataFrame()).rename(columns={"Com Pendência": "Abrigos"})
+                    df_scba_pending = all_summaries.get("SCBA", pd.DataFrame()).rename(columns={"Com Pendência": "SCBA"})
+
+                    # Junta tudo em um único DataFrame para o gráfico
+                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending]
+                    df_pending_consolidated = pd.DataFrame(columns=['Unidade Operacional'])
+                    
+                    for df in df_list:
+                        if not df.empty and 'Unidade Operacional' in df.columns:
+                           # Seleciona apenas as colunas relevantes para o merge
+                           cols_to_merge = [col for col in ['Unidade Operacional', 'Extintores', 'Mangueiras', 'Abrigos', 'SCBA'] if col in df.columns]
+                           df_pending_consolidated = pd.merge(df_pending_consolidated, df[cols_to_merge], on='Unidade Operacional', how='outer')
+
+                    df_pending_consolidated = df_pending_consolidated.set_index('Unidade Operacional').fillna(0).astype(int)
+                    
+                    # 1. Exibe as métricas totais de pendências
+                    st.markdown("##### Total de Pendências por Categoria")
+                    cols = st.columns(4)
+                    cols[0].metric("🔥 Extintores", df_pending_consolidated['Extintores'].sum())
+                    cols[1].metric("💧 Mangueiras", df_pending_consolidated['Mangueiras'].sum())
+                    cols[2].metric("🧯 Abrigos", df_pending_consolidated['Abrigos'].sum())
+                    cols[3].metric("💨 SCBA", df_pending_consolidated['SCBA'].sum())
+                    
+                    st.markdown("---")
+
+                    # 2. Exibe o gráfico de barras consolidado
+                    st.subheader("Gráfico de Pendências por Unidade Operacional")
+                    if not df_pending_consolidated.empty:
+                        st.bar_chart(df_pending_consolidated)
+                    else:
+                        st.info("Nenhum dado de pendência para exibir no gráfico.")
+                        
+                    with st.expander("Ver tabela de dados de pendências consolidada"):
+                        st.dataframe(df_pending_consolidated, use_container_width=True)
+
+                # Função auxiliar para as abas de detalhes (sem alteração)
                 def display_summary(summary_df, name):
                     if summary_df is None or summary_df.empty or (summary_df['OK'].sum() == 0 and summary_df['Com Pendência'].sum() == 0):
                         st.info(f"Nenhum dado de {name.lower()} encontrado para consolidar."); return
@@ -186,10 +237,11 @@ def show_admin_page():
                     st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
                     with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, use_container_width=True)
                 
-                with sub_tab_ext: display_summary(all_summaries.get("Extintores"), "Extintores")
-                with sub_tab_hose: display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
-                with sub_tab_shelter: display_summary(all_summaries.get("Abrigos"), "Abrigos")
-                with sub_tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
+                # Abas de detalhes
+                with tab_ext: display_summary(all_summaries.get("Extintores"), "Extintores")
+                with tab_hose: display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
+                with tab_shelter: display_summary(all_summaries.get("Abrigos"), "Abrigos")
+                with tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
 
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
