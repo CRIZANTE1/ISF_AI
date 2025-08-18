@@ -1,0 +1,124 @@
+# Define os cabeçalhos para cada aba a ser criada em uma nova planilha de UO.
+
+locais:
+  - id
+  - local
+
+extintores:
+  - numero_identificacao
+  - numero_selo_inmetro
+  - tipo_agente
+  - capacidade
+  - marca_fabricante
+  - ano_fabricacao
+  - tipo_servico
+  - data_servico
+  - inspetor_responsavel
+  - empresa_executante
+  - data_proxima_inspecao
+  - data_proxima_manutencao_2_nivel
+  - data_proxima_manutencao_3_nivel
+  - data_ultimo_ensaio_hidrostatico
+  - aprovado_inspecao
+  - observacoes_gerais
+  - plano_de_acao
+  - link_relatorio_pdf
+  - latitude
+  - longitude
+  - link_foto_nao_conformidade
+
+mangueiras:
+  - id_mangueira
+  - marca
+  - diametro
+  - tipo
+  - comprimento
+  - ano_fabricacao
+  - data_inspecao
+  - data_proximo_teste
+  - resultado
+  - link_certificado_pdf
+  - registrado_por
+  - empresa_executante
+  - resp_tecnico_certificado
+
+abrigos:
+  - id_abrigo
+  - cliente
+  - local
+  - itens_json
+
+inspecoes_abrigos:
+  - data_inspecao
+  - id_abrigo
+  - status_geral
+  - resultados_json
+  - inspetor
+  - data_proxima_inspecao
+
+conjuntos_autonomos:
+  - data_teste
+  - data_validade
+  - numero_serie_equipamento
+  - marca
+  - modelo
+  - numero_serie_mascara
+  - numero_serie_segundo_estagio
+  - resultado_final
+  - vazamento_mascara_resultado
+  - vazamento_mascara_valor
+  - vazamento_pressao_alta_resultado
+  - vazamento_pressao_alta_valor
+  - pressao_alarme_resultado
+  - pressao_alarme_valor
+  - link_relatorio_pdf
+  - registrado_por
+  - empresa_executante
+  - resp_tecnico_certificado
+  - data_qualidade_ar
+  - status_qualidade_ar
+  - obs_qualidade_ar
+  - link_laudo_ar
+
+inspecoes_scba:
+  - data_inspecao
+  - numero_serie_equipamento
+  - status_geral
+  - resultados_json
+  - inspetor
+  - data_proxima_inspecao
+
+log_acoes:
+  - data_correcao
+  - id_equipamento
+  - problema_original
+  - acao_realizada
+  - responsavel_acao
+  - id_equipamento_substituto
+  - link_foto_evidencia
+
+log_abrigos:
+  - data_acao
+  - id_abrigo
+  - problema_original
+  - acao_realizada
+  - responsavel
+
+log_scba:
+  - data_acao
+  - numero_serie_equipamento
+  - problema_original
+  - acao_realizada
+  - responsavel
+
+log_remessas_th:
+  - data_remessa
+  - id_mangueira
+  - ano_remessa
+  - numero_boletim
+
+log_remessas_extintores:
+  - data_remessa
+  - numero_identificacao
+  - ano_remessa
+  - numero_boletim
