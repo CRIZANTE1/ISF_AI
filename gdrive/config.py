@@ -1,20 +1,26 @@
+# FILE: gdrive/config.py (VERSÃO MULTI-TENANT)
+
 import os
 import json
 import streamlit as st
 
-GDRIVE_FOLDER_ID = "1poFC4ymPbPfZvJuSBK15ClLA3xb76vwQ"
+# --- CONFIGURAÇÃO DA PLANILHA MATRIZ ---
+# Este é o ID da sua planilha principal, que contém as abas 'adm' e 'unidades'.
+MATRIX_SHEETS_ID = "1I7plDJVUwXCKByakjxMPKDBa7in5K4MgS5YFn9gmhW0" # Mantenha o seu ID da planilha matriz
 
-GDRIVE_SHEETS_ID = "1I7plDJVUwXCKByakjxMPKDBa7in5K4MgS5YFn9gmhW0" 
-
+# --- Nomes das Abas na Planilha MATRIZ ---
 ADMIN_SHEET_NAME = "adm"
+UNITS_SHEET_NAME = "unidades"
+
+# --- Nomes das Abas nas Planilhas DAS UNIDADES (permanecem os mesmos) ---
 EXTINGUISHER_SHEET_NAME = "extintores"
-LOG_ACTIONS = "log_acoes"
 HOSE_SHEET_NAME = "mangueiras"
 SHELTER_SHEET_NAME = "abrigos"
 INSPECTIONS_SHELTER_SHEET_NAME = "inspecoes_abrigos"
-LOG_SHELTER_SHEET_NAME = "log_abrigos"
 SCBA_SHEET_NAME = "conjuntos_autonomos"
 SCBA_VISUAL_INSPECTIONS_SHEET_NAME = "inspecoes_scba"
+LOG_ACTIONS = "log_acoes"
+LOG_SHELTER_SHEET_NAME = "log_abrigos"
 LOG_SCBA_SHEET_NAME = "log_scba"
 TH_SHIPMENT_LOG_SHEET_NAME = "log_remessas_th"
 EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME = "log_remessas_extintores"
