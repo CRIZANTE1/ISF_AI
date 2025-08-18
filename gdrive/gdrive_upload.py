@@ -237,3 +237,20 @@ class GoogleDriveUploader:
         except Exception as e:
             st.error(f"Erro ao criar pasta no Google Drive: {e}")
             raise
+
+    def move_file_to_folder(self, file_id, folder_id):
+        """Muda um arquivo (como uma planilha) para uma pasta específica no Google Drive."""
+        try:
+            file = self.drive_service.files().get(fileId=file_id, fields='parents').execute()
+            previous_parents = ",".join(file.get('parents'))
+
+            self.drive_service.files().update(
+                fileId=file_id,
+                addParents=folder_id,
+                removeParents=previous_parents,
+                fields='id, parents'
+            ).execute()
+            st.info(f"Planilha movida para a pasta da UO com sucesso.")
+        except Exception as e:
+            st.error(f"Erro ao mover a planilha para a pasta designada: {e}")
+            raise
