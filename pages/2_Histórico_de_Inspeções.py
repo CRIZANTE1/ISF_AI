@@ -9,7 +9,7 @@ set_page_config()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data
 from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import is_admin, can_edit, can_view
+from auth.auth_utils import can_edit, setup_sidebar
 from operations.demo_page import show_demo_page
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SHELTER_SHEET_NAME,
@@ -85,6 +85,11 @@ def display_formatted_dataframe(sheet_name):
     )
     
 def show_history_page():
+    
+    if not setup_sidebar():
+        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
+        st.stop()
+        
     st.title("Histórico e Logs do Sistema")
     st.info("Consulte o histórico de registros e ações para todos os equipamentos do sistema.")
     
