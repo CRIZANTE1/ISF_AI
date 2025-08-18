@@ -6,7 +6,7 @@ import streamlit as st
 
 # --- CONFIGURAÇÃO DA PLANILHA MATRIZ ---
 # Este é o ID da sua planilha principal, que contém as abas 'adm' e 'unidades'.
-MATRIX_SHEETS_ID = "1I7plDJVUwXCKByakjxMPKDBa7in5K4MgS5YFn9gmhW0" # Mantenha o seu ID da planilha matriz
+MATRIX_SHEETS_ID = "1N4UHZ9cF8kS2wNedy9UKRHuuiq-pTrkG_gnH-OuQcgk" # Mantenha o seu ID da planilha matriz
 
 # --- Nomes das Abas na Planilha MATRIZ ---
 ADMIN_SHEET_NAME = "adm"
