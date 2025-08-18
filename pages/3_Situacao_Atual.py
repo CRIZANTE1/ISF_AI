@@ -652,12 +652,12 @@ def show_dashboard_page():
                     except (json.JSONDecodeError, TypeError, AttributeError):
                         st.info("Nenhum detalhe de inspeção periódica encontrado.")
 
-# --- Boilerplate de Autenticação ---
-if not show_login_page(): st.stop()
-show_user_header(); show_logout_button()
+# --- Verificação de Permissão ---
+# A autenticação é tratada na Pagina Inicial.py.
 if can_edit():
     st.sidebar.success("✅ Acesso completo")
     show_dashboard_page()
 else:
-    st.sidebar.error("🔒 Acesso de demonstração")
+    st.sidebar.error("🔒 Acesso negado")
+    st.info("Você não tem permissão para acessar esta funcionalidade.")
     show_demo_page()

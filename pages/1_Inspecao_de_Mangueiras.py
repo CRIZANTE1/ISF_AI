@@ -220,13 +220,12 @@ def show_hose_and_shelter_page():
                                 st.error("Ocorreu um erro ao salvar a inspeção.")
                                 
 
-if not show_login_page(): 
-    st.stop()
-show_user_header()
-show_logout_button()
+# --- Verificação de Permissão ---
+# A autenticação é tratada na Pagina Inicial.py.
 if can_edit():
     st.sidebar.success("✅ Acesso completo")
     show_hose_and_shelter_page()
 else:
-    st.sidebar.error("🔒 Acesso de demonstração")
+    st.sidebar.error("🔒 Acesso negado")
+    st.info("Você não tem permissão para acessar esta funcionalidade.")
     show_demo_page()
