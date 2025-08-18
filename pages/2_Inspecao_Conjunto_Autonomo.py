@@ -11,7 +11,7 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from AI.api_Operation import PDFQA
 from utils.prompts import get_scba_inspection_prompt, get_air_quality_prompt 
 from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import is_admin, can_edit, can_view
+from auth.auth_utils import is_admin, can_edit, can_view, setup_sidebar 
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
@@ -22,6 +22,11 @@ set_page_config()
 pdf_qa = PDFQA()
 
 def show_scba_inspection_page():
+
+    if not setup_sidebar():
+        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
+        st.stop()
+        
     st.title("💨 Inspeção de Conjuntos Autônomos (SCBA)")
 
     tab_test_scba, tab_quality_air, tab3 = st.tabs([
