@@ -17,7 +17,7 @@ from auth.auth_utils import can_edit, get_user_display_name # Usando a nova lóg
 from operations.history import load_sheet_data
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME,
-    EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME, TH_SHIPMENT_LOG_SHEET_NAME
+    EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME, TH_SHIPMENT_LOG_SHEET_NAME, LOCAIS_SHEET_NAME 
 )
 from reports.shipment_report import (
     generate_shipment_html_and_pdf, log_shipment, 
@@ -25,6 +25,8 @@ from reports.shipment_report import (
 )
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
+from gdrive.gdrive_upload import GoogleDriveUploader
+from operations.extinguisher_operations import save_inspection, calculate_next_dates, generate_action_plan
 
 set_page_config()
 
@@ -57,7 +59,7 @@ def image_to_bytes(img: Image.Image):
 def show_utilities_page():
     st.title("🛠️ Utilitários do Sistema")
 
-    tab_qr, tab_shipment = st.tabs(["Gerador de QR Code", "Gerador de Boletim de Remessa"])
+    tab_qr, tab_shipment = st.tabs(["Gerador de QR Code", "Gerador de Boletim de Remessa", "✍️ Cadastro Manual"])
 
     with tab_qr:
         st.header("Gerador de QR Codes para Equipamentos")
@@ -215,6 +217,50 @@ def show_utilities_page():
                     st.session_state.pop('suggested_ids', None)
                     st.session_state.pop('selected_shipment_ids', None)
                     st.rerun()
+
+
+    with tab_manual_entry:
+        st.header("Cadastro e Atualização Manual")
+        
+        sub_tab_locais, sub_tab_extintores = st.tabs(["📍 Locais de Equipamentos", "🔥 Cadastro de Extintores"])
+
+        with sub_tab_locais:
+            st.subheader("Cadastrar ou Atualizar Local de um Equipamento")
+            st.info("Use este formulário para associar um ID de equipamento a uma descrição de local (ex: Corredor A, Próximo à Sala 101).")
+
+            with st.form("local_form", clear_on_submit=True):
+                equip_id = st.text_input("ID do Equipamento*", help="O identificador único do extintor, mangueira, etc.")
+                location_desc = st.text_input("Descrição do Local*", help="Seja específico, ex: 'Pilar 3, ao lado da porta de emergência'.")
+                submitted = st.form_submit_button("💾 Salvar Local")
+
+                if submitted:
+                    if not equip_id or not location_desc:
+                        st.error("Ambos os campos 'ID do Equipamento' e 'Descrição do Local' são obrigatórios.")
+                    else:
+                        with st.spinner("Verificando e salvando..."):
+                            uploader = GoogleDriveUploader()
+                            df_locais = load_sheet_data(LOCAIS_SHEET_NAME)
+                            
+                            if df_locais.empty or 'id' not in df_locais.columns:
+                                # Se a planilha estiver vazia ou sem cabeçalho, apenas adiciona
+                                uploader.append_data_to_sheet(LOCAIS_SHEET_NAME, [equip_id, location_desc])
+                                st.success(f"Local para o equipamento '{equip_id}' cadastrado com sucesso!")
+                            else:
+                                df_locais['id'] = df_locais['id'].astype(str)
+                                existing_row = df_locais[df_locais['id'] == str(equip_id)]
+                                
+                                if not existing_row.empty:
+                                    # Atualiza a linha existente
+                                    row_index = existing_row.index[0] + 2  # +1 para cabeçalho, +1 para base 0
+                                    range_to_update = f"B{row_index}" # Atualiza apenas a coluna do local
+                                    uploader.update_cells(LOCAIS_SHEET_NAME, range_to_update, [[location_desc]])
+                                    st.success(f"Local para o equipamento '{equip_id}' atualizado com sucesso!")
+                                else:
+                                    # Adiciona nova linha
+                                    uploader.append_data_to_sheet(LOCAIS_SHEET_NAME, [equip_id, location_desc])
+                                    st.success(f"Local para o equipamento '{equip_id}' cadastrado com sucesso!")
+                            
+                            st.cache_data.clear()
 
 # --- Verificação de Permissão ---
 # A autenticação é tratada na Pagina Inicial.py.
