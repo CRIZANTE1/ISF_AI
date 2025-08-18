@@ -158,9 +158,15 @@ def show_admin_page():
             else:
                 with st.spinner("Buscando e consolidando dados de todas as planilhas... Isso pode levar um minuto."):
                     all_summaries_df = get_global_status_summary(units_df)
+                    
 
-                if not all_summaries_df:
-                    st.info("Nenhum dado encontrado em nenhuma das UOs.")
+                is_empty = (
+                    not all_summaries or 
+                    all(df.empty for df in all_summaries.values())
+                )
+
+                if is_empty:
+                    st.info("Nenhum dado de equipamento encontrado em nenhuma das UOs.")
                 else:
                     # Cria sub-abas para cada tipo de equipamento
                     sub_tab_ext, sub_tab_hose, sub_tab_shelter, sub_tab_scba = st.tabs([
