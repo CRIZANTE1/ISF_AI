@@ -222,7 +222,7 @@ def show_utilities_page():
     with tab_manual_entry:
         st.header("Cadastro e Atualização Manual")
         
-        sub_tab_locais, sub_tab_extintores = st.tabs(["📍 Locais de Equipamentos", "🔥 Cadastro de Extintores"])
+        sub_tab_locais, sub_tab_extintores = st.tabs(["📍 Locais dos Extintores", "🔥 Cadastro de Extintores"])
 
         with sub_tab_locais:
             st.subheader("Cadastrar ou Atualizar Local de um Equipamento")
