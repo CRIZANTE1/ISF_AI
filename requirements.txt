@@ -42,5 +42,6 @@ plotly>=5.18.0
 
 streamlit-js-eval 
 weasyprint
+PyYAML
 
 
