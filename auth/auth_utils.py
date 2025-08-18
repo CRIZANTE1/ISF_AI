@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import ADMIN_SHEET_NAME, UNITS_SHEET_NAME
-from .login_page import show_logout_button
 
 def is_oidc_available():
     try:
@@ -122,6 +121,7 @@ def setup_sidebar():
     Configura a barra lateral, incluindo o seletor de UO para admins.
     Retorna True se uma UO está selecionada e pronta para uso, False caso contrário.
     """
+    from .login_page import show_logout_butto
     # Exibe o botão de logout em todas as páginas para usuários logados
     if is_user_logged_in():
         show_logout_button()
