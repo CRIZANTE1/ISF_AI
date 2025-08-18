@@ -49,25 +49,28 @@ def show_admin_page():
                 try:
                     # Uploader genérico para criar os novos itens
                     uploader = GoogleDriveUploader()
-
+                
                     # 1. Cria a nova planilha e obtém seu ID
                     new_sheet_id = uploader.create_new_spreadsheet(f"ISF IA - {new_unit_name}")
-
-                    # 2. Cria todas as abas e cabeçalhos na nova planilha
-                    uploader.setup_sheets_in_new_spreadsheet(new_sheet_id, DEFAULT_SHEETS_CONFIG)
-
-                    # 3. Cria a nova pasta no Google Drive e obtém seu ID
+                
+                    # 2. Cria a nova pasta no Google Drive e obtém seu ID
                     new_folder_id = uploader.create_drive_folder(f"SFIA - Arquivos UO {new_unit_name}")
-
-                    # 4. Registra a nova UO na Planilha Matriz
+                
+                    # 3. MOVE a planilha recém-criada para dentro da pasta da UO
+                    uploader.move_file_to_folder(new_sheet_id, new_folder_id)
+                
+                    # 4. Cria todas as abas e cabeçalhos na nova planilha (agora já na pasta certa)
+                    uploader.setup_sheets_in_new_spreadsheet(new_sheet_id, DEFAULT_SHEETS_CONFIG)
+                
+                    # 5. Registra a nova UO na Planilha Matriz
                     matrix_uploader = GoogleDriveUploader(is_matrix=True)
                     new_unit_row = [new_unit_name, new_sheet_id, new_folder_id]
                     matrix_uploader.append_data_to_sheet(UNITS_SHEET_NAME, new_unit_row)
-
+                
                     st.success(f"Unidade Operacional '{new_unit_name}' criada e configurada com sucesso!")
                     st.balloons()
-                    st.cache_data.clear() # Limpa o cache para que as listas de UO sejam atualizadas
-
+                    st.cache_data.clear()
+                
                 except Exception as e:
                     st.error("Ocorreu um erro durante o provisionamento. Verifique os logs.")
                     st.exception(e)
