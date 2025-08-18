@@ -25,6 +25,10 @@ set_page_config()
 pdf_qa = PDFQA()
 
 def show_hose_and_shelter_page():
+    if not setup_sidebar():
+        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
+        st.stop()
+        
     st.title("💧 Gestão de Mangueiras e Abrigos de Incêndio")
 
     tab_hoses, tab_shelters, tab_shelters_insp = st.tabs([
