@@ -157,55 +157,52 @@ def show_admin_page():
                 st.warning("Nenhuma Unidade Operacional cadastrada para exibir no dashboard.")
             else:
                 with st.spinner("Buscando e consolidando dados de todas as planilhas... Isso pode levar um minuto."):
+                    # A função get_global_status_summary retorna um dicionário de DataFrames
                     all_summaries = get_global_status_summary(units_df)
+
+                # --- LÓGICA DE EXIBIÇÃO CORRIGIDA E SIMPLIFICADA ---
+                
+                # Cria as sub-abas imediatamente
+                sub_tab_ext, sub_tab_hose, sub_tab_shelter, sub_tab_scba = st.tabs([
+                    "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 Conjuntos Autônomos"
+                ])
+                
+                # Função auxiliar para exibir o resumo. Agora a verificação de vazio é a primeira coisa que ela faz.
+                def display_summary(summary_df, equipment_name):
+                    # VERIFICAÇÃO SEGURA: Usa .empty para checar se o DataFrame não tem linhas.
+                    if summary_df is None or summary_df.empty:
+                        st.info(f"Nenhum dado de {equipment_name.lower()} encontrado para consolidar.")
+                        return # Sai da função se não há dados
+
+                    # Se chegamos aqui, o DataFrame tem dados.
+                    total_ok = summary_df['OK'].sum()
+                    total_pending = summary_df['Com Pendência'].sum()
+                    total_equip = total_ok + total_pending
                     
-
-                is_empty = (
-                    not all_summaries or 
-                    all(df.empty for df in all_summaries.values())
-                )
-
-                if is_empty:
-                    st.info("Nenhum dado de equipamento encontrado em nenhuma das UOs.")
-                else:
-                    # Cria sub-abas para cada tipo de equipamento
-                    sub_tab_ext, sub_tab_hose, sub_tab_shelter, sub_tab_scba = st.tabs([
-                        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 Conjuntos Autônomos"
-                    ])
+                    st.subheader(f"Métricas Globais - {equipment_name}")
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Total de Equipamentos", f"{total_equip}")
+                    col2.metric("Equipamentos OK", f"{total_ok}")
+                    col3.metric("Com Pendência", f"{total_pending}", delta=f"{total_pending} pendências", delta_color="inverse")
                     
-                    # Função auxiliar para não repetir código
-                    def display_summary(df, equipment_name):
-                        if df.empty or (df['OK'].sum() == 0 and df['Com Pendência'].sum() == 0):
-                            st.info(f"Nenhum dado de {equipment_name.lower()} encontrado nas UOs.")
-                            return
-                        
-                        total_ok = df['OK'].sum()
-                        total_pending = df['Com Pendência'].sum()
-                        total_equip = total_ok + total_pending
-                        
-                        st.subheader(f"Métricas Globais - {equipment_name}")
-                        col1, col2, col3 = st.columns(3)
-                        col1.metric("Total de Equipamentos", f"{total_equip}")
-                        col2.metric("Equipamentos OK", f"{total_ok}")
-                        col3.metric("Com Pendência", f"{total_pending}", delta=f"{total_pending} pendências", delta_color="inverse")
-                        
-                        st.subheader("Status por Unidade Operacional")
-                        chart_df = df.set_index('Unidade Operacional')
-                        st.bar_chart(chart_df, color=["#28a745", "#dc3545"]) # Verde para OK, Vermelho para Pendência
-                        with st.expander("Ver tabela de dados detalhada"):
-                            st.dataframe(chart_df, use_container_width=True)
+                    st.subheader("Status por Unidade Operacional")
+                    chart_df = summary_df.set_index('Unidade Operacional')
+                    st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
+                    with st.expander("Ver tabela de dados detalhada"):
+                        st.dataframe(chart_df, use_container_width=True)
 
-                    with sub_tab_ext:
-                        display_summary(all_summaries["Extintores"], "Extintores")
-                    
-                    with sub_tab_hose:
-                        display_summary(all_summaries["Mangueiras"], "Mangueiras")
+                # Chama a função para cada aba, passando o DataFrame correspondente do dicionário
+                with sub_tab_ext:
+                    display_summary(all_summaries.get("Extintores"), "Extintores")
+                
+                with sub_tab_hose:
+                    display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
 
-                    with sub_tab_shelter:
-                        display_summary(all_summaries["Abrigos"], "Abrigos")
+                with sub_tab_shelter:
+                    display_summary(all_summaries.get("Abrigos"), "Abrigos")
 
-                    with sub_tab_scba:
-                        display_summary(all_summaries["SCBA"], "Conjuntos Autônomos")
+                with sub_tab_scba:
+                    display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
 
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
