@@ -59,7 +59,7 @@ def image_to_bytes(img: Image.Image):
 def show_utilities_page():
     st.title("🛠️ Utilitários do Sistema")
 
-    tab_qr, tab_shipment = st.tabs(["Gerador de QR Code", "Gerador de Boletim de Remessa", "✍️ Cadastro Manual"])
+    tab_qr, tab_shipment, tab_manual_entry = st.tabs(["Gerador de QR Code", "Gerador de Boletim de Remessa", "✍️ Cadastro Manual"])
 
     with tab_qr:
         st.header("Gerador de QR Codes para Equipamentos")
