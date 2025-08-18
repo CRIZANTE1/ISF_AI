@@ -14,6 +14,8 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID, EXTINGUISHER_SHEET_NAME
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
+from auth.auth_utils import setup_sidebar
+
 
 set_page_config()
 
@@ -121,6 +123,11 @@ def confirm_delete_dialog(user_data, df):
 
 # --- FUNÇÃO PRINCIPAL DA PÁGINA ---
 def show_admin_page():
+
+   if not setup_sidebar():
+    st.warning("Por favor, selecione uma Unidade Operacional na barra lateral para continuar.")
+    st.stop()
+       
     st.title("👑 Painel de Controle do Super Administrador")
     tab_dashboard, tab_users, tab_units, tab_provision = st.tabs([
         "📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"
