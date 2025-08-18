@@ -73,16 +73,14 @@ def show_admin_page():
                     st.exception(e)
 
 
-# --- Boilerplate de Autenticação e Permissão ---
-if not show_login_page():
-    st.stop()
+# --- Verificação de Permissão ---
+# A autenticação e os elementos de UI comuns (cabeçalho, botão de logout)
+# são gerenciados pela 'Pagina Inicial.py'.
 
-show_user_header()
-show_logout_button()
-
+# Apenas obtemos as informações do usuário para verificar a permissão de acesso a esta página.
 role, assigned_unit = get_user_info()
 
-# Acesso a esta página é restrito a administradores globais
+# Acesso a esta página é restrito a administradores globais.
 if role == 'admin' and assigned_unit == '*':
     st.sidebar.success("👑 Acesso de Super Admin")
     show_admin_page()
