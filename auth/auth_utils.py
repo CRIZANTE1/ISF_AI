@@ -121,7 +121,7 @@ def setup_sidebar():
     Configura a barra lateral, incluindo o seletor de UO para admins.
     Retorna True se uma UO está selecionada e pronta para uso, False caso contrário.
     """
-    from .login_page import show_logout_butto
+    from .login_page import show_logout_button
     # Exibe o botão de logout em todas as páginas para usuários logados
     if is_user_logged_in():
         show_logout_button()
