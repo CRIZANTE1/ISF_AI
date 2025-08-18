@@ -11,6 +11,7 @@ from gdrive.config import get_credentials_dict, MATRIX_SHEETS_ID
 class GoogleDriveUploader:
     def __init__(self, is_matrix=False):
         self.SCOPES = [
+            'https://www.googleapis.com/auth/drive',
             'https://www.googleapis.com/auth/drive.file',
             'https://www.googleapis.com/auth/spreadsheets'
         ]
