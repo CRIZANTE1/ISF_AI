@@ -6,23 +6,23 @@ import yaml
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-# Adiciona o diretório raiz ao path para encontrar os módulos
+# Adiciona o diretório raiz ao path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from auth.auth_utils import get_user_info, get_matrix_data
+from auth.auth_utils import get_user_info, get_matrix_data, setup_sidebar
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID, EXTINGUISHER_SHEET_NAME
+from gdrive.config import (
+    UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID,
+    EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
+)
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
-from auth.auth_utils import setup_sidebar
-
 
 set_page_config()
 
 # --- Carrega a configuração da estrutura da planilha do arquivo YAML ---
 @st.cache_data
 def load_sheets_config():
-    """Carrega a configuração da estrutura da planilha do arquivo YAML."""
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'sheets_config.yaml')
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -36,13 +36,16 @@ def load_sheets_config():
 
 DEFAULT_SHEETS_CONFIG = load_sheets_config()
 
-# --- FUNÇÃO PARA O DASHBOARD GLOBAL ---
+# --- FUNÇÃO ROBUSTA PARA O DASHBOARD GLOBAL ---
 @st.cache_data(ttl=900)
 def get_global_status_summary(units_df):
-    """Busca e consolida o status dos extintores de todas as Unidades Operacionais."""
-    summary_data = []
-    uploader = GoogleDriveUploader()
-
+    """
+    Busca e consolida o status de TODOS os tipos de equipamentos de todas as UOs.
+    """
+    all_summaries = {
+        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": []
+    }
+    today = pd.Timestamp.today().date()
     progress_bar = st.progress(0, "Iniciando consolidação de dados...")
     total_units = len(units_df)
 
@@ -50,39 +53,67 @@ def get_global_status_summary(units_df):
         unit_name = unit['nome_unidade']
         spreadsheet_id = unit['spreadsheet_id']
         progress_bar.progress((i + 1) / total_units, f"Analisando UO: {unit_name}...")
-        uploader.spreadsheet_id = spreadsheet_id
         
+        st.session_state['current_spreadsheet_id'] = spreadsheet_id
+        uploader = GoogleDriveUploader()
+
+        # 1. Processar Extintores
         try:
-            ext_data = uploader.get_data_from_sheet(EXTINGUISHER_SHEET_NAME)
-            if not ext_data or len(ext_data) < 2:
-                summary_data.append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
-                continue
+            data = uploader.get_data_from_sheet(EXTINGUISHER_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                latest = df.dropna(subset=['numero_identificacao']).sort_values('data_servico', ascending=False).drop_duplicates('numero_identificacao', keep='first')
+                pending = latest[latest['aprovado_inspecao'] == 'Não'].shape[0] if 'aprovado_inspecao' in latest.columns else 0
+                all_summaries["Extintores"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else: all_summaries["Extintores"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar Extintores da UO '{unit_name}': {e}", icon="🔥")
+            all_summaries["Extintores"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
 
-            df_ext = pd.DataFrame(ext_data[1:], columns=ext_data[0])
-            df_ext['data_servico'] = pd.to_datetime(df_ext['data_servico'], errors='coerce')
-            latest_records = df_ext.sort_values('data_servico', ascending=False).drop_duplicates(subset='numero_identificacao', keep='first')
+        # 2. Processar Mangueiras
+        try:
+            data = uploader.get_data_from_sheet(HOSE_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                latest = df.dropna(subset=['id_mangueira']).sort_values('data_inspecao', ascending=False).drop_duplicates('id_mangueira', keep='first')
+                pending = latest[pd.to_datetime(latest['data_proximo_teste'], errors='coerce').dt.date < today].shape[0] if 'data_proximo_teste' in latest.columns else 0
+                all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else: all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar Mangueiras da UO '{unit_name}': {e}", icon="💧")
+            all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
             
-            ok_count, pending_count = 0, 0
-            today_ts = pd.Timestamp(date.today())
+        # 3. Processar Abrigos
+        try:
+            data = uploader.get_data_from_sheet(INSPECTIONS_SHELTER_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                latest = df.dropna(subset=['id_abrigo']).sort_values('data_inspecao', ascending=False).drop_duplicates('id_abrigo', keep='first')
+                pending = latest[latest['status_geral'] == 'Reprovado com Pendências'].shape[0] if 'status_geral' in latest.columns else 0
+                all_summaries["Abrigos"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else: all_summaries["Abrigos"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar Abrigos da UO '{unit_name}': {e}", icon="🧯")
+            all_summaries["Abrigos"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+            
+        # 4. Processar SCBA
+        try:
+            data = uploader.get_data_from_sheet(SCBA_VISUAL_INSPECTIONS_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                latest = df.dropna(subset=['numero_serie_equipamento']).sort_values('data_inspecao', ascending=False).drop_duplicates('numero_serie_equipamento', keep='first')
+                pending = latest[latest['status_geral'] == 'Reprovado com Pendências'].shape[0] if 'status_geral' in latest.columns else 0
+                all_summaries["SCBA"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else: all_summaries["SCBA"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar SCBA da UO '{unit_name}': {e}", icon="💨")
+            all_summaries["SCBA"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
 
-            for _, record in latest_records.iterrows():
-                if record.get('plano_de_acao') == "FORA DE OPERAÇÃO (SUBSTITUIDO)": continue
-                is_pending = False
-                if record.get('aprovado_inspecao') == 'Não':
-                    is_pending = True
-                else:
-                    next_dates = [pd.to_datetime(record.get(col), errors='coerce') for col in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel']]
-                    next_dates = [d for d in next_dates if pd.notna(d)]
-                    if next_dates and min(next_dates) < today_ts:
-                        is_pending = True
-                if is_pending: pending_count += 1
-                else: ok_count += 1
-            summary_data.append({'Unidade Operacional': unit_name, 'OK': ok_count, 'Com Pendência': pending_count})
-        except Exception:
-            summary_data.append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
-            continue
     progress_bar.empty()
-    return pd.DataFrame(summary_data)
+    for key, data in all_summaries.items():
+        all_summaries[key] = pd.DataFrame(data) if data else pd.DataFrame(columns=['Unidade Operacional', 'OK', 'Com Pendência'])
+    return all_summaries
+
 
 # --- DIALOGS PARA GESTÃO DE USUÁRIOS ---
 @st.dialog("Adicionar Novo Usuário")
@@ -123,86 +154,42 @@ def confirm_delete_dialog(user_data, df):
 
 def show_admin_page():
     is_uo_selected = setup_sidebar()
-    
     st.title("👑 Painel de Controle do Super Administrador")
 
     if is_uo_selected:
-        # Se uma UO está selecionada, mostra todas as abas
-        tab_dashboard, tab_users, tab_units, tab_provision = st.tabs([
-            "📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"
-        ])
+        tab_dashboard, tab_users, tab_units, tab_provision = st.tabs(["📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"])
     else:
-        # Se NENHUMA UO está selecionada, mostra apenas as abas essenciais
-        tab_users, tab_units, tab_provision = st.tabs([
-            "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"
-        ])
-        # Informa o admin sobre a aba desabilitada
+        tab_users, tab_units, tab_provision = st.tabs(["👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"])
         st.info("👈 Selecione uma Unidade Operacional na barra lateral para habilitar o Dashboard Global.")
-        # Define a aba do dashboard como None para o código abaixo não dar erro
         tab_dashboard = None
-
 
     if tab_dashboard:
         with tab_dashboard:
             st.header("Visão Geral do Status de Todos os Equipamentos")
-            st.info("Este painel consolida os dados de todas as Unidades Operacionais cadastradas.")
-
-            if st.button("Recarregar Dados de Todas as UOs"):
-                st.cache_data.clear()
-                st.rerun()
-
+            if st.button("Recarregar Dados de Todas as UOs"): st.cache_data.clear(); st.rerun()
             _, units_df = get_matrix_data()
-
-            if units_df.empty:
-                st.warning("Nenhuma Unidade Operacional cadastrada para exibir no dashboard.")
+            if units_df.empty: st.warning("Nenhuma UO cadastrada para exibir.")
             else:
-                with st.spinner("Buscando e consolidando dados de todas as planilhas... Isso pode levar um minuto."):
-                    # A função get_global_status_summary retorna um dicionário de DataFrames
+                with st.spinner("Buscando e consolidando dados..."):
                     all_summaries = get_global_status_summary(units_df)
-
-                # --- LÓGICA DE EXIBIÇÃO CORRIGIDA E SIMPLIFICADA ---
                 
-                # Cria as sub-abas imediatamente
-                sub_tab_ext, sub_tab_hose, sub_tab_shelter, sub_tab_scba = st.tabs([
-                    "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 Conjuntos Autônomos"
-                ])
+                sub_tab_ext, sub_tab_hose, sub_tab_shelter, sub_tab_scba = st.tabs(["🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 Conjuntos Autônomos"])
                 
-                # Função auxiliar para exibir o resumo. Agora a verificação de vazio é a primeira coisa que ela faz.
-                def display_summary(summary_df, equipment_name):
-                    # VERIFICAÇÃO SEGURA: Usa .empty para checar se o DataFrame não tem linhas.
-                    if summary_df is None or summary_df.empty:
-                        st.info(f"Nenhum dado de {equipment_name.lower()} encontrado para consolidar.")
-                        return # Sai da função se não há dados
-
-                    # Se chegamos aqui, o DataFrame tem dados.
-                    total_ok = summary_df['OK'].sum()
-                    total_pending = summary_df['Com Pendência'].sum()
-                    total_equip = total_ok + total_pending
-                    
-                    st.subheader(f"Métricas Globais - {equipment_name}")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Total de Equipamentos", f"{total_equip}")
-                    col2.metric("Equipamentos OK", f"{total_ok}")
-                    col3.metric("Com Pendência", f"{total_pending}", delta=f"{total_pending} pendências", delta_color="inverse")
-                    
+                def display_summary(summary_df, name):
+                    if summary_df is None or summary_df.empty or (summary_df['OK'].sum() == 0 and summary_df['Com Pendência'].sum() == 0):
+                        st.info(f"Nenhum dado de {name.lower()} encontrado para consolidar."); return
+                    total_ok, total_pending = summary_df['OK'].sum(), summary_df['Com Pendência'].sum()
+                    st.subheader(f"Métricas Globais - {name}")
+                    col1, col2, col3 = st.columns(3); col1.metric("Total", total_ok + total_pending); col2.metric("OK", total_ok); col3.metric("Pendência", total_pending, delta=f"{total_pending}", delta_color="inverse")
                     st.subheader("Status por Unidade Operacional")
                     chart_df = summary_df.set_index('Unidade Operacional')
                     st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
-                    with st.expander("Ver tabela de dados detalhada"):
-                        st.dataframe(chart_df, use_container_width=True)
-
-                # Chama a função para cada aba, passando o DataFrame correspondente do dicionário
-                with sub_tab_ext:
-                    display_summary(all_summaries.get("Extintores"), "Extintores")
+                    with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, use_container_width=True)
                 
-                with sub_tab_hose:
-                    display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
-
-                with sub_tab_shelter:
-                    display_summary(all_summaries.get("Abrigos"), "Abrigos")
-
-                with sub_tab_scba:
-                    display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
+                with sub_tab_ext: display_summary(all_summaries.get("Extintores"), "Extintores")
+                with sub_tab_hose: display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
+                with sub_tab_shelter: display_summary(all_summaries.get("Abrigos"), "Abrigos")
+                with sub_tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
 
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
