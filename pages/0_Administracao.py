@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from auth.auth_utils import get_user_info
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import UNITS_SHEET_NAME
+from gdrive.config import UNITS_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
 
@@ -37,40 +37,41 @@ def show_admin_page():
     st.info("Esta ferramenta automatiza a criação de toda a infraestrutura necessária para uma nova UO.")
     
     new_unit_name = st.text_input("Nome da Nova UO (ex: Santos)")
-    
-    # Adicione aqui um campo opcional para um ID de pasta pai, se desejar organizar as pastas das UOs
-    # parent_folder_id = st.text_input("ID da Pasta Pai no Google Drive (Opcional)")
-
+   
     if st.button(f"🚀 Criar Estrutura Completa para a UO '{new_unit_name}'", type="primary"):
         if not new_unit_name:
             st.error("O nome da Unidade Operacional não pode ser vazio.")
         else:
-            with st.spinner(f"Criando infraestrutura para '{new_unit_name}'... Este processo pode levar um minuto."):
+            with st.spinner(f"Criando infraestrutura para '{new_unit_name}'..."):
                 try:
                     # Uploader genérico para criar os novos itens
                     uploader = GoogleDriveUploader()
-                
-                    # 1. Cria a nova planilha e obtém seu ID
+
+                    # 1. Cria a nova planilha (ela ainda nasce na "raiz" da conta de serviço)
                     new_sheet_id = uploader.create_new_spreadsheet(f"ISF IA - {new_unit_name}")
-                
-                    # 2. Cria a nova pasta no Google Drive e obtém seu ID
-                    new_folder_id = uploader.create_drive_folder(f"SFIA - Arquivos UO {new_unit_name}")
-                
+
+                    # 2. Cria a nova pasta da UO DENTRO da pasta central que você definiu
+                    new_folder_id = uploader.create_drive_folder(
+                        name=f"SFIA - Arquivos UO {new_unit_name}",
+                        parent_folder_id=CENTRAL_DRIVE_FOLDER_ID  # <--- ESSA É A MUDANÇA PRINCIPAL
+                    )
+
                     # 3. MOVE a planilha recém-criada para dentro da pasta da UO
+                    # (Essa função você já deve ter adicionado na etapa anterior)
                     uploader.move_file_to_folder(new_sheet_id, new_folder_id)
-                
-                    # 4. Cria todas as abas e cabeçalhos na nova planilha (agora já na pasta certa)
+
+                    # 4. Cria todas as abas e cabeçalhos na nova planilha
                     uploader.setup_sheets_in_new_spreadsheet(new_sheet_id, DEFAULT_SHEETS_CONFIG)
-                
+
                     # 5. Registra a nova UO na Planilha Matriz
                     matrix_uploader = GoogleDriveUploader(is_matrix=True)
                     new_unit_row = [new_unit_name, new_sheet_id, new_folder_id]
                     matrix_uploader.append_data_to_sheet(UNITS_SHEET_NAME, new_unit_row)
-                
+
                     st.success(f"Unidade Operacional '{new_unit_name}' criada e configurada com sucesso!")
                     st.balloons()
                     st.cache_data.clear()
-                
+
                 except Exception as e:
                     st.error("Ocorreu um erro durante o provisionamento. Verifique os logs.")
                     st.exception(e)
