@@ -157,7 +157,7 @@ def show_admin_page():
                 st.warning("Nenhuma Unidade Operacional cadastrada para exibir no dashboard.")
             else:
                 with st.spinner("Buscando e consolidando dados de todas as planilhas... Isso pode levar um minuto."):
-                    all_summaries_df = get_global_status_summary(units_df)
+                    all_summaries = get_global_status_summary(units_df)
                     
 
                 is_empty = (
@@ -196,16 +196,16 @@ def show_admin_page():
                             st.dataframe(chart_df, use_container_width=True)
 
                     with sub_tab_ext:
-                        display_summary(all_summaries_df["Extintores"], "Extintores")
+                        display_summary(all_summaries["Extintores"], "Extintores")
                     
                     with sub_tab_hose:
-                        display_summary(all_summaries_df["Mangueiras"], "Mangueiras")
+                        display_summary(all_summaries["Mangueiras"], "Mangueiras")
 
                     with sub_tab_shelter:
-                        display_summary(all_summaries_df["Abrigos"], "Abrigos")
+                        display_summary(all_summaries["Abrigos"], "Abrigos")
 
                     with sub_tab_scba:
-                        display_summary(all_summaries_df["SCBA"], "Conjuntos Autônomos")
+                        display_summary(all_summaries["SCBA"], "Conjuntos Autônomos")
 
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
