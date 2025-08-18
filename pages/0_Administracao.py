@@ -121,38 +121,48 @@ def confirm_delete_dialog(user_data, df):
         st.success(f"Usuário '{user_data['email']}' removido."); st.cache_data.clear(); st.rerun()
     if col2.button("Cancelar", use_container_width=True): st.rerun()
 
-# --- FUNÇÃO PRINCIPAL DA PÁGINA ---
 def show_admin_page():
-
-   if not setup_sidebar():
-    st.warning("Por favor, selecione uma Unidade Operacional na barra lateral para continuar.")
-    st.stop()
-       
+    is_uo_selected = setup_sidebar()
+    
     st.title("👑 Painel de Controle do Super Administrador")
-    tab_dashboard, tab_users, tab_units, tab_provision = st.tabs([
-        "📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"
-    ])
 
-    with tab_dashboard:
-        st.header("Visão Geral do Status dos Extintores")
-        if st.button("Recarregar Dados de Todas as UOs"): st.cache_data.clear(); st.rerun()
-        _, units_df = get_matrix_data()
-        if units_df.empty:
-            st.warning("Nenhuma UO cadastrada para exibir.")
-        else:
-            with st.spinner("Buscando e consolidando dados..."):
-                summary_df = get_global_status_summary(units_df)
-            if not summary_df.empty:
-                total_ok, total_pending = summary_df['OK'].sum(), summary_df['Com Pendência'].sum()
-                st.subheader("Métricas Globais")
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Total de Equipamentos", f"{total_ok + total_pending}")
-                col2.metric("Equipamentos OK", f"{total_ok}")
-                col3.metric("Com Pendência", f"{total_pending}", delta=f"{total_pending} pendências", delta_color="inverse")
-                st.subheader("Status por Unidade Operacional")
-                chart_df = summary_df.set_index('Unidade Operacional')
-                st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
-                with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, use_container_width=True)
+    if is_uo_selected:
+        # Se uma UO está selecionada, mostra todas as abas
+        tab_dashboard, tab_users, tab_units, tab_provision = st.tabs([
+            "📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"
+        ])
+    else:
+        # Se NENHUMA UO está selecionada, mostra apenas as abas essenciais
+        tab_users, tab_units, tab_provision = st.tabs([
+            "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"
+        ])
+        # Informa o admin sobre a aba desabilitada
+        st.info("👈 Selecione uma Unidade Operacional na barra lateral para habilitar o Dashboard Global.")
+        # Define a aba do dashboard como None para o código abaixo não dar erro
+        tab_dashboard = None
+
+
+    if tab_dashboard:
+        with tab_dashboard:
+            st.header("Visão Geral do Status dos Extintores")
+            if st.button("Recarregar Dados de Todas as UOs"): st.cache_data.clear(); st.rerun()
+            _, units_df = get_matrix_data()
+            if units_df.empty:
+                st.warning("Nenhuma UO cadastrada para exibir.")
+            else:
+                with st.spinner("Buscando e consolidando dados..."):
+                    summary_df = get_global_status_summary(units_df) # Função precisa estar definida no arquivo
+                if not summary_df.empty:
+                    total_ok, total_pending = summary_df['OK'].sum(), summary_df['Com Pendência'].sum()
+                    st.subheader("Métricas Globais")
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Total de Equipamentos", f"{total_ok + total_pending}")
+                    col2.metric("Equipamentos OK", f"{total_ok}")
+                    col3.metric("Com Pendência", f"{total_pending}", delta=f"{total_pending} pendências", delta_color="inverse")
+                    st.subheader("Status por Unidade Operacional")
+                    chart_df = summary_df.set_index('Unidade Operacional')
+                    st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
+                    with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, use_container_width=True)
 
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
