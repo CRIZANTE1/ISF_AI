@@ -26,7 +26,7 @@ def show_login_page():
         st.write("Por favor, faça login para acessar o sistema.")
         
         # Botão de login
-        if st.button("Fazer Login com Google"):
+        if st.button("Fazer Login com Google", key="google_login_button"):
             try:
                 st.login()
             except Exception as e:
