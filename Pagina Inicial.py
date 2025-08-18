@@ -1,61 +1,21 @@
 import streamlit as st
 import sys
 import os
-from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import is_user_logged_in, is_admin, can_edit, can_view, get_user_role
-from operations.demo_page import show_demo_page
-from config.page_config import set_page_config 
 
-set_page_config()
+# Add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
-def show_admin_homepage():
-    """Conteúdo completo para administradores."""
-    st.sidebar.success("👑 Acesso de Administrador")
-    st.title("Bem-vindo ao ISF IA!")
-    st.subheader("Sistema de Fiscalização e Inspeções com Inteligência Artificial")
-    st.markdown("""
-    Use a barra de navegação à esquerda para acessar as funcionalidades do sistema.
-
-    - **Inspeção de Extintores**: Registre novas inspeções, extraia dados de relatórios PDF com IA e salve o histórico.
-    - **Situação Atual**: Visualize um dashboard com o status de todos os equipamentos.
-    - **Histórico de Inspeções**: Consulte todos os registros já realizados.
-    
-    Este sistema foi projetado para otimizar e padronizar o processo de inspeção de equipamentos de combate a incêndio, 
-    garantindo conformidade com as normas e segurança.
-    """)
-
-def show_editor_homepage():
-    """Conteúdo para editores (pode ser o mesmo do admin ou um pouco diferente)."""
-    st.sidebar.info("✏️ Acesso de Editor")
-    st.title("Bem-vindo ao ISF IA!")
-    st.subheader("Sistema de Fiscalização e Inspeções com Inteligência Artificial")
-    st.markdown("""
-    Você tem permissão para registrar novas inspeções e atualizar o status dos equipamentos.
-    Use a barra de navegação à esquerda para acessar as funcionalidades de edição.
-    """)
-
-def main():
-    if not is_user_logged_in():
-        show_login_page()
-        return
-
-    show_user_header()
-    show_logout_button() 
-
-    user_role = get_user_role()
-
-    import streamlit as st
-import sys
-import os
+# Imports from the original file, deduplicated
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from auth.auth_utils import is_user_logged_in, get_user_info, initialize_unit_session, get_matrix_data
 from operations.demo_page import show_demo_page
-from config.page_config import set_page_config 
+from config.page_config import set_page_config
 
+# Set page config once at the beginning
 set_page_config()
 
 def show_admin_homepage():
-    """Conteúdo completo para administradores."""
+    """Content for administrators."""
     st.sidebar.success("👑 Acesso de Administrador")
     st.title("Bem-vindo ao ISF IA!")
     st.subheader("Sistema de Fiscalização e Inspeções com Inteligência Artificial")
@@ -70,21 +30,13 @@ def show_admin_homepage():
     garantindo conformidade com as normas e segurança.
     """)
 
-def show_editor_homepage():
-    """Conteúdo para editores (pode ser o mesmo do admin ou um pouco diferente)."""
-    st.sidebar.info("✏️ Acesso de Editor")
-    st.title("Bem-vindo ao ISF IA!")
-    st.subheader("Sistema de Fiscalização e Inspeções com Inteligência Artificial")
-    st.markdown("""
-    Você tem permissão para registrar novas inspeções e atualizar o status dos equipamentos.
-    Use a barra de navegação à esquerda para acessar as funcionalidades de edição.
-    """)
-
 def show_homepage_for_role(role):
+    """Displays the appropriate homepage content based on the user's role."""
     if role == 'admin':
         show_admin_homepage()
     elif role == 'editor':
-        show_admin_homepage() # Reutilizando a função
+        # As per original logic, editor sees the admin homepage
+        show_admin_homepage()
     elif role == 'viewer':
         st.sidebar.warning("👁️ Acesso Somente Leitura")
         show_demo_page()
@@ -92,45 +44,54 @@ def show_homepage_for_role(role):
         st.sidebar.error("🔒 Acesso de Demonstração")
         show_demo_page()
 
-def main():
-    if not is_user_logged_in():
-        show_login_page()
-        return
-
+def run_app():
+    """
+    The main application logic for a logged-in user.
+    This includes drawing common UI elements and handling the UO selection.
+    """
+    # Common UI elements for all pages
     show_user_header()
-    show_logout_button() 
+    show_logout_button()
 
     role, assigned_unit = get_user_info()
     
-    # --- LÓGICA DE SELEÇÃO DE UNIDADE OPERACIONAL ---
+    # --- Logic for selecting Operational Unit (UO) ---
     selected_unit = None
     if role == 'admin' and assigned_unit == '*':
-        # Administrador Global: pode escolher a UO
+        # Global admin can choose the UO
         _, units_df = get_matrix_data()
         unit_options = units_df['nome_unidade'].tolist()
         if unit_options:
-            selected_unit = st.sidebar.selectbox("Selecionar Unidade Operacional:", unit_options)
+            # Add a placeholder to the beginning of the list
+            unit_options.insert(0, "Selecione uma UO...")
+            selected_unit = st.sidebar.selectbox("Selecionar Unidade Operacional:", unit_options, index=0)
         else:
             st.sidebar.error("Nenhuma UO cadastrada.")
     else:
-        # Usuário normal: UO é fixa
+        # Normal user has a fixed UO
         selected_unit = assigned_unit
 
-    # Se uma UO foi selecionada/atribuída, inicializa a sessão com seus IDs
-    if selected_unit:
+    # If a UO is selected/assigned, initialize the session with its IDs
+    if selected_unit and selected_unit != "Selecione uma UO...":
+        # Initialize the session and display the main content
         if initialize_unit_session(selected_unit):
-            # Exibe a página principal somente se a sessão da UO foi carregada com sucesso
+            st.sidebar.success(f"Visão da UO: **{selected_unit}**")
             show_homepage_for_role(role)
+        else:
+            # Error is shown by initialize_unit_session
+            pass 
+    elif role == 'admin' and assigned_unit == '*':
+         st.info("Por favor, selecione uma Unidade Operacional na barra lateral para começar.")
     else:
-        st.error("Nenhuma Unidade Operacional associada a este usuário.")
+        st.error("Nenhuma Unidade Operacional está associada a este usuário ou falha ao carregar a configuração.")
 
-if __name__ == "__main__":
-    main()
-    st.caption('Copyright 2024, Cristian Ferreira Carlos, Todos os direitos reservados.')
-    st.caption('https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/')
+# --- Main execution block ---
+# This top-level logic routes the user to the login page or the main app
+if not is_user_logged_in():
+    show_login_page()
+else:
+    run_app()
 
-
-if __name__ == "__main__":
-    main()
-    st.caption('Copyright 2024, Cristian Ferreira Carlos, Todos os direitos reservados.')
-    st.caption('https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/')
+# Footer (optional, but was in the original file)
+st.caption('Copyright 2024, Cristian Ferreira Carlos, Todos os direitos reservados.')
+st.caption('https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/')
