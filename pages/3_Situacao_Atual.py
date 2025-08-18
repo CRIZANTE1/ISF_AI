@@ -11,7 +11,7 @@ from streamlit_js_eval import streamlit_js_eval
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data, find_last_record
 from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import is_admin, can_edit, can_view
+from auth.auth_utils import is_admin, can_edit, can_view, setup_sidebar 
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
 from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
@@ -363,6 +363,11 @@ def action_form(item, df_full_history, location):
                 st.error("Falha ao registrar a ação.")
 
 def show_dashboard_page():
+
+    if not setup_sidebar():
+        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
+        st.stop()
+        
     st.title("Situação Atual dos Equipamentos de Emergência")
       
     if st.button("Limpar Cache e Recarregar Dados"):
