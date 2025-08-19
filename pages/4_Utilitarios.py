@@ -13,7 +13,7 @@ from streamlit_js_eval import streamlit_js_eval
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import can_edit, get_user_display_name, setup_sidebar  # Usando a nova lógica de permissões
+from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
 from operations.history import load_sheet_data
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME,
