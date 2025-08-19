@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
-from config.page_config import set_page_config 
+from config.page_config import set_page_config
 
 set_page_config()
 
@@ -18,6 +18,23 @@ from gdrive.config import (
     LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME, LOG_EYEWASH_SHEET_NAME
 )
 
+# --- CORREÇÃO APLICADA AQUI ---
+# O dicionário ALL_COLUMNS foi movido para fora da função, tornando-se uma constante do módulo.
+ALL_COLUMNS = {
+    # Comuns
+    'data_inspecao': 'Data Inspeção', 'status_geral': 'Status', 'inspetor': 'Inspetor',
+    'data_proxima_inspecao': 'Próx. Inspeção', 'data_servico': 'Data Serviço', 'numero_identificacao': 'ID Equip.',
+    'tipo_servico': 'Tipo Serviço', 'aprovado_inspecao': 'Status', 'plano_de_acao': 'Plano de Ação',
+    'link_relatorio_pdf': 'Relatório (PDF)', 'id_mangueira': 'ID Mangueira', 'data_proximo_teste': 'Próx. Teste',
+    'link_certificado_pdf': 'Certificado (PDF)', 'data_teste': 'Data Teste', 'numero_serie_equipamento': 'S/N Equip.',
+    'resultado_final': 'Resultado', 'id_abrigo': 'ID Abrigo', 'cliente': 'Cliente', 'local': 'Local',
+    'itens_json': 'Inventário (JSON)', 'id_equipamento': 'ID Equipamento', 'localizacao': 'Localização',
+    # Logs
+    'data_acao': 'Data Ação', 'problema_original': 'Problema', 'acao_realizada': 'Ação Realizada',
+    'responsavel': 'Responsável', 'responsavel_acao': 'Responsável'
+}
+# -----------------------------
+
 def format_dataframe_for_display(df, sheet_name):
     """
     Prepara o DataFrame para exibição, renomeando colunas e selecionando as mais importantes.
@@ -27,21 +44,7 @@ def format_dataframe_for_display(df, sheet_name):
     
     df = df.copy()
 
-    ALL_COLUMNS = {
-        # Comuns
-        'data_inspecao': 'Data Inspeção', 'status_geral': 'Status', 'inspetor': 'Inspetor', 
-        'data_proxima_inspecao': 'Próx. Inspeção', 'data_servico': 'Data Serviço', 'numero_identificacao': 'ID Equip.',
-        'tipo_servico': 'Tipo Serviço', 'aprovado_inspecao': 'Status', 'plano_de_acao': 'Plano de Ação', 
-        'link_relatorio_pdf': 'Relatório (PDF)', 'id_mangueira': 'ID Mangueira', 'data_proximo_teste': 'Próx. Teste',
-        'link_certificado_pdf': 'Certificado (PDF)', 'data_teste': 'Data Teste', 'numero_serie_equipamento': 'S/N Equip.',
-        'resultado_final': 'Resultado', 'id_abrigo': 'ID Abrigo', 'cliente': 'Cliente', 'local': 'Local', 
-        'itens_json': 'Inventário (JSON)', 'id_equipamento': 'ID Equipamento', 'localizacao': 'Localização',
-        # Logs
-        'data_acao': 'Data Ação', 'problema_original': 'Problema', 'acao_realizada': 'Ação Realizada', 
-        'responsavel': 'Responsável', 'responsavel_acao': 'Responsável'
-    }
-
-    # Definição das colunas a serem exibidas para cada tipo de planilha
+    # Este dicionário agora está definido fora, mas a função ainda pode acessá-lo.
     SHEET_VIEW_COLUMNS = {
         EXTINGUISHER_SHEET_NAME: ['data_servico', 'numero_identificacao', 'tipo_servico', 'aprovado_inspecao', 'plano_de_acao', 'link_relatorio_pdf'],
         HOSE_SHEET_NAME: ['id_mangueira', 'data_inspecao', 'data_proximo_teste', 'resultado', 'link_certificado_pdf'],
@@ -59,6 +62,7 @@ def format_dataframe_for_display(df, sheet_name):
 
     cols_to_show = SHEET_VIEW_COLUMNS.get(sheet_name, df.columns.tolist())
     final_cols = [col for col in cols_to_show if col in df.columns]
+    # A função usa a constante ALL_COLUMNS do escopo do módulo para renomear.
     renamed_df = df[final_cols].rename(columns=ALL_COLUMNS)
     
     return renamed_df
@@ -75,9 +79,8 @@ def display_formatted_dataframe(sheet_name):
 
     column_config = {}
     for col_name in df_formatted.columns:
-        if "PDF" in col_name or "Certificado" in col_name or "Link" in col_name:
-            # Encontra a coluna original no DataFrame antes da renomeação para buscar o link
-            original_col_name = next((key for key, value in format_dataframe_for_display.ALL_COLUMNS.items() if value == col_name), col_name)
+        # A lógica para links clicáveis pode ser simplificada
+        if "PDF" in col_name or "Certificado" in col_name:
             column_config[col_name] = st.column_config.LinkColumn(
                 col_name, display_text="🔗 Ver Documento"
             )
