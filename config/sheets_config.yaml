@@ -137,4 +137,6 @@ chuveiros_lava_olhos:
   - marca
   - modelo
   - data_cadastro
+  - data_instalacao      
+  - status_operacional  
   
