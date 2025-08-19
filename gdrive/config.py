@@ -6,8 +6,8 @@ import streamlit as st
 
 # --- CONFIGURAÇÃO DA PLANILHA MATRIZ ---
 # Este é o ID da sua planilha principal, que contém as abas 'adm' e 'unidades'.
-MATRIX_SHEETS_ID = "1N4UHZ9cF8kS2wNedy9UKRHuuiq-pTrkG_gnH-OuQcgk" # Mantenha o seu ID da planilha matriz
-CENTRAL_DRIVE_FOLDER_ID = "1MhWdSOY6KntCc29HW47rWqC19_PPByPS" 
+MATRIX_SHEETS_ID = "1-S6QnA3e3-3-7ChxCqrUUtOMIdaD8lNE89vilBFy-O0" # Mantenha o seu ID da planilha matriz
+CENTRAL_DRIVE_FOLDER_ID = "1FLoqUSwF_9v-j8a8bZMaRAvrC-7Oklm_" 
 
 
 # --- Nomes das Abas na Planilha MATRIZ ---
