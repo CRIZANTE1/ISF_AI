@@ -14,7 +14,7 @@ from auth.login_page import show_login_page, show_user_header, show_logout_butto
 from auth.auth_utils import is_admin, can_edit, can_view, setup_sidebar 
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
-from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
+from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
 from operations.corrective_actions import save_corrective_action
@@ -24,6 +24,28 @@ from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 
 set_page_config()
+
+def get_eyewash_status_df(df_inspections):
+    if df_inspections.empty:
+        return pd.DataFrame()
+
+    # Garante que a coluna de data é do tipo datetime
+    df_inspections['data_inspecao'] = pd.to_datetime(df_inspections['data_inspecao'], errors='coerce')
+    
+    # Pega o último registro para cada equipamento
+    latest_inspections = df_inspections.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_equipamento', keep='first').copy()
+    
+    today = pd.Timestamp(date.today())
+    latest_inspections['data_proxima_inspecao'] = pd.to_datetime(latest_inspections['data_proxima_inspecao'], errors='coerce')
+    
+    conditions = [
+        (latest_inspections['data_proxima_inspecao'] < today),
+        (latest_inspections['status_geral'] == 'Reprovado com Pendências')
+    ]
+    choices = ['🔴 VENCIDO', '🟠 COM PENDÊNCIAS']
+    latest_inspections['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
+    
+    return latest_inspections
 
 def get_scba_status_df(df_scba_main, df_scba_visual):
     if df_scba_main.empty:
@@ -374,7 +396,9 @@ def show_dashboard_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba = st.tabs(["🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo"])
+    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash = st.tabs([
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos"
+    ])
 
     location = streamlit_js_eval(js_expressions="""
         new Promise(function(resolve, reject) {
