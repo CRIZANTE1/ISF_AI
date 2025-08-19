@@ -130,4 +130,11 @@ inspecoes_chuveiros_lava_olhos:
   - resultados_json
   - inspetor
   - data_proxima_inspecao
+
+chuveiros_lava_olhos:
+  - id_equipamento
+  - localizacao
+  - marca
+  - modelo
+  - data_cadastro
   
