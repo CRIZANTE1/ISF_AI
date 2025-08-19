@@ -6,21 +6,20 @@ import yaml
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
-# Adiciona o diretório raiz ao path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from auth.auth_utils import get_user_info, get_matrix_data, setup_sidebar
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
     UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID,
-    EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME
+    EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, 
+    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME
 )
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 
 set_page_config()
 
-# --- Carrega a configuração da estrutura da planilha do arquivo YAML ---
 @st.cache_data
 def load_sheets_config():
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'sheets_config.yaml')
@@ -36,14 +35,14 @@ def load_sheets_config():
 
 DEFAULT_SHEETS_CONFIG = load_sheets_config()
 
-# --- FUNÇÃO ROBUSTA PARA O DASHBOARD GLOBAL ---
 @st.cache_data(ttl=900)
 def get_global_status_summary(units_df):
     """
     Busca e consolida o status de TODOS os tipos de equipamentos de todas as UOs.
     """
+    # Adicionado "Eyewash" ao dicionário de resumos
     all_summaries = {
-        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": []
+        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": [], "Eyewash": []
     }
     today = pd.Timestamp.today().date()
     progress_bar = st.progress(0, "Iniciando consolidação de dados...")
@@ -96,7 +95,6 @@ def get_global_status_summary(units_df):
             st.warning(f"Falha ao processar Abrigos da UO '{unit_name}': {e}", icon="🧯")
             all_summaries["Abrigos"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
             
-        # 4. Processar SCBA
         try:
             data = uploader.get_data_from_sheet(SCBA_VISUAL_INSPECTIONS_SHEET_NAME)
             if data and len(data) > 1:
@@ -108,14 +106,25 @@ def get_global_status_summary(units_df):
         except Exception as e:
             st.warning(f"Falha ao processar SCBA da UO '{unit_name}': {e}", icon="💨")
             all_summaries["SCBA"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        
+        try:
+            data = uploader.get_data_from_sheet(EYEWASH_INSPECTIONS_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                latest = df.dropna(subset=['id_equipamento']).sort_values('data_inspecao', ascending=False).drop_duplicates('id_equipamento', keep='first')
+                pending = latest[latest['status_geral'] == 'Reprovado com Pendências'].shape[0] if 'status_geral' in latest.columns else 0
+                all_summaries["Eyewash"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else:
+                all_summaries["Eyewash"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar Chuveiros/Lava-Olhos da UO '{unit_name}': {e}", icon="🚿")
+            all_summaries["Eyewash"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
 
     progress_bar.empty()
     for key, data in all_summaries.items():
         all_summaries[key] = pd.DataFrame(data) if data else pd.DataFrame(columns=['Unidade Operacional', 'OK', 'Com Pendência'])
     return all_summaries
 
-
-# --- DIALOGS PARA GESTÃO DE USUÁRIOS ---
 @st.dialog("Adicionar Novo Usuário")
 def add_user_dialog():
     with st.form("new_user_form"):
@@ -152,6 +161,7 @@ def confirm_delete_dialog(user_data, df):
         st.success(f"Usuário '{user_data['email']}' removido."); st.cache_data.clear(); st.rerun()
     if col2.button("Cancelar", use_container_width=True): st.rerun()
 
+
 def show_admin_page():
     is_uo_selected = setup_sidebar()
     st.title("👑 Painel de Controle do Super Administrador")
@@ -178,44 +188,43 @@ def show_admin_page():
                 with st.spinner("Buscando e consolidando dados de todas as planilhas..."):
                     all_summaries = get_global_status_summary(units_df)
                 
-                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba = st.tabs([
-                    "📈 Visão Geral Consolidada", "🔥 Extintores (Detalhes)", "💧 Mangueiras (Detalhes)", 
-                    "🧯 Abrigos (Detalhes)", "💨 SCBA (Detalhes)"
+                # Adicionada nova aba para Chuveiros/Lava-Olhos
+                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba, tab_eyewash = st.tabs([
+                    "📈 Visão Geral", "🔥 Extintores", "💧 Mangueiras", 
+                    "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos"
                 ])
                 
                 with tab_overview:
                     st.subheader("Painel de Pendências Globais")
                     st.info("Resumo das pendências (equipamentos vencidos ou não conformes) em todas as UOs.")
 
-                    # Extrai os dados de pendência de cada DataFrame
                     df_ext_pending = all_summaries.get("Extintores", pd.DataFrame()).rename(columns={"Com Pendência": "Extintores"})
                     df_hose_pending = all_summaries.get("Mangueiras", pd.DataFrame()).rename(columns={"Com Pendência": "Mangueiras"})
                     df_shelter_pending = all_summaries.get("Abrigos", pd.DataFrame()).rename(columns={"Com Pendência": "Abrigos"})
                     df_scba_pending = all_summaries.get("SCBA", pd.DataFrame()).rename(columns={"Com Pendência": "SCBA"})
+                    df_eyewash_pending = all_summaries.get("Eyewash", pd.DataFrame()).rename(columns={"Com Pendência": "Lava-Olhos"})
 
-                    # Junta tudo em um único DataFrame para o gráfico
-                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending]
+                    # Adicionada a nova lista
+                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending]
                     df_pending_consolidated = pd.DataFrame(columns=['Unidade Operacional'])
                     
                     for df in df_list:
                         if not df.empty and 'Unidade Operacional' in df.columns:
-                           # Seleciona apenas as colunas relevantes para o merge
-                           cols_to_merge = [col for col in ['Unidade Operacional', 'Extintores', 'Mangueiras', 'Abrigos', 'SCBA'] if col in df.columns]
+                           cols_to_merge = [col for col in ['Unidade Operacional', 'Extintores', 'Mangueiras', 'Abrigos', 'SCBA', 'Lava-Olhos'] if col in df.columns]
                            df_pending_consolidated = pd.merge(df_pending_consolidated, df[cols_to_merge], on='Unidade Operacional', how='outer')
 
                     df_pending_consolidated = df_pending_consolidated.set_index('Unidade Operacional').fillna(0).astype(int)
                     
-                    # 1. Exibe as métricas totais de pendências
                     st.markdown("##### Total de Pendências por Categoria")
-                    cols = st.columns(4)
+                    cols = st.columns(5)
                     cols[0].metric("🔥 Extintores", df_pending_consolidated['Extintores'].sum())
                     cols[1].metric("💧 Mangueiras", df_pending_consolidated['Mangueiras'].sum())
                     cols[2].metric("🧯 Abrigos", df_pending_consolidated['Abrigos'].sum())
                     cols[3].metric("💨 SCBA", df_pending_consolidated['SCBA'].sum())
+                    cols[4].metric("🚿 Lava-Olhos", df_pending_consolidated['Lava-Olhos'].sum())
                     
                     st.markdown("---")
 
-                    # 2. Exibe o gráfico de barras consolidado
                     st.subheader("Gráfico de Pendências por Unidade Operacional")
                     if not df_pending_consolidated.empty:
                         st.bar_chart(df_pending_consolidated)
@@ -225,7 +234,6 @@ def show_admin_page():
                     with st.expander("Ver tabela de dados de pendências consolidada"):
                         st.dataframe(df_pending_consolidated, use_container_width=True)
 
-                # Função auxiliar para as abas de detalhes (sem alteração)
                 def display_summary(summary_df, name):
                     if summary_df is None or summary_df.empty or (summary_df['OK'].sum() == 0 and summary_df['Com Pendência'].sum() == 0):
                         st.info(f"Nenhum dado de {name.lower()} encontrado para consolidar."); return
@@ -237,12 +245,12 @@ def show_admin_page():
                     st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
                     with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, use_container_width=True)
                 
-                # Abas de detalhes
                 with tab_ext: display_summary(all_summaries.get("Extintores"), "Extintores")
                 with tab_hose: display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
                 with tab_shelter: display_summary(all_summaries.get("Abrigos"), "Abrigos")
                 with tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
-
+                with tab_eyewash: display_summary(all_summaries.get("Eyewash"), "Chuveiros e Lava-Olhos")
+                    
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
         if st.button("➕ Adicionar Novo Usuário", type="primary"): add_user_dialog()
