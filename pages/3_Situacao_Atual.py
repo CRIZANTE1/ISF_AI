@@ -13,7 +13,9 @@ from operations.history import load_sheet_data, find_last_record
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from auth.auth_utils import is_admin, can_edit, can_view, setup_sidebar 
 from operations.demo_page import show_demo_page
-from config.page_config import set_page_config 
+from config.page_config import set_page_config
+from operations.eyewash_operations import CHECKLIST_QUESTIONS
+
 from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
@@ -22,6 +24,8 @@ from reports.reports_pdf import generate_shelters_html
 from operations.photo_operations import upload_evidence_photo
 from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
+from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
+
 
 set_page_config()
 
@@ -234,6 +238,52 @@ def get_consolidated_status_df(df_full, df_locais):
         dashboard_df['status_instalacao'] = "⚠️ Local não definido"
         
     return dashboard_df
+
+
+@st.dialog("Registrar Ação Corretiva para Chuveiro / Lava-Olhos")
+def action_dialog_eyewash(item_row):
+    equipment_id = item_row['id_equipamento']
+    problem = item_row['plano_de_acao']
+    
+    st.write(f"**Equipamento ID:** `{equipment_id}`")
+    st.write(f"**Problema Identificado:** `{problem}`")
+    
+    action_taken = st.text_area("Descreva a ação corretiva realizada:")
+    responsible = st.text_input("Responsável pela ação:", value=get_user_display_name())
+    
+    st.markdown("---")
+    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
+    photo_evidence = st.file_uploader("Foto da Evidência", type=["jpg", "jpeg", "png"])
+    
+    if st.button("Salvar Ação e Regularizar Status", type="primary"):
+        if not action_taken:
+            st.error("Por favor, descreva a ação realizada.")
+            return
+
+        with st.spinner("Registrando ação e regularizando status..."):
+            log_saved = save_eyewash_action_log(equipment_id, problem, action_taken, responsible, photo_evidence)
+            
+            if not log_saved:
+                st.error("Falha ao salvar o log da ação. O status não foi atualizado.")
+                return
+
+            mock_results = {q: "Conforme" for q_list in CHECKLIST_QUESTIONS.values() for q in q_list}
+            
+            inspection_saved = save_eyewash_inspection(
+                equipment_id=equipment_id,
+                overall_status="Aprovado",
+                results_dict=mock_results,
+                photo_file=None, # Não há foto de não conformidade, pois está tudo OK
+                inspector_name=get_user_display_name()
+            )
+            
+            if inspection_saved:
+                st.success("Ação registrada e status do equipamento regularizado com sucesso!")
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("Log salvo, mas falha ao registrar a nova inspeção de regularização. O status pode continuar pendente.")
+
 
 @st.dialog("Registrar Ação Corretiva para SCBA")
 def action_dialog_scba(equipment_id, problem):
@@ -712,10 +762,8 @@ def show_dashboard_page():
                         st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
                         
                         if status == "🟠 COM PENDÊNCIAS":
-                            # AINDA NÃO IMPLEMENTADO - Futuramente, criar um dialog de ação corretiva aqui
-                            st.info("Funcionalidade de registrar ação corretiva para este item em desenvolvimento.")
-                            # if st.button("✍️ Registrar Ação Corretiva", key=f"action_eyewash_{row['id_equipamento']}"):
-                            #     action_dialog_eyewash(row) # Função a ser criada
+                            if st.button("✍️ Registrar Ação Corretiva", key=f"action_eyewash_{row['id_equipamento']}"):
+                                action_dialog_eyewash(row.to_dict()) # Passa a linha inteira como um dicionário
         
                         st.markdown("---")
                         st.write("**Detalhes da Última Inspeção:**")
