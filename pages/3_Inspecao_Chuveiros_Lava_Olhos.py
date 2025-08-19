@@ -20,6 +20,11 @@ from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME
 set_page_config()
 
 def show_eyewash_page():
+
+    if not setup_sidebar():
+        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
+        st.stop()
+        
     st.title("🚿 Gestão de Chuveiros e Lava-Olhos de Emergência")
 
     tab_inspection, tab_register = st.tabs(["📋 Realizar Inspeção", "➕ Cadastrar Novo Equipamento"])
