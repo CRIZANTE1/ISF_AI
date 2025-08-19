@@ -138,5 +138,13 @@ chuveiros_lava_olhos:
   - modelo
   - data_cadastro
   - data_instalacao      
-  - status_operacional  
+  - status_operacional
+
+log_acoes_chuveiros:
+  - data_acao
+  - id_equipamento
+  - problema_original
+  - acao_realizada
+  - responsavel
+  - link_foto_evidencia  
   
