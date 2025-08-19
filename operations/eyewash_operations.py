@@ -7,6 +7,27 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from operations.photo_operations import upload_evidence_photo
 
+
+CHECKLIST_QUESTIONS = {
+    "Condições Gerais": [
+        "A VAZÃO DO CHUVEIRO ESTÁ ADEQUADA?",
+        "A PRESSÃO ESTÁ ADEQUADA?",
+        "A PINTURA ESTA ÍNTEGRA?",
+        "OPERAÇÃO DAS VÁLVULAS – ACIONAMENTO POSSUI VAZAMENTO?",
+        "O ACESSO ESTÁ LIVRE?",
+        "NIVELAMENTO POSSUI DESNÍVEL?",
+        "A DRENAGEM DE ÁGUA FUNCIONA?",
+        "O CRIVO ESTÁ DESOBISTRUIDO E BEM FIXADO?",
+        "O FILTRO ESTÁ LIMPO?",
+        "O REGULADOR DE PRESSÃO FUNCIONA CORRETAMENTE?",
+        "O PISO POSSUI ADERÊNCIA?",
+        "OS EMPREGADOS SÃO CAPACITADOS PARA UTILIZÁ-LOS?",
+        "O EQUIPAMENTO POSSUI CORROSÃO?",
+        "EXISTE PINTURA DO PISO SOB/EM VOLTA DA ESTAÇÃO?",
+        "OS ESGUICHOS POSSUEM DEFEITOS?",
+        "O PISO ESTÁ DANIFICADO?"
+    ]
+}
 ACTION_PLAN_MAP = {
     "A VAZÃO DO CHUVEIRO ESTÁ ADEQUADA?": "Verificar e desobstruir a linha de suprimento ou ajustar a válvula de vazão.",
     "A PRESSÃO ESTÁ ADEQUADA?": "Verificar a pressão na linha de entrada e ajustar o regulador de pressão, se aplicável.",
