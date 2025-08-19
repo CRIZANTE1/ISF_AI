@@ -11,7 +11,7 @@ from operations.eyewash_operations import (
     save_new_eyewash_station, 
     CHECKLIST_QUESTIONS
 )
-from auth.auth_utils import can_edit, get_user_display_name
+from auth.auth_utils import can_edit, get_user_display_name, setup_sidebar
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
@@ -21,7 +21,7 @@ set_page_config()
 
 def show_eyewash_page():
 
-    if not setup_sidebar():
+    if not setup_sidebar(): # Esta linha agora funcionará corretamente
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
         st.stop()
         
