@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import EYEWASH_INSPECTIONS_SHEET_NAME
+from gdrive.config import EYEWASH_INSPECTIONS_SHEET_NAME, EYEWASH_INVENTORY_SHEET_NAME
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from operations.photo_operations import upload_evidence_photo
