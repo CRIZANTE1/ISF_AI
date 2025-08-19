@@ -20,8 +20,8 @@ from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME
 set_page_config()
 
 def show_eyewash_page():
-
-    if not setup_sidebar(): # Esta linha agora funcionará corretamente
+    # Esta verificação inicial está correta
+    if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
         st.stop()
         
@@ -33,66 +33,65 @@ def show_eyewash_page():
     with tab_inspection:
         st.header("Realizar Inspeção Periódica")
         
-        # Carrega a lista de equipamentos cadastrados
         df_inventory = load_sheet_data(EYEWASH_INVENTORY_SHEET_NAME)
         
+        # --- LÓGICA CORRIGIDA AQUI ---
         if df_inventory.empty:
             st.warning("Nenhum equipamento cadastrado. Vá para a aba 'Cadastrar Novo Equipamento' para começar.")
-            st.stop()
-        
-        # Cria a lista de opções para o selectbox
-        equipment_options = df_inventory['id_equipamento'].tolist()
-        options = ["Selecione um equipamento..."] + sorted(equipment_options)
-        
-        selected_equipment_id = st.selectbox("Selecione o Equipamento para Inspecionar", options)
+            # O st.stop() foi removido daqui para permitir que a outra aba seja renderizada.
+        else:
+            # Todo o conteúdo da inspeção agora fica dentro do 'else'
+            equipment_options = df_inventory['id_equipamento'].tolist()
+            options = ["Selecione um equipamento..."] + sorted(equipment_options)
+            
+            selected_equipment_id = st.selectbox("Selecione o Equipamento para Inspecionar", options)
 
-        if selected_equipment_id != "Selecione um equipamento...":
-            # Exibe a localização do equipamento selecionado para confirmação
-            location = df_inventory[df_inventory['id_equipamento'] == selected_equipment_id].iloc[0].get('localizacao', 'N/A')
-            st.info(f"**Localização:** {location}")
-            
-            st.markdown("---")
-            
-            with st.form(key=f"inspection_form_{selected_equipment_id}"):
-                inspection_results = {}
-                non_conformities_found = []
-                
-                for category, questions in CHECKLIST_QUESTIONS.items():
-                    st.subheader(category)
-                    for question in questions:
-                        key = f"{selected_equipment_id}_{question}".replace(" ", "_").replace("?", "")
-                        answer = st.radio(
-                            label=question, options=["Conforme", "Não Conforme", "N/A"],
-                            key=key, horizontal=True
-                        )
-                        inspection_results[question] = answer
-                        if answer == "Não Conforme":
-                            non_conformities_found.append(question)
+            if selected_equipment_id != "Selecione um equipamento...":
+                location = df_inventory[df_inventory['id_equipamento'] == selected_equipment_id].iloc[0].get('localizacao', 'N/A')
+                st.info(f"**Localização:** {location}")
                 
                 st.markdown("---")
                 
-                photo_file = None
-                if non_conformities_found:
-                    st.warning(f"Foram encontradas {len(non_conformities_found)} não conformidades. Por favor, anexe uma foto como evidência.")
-                    photo_file = st.file_uploader("Anexar foto da não conformidade", type=["jpg", "jpeg", "png"], key=f"photo_{selected_equipment_id}")
+                with st.form(key=f"inspection_form_{selected_equipment_id}"):
+                    inspection_results = {}
+                    non_conformities_found = []
+                    
+                    for category, questions in CHECKLIST_QUESTIONS.items():
+                        st.subheader(category)
+                        for question in questions:
+                            key = f"{selected_equipment_id}_{question}".replace(" ", "_").replace("?", "")
+                            answer = st.radio(
+                                label=question, options=["Conforme", "Não Conforme", "N/A"],
+                                key=key, horizontal=True
+                            )
+                            inspection_results[question] = answer
+                            if answer == "Não Conforme":
+                                non_conformities_found.append(question)
+                    
+                    st.markdown("---")
+                    
+                    photo_file = None
+                    if non_conformities_found:
+                        st.warning(f"Foram encontradas {len(non_conformities_found)} não conformidades. Por favor, anexe uma foto como evidência.")
+                        photo_file = st.file_uploader("Anexar foto da não conformidade", type=["jpg", "jpeg", "png"], key=f"photo_{selected_equipment_id}")
 
-                submitted = st.form_submit_button("✅ Salvar Inspeção", type="primary", use_container_width=True)
+                    submitted = st.form_submit_button("✅ Salvar Inspeção", type="primary", use_container_width=True)
 
-                if submitted:
-                    if non_conformities_found and not photo_file:
-                        st.error("É obrigatório anexar uma foto quando há não conformidades.")
-                    else:
-                        overall_status = "Reprovado com Pendências" if non_conformities_found else "Aprovado"
-                        with st.spinner("Salvando inspeção..."):
-                            if save_eyewash_inspection(selected_equipment_id, overall_status, inspection_results, photo_file, get_user_display_name()):
-                                st.success(f"Inspeção para '{selected_equipment_id}' salva com sucesso!")
-                                st.balloons() if not non_conformities_found else None
-                                st.cache_data.clear()
-                                st.rerun()
-                            else:
-                                st.error("Ocorreu um erro ao salvar a inspeção.")
+                    if submitted:
+                        if non_conformities_found and not photo_file:
+                            st.error("É obrigatório anexar uma foto quando há não conformidades.")
+                        else:
+                            overall_status = "Reprovado com Pendências" if non_conformities_found else "Aprovado"
+                            with st.spinner("Salvando inspeção..."):
+                                if save_eyewash_inspection(selected_equipment_id, overall_status, inspection_results, photo_file, get_user_display_name()):
+                                    st.success(f"Inspeção para '{selected_equipment_id}' salva com sucesso!")
+                                    st.balloons() if not non_conformities_found else None
+                                    st.cache_data.clear()
+                                    st.rerun()
+                                else:
+                                    st.error("Ocorreu um erro ao salvar a inspeção.")
 
-    # --- ABA DE CADASTRO ---
+    # --- ABA DE CADASTRO (Esta parte agora será sempre executada) ---
     with tab_register:
         st.header("Cadastrar Novo Chuveiro / Lava-Olhos")
         
@@ -112,8 +111,8 @@ def show_eyewash_page():
                     with st.spinner("Cadastrando novo equipamento..."):
                         if save_new_eyewash_station(new_id, new_location, new_brand, new_model):
                             st.success(f"Equipamento '{new_id}' cadastrado com sucesso!")
-                            st.cache_data.clear() # Limpa o cache para atualizar a lista na outra aba
-                        # A mensagem de erro já é tratada dentro da função save_new_eyewash_station
+                            st.cache_data.clear()
+                        # A mensagem de erro já é tratada dentro da função
 
 # --- Verificação de Permissão ---
 if can_edit():
