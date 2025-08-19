@@ -1,19 +1,53 @@
 import streamlit as st
 import json
+import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import EYEWASH_INSPECTIONS_SHEET_NAME
 from datetime import date
 from dateutil.relativedelta import relativedelta
+from operations.photo_operations import upload_evidence_photo
 
-def save_eyewash_inspection(equipment_id, overall_status, results_dict, inspector_name):
-    """
-    Salva o resultado de uma inspeção de chuveiro/lava-olhos e calcula a próxima data.
-    """
+ACTION_PLAN_MAP = {
+    "A VAZÃO DO CHUVEIRO ESTÁ ADEQUADA?": "Verificar e desobstruir a linha de suprimento ou ajustar a válvula de vazão.",
+    "A PRESSÃO ESTÁ ADEQUADA?": "Verificar a pressão na linha de entrada e ajustar o regulador de pressão, se aplicável.",
+    "A PINTURA ESTA ÍNTEGRA?": "Programar serviço de lixamento e repintura do equipamento.",
+    "OPERAÇÃO DAS VÁLVULAS – ACIONAMENTO POSSUI VAZAMENTO?": "Substituir as gaxetas ou o reparo da válvula com vazamento.",
+    "O ACESSO ESTÁ LIVRE?": "Remover obstruções e garantir corredor de acesso livre conforme norma.",
+    "NIVELAMENTO POSSUI DESNÍVEL?": "Realinhar e fixar a base do equipamento para garantir o nivelamento correto.",
+    "A DRENAGEM DE ÁGUA FUNCIONA?": "Desobstruir o ralo ou a tubulação de drenagem.",
+    "O CRIVO ESTÁ DESOBISTRUIDO E BEM FIXADO?": "Realizar a limpeza do crivo e reapertar suas fixações.",
+    "O FILTRO ESTÁ LIMPO?": "Remover, limpar e reinstalar o filtro da linha de água.",
+    "O REGULADOR DE PRESSÃO FUNCIONA CORRETAMENTE?": "Testar e, se necessário, substituir o regulador de pressão.",
+    "O PISO POSSUI ADERÊNCIA?": "Aplicar tratamento antiderrapante ou substituir o revestimento do piso.",
+    "OS EMPREGADOS SÃO CAPACITADOS PARA UTILIZÁ-LOS?": "Incluir treinamento sobre o uso do equipamento no próximo DDS ou treinamento da CIPA.",
+    "O EQUIPAMENTO POSSUI CORROSÃO?": "Avaliar a extensão da corrosão. Programar serviço de tratamento e repintura.",
+    "EXISTE PINTURA DO PISO SOB/EM VOLTA DA ESTAÇÃO?": "Programar a pintura de demarcação do piso conforme norma.",
+    "OS ESGUICHOS POSSUEM DEFEITOS?": "Limpar ou substituir os esguichos/bocais do lava-olhos.",
+    "O PISO ESTÁ DANIFICADO?": "Programar o reparo ou a substituição da área danificada do piso."
+}
+
+def generate_eyewash_action_plan(non_conformities):
+    """Gera um plano de ação consolidado para uma lista de não conformidades."""
+    if not non_conformities:
+        return "Manter em monitoramento periódico."
+    
+    # Pega o plano de ação da primeira não conformidade encontrada
+    first_issue = non_conformities[0]
+    return ACTION_PLAN_MAP.get(first_issue, "Corrigir a não conformidade reportada.")
+
+def save_eyewash_inspection(equipment_id, overall_status, results_dict, photo_file, inspector_name):
+    """Salva a inspeção, incluindo plano de ação e foto."""
     try:
         uploader = GoogleDriveUploader()
         today = date.today()
-        # Define a próxima inspeção para daqui a 1 mês
         next_inspection_date = (today + relativedelta(months=1)).isoformat()
+        
+        # Faz o upload da foto, se houver
+        photo_link = upload_evidence_photo(photo_file, equipment_id, "nao_conformidade_chuveiro")
+
+        # Gera o plano de ação
+        non_conformities = [q for q, status in results_dict.items() if status == "Não Conforme"]
+        action_plan = generate_eyewash_action_plan(non_conformities)
         
         results_json = json.dumps(results_dict, ensure_ascii=False)
 
@@ -21,7 +55,9 @@ def save_eyewash_inspection(equipment_id, overall_status, results_dict, inspecto
             today.isoformat(),
             equipment_id,
             overall_status,
+            action_plan,
             results_json,
+            photo_link,
             inspector_name,
             next_inspection_date
         ]
