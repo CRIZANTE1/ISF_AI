@@ -122,3 +122,12 @@ log_remessas_extintores:
   - numero_identificacao
   - ano_remessa
   - numero_boletim
+  
+inspecoes_chuveiros_lava_olhos:
+  - data_inspecao    
+  - id_equipamento
+  - status_geral
+  - resultados_json
+  - inspetor
+  - data_proxima_inspecao
+  
