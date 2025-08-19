@@ -13,7 +13,7 @@ from auth.auth_utils import can_edit, setup_sidebar
 from operations.demo_page import show_demo_page
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SHELTER_SHEET_NAME,
-    INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
+    INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, 
     LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME
 )
 
@@ -45,6 +45,7 @@ def format_dataframe_for_display(df, sheet_name):
         SCBA_SHEET_NAME: ['numero_serie_equipamento', 'data_teste', 'resultado_final', 'data_validade', 'status_qualidade_ar', 'link_relatorio_pdf'],
         SCBA_VISUAL_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'numero_serie_equipamento', 'status_geral', 'data_proxima_inspecao'],
         LOG_ACTIONS: ['data_acao', 'id_equipamento', 'problema_original', 'acao_realizada', 'responsavel_acao'],
+        EYEWASH_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_equipamento', 'status_geral', 'inspetor', 'data_proxima_inspecao'],
         LOG_SHELTER_SHEET_NAME: ['data_acao', 'id_abrigo', 'problema_original', 'acao_realizada', 'responsavel'],
         LOG_SCBA_SHEET_NAME: ['data_acao', 'numero_serie_equipamento', 'problema_original', 'acao_realizada', 'responsavel']
     }
@@ -100,11 +101,12 @@ def show_history_page():
     tab_registros, tab_logs = st.tabs(["📜 Histórico de Registros", "📖 Logs de Ações Corretivas"])
 
     with tab_registros:
-        st.header("Histórico de Registros por Tipo de Equipamento")
-        subtabs = st.tabs([
-            "🔥 Extintores", "💧 Mangueiras", "🧯 Cadastro de Abrigos",
-            "📋 Inspeções de Abrigos", "💨 Testes de SCBA", "🩺 Inspeções de SCBA"
-        ])
+    st.header("Histórico de Registros por Tipo de Equipamento")
+    subtabs = st.tabs([
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Cadastro de Abrigos",
+        "📋 Inspeções de Abrigos", "💨 Testes de SCBA", "🩺 Inspeções de SCBA",
+        "🚿 Chuveiros/Lava-Olhos"  
+    ])
 
         with subtabs[0]: display_formatted_dataframe(EXTINGUISHER_SHEET_NAME)
         with subtabs[1]: display_formatted_dataframe(HOSE_SHEET_NAME)
@@ -112,6 +114,7 @@ def show_history_page():
         with subtabs[3]: display_formatted_dataframe(INSPECTIONS_SHELTER_SHEET_NAME)
         with subtabs[4]: display_formatted_dataframe(SCBA_SHEET_NAME)
         with subtabs[5]: display_formatted_dataframe(SCBA_VISUAL_INSPECTIONS_SHEET_NAME)
+        with subtabs[6]: display_formatted_dataframe(EYEWASH_INSPECTIONS_SHEET_NAME)    
 
     with tab_logs:
         st.header("Logs de Ações Corretivas")
