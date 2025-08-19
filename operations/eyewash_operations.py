@@ -47,6 +47,34 @@ ACTION_PLAN_MAP = {
     "O PISO ESTÁ DANIFICADO?": "Programar o reparo ou a substituição da área danificada do piso."
 }
 
+
+def save_new_eyewash_station(equipment_id, location, brand, model):
+    """Salva um novo chuveiro/lava-olhos na planilha de inventário."""
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Verifica se o ID já existe para evitar duplicatas
+        inventory_data = uploader.get_data_from_sheet(EYEWASH_INVENTORY_SHEET_NAME)
+        if inventory_data and len(inventory_data) > 1:
+            df = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
+            if equipment_id in df['id_equipamento'].values:
+                st.error(f"Erro: O ID '{equipment_id}' já está cadastrado.")
+                return False
+
+        data_row = [
+            equipment_id,
+            location,
+            brand,
+            model,
+            date.today().isoformat()
+        ]
+        
+        uploader.append_data_to_sheet(EYEWASH_INVENTORY_SHEET_NAME, data_row)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar novo equipamento: {e}")
+        return False
+        
 def generate_eyewash_action_plan(non_conformities):
     """Gera um plano de ação consolidado para uma lista de não conformidades."""
     if not non_conformities:
