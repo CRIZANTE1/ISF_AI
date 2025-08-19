@@ -11,7 +11,7 @@ from operations.eyewash_operations import (
     save_new_eyewash_station, 
     CHECKLIST_QUESTIONS
 )
-from auth.auth_utils import can_edit, get_user_display_name, setup_sidebar
+from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
