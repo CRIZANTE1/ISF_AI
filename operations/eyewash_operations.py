@@ -157,3 +157,26 @@ def generate_eyewash_action_plan(non_conformities):
     first_issue = non_conformities[0]
     return ACTION_PLAN_MAP.get(first_issue, "Corrigir a não conformidade reportada.")
 
+def save_eyewash_action_log(equipment_id, problem, action_taken, responsible, photo_file):
+    """Salva um registro de ação corretiva para um chuveiro/lava-olhos no log."""
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Faz o upload da foto de evidência da ação, se houver
+        photo_link = upload_evidence_photo(photo_file, equipment_id, "acao_corretiva_chuveiro")
+
+        data_row = [
+            date.today().isoformat(),
+            equipment_id,
+            problem,
+            action_taken,
+            responsible,
+            photo_link
+        ]
+        
+        uploader.append_data_to_sheet(LOG_EYEWASH_SHEET_NAME, data_row)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar log de ação para o equipamento {equipment_id}: {e}")
+        return False
+
