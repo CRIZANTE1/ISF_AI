@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import EYEWASH_INSPECTIONS_SHEET_NAME, EYEWASH_INVENTORY_SHEET_NAME
+from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, LOG_EYEWASH_SHEET_NAME
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from operations.photo_operations import upload_evidence_photo
@@ -48,6 +48,30 @@ ACTION_PLAN_MAP = {
 }
 
 
+
+def save_eyewash_action_log(equipment_id, problem, action_taken, responsible, photo_file):
+    """Salva um registro de ação corretiva para um chuveiro/lava-olhos no log."""
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Faz o upload da foto de evidência da ação, se houver
+        photo_link = upload_evidence_photo(photo_file, equipment_id, "acao_corretiva_chuveiro")
+
+        data_row = [
+            date.today().isoformat(),
+            equipment_id,
+            problem,
+            action_taken,
+            responsible,
+            photo_link
+        ]
+        
+        uploader.append_data_to_sheet(LOG_EYEWASH_SHEET_NAME, data_row)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar log de ação para o equipamento {equipment_id}: {e}")
+        return False
+        
 def save_new_eyewash_station(equipment_id, location, brand, model):
     """Salva um novo chuveiro/lava-olhos na planilha de inventário."""
     try:
