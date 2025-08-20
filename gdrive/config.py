@@ -15,7 +15,7 @@ ADMIN_SHEET_NAME = "adm"
 UNITS_SHEET_NAME = "unidades"
 
 # --- Nomes das Abas nas Planilhas DAS UNIDADES (permanecem os mesmos) ---
-LOCAIS_SHEET_NAME = "locais"
+LOCATIONS_SHEET_NAME = "locais"
 EXTINGUISHER_SHEET_NAME = "extintores"
 HOSE_SHEET_NAME = "mangueiras"
 SHELTER_SHEET_NAME = "abrigos"
