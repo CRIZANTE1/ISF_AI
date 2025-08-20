@@ -3,8 +3,10 @@ from streamlit_option_menu import option_menu
 import sys
 import os
 
-sys.path.append(os.path.dirname(__file__))
+# Adiciona o diretório raiz ao path para garantir que todas as importações funcionem
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# --- 1. Importe os MÓDULOS da sua pasta 'views' ---
 from views import (
     administracao,
     dashboard, 
@@ -25,8 +27,7 @@ from config.page_config import set_page_config
 set_page_config()
 
 # --- 3. Dicionário de Roteamento ---
-# Mapeia o nome que aparecerá no menu para a função que desenha a página.
-# Isso torna o código principal muito limpo.
+# Mapeia o nome do menu para a função que desenha a página.
 PAGES = {
     "Dashboard": dashboard.show_page,
     "Inspeção de Extintores": inspecao_extintores.show_page,
@@ -42,23 +43,20 @@ def main():
     # --- Gerenciamento de Login ---
     if not is_user_logged_in():
         show_login_page()
-        st.stop() # Para a execução aqui se o usuário não estiver logado
+        st.stop()
 
-    # --- Interface Comum para Todos os Usuários Logados ---
+    # --- Interface Comum ---
     show_user_header()
     
-    # A função setup_sidebar aqui apenas lida com a seleção da UO,
-    # não mais com a navegação de páginas.
+    # A função setup_sidebar agora lida com a seleção da UO E o botão de logout
     is_uo_selected = setup_sidebar()
     
-    # --- Menu de Navegação Dinâmico na Barra Lateral ---
+    # --- Menu de Navegação na Barra Lateral ---
     with st.sidebar:
         st.markdown("---")
         
-        # Lista de todas as páginas disponíveis
         page_options = list(PAGES.keys())
         
-        # Regra de negócio: A página "Super Admin" só aparece para administradores
         if not is_admin():
             page_options.remove("Super Admin")
 
@@ -68,22 +66,26 @@ def main():
             icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"],
             menu_icon="compass-fill",
             default_index=0,
+            styles={ # Estilos para um menu mais compacto
+                "container": {"padding": "0 !important", "background-color": "#262730"},
+                "icon": {"color": "#0083B8", "font-size": "20px"}, 
+                "nav-link": {"font-size": "14px", "text-align": "left", "margin":"0px", "--hover-color": "#333333"},
+                "nav-link-selected": {"background-color": "#083D5B"},
+            }
         )
         st.markdown("---")
 
     # --- Roteador Principal ---
-    # Só tenta renderizar a página se uma UO estiver selecionada
     if is_uo_selected:
-        # Busca a função no dicionário e a executa
         if selected_page in PAGES:
             PAGES[selected_page]()
         else:
-            # Se algo der errado, mostra a página padrão
             PAGES["Dashboard"]()
+    elif is_admin() and selected_page == "Super Admin":
+         # Permite que o Super Admin acesse sua página mesmo sem UO selecionada
+        PAGES["Super Admin"]()
     else:
-        # Mensagem para o usuário selecionar uma UO para começar
         st.info("👈 Por favor, selecione uma Unidade Operacional na barra lateral para carregar os dados.")
-
 
 if __name__ == "__main__":
     main()
