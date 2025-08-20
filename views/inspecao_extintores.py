@@ -22,9 +22,7 @@ from config.page_config import set_page_config
 set_page_config()
 
 def show_page():
-    if not setup_sidebar():
-        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
-        st.stop()
+    
         
     st.title("Gerenciamento de Inspeções de Extintores")
     tab_batch, tab_qr = st.tabs(["🗂️ Registro em Lote por PDF", "📱 Inspeção Rápida"])

@@ -59,9 +59,7 @@ def image_to_bytes(img: Image.Image):
 
 def show_page():
 
-    if not setup_sidebar():
-        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
-        st.stop()
+    
         
     st.title("🛠️ Utilitários do Sistema")
 

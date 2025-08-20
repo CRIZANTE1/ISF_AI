@@ -163,15 +163,9 @@ def confirm_delete_dialog(user_data, df):
 
 
 def show_page():
-    is_uo_selected = setup_sidebar()
     st.title("👑 Painel de Controle do Super Administrador")
 
-    if is_uo_selected:
-        tab_dashboard, tab_users, tab_units, tab_provision = st.tabs(["📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"])
-    else:
-        tab_users, tab_units, tab_provision = st.tabs(["👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"])
-        st.info("👈 Selecione uma Unidade Operacional na barra lateral para habilitar o Dashboard Global.")
-        tab_dashboard = None
+    tab_dashboard, tab_users, tab_units, tab_provision = st.tabs(["📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"])
 
     if tab_dashboard:
         with tab_dashboard:

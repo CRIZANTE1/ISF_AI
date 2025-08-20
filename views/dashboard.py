@@ -436,9 +436,7 @@ def action_form(item, df_full_history, location):
 
 def show_page():
 
-    if not setup_sidebar():
-        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
-        st.stop()
+    
         
     st.title("Situação Atual dos Equipamentos de Emergência")
       

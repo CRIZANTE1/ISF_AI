@@ -25,9 +25,7 @@ set_page_config()
 pdf_qa = PDFQA()
 
 def show_page():
-    if not setup_sidebar():
-        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
-        st.stop()
+    
         
     st.title("💧 Gestão de Mangueiras e Abrigos de Incêndio")
 

@@ -93,9 +93,7 @@ def display_formatted_dataframe(sheet_name):
     )
     
 def show_page():
-    if not setup_sidebar():
-        st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
-        st.stop()
+    
         
     st.title("Histórico e Logs do Sistema")
     st.info("Consulte o histórico de registros e ações para todos os equipamentos do sistema.")
