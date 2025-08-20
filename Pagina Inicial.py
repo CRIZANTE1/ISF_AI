@@ -67,18 +67,32 @@ def main():
             icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"],
             menu_icon="compass-fill",
             default_index=0,
+            # --- SUBSTITUA SEU BLOCO 'styles' POR ESTE ---
             styles={
-                "container": {"padding": "0 !important", "background-color": "#262730"},
-                "icon": {"color": "#0083B8", "font-size": "14px"}, 
-                "nav-link": {
-                    "font-size": "12px",
-                    "text-align": "left",
-                    "margin": "0px",
-                    "--hover-color": "#333333",
-                    "padding": "8px 0px 8px 15px"
+                "container": {
+                    "padding": "5px !important", # Adiciona um pequeno respiro ao redor de todo o menu
+                    "background-color": "#262730" # Sua cor de fundo preferida
                 },
-                "nav-link-selected": {"background-color": "#083D5B"},
+                "icon": {
+                    "color": "#0083B8", 
+                    "font-size": "20px" # Um pouco maior para melhor visibilidade
+                }, 
+                "nav-link": {
+                    "font-size": "15px", # 15px é um bom equilíbrio entre compacto e legível
+                    "text-align": "left",
+                    "margin":"0px",
+                    "--hover-color": "#333333",
+                    "border-radius": "5px", # Suaviza as bordas no hover e na seleção
+                },
+                "nav-link-selected": {
+                    "background-color": "#083D5B" # Sua cor de seleção preferida
+                },
+                "menu-title": {
+                     "font-size": "18px",
+                     "font-weight": "bold",
+                }
             }
+            # -----------------------------------------------
         )
         st.markdown("---")
 
