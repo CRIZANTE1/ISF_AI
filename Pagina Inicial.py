@@ -1,5 +1,10 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+import sys
+import os
+
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(__file__))
 
 # --- 1. Importe os MÓDULOS da sua nova pasta 'views' ---
 # É importante renomear os arquivos para nomes válidos em Python
