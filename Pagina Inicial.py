@@ -75,10 +75,10 @@ def main():
                 },
                 "icon": {
                     "color": "inherit", # Herda a cor do texto do tema
-                    "font-size": "20px",
+                    "font-size": "15px",
                 }, 
                 "nav-link": {
-                    "font-size": "15px",
+                    "font-size": "12px",
                     "text-align": "left",
                     "margin": "0px",
                      # Deixa o Streamlit decidir a cor do hover
