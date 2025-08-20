@@ -69,9 +69,9 @@ def main():
             default_index=0,
             styles={
                 "container": {"padding": "0 !important", "background-color": "#262730"},
-                "icon": {"color": "#0083B8", "font-size": "12px"}, 
+                "icon": {"color": "#0083B8", "font-size": "14px"}, 
                 "nav-link": {
-                    "font-size": "8px",
+                    "font-size": "12px",
                     "text-align": "left",
                     "margin": "0px",
                     "--hover-color": "#333333",
