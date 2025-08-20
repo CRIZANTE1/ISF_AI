@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import EXTINGUISHER_SHEET_NAME
+from gdrive.config import EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME 
 from AI.api_Operation import PDFQA
 from utils.prompts import get_extinguisher_inspection_prompt
 
@@ -181,3 +181,70 @@ def clean_and_prepare_ia_data(ia_item):
                 cleaned_item[key] = None
     
     return cleaned_item
+def save_new_location(location_id, description):
+    """Salva um novo local na planilha 'locais'."""
+    try:
+        uploader = GoogleDriveUploader()
+        # Verifica se o ID já existe
+        locations_data = uploader.get_data_from_sheet(LOCATIONS_SHEET_NAME)
+        if locations_data and len(locations_data) > 1:
+            df = pd.DataFrame(locations_data[1:], columns=locations_data[0])
+            if location_id in df['id_local'].values:
+                st.error(f"Erro: O ID de Local '{location_id}' já existe.")
+                return False
+        
+        uploader.append_data_to_sheet(LOCATIONS_SHEET_NAME, [location_id, description])
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar novo local: {e}")
+        return False
+
+def save_new_extinguisher(details_dict):
+    """Salva um novo extintor na planilha 'extintores'."""
+    try:
+        uploader = GoogleDriveUploader()
+        ext_id = details_dict.get('numero_identificacao')
+        
+        # Verifica se o ID já existe
+        ext_data = uploader.get_data_from_sheet(EXTINGUISHER_SHEET_NAME)
+        if ext_data and len(ext_data) > 1:
+            df = pd.DataFrame(ext_data[1:], columns=ext_data[0])
+            if ext_id in df['numero_identificacao'].values:
+                st.error(f"Erro: O ID de Extintor '{ext_id}' já está cadastrado. Use a aba de 'Inspeção' para atualizar seu status.")
+                return False
+
+        data_row = [
+            ext_id,
+            details_dict.get('numero_selo_inmetro'),
+            details_dict.get('tipo_agente'),
+            details_dict.get('capacidade'),
+            details_dict.get('marca_fabricante'),
+            details_dict.get('ano_fabricacao'),
+            "Cadastro", # tipo_servico
+            date.today().isoformat(), # data_servico
+            get_user_display_name(), # inspetor_responsavel
+            None, # empresa_executante
+            (date.today() + relativedelta(months=1)).isoformat(), # data_proxima_inspecao
+            None, None, None, # datas de manutenção N2, N3, TH
+            "N/A", # aprovado_inspecao
+            "Equipamento recém-cadastrado no sistema.", # observacoes_gerais
+            "Aguardando primeira inspeção.", # plano_de_acao
+            None, None, None, None # links e geo
+        ]
+        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, data_row)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar novo extintor: {e}")
+        return False
+
+def update_extinguisher_location(extinguisher_id, location_id):
+    """Atualiza ou adiciona a associação entre um extintor e um local na planilha 'locais_extintores'."""
+
+    try:
+
+        uploader = GoogleDriveUploader()
+        st.success(f"Função de atualização para {extinguisher_id} e {location_id} a ser implementada.")
+        return True # Placeholder
+    except Exception as e:
+        st.error(f"Erro ao associar extintor ao local: {e}")
+        return False
