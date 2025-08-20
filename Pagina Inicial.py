@@ -67,12 +67,35 @@ def main():
             icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"],
             menu_icon="compass-fill",
             default_index=0,
-            styles={ # Estilos para um menu mais compacto
-                "container": {"padding": "0 !important", "background-color": "#262730"},
-                "icon": {"color": "#0083B8", "font-size": "20px"}, 
-                "nav-link": {"font-size": "14px", "text-align": "left", "margin":"0px", "--hover-color": "#333333"},
-                "nav-link-selected": {"background-color": "#083D5B"},
+            styles={
+                "container": {
+                    "padding": "0 !important",
+                    "background-color": "#f0f2f6", # Cor de fundo cinza claro para a sidebar
+                },
+                "icon": {
+                    "color": "#555", # Ícones cinza escuro
+                    "font-size": "22px",
+                }, 
+                "nav-link": {
+                    "font-size": "15px",
+                    "text-align": "left",
+                    "margin": "5px", # Espaçamento entre os itens
+                    "padding": "10px",
+                    "--hover-color": "#e1e1e1", # Cor cinza claro ao passar o mouse
+                    "border-radius": "8px", # Bordas arredondadas
+                },
+                "nav-link-selected": {
+                    "background-color": "#007bff", # Cor de destaque azul para o item selecionado
+                    "color": "white", # Texto branco para o item selecionado
+                    "font-weight": "bold",
+                },
+                "menu-title": {
+                    "font-size": "18px",
+                    "font-weight": "bold",
+                    "padding": "10px 15px",
+                },
             }
+            
         )
         st.markdown("---")
 
