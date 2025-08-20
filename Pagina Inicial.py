@@ -3,10 +3,11 @@ from streamlit_option_menu import option_menu
 import sys
 import os
 
-# Adiciona o diretório raiz ao path para garantir que todas as importações funcionem
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- 1. Importe os MÓDULOS da sua pasta 'views' ---
+
+
 from views import (
     administracao,
     dashboard, 
