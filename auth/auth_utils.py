@@ -118,23 +118,20 @@ def on_unit_change():
 
 def setup_sidebar():
     """
-    Configura a barra lateral, incluindo o seletor de UO para admins.
+    Configura a barra lateral, incluindo o seletor de UO para admins e o botão de logout.
     Retorna True se uma UO está selecionada e pronta para uso, False caso contrário.
     """
     from .login_page import show_logout_button
-    # Exibe o botão de logout em todas as páginas para usuários logados
     if is_user_logged_in():
-        show_logout_button()
+        show_logout_button() # <-- Botão de logout movido para cá
 
     role, assigned_unit = get_user_info()
     
     selected_unit = None
-    # Lógica de seleção de UO para o Super Admin
     if role == 'admin' and assigned_unit == '*':
         _, units_df = get_matrix_data()
         unit_options = ["Selecione uma UO..."] + units_df['nome_unidade'].tolist()
         
-        # Usa o session_state para lembrar a seleção entre as páginas
         current_selection = st.session_state.get('current_unit_name', "Selecione uma UO...")
         selected_index = unit_options.index(current_selection) if current_selection in unit_options else 0
 
@@ -142,20 +139,20 @@ def setup_sidebar():
             "Selecionar Unidade Operacional:", 
             unit_options, 
             index=selected_index,
-            on_change=on_unit_change,
             key='unit_selector'
         )
     else:
-        # Usuário normal tem uma UO fixa
         selected_unit = assigned_unit
 
-    # Processa a seleção
     if selected_unit and selected_unit != "Selecione uma UO...":
+        # Limpa o cache se a UO mudou
+        if st.session_state.get('current_unit_name') != selected_unit:
+            st.cache_data.clear()
+
         if initialize_unit_session(selected_unit):
             st.sidebar.success(f"Visão da UO: **{selected_unit}**")
-            return True  # UO selecionada e inicializada com sucesso
+            return True
         else:
-            return False # Falha ao inicializar a UO
+            return False
     
-    # Se nenhuma UO foi selecionada
     return False
