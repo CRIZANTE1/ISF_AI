@@ -24,7 +24,7 @@ from config.page_config import set_page_config
 set_page_config()
 pdf_qa = PDFQA()
 
-def show_hose_and_shelter_page():
+def show_page():
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
         st.stop()
@@ -224,12 +224,4 @@ def show_hose_and_shelter_page():
                                 st.error("Ocorreu um erro ao salvar a inspeção.")
                                 
 
-# --- Verificação de Permissão ---
-# A autenticação é tratada na Pagina Inicial.py.
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    show_hose_and_shelter_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()
+

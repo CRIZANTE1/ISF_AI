@@ -21,7 +21,7 @@ from gdrive.config import SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
 set_page_config()
 pdf_qa = PDFQA()
 
-def show_scba_inspection_page():
+def show_page():
 
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
@@ -253,12 +253,4 @@ def show_scba_inspection_page():
 
 
 
-# --- Verificação de Permissão ---
-# A autenticação é tratada na Pagina Inicial.py.
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    show_scba_inspection_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()
+

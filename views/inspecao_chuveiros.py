@@ -19,7 +19,7 @@ from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME
 
 set_page_config()
 
-def show_eyewash_page():
+def show_page():
     # Esta verificação inicial está correta
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
@@ -114,11 +114,4 @@ def show_eyewash_page():
                             st.cache_data.clear()
                         # A mensagem de erro já é tratada dentro da função
 
-# --- Verificação de Permissão ---
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    show_eyewash_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()
+

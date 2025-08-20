@@ -21,7 +21,7 @@ from config.page_config import set_page_config
 
 set_page_config()
 
-def main_inspection_page():
+def show_page():
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
         st.stop()
@@ -300,12 +300,4 @@ def main_inspection_page():
                 st.session_state.location = None
                 st.rerun()
 
-# --- Verificação de Permissão ---
-# A autenticação é tratada na Pagina Inicial.py.
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    main_inspection_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()
+

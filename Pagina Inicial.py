@@ -1,107 +1,88 @@
-# FILE: Pagina Inicial.py (VERSÃO ATUALIZADA)
-
 import streamlit as st
-import sys
-import os
+from streamlit_option_menu import option_menu
 
-# Add root directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+# --- 1. Importe os MÓDULOS da sua nova pasta 'views' ---
+# É importante renomear os arquivos para nomes válidos em Python
+from views import (
+    administracao,
+    dashboard, 
+    inspecao_extintores, 
+    inspecao_mangueiras, 
+    inspecao_scba,
+    inspecao_chuveiros,
+    historico,
+    utilitarios
+)
 
-# Imports
-from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import is_user_logged_in, get_user_info, initialize_unit_session, get_matrix_data
-from operations.demo_page import show_demo_page
+# --- 2. Suas importações normais ---
+from auth.login_page import show_login_page, show_logout_button, show_user_header
+from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin
 from config.page_config import set_page_config
 
+# Configuração da página, sempre no início
 set_page_config()
 
-def on_unit_change():
-    """
-    Callback executado quando a UO é alterada no selectbox.
-    Limpa o cache para forçar o recarregamento dos dados da nova UO.
-    """
-    st.cache_data.clear()
+# --- 3. Dicionário de Roteamento ---
+# Mapeia o nome que aparecerá no menu para a função que desenha a página.
+# Isso torna o código principal muito limpo.
+PAGES = {
+    "Dashboard": dashboard.show_page,
+    "Inspeção de Extintores": inspecao_extintores.show_page,
+    "Inspeção de Mangueiras": inspecao_mangueiras.show_page,
+    "Inspeção de SCBA": inspecao_scba.show_page,
+    "Inspeção de Chuveiros/LO": inspecao_chuveiros.show_page,
+    "Histórico e Logs": historico.show_page,
+    "Utilitários": utilitarios.show_page,
+    "Super Admin": administracao.show_page,
+}
 
-def show_admin_homepage():
-    """Content for administrators."""
-    st.sidebar.success("👑 Acesso de Administrador")
-    st.title("Bem-vindo ao ISF IA!")
-    st.subheader("Sistema de Fiscalização e Inspeções com Inteligência Artificial")
-    st.markdown("""
-    Use a barra de navegação à esquerda para acessar as funcionalidades do sistema.
+def main():
+    # --- Gerenciamento de Login ---
+    if not is_user_logged_in():
+        show_login_page()
+        st.stop() # Para a execução aqui se o usuário não estiver logado
 
-    - **Inspeção de Extintores**: Registre novas inspeções, extraia dados de relatórios PDF com IA e salve o histórico.
-    - **Situação Atual**: Visualize um dashboard com o status de todos os equipamentos.
-    - **Histórico de Inspeções**: Consulte todos os registros já realizados.
-    
-    Este sistema foi projetado para otimizar e padronizar o processo de inspeção de equipamentos de combate a incêndio, 
-    garantindo conformidade com as normas e segurança.
-    """)
-
-def show_homepage_for_role(role):
-    """Displays the appropriate homepage content based on the user's role."""
-    if role == 'admin':
-        show_admin_homepage()
-    elif role == 'editor':
-        show_admin_homepage()
-    elif role == 'viewer':
-        st.sidebar.warning("👁️ Acesso Somente Leitura")
-        show_demo_page()
-    else:
-        st.sidebar.error("🔒 Acesso de Demonstração")
-        show_demo_page()
-
-def run_app():
-    """
-    The main application logic for a logged-in user.
-    This includes drawing common UI elements and handling the UO selection.
-    """
-    # Common UI elements for all pages
+    # --- Interface Comum para Todos os Usuários Logados ---
     show_user_header()
     show_logout_button()
-
-    role, assigned_unit = get_user_info()
     
-    # --- Logic for selecting Operational Unit (UO) ---
-    selected_unit = None
-    if role == 'admin' and assigned_unit == '*':
-        # Global admin can choose the UO
-        _, units_df = get_matrix_data()
-        unit_options = units_df['nome_unidade'].tolist()
-        if unit_options:
-            unit_options.insert(0, "Selecione uma UO...")
-            
-            selected_unit = st.sidebar.selectbox(
-                "Selecionar Unidade Operacional:", 
-                unit_options, 
-                index=0,
-                on_change=on_unit_change, 
-                key='unit_selector' # Adicionar uma chave é uma boa prática com on_change
-            )
+    # A função setup_sidebar aqui apenas lida com a seleção da UO,
+    # não mais com a navegação de páginas.
+    is_uo_selected = setup_sidebar()
+    
+    # --- Menu de Navegação Dinâmico na Barra Lateral ---
+    with st.sidebar:
+        st.markdown("---")
+        
+        # Lista de todas as páginas disponíveis
+        page_options = list(PAGES.keys())
+        
+        # Regra de negócio: A página "Super Admin" só aparece para administradores
+        if not is_admin():
+            page_options.remove("Super Admin")
+
+        selected_page = option_menu(
+            menu_title="Navegação",
+            options=page_options,
+            icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"],
+            menu_icon="compass-fill",
+            default_index=0,
+        )
+        st.markdown("---")
+
+    # --- Roteador Principal ---
+    # Só tenta renderizar a página se uma UO estiver selecionada
+    if is_uo_selected:
+        # Busca a função no dicionário e a executa
+        if selected_page in PAGES:
+            PAGES[selected_page]()
         else:
-            st.sidebar.error("Nenhuma UO cadastrada.")
+            # Se algo der errado, mostra a página padrão
+            PAGES["Dashboard"]()
     else:
-        # Normal user has a fixed UO
-        selected_unit = assigned_unit
+        # Mensagem para o usuário selecionar uma UO para começar
+        st.info("👈 Por favor, selecione uma Unidade Operacional na barra lateral para carregar os dados.")
 
-    # If a UO is selected/assigned, initialize the session with its IDs
-    if selected_unit and selected_unit != "Selecione uma UO...":
-        if initialize_unit_session(selected_unit):
-            st.sidebar.success(f"Visão da UO: **{selected_unit}**")
-            show_homepage_for_role(role)
-        else:
-            # Error is shown by initialize_unit_session
-            pass 
-    elif role == 'admin' and assigned_unit == '*':
-         st.info("Por favor, selecione uma Unidade Operacional na barra lateral para começar.")
-    else:
-        st.error("Nenhuma Unidade Operacional está associada a este usuário ou falha ao carregar a configuração.")
 
-if not is_user_logged_in():
-    show_login_page()
-else:
-    run_app()
-
-# Footer (optional)
-st.caption('Copyright 2024, Cristian Ferreira Carlos, Todos os direitos reservados.')
-st.caption('https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/')
+if __name__ == "__main__":
+    main()

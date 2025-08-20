@@ -434,7 +434,7 @@ def action_form(item, df_full_history, location):
             else:
                 st.error("Falha ao registrar a ação.")
 
-def show_dashboard_page():
+def show_page():
 
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
@@ -733,62 +733,3 @@ def show_dashboard_page():
 
 
 
-    with tab_eyewash:
-            st.header("Dashboard de Chuveiros e Lava-Olhos")
-            
-            df_eyewash_history = load_sheet_data(EYEWASH_INSPECTIONS_SHEET_NAME)
-            
-            if df_eyewash_history.empty:
-                st.warning("Nenhuma inspeção de chuveiro/lava-olhos registrada.")
-            else:
-                dashboard_df = get_eyewash_status_df(df_eyewash_history)
-                
-                status_counts = dashboard_df['status_dashboard'].value_counts()
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("✅ Total de Equipamentos", len(dashboard_df))
-                col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
-                col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
-                col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
-                st.markdown("---")
-        
-                st.subheader("Lista de Equipamentos e Status")
-                for _, row in dashboard_df.iterrows():
-                    status = row['status_dashboard']
-                    prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
-                    expander_title = f"{status} | **ID:** {row['id_equipamento']} | **Próx. Inspeção:** {prox_inspecao}"
-                    
-                    with st.expander(expander_title):
-                        st.write(f"**Última inspeção:** {pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y')} por **{row['inspetor']}**")
-                        st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
-                        
-                        if status == "🟠 COM PENDÊNCIAS":
-                            if st.button("✍️ Registrar Ação Corretiva", key=f"action_eyewash_{row['id_equipamento']}"):
-                                action_dialog_eyewash(row.to_dict()) # Passa a linha inteira como um dicionário
-        
-                        st.markdown("---")
-                        st.write("**Detalhes da Última Inspeção:**")
-                        try:
-                            results = json.loads(row['resultados_json'])
-                            # Mostra apenas os itens não conformes para economizar espaço
-                            non_conformities = {q: status for q, status in results.items() if status == "Não Conforme"}
-                            if non_conformities:
-                                st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
-                            else:
-                                st.success("Todos os itens estavam conformes na última inspeção.")
-                            
-                            photo_link = row.get('link_foto_nao_conformidade')
-                            if pd.notna(photo_link):
-                                st.image(photo_link, caption="Foto da Não Conformidade", width=300)
-        
-                        except (json.JSONDecodeError, TypeError):
-                            st.error("Não foi possível carregar os detalhes da inspeção.")
-
-# --- Verificação de Permissão ---
-# A autenticação é tratada na Pagina Inicial.py.
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    show_dashboard_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()

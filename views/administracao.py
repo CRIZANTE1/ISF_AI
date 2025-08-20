@@ -162,7 +162,7 @@ def confirm_delete_dialog(user_data, df):
     if col2.button("Cancelar", use_container_width=True): st.rerun()
 
 
-def show_admin_page():
+def show_page():
     is_uo_selected = setup_sidebar()
     st.title("👑 Painel de Controle do Super Administrador")
 
@@ -303,13 +303,4 @@ def show_admin_page():
                     except Exception as e:
                         st.error("Ocorreu um erro durante o provisionamento."); st.exception(e)
 
-# --- Verificação de Permissão ---
-role, assigned_unit = get_user_info()
-if role == 'admin' and assigned_unit == '*':
-    st.sidebar.success("👑 Acesso de Super Admin")
-    show_admin_page()
-else:
-    st.sidebar.error("🔒 Acesso Negado")
-    st.error("Você não tem permissão para acessar esta página.")
-    st.info("Apenas administradores globais podem gerenciar o sistema.")
-    show_demo_page()
+

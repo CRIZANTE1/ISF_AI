@@ -92,7 +92,7 @@ def display_formatted_dataframe(sheet_name):
         column_config=column_config
     )
     
-def show_history_page():
+def show_page():
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
         st.stop()
@@ -131,11 +131,4 @@ def show_history_page():
         with subtabs[2]: display_formatted_dataframe(LOG_SCBA_SHEET_NAME)
         with subtabs[3]: display_formatted_dataframe(LOG_EYEWASH_SHEET_NAME)
 
-# --- Verificação de Permissão ---
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    show_history_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()
+

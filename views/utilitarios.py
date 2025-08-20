@@ -57,7 +57,7 @@ def image_to_bytes(img: Image.Image):
     img.save(buf, format="PNG")
     return buf.getvalue()
 
-def show_utilities_page():
+def show_page():
 
     if not setup_sidebar():
         st.warning("👈 Por favor, selecione uma Unidade Operacional na barra lateral para acessar esta página.")
@@ -292,12 +292,4 @@ def show_utilities_page():
                             if save_new_extinguisher(details_dict):
                                 st.success(f"Extintor '{ext_id}' cadastrado com sucesso!")
                                 st.cache_data.clear()
-# --- Verificação de Permissão ---
-# A autenticação é tratada na Pagina Inicial.py.
-if can_edit():
-    st.sidebar.success("✅ Acesso completo")
-    show_utilities_page()
-else:
-    st.sidebar.error("🔒 Acesso negado")
-    st.info("Você não tem permissão para acessar esta funcionalidade.")
-    show_demo_page()
+
