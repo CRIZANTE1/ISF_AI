@@ -3,10 +3,8 @@ from streamlit_option_menu import option_menu
 import sys
 import os
 
+sys.path.append(os.path.dirname(__file__))
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-# --- 1. Importe os MÓDULOS da sua pasta 'views' ---
 from views import (
     administracao,
     dashboard, 
@@ -27,7 +25,8 @@ from config.page_config import set_page_config
 set_page_config()
 
 # --- 3. Dicionário de Roteamento ---
-# Mapeia o nome do menu para a função que renderiza a página.
+# Mapeia o nome que aparecerá no menu para a função que desenha a página.
+# Isso torna o código principal muito limpo.
 PAGES = {
     "Dashboard": dashboard.show_page,
     "Inspeção de Extintores": inspecao_extintores.show_page,
@@ -45,21 +44,23 @@ def main():
         show_login_page()
         st.stop() # Para a execução aqui se o usuário não estiver logado
 
-    # --- Interface Comum para Usuários Logados ---
+    # --- Interface Comum para Todos os Usuários Logados ---
     show_user_header()
     
-    # A função setup_sidebar aqui apenas lida com a seleção da UO.
+    # A função setup_sidebar aqui apenas lida com a seleção da UO,
+    # não mais com a navegação de páginas.
     is_uo_selected = setup_sidebar()
     
-    # --- Menu de Navegação Dinâmico e Botão de Logout na Barra Lateral ---
+    # --- Menu de Navegação Dinâmico na Barra Lateral ---
     with st.sidebar:
+        st.markdown("---")
+        
         # Lista de todas as páginas disponíveis
         page_options = list(PAGES.keys())
         
         # Regra de negócio: A página "Super Admin" só aparece para administradores
         if not is_admin():
-            if "Super Admin" in page_options:
-                page_options.remove("Super Admin")
+            page_options.remove("Super Admin")
 
         selected_page = option_menu(
             menu_title="Navegação",
@@ -67,26 +68,8 @@ def main():
             icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"],
             menu_icon="compass-fill",
             default_index=0,
-            # Estilos para diminuir a fonte e o espaçamento
-            styles={
-                "container": {"padding": "0 !important", "background-color": "#262730"},
-                "icon": {"color": "#0083B8", "font-size": "18px"}, 
-                "nav-link": {
-                    "font-size": "14px",
-                    "text-align": "left",
-                    "margin": "0px",
-                    "--hover-color": "#333333",
-                    "padding": "8px 0px 8px 15px"
-                },
-                "nav-link-selected": {"background-color": "#083D5B"},
-            }
         )
-        
         st.markdown("---")
-        
-        # --- BOTÃO DE LOGOUT ADICIONADO DE VOLTA AQUI ---
-        show_logout_button()
-
 
     # --- Roteador Principal ---
     # Só tenta renderizar a página se uma UO estiver selecionada
