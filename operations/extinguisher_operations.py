@@ -237,14 +237,38 @@ def save_new_extinguisher(details_dict):
         st.error(f"Erro ao salvar novo extintor: {e}")
         return False
 
-def update_extinguisher_location(extinguisher_id, location_id):
-    """Atualiza ou adiciona a associação entre um extintor e um local na planilha 'locais_extintores'."""
-
+def update_extinguisher_location(equip_id, location_desc):
+    """
+    Atualiza o local de um equipamento existente ou adiciona um novo registro
+    na planilha 'locais'. (Lógica de Upsert)
+    """
     try:
-
         uploader = GoogleDriveUploader()
-        st.success(f"Função de atualização para {extinguisher_id} e {location_id} a ser implementada.")
-        return True # Placeholder
+        df_locais = pd.DataFrame()
+        
+        # Carrega os dados existentes para verificação
+        locais_data = uploader.get_data_from_sheet(LOCATIONS_SHEET_NAME)
+        if locais_data and len(locais_data) > 1:
+            df_locais = pd.DataFrame(locais_data[1:], columns=locais_data[0])
+            df_locais['id'] = df_locais['id'].astype(str)
+
+        if df_locais.empty or 'id' not in df_locais.columns:
+            # Planilha vazia ou mal formatada, apenas adiciona
+            uploader.append_data_to_sheet(LOCATIONS_SHEET_NAME, [equip_id, location_desc])
+            return True
+        else:
+            existing_row = df_locais[df_locais['id'] == str(equip_id)]
+            
+            if not existing_row.empty:
+                # Atualiza a linha existente
+                row_index = existing_row.index[0] + 2  # +1 para cabeçalho, +1 para base 0
+                range_to_update = f"B{row_index}"  # Atualiza apenas a coluna B (local)
+                uploader.update_cells(LOCATIONS_SHEET_NAME, range_to_update, [[location_desc]])
+                return True
+            else:
+                # Adiciona nova linha
+                uploader.append_data_to_sheet(LOCATIONS_SHEET_NAME, [equip_id, location_desc])
+                return True
     except Exception as e:
-        st.error(f"Erro ao associar extintor ao local: {e}")
+        st.error(f"Erro ao salvar local para o equipamento '{equip_id}': {e}")
         return False
