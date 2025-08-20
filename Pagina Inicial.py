@@ -44,7 +44,6 @@ def main():
 
     # --- Interface Comum para Todos os Usuários Logados ---
     show_user_header()
-    show_logout_button()
     
     # A função setup_sidebar aqui apenas lida com a seleção da UO,
     # não mais com a navegação de páginas.
