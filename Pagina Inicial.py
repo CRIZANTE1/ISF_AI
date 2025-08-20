@@ -3,11 +3,10 @@ from streamlit_option_menu import option_menu
 import sys
 import os
 
-# Add the project root to the Python path
-sys.path.append(os.path.dirname(__file__))
 
-# --- 1. Importe os MÓDULOS da sua nova pasta 'views' ---
-# É importante renomear os arquivos para nomes válidos em Python
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# --- 1. Importe os MÓDULOS da sua pasta 'views' ---
 from views import (
     administracao,
     dashboard, 
@@ -28,8 +27,7 @@ from config.page_config import set_page_config
 set_page_config()
 
 # --- 3. Dicionário de Roteamento ---
-# Mapeia o nome que aparecerá no menu para a função que desenha a página.
-# Isso torna o código principal muito limpo.
+# Mapeia o nome do menu para a função que renderiza a página.
 PAGES = {
     "Dashboard": dashboard.show_page,
     "Inspeção de Extintores": inspecao_extintores.show_page,
@@ -47,23 +45,21 @@ def main():
         show_login_page()
         st.stop() # Para a execução aqui se o usuário não estiver logado
 
-    # --- Interface Comum para Todos os Usuários Logados ---
+    # --- Interface Comum para Usuários Logados ---
     show_user_header()
     
-    # A função setup_sidebar aqui apenas lida com a seleção da UO,
-    # não mais com a navegação de páginas.
+    # A função setup_sidebar aqui apenas lida com a seleção da UO.
     is_uo_selected = setup_sidebar()
     
-    # --- Menu de Navegação Dinâmico na Barra Lateral ---
+    # --- Menu de Navegação Dinâmico e Botão de Logout na Barra Lateral ---
     with st.sidebar:
-        st.markdown("---")
-        
         # Lista de todas as páginas disponíveis
         page_options = list(PAGES.keys())
         
         # Regra de negócio: A página "Super Admin" só aparece para administradores
         if not is_admin():
-            page_options.remove("Super Admin")
+            if "Super Admin" in page_options:
+                page_options.remove("Super Admin")
 
         selected_page = option_menu(
             menu_title="Navegação",
@@ -85,7 +81,12 @@ def main():
                 "nav-link-selected": {"background-color": "#083D5B"},
             }
         )
+        
         st.markdown("---")
+        
+        # --- BOTÃO DE LOGOUT ADICIONADO DE VOLTA AQUI ---
+        show_logout_button()
+
 
     # --- Roteador Principal ---
     # Só tenta renderizar a página se uma UO estiver selecionada
