@@ -71,6 +71,19 @@ def main():
             icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"],
             menu_icon="compass-fill",
             default_index=0,
+            # Estilos para diminuir a fonte e o espaçamento
+            styles={
+                "container": {"padding": "0 !important", "background-color": "#262730"},
+                "icon": {"color": "#0083B8", "font-size": "18px"}, 
+                "nav-link": {
+                    "font-size": "14px",
+                    "text-align": "left",
+                    "margin": "0px",
+                    "--hover-color": "#333333",
+                    "padding": "8px 0px 8px 15px"
+                },
+                "nav-link-selected": {"background-color": "#083D5B"},
+            }
         )
         st.markdown("---")
 
