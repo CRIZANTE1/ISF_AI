@@ -68,34 +68,17 @@ def main():
             menu_icon="compass-fill",
             default_index=0,
             styles={
-                "container": {
-                    "padding": "0 !important",
-                    "background-color": "#f0f2f6", # Cor de fundo cinza claro para a sidebar
-                },
-                "icon": {
-                    "color": "#555", # Ícones cinza escuro
-                    "font-size": "22px",
-                }, 
+                "container": {"padding": "0 !important", "background-color": "#262730"},
+                "icon": {"color": "#0083B8", "font-size": "12px"}, 
                 "nav-link": {
-                    "font-size": "15px",
+                    "font-size": "8px",
                     "text-align": "left",
-                    "margin": "5px", # Espaçamento entre os itens
-                    "padding": "10px",
-                    "--hover-color": "#e1e1e1", # Cor cinza claro ao passar o mouse
-                    "border-radius": "8px", # Bordas arredondadas
+                    "margin": "0px",
+                    "--hover-color": "#333333",
+                    "padding": "8px 0px 8px 15px"
                 },
-                "nav-link-selected": {
-                    "background-color": "#007bff", # Cor de destaque azul para o item selecionado
-                    "color": "white", # Texto branco para o item selecionado
-                    "font-weight": "bold",
-                },
-                "menu-title": {
-                    "font-size": "18px",
-                    "font-weight": "bold",
-                    "padding": "10px 15px",
-                },
+                "nav-link-selected": {"background-color": "#083D5B"},
             }
-            
         )
         st.markdown("---")
 
