@@ -9,15 +9,16 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Imports necessários para o novo fluxo
-from operations.hose_operations import save_hose_inspection
+
 from operations.shelter_operations import save_shelter_inventory, save_shelter_inspection
 from gdrive.gdrive_upload import GoogleDriveUploader
 from AI.api_Operation import PDFQA
-from gdrive.config import SHELTER_SHEET_NAME
+from gdrive.config import SHELTER_SHEET_NAME, HOSE_SHEET_NAME, AUDIT_LOG_SHEET_NAME
 from operations.history import load_sheet_data 
 from utils.prompts import get_hose_inspection_prompt, get_shelter_inventory_prompt
 from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
+from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name, get_user_email, get_user_role
+from utils.auditoria import get_sao_paulo_time_str
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 
@@ -67,7 +68,7 @@ def show_page():
             st.dataframe(pd.DataFrame(st.session_state.hose_processed_data))
             
             if st.button("💾 Confirmar e Salvar Registros", type="primary", use_container_width=True):
-                with st.spinner("Salvando registros..."):
+                with st.spinner("Salvando registros em lote..."):
                     uploader = GoogleDriveUploader()
                     pdf_name = f"Certificado_Mangueiras_{date.today().isoformat()}_{st.session_state.hose_uploaded_pdf.name}"
                     pdf_link = uploader.upload_file(st.session_state.hose_uploaded_pdf, novo_nome=pdf_name)
@@ -75,22 +76,53 @@ def show_page():
                     if not pdf_link:
                         st.error("Falha ao fazer o upload do certificado. Os dados não foram salvos.")
                         st.stop()
-                    
-                    total_count = len(st.session_state.hose_processed_data)
-                    progress_bar = st.progress(0, "Salvando...")
-                    
-                    for i, record in enumerate(st.session_state.hose_processed_data):
-                        save_hose_inspection(record=record, pdf_link=pdf_link, user_name=get_user_display_name())
-                        progress_bar.progress((i + 1) / total_count)
-                    
-                    st.success(f"{total_count} registros de mangueiras salvos com sucesso!")
-                    st.balloons()
-                    
-                    st.session_state.hose_step = 'start'
-                    st.session_state.hose_processed_data = None
-                    st.session_state.hose_uploaded_pdf = None
-                    st.cache_data.clear()
-                    st.rerun()
+
+                    hose_rows = []
+                    audit_log_rows = []
+
+                    for record in st.session_state.hose_processed_data:
+                        inspection_date_str = record.get('data_inspecao')
+                        try:
+                            inspection_date_obj = pd.to_datetime(inspection_date_str).date()
+                        except (ValueError, TypeError):
+                            inspection_date_obj = date.today()
+                        
+                        next_test_date = (inspection_date_obj + relativedelta(years=1)).isoformat()
+                        
+                        hose_row = [
+                            record.get('id_mangueira'), record.get('marca'), record.get('diametro'),
+                            record.get('tipo'), record.get('comprimento'), record.get('ano_fabricacao'),
+                            inspection_date_obj.isoformat(), next_test_date, record.get('resultado'),
+                            pdf_link, get_user_display_name(), record.get('empresa_executante'),
+                            record.get('inspetor_responsavel')
+                        ]
+                        hose_rows.append(hose_row)
+
+                        audit_log_row = [
+                            get_sao_paulo_time_str(),
+                            get_user_email() or "não logado",
+                            get_user_role(),
+                            "SALVOU_INSPECAO_MANGUEIRA_LOTE",
+                            f"ID: {record.get('id_mangueira')}, Resultado: {record.get('resultado')}",
+                            st.session_state.get('current_unit_name', 'N/A')
+                        ]
+                        audit_log_rows.append(audit_log_row)
+
+                    try:
+                        uploader.append_data_to_sheet(HOSE_SHEET_NAME, hose_rows)
+                        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                        matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
+
+                        st.success(f"{len(hose_rows)} registros de mangueiras salvos com sucesso!")
+                        st.balloons()
+                        
+                        st.session_state.hose_step = 'start'
+                        st.session_state.hose_processed_data = None
+                        st.session_state.hose_uploaded_pdf = None
+                        st.cache_data.clear()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Ocorreu um erro durante o salvamento em lote: {e}")
 
     with tab_shelters:
         st.header("Cadastrar Abrigos de Emergência com IA")
