@@ -4,6 +4,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, LOG_SCBA_SHEET_NAME
+from utils.auditoria import log_action
 
 def save_scba_inspection(record, pdf_link, user_name):
     """
@@ -34,6 +35,7 @@ def save_scba_inspection(record, pdf_link, user_name):
         ]
         
         uploader.append_data_to_sheet(SCBA_SHEET_NAME, data_row)
+        log_action("SALVOU_INSPECAO_SCBA", f"ID: {record.get('numero_serie_equipamento')}, Resultado: {record.get('resultado_final')}")
         return True
 
     except Exception as e:
@@ -62,6 +64,7 @@ def save_scba_visual_inspection(equipment_id, overall_status, results_dict, insp
         ]
         
         uploader.append_data_to_sheet(SCBA_VISUAL_INSPECTIONS_SHEET_NAME, data_row)
+        log_action("SALVOU_INSPECAO_VISUAL_SCBA", f"ID: {equipment_id}, Status: {overall_status}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar inspeção visual do SCBA {equipment_id}: {e}")

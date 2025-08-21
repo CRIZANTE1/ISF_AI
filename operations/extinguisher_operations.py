@@ -6,6 +6,7 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME 
 from AI.api_Operation import PDFQA
 from utils.prompts import get_extinguisher_inspection_prompt
+from utils.auditoria import log_action
 
 uploader = GoogleDriveUploader()
 pdf_qa = PDFQA()
@@ -152,6 +153,7 @@ def save_inspection(data):
     try:
         uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, data_row)
+        log_action("SALVOU_INSPECAO_EXTINTOR", f"ID: {data.get('numero_identificacao')}, Status: {data.get('aprovado_inspecao')}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar dados do equipamento {data.get('numero_identificacao')}: {e}")

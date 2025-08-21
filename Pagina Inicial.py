@@ -3,6 +3,7 @@
 # ... (importações no topo do arquivo permanecem as mesmas)
 # Certifique-se de que can_view está sendo importado de auth_utils
 from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view
+from utils.auditoria import log_action
 import streamlit as st
 from streamlit_option_menu import option_menu
 import sys
@@ -52,6 +53,12 @@ def main():
     if not is_user_logged_in():
         show_login_page()
         st.stop()
+
+    # --- LOG DE LOGIN ---
+    if 'user_logged_in' not in st.session_state:
+        log_action("LOGIN_SUCCESS")
+        st.session_state['user_logged_in'] = True
+    # --------------------
 
     # --- Interface Comum ---
     show_user_header()

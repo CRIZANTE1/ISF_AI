@@ -4,6 +4,7 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME
 from datetime import date 
 from dateutil.relativedelta import relativedelta 
+from utils.auditoria import log_action 
 
 def save_shelter_inventory(shelter_id, client, local, items_dict):
     """
@@ -38,6 +39,7 @@ def save_shelter_inspection(shelter_id, overall_status, inspection_results, insp
             next_inspection_date
         ]
         uploader.append_data_to_sheet(INSPECTIONS_SHELTER_SHEET_NAME, data_row)
+        log_action("SALVOU_INSPECAO_ABRIGO", f"ID: {shelter_id}, Status: {overall_status}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar inspeção do abrigo {shelter_id}: {e}")

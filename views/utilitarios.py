@@ -26,6 +26,7 @@ from reports.shipment_report import (
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
 from gdrive.gdrive_upload import GoogleDriveUploader
+from utils.auditoria import log_action
 from operations.extinguisher_operations import save_inspection, calculate_next_dates, generate_action_plan, save_new_extinguisher, save_new_location, update_extinguisher_location
 
 
@@ -288,6 +289,7 @@ def show_page():
                         }
                         with st.spinner("Salvando..."):
                             if save_new_extinguisher(details_dict):
+                                log_action("CADASTRO_EXTINTOR", f"ID: {ext_id}, Tipo: {ext_tipo}, Capacidade: {ext_cap}")
                                 st.success(f"Extintor '{ext_id}' cadastrado com sucesso!")
                                 st.cache_data.clear()
 

@@ -6,6 +6,7 @@ from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME, EYEWASH_INSPECTIONS_SHEE
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from operations.photo_operations import upload_evidence_photo
+from utils.auditoria import log_action
 
 
 CHECKLIST_QUESTIONS = {
@@ -113,7 +114,7 @@ def save_eyewash_inspection(equipment_id, overall_status, results_dict, photo_fi
         
         st.info("Registrando dados da inspeção na planilha...")
         uploader.append_data_to_sheet(EYEWASH_INSPECTIONS_SHEET_NAME, data_row)
-        
+        log_action("SALVOU_INSPECAO_CHUVEIRO", f"ID do equipamento: {equipment_id}, Status: {overall_status}")
         return True
 
     except Exception as e:

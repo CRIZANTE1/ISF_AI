@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import HOSE_SHEET_NAME
+from utils.auditoria import log_action
 
 def save_hose_inspection(record, pdf_link, user_name):
     """
@@ -41,6 +42,7 @@ def save_hose_inspection(record, pdf_link, user_name):
         ]
         
         uploader.append_data_to_sheet(HOSE_SHEET_NAME, data_row)
+        log_action("SALVOU_INSPECAO_MANGUEIRA", f"ID: {record.get('id_mangueira')}, Resultado: {record.get('resultado')}")
         return True
 
     except Exception as e:

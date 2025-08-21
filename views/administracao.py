@@ -13,10 +13,11 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
     UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID,
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, 
-    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME
+    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME
 )
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
+from utils.auditoria import log_action
 
 set_page_config()
 
@@ -136,6 +137,7 @@ def add_user_dialog():
             if not all([email, nome, role, unit]): st.error("Todos os campos são obrigatórios."); return
             uploader = GoogleDriveUploader(is_matrix=True)
             uploader.append_data_to_sheet(ADMIN_SHEET_NAME, [email, nome, role, unit])
+            log_action("ADD_USER", f"Email: {email}, Role: {role}, UO: {unit}")
             st.success(f"Usuário '{email}' adicionado!"); st.cache_data.clear(); st.rerun()
 
 @st.dialog("Editar Usuário")
@@ -150,6 +152,7 @@ def edit_user_dialog(user_data, row_index):
             range_to_update = f"B{row_index + 2}:D{row_index + 2}"
             uploader = GoogleDriveUploader(is_matrix=True)
             uploader.update_cells(ADMIN_SHEET_NAME, range_to_update, [[nome, role, unit]])
+            log_action("EDIT_USER", f"Email: {user_data['email']}, New Role: {role}, New UO: {unit}")
             st.success(f"Usuário '{user_data['email']}' atualizado!"); st.cache_data.clear(); st.rerun()
 
 @st.dialog("Confirmar Remoção")
@@ -160,6 +163,7 @@ def confirm_delete_dialog(user_data, df):
         df_updated = df[df['email'] != user_data['email']]
         uploader = GoogleDriveUploader(is_matrix=True)
         uploader.overwrite_sheet(ADMIN_SHEET_NAME, df_updated)
+        log_action("DELETE_USER", f"Email: {user_data['email']}")
         st.success(f"Usuário '{user_data['email']}' removido."); st.cache_data.clear(); st.rerun()
     if col2.button("Cancelar", use_container_width=True): st.rerun()
 
@@ -167,7 +171,11 @@ def confirm_delete_dialog(user_data, df):
 def show_page():
     st.title("👑 Painel de Controle do Super Administrador")
 
-    tab_dashboard, tab_users, tab_units, tab_provision = st.tabs(["📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", "🚀 Provisionar Nova UO"])
+    # Adicione a nova aba 'Log de Auditoria'
+    tab_dashboard, tab_users, tab_units, tab_provision, tab_audit = st.tabs([
+        "📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", 
+        "🚀 Provisionar Nova UO", "🛡️ Log de Auditoria"
+    ])
 
     if tab_dashboard:
         with tab_dashboard:
@@ -295,8 +303,41 @@ def show_page():
                         uploader.setup_sheets_in_new_spreadsheet(new_sheet_id, DEFAULT_SHEETS_CONFIG)
                         matrix_uploader = GoogleDriveUploader(is_matrix=True)
                         matrix_uploader.append_data_to_sheet(UNITS_SHEET_NAME, [new_unit_name, new_sheet_id, new_folder_id])
+                        log_action("PROVISIONOU_NOVA_UO", f"Nome da UO: {new_unit_name}, Sheet ID: {new_sheet_id}", target_uo=new_unit_name)
                         st.success(f"UO '{new_unit_name}' criada com sucesso!"); st.balloons(); st.cache_data.clear()
                     except Exception as e:
                         st.error("Ocorreu um erro durante o provisionamento."); st.exception(e)
+    
+    with tab_audit:
+        st.header("Log de Auditoria do Sistema")
+        st.info("Registro de todas as ações importantes realizadas pelos usuários.")
+
+        if st.button("Recarregar Log", key="reload_audit_log"):
+            st.cache_data.clear()
+        
+        with st.spinner("Carregando log de auditoria..."):
+            matrix_uploader = GoogleDriveUploader(is_matrix=True)
+            log_data = matrix_uploader.get_data_from_sheet(AUDIT_LOG_SHEET_NAME)
+
+        if not log_data or len(log_data) < 2:
+            st.warning("Nenhum registro de auditoria encontrado.")
+        else:
+            df_log = pd.DataFrame(log_data[1:], columns=log_data[0])
+            df_log_sorted = df_log.sort_index(ascending=False)
+            
+            st.markdown("---")
+            col1, col2 = st.columns(2)
+            
+            users = ["Todos"] + df_log['user_email'].unique().tolist()
+            selected_user = col1.selectbox("Filtrar por Usuário:", users)
+            if selected_user != "Todos":
+                df_log_sorted = df_log_sorted[df_log_sorted['user_email'] == selected_user]
+            
+            actions = ["Todas"] + df_log['action'].unique().tolist()
+            selected_action = col2.selectbox("Filtrar por Ação:", actions)
+            if selected_action != "Todas":
+                df_log_sorted = df_log_sorted[df_log_sorted['action'] == selected_action]
+
+            st.dataframe(df_log_sorted, use_container_width=True)
 
 
