@@ -43,7 +43,7 @@ def get_matrix_data():
         
         # Carrega dados de permissões
         admin_data = uploader.get_data_from_sheet(ADMIN_SHEET_NAME)
-        permissions_df = pd.DataFrame(columns=['email', 'role', 'unidade_operacional'])
+        permissions_df = pd.DataFrame(columns=['email', 'nome', 'role', 'unidade_operacional'])
         if admin_data and len(admin_data) >= 2:
             permissions_df = pd.DataFrame(admin_data[1:], columns=admin_data[0])
             permissions_df['email'] = permissions_df['email'].str.lower().str.strip()

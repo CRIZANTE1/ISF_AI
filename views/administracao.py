@@ -129,25 +129,27 @@ def get_global_status_summary(units_df):
 def add_user_dialog():
     with st.form("new_user_form"):
         email = st.text_input("E-mail do Usuário")
+        nome = st.text_input("Nome do Usuário")
         role = st.selectbox("Nível de Acesso", ["viewer", "editor", "admin"])
         unit = st.text_input("Unidade Operacional", help="Use '*' para acesso global (apenas admins).")
         if st.form_submit_button("Salvar Usuário", type="primary"):
-            if not all([email, role, unit]): st.error("Todos os campos são obrigatórios."); return
+            if not all([email, nome, role, unit]): st.error("Todos os campos são obrigatórios."); return
             uploader = GoogleDriveUploader(is_matrix=True)
-            uploader.append_data_to_sheet(ADMIN_SHEET_NAME, [email, role, unit])
+            uploader.append_data_to_sheet(ADMIN_SHEET_NAME, [email, nome, role, unit])
             st.success(f"Usuário '{email}' adicionado!"); st.cache_data.clear(); st.rerun()
 
 @st.dialog("Editar Usuário")
 def edit_user_dialog(user_data, row_index):
     st.write(f"Editando dados do usuário: **{user_data['email']}**")
     with st.form("edit_user_form"):
+        nome = st.text_input("Nome do Usuário", value=user_data.get('nome', ''))
         roles = ["viewer", "editor", "admin"]
         role = st.selectbox("Nível de Acesso", roles, index=roles.index(user_data['role']) if user_data['role'] in roles else 0)
         unit = st.text_input("Unidade Operacional", value=user_data['unidade_operacional'])
         if st.form_submit_button("Atualizar Usuário", type="primary"):
-            range_to_update = f"B{row_index + 2}:C{row_index + 2}"
+            range_to_update = f"B{row_index + 2}:D{row_index + 2}"
             uploader = GoogleDriveUploader(is_matrix=True)
-            uploader.update_cells(ADMIN_SHEET_NAME, range_to_update, [[role, unit]])
+            uploader.update_cells(ADMIN_SHEET_NAME, range_to_update, [[nome, role, unit]])
             st.success(f"Usuário '{user_data['email']}' atualizado!"); st.cache_data.clear(); st.rerun()
 
 @st.dialog("Confirmar Remoção")
@@ -254,7 +256,7 @@ def show_page():
             st.info("Nenhum usuário cadastrado.")
         else:
             st.dataframe(permissions_df, hide_index=True, use_container_width=True,
-                         column_config={"email": "E-mail", "role": "Nível", "unidade_operacional": "UO"})
+                         column_config={"email": "E-mail", "nome": "Nome", "role": "Nível", "unidade_operacional": "UO"})
             st.subheader("Ações Individuais")
             for index, user_row in permissions_df.iterrows():
                 col1, col2, col3 = st.columns([3, 1, 1])
