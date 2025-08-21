@@ -95,7 +95,7 @@ def main():
             options=page_options,
             # Ícones precisam ser ajustados para corresponder à lista dinâmica
             # Uma abordagem mais segura é mapear nomes de página para ícones
-            icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"][:len(page_options)],
+            icons=["speedometer2", "fire", "droplet", "droplet-half", "lungs", "clock-history", "tools", "person-badge"][:len(page_options)],
             menu_icon="compass-fill",
             default_index=0,
             styles={ # Estilos
