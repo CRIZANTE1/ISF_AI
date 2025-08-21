@@ -104,8 +104,8 @@ def main():
             default_index=0,
             styles={ # Estilos
                 "container": {"padding": "0 !important", "background-color": "transparent"},
-                "icon": {"color": "inherit", "font-size": "20px"},
-                "nav-link": {"font-size": "15px", "text-align": "left", "margin": "0px", "--hover-color": "rgba(255, 255, 255, 0.1)" if st.get_option("theme.base") == "dark" else "#f0f2f6"},
+                "icon": {"color": "inherit", "font-size": "15px"},
+                "nav-link": {"font-size": "12px", "text-align": "left", "margin": "0px", "--hover-color": "rgba(255, 255, 255, 0.1)" if st.get_option("theme.base") == "dark" else "#f0f2f6"},
                 "nav-link-selected": {"background-color": st.get_option("theme.primaryColor")},
             }
         )
