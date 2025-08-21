@@ -4,6 +4,7 @@ import sys
 import os
 from datetime import date
 import json
+from dateutil.relativedelta import relativedelta
 
 # Adiciona o diretório raiz ao path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
