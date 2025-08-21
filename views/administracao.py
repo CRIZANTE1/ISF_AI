@@ -76,7 +76,10 @@ def get_global_status_summary(units_df):
             if data and len(data) > 1:
                 df = pd.DataFrame(data[1:], columns=data[0])
                 latest = df.dropna(subset=['id_mangueira']).sort_values('data_inspecao', ascending=False).drop_duplicates('id_mangueira', keep='first')
-                pending = latest[pd.to_datetime(latest['data_proximo_teste'], errors='coerce').dt.date < today].shape[0] if 'data_proximo_teste' in latest.columns else 0
+                # CONDIÇÃO DE PENDÊNCIA ATUALIZADA
+                vencidas = pd.to_datetime(latest['data_proximo_teste'], errors='coerce').dt.date < today
+                reprovadas = latest['resultado'].str.lower() != 'aprovado'
+                pending = latest[vencidas | reprovadas].shape[0]
                 all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
             else: all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
         except Exception as e:
