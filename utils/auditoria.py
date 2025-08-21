@@ -7,7 +7,7 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import AUDIT_LOG_SHEET_NAME
 from auth.auth_utils import get_user_email, get_user_role
 
-def _get_sao_paulo_time_str():
+def get_sao_paulo_time_str():
     """Retorna o timestamp atual formatado para São Paulo."""
     sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
     return datetime.now(sao_paulo_tz).strftime('%Y-%m-%d %H:%M:%S')

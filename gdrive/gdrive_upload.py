@@ -126,14 +126,23 @@ class GoogleDriveUploader:
             if temp_file and os.path.exists(temp_path):
                 os.remove(temp_path)
 
-    def append_data_to_sheet(self, sheet_name, data_row):
+    def append_data_to_sheet(self, sheet_name, data_rows):
         if not self.spreadsheet_id:
             st.error("ID da planilha da Unidade Operacional não definido na sessão.")
             return None
         try:
+            # Garante que data_rows seja uma lista de listas
+            if not isinstance(data_rows, list) or not all(isinstance(row, list) for row in data_rows):
+                # Se for uma única linha (uma lista simples), envolve-a em outra lista
+                if isinstance(data_rows, list):
+                    data_rows = [data_rows]
+                else:
+                    st.error("Formato de dados inválido para append. Deve ser uma lista de linhas.")
+                    return None
+
             range_name = f"{sheet_name}!A:Z"
             body = {
-                'values': [data_row]
+                'values': data_rows
             }
             result = self.sheets_service.spreadsheets().values().append(
                 spreadsheetId=self.spreadsheet_id,

@@ -14,8 +14,10 @@ from operations.history import load_sheet_data, find_last_record
 from operations.qr_inspection_utils import decode_qr_from_image
 from operations.photo_operations import upload_evidence_photo
 from gdrive.gdrive_upload import GoogleDriveUploader
+from gdrive.config import AUDIT_LOG_SHEET_NAME, EXTINGUISHER_SHEET_NAME
 from auth.login_page import show_login_page, show_user_header, show_logout_button
-from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
+from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name, get_user_email, get_user_role
+from utils.auditoria import get_sao_paulo_time_str
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
 
@@ -90,31 +92,75 @@ def show_page():
             st.subheader("2. Confira os Dados e Confirme o Registro")
             st.dataframe(pd.DataFrame(st.session_state.processed_data))
             if st.button("💾 Confirmar e Salvar no Sistema", type="primary"):
-                with st.spinner("Salvando..."):
+                with st.spinner("Preparando e salvando dados..."):
                     pdf_link = None
+                    # Faz o upload do PDF apenas uma vez, se necessário
                     if any(rec.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"] for rec in st.session_state.processed_data):
                         st.session_state.uploaded_pdf_file.seek(0)
                         uploader = GoogleDriveUploader()
                         pdf_name = f"Relatorio_Manutencao_{date.today().isoformat()}_{st.session_state.uploaded_pdf_file.name}"
                         pdf_link = uploader.upload_file(st.session_state.uploaded_pdf_file, novo_nome=pdf_name)
                     
-                    progress_bar = st.progress(0, "Salvando registros...")
-                    total_count = len(st.session_state.processed_data)
-                    for i, record in enumerate(st.session_state.processed_data):
+                    inspection_rows = []
+                    audit_log_rows = []
+                    
+                    # Prepara todas as linhas de dados antes de enviar
+                    for record in st.session_state.processed_data:
+                        # Adiciona o link do PDF, se aplicável
                         if record.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"]:
                             record['link_relatorio_pdf'] = pdf_link
                         else:
                             record['link_relatorio_pdf'] = None
-                        save_inspection(record)
-                        progress_bar.progress((i + 1) / total_count)
-                    
-                    st.success("Registros salvos com sucesso!")
-                    st.balloons()
-                    st.session_state.batch_step = 'start'
-                    st.session_state.processed_data = None
-                    st.session_state.uploaded_pdf_file = None
-                    st.cache_data.clear()
-                    st.rerun()
+                        
+                        # Prepara a linha de inspeção
+                        lat = record.get('latitude')
+                        lon = record.get('longitude')
+                        lat_str = str(lat).replace('.', ',') if lat is not None else None
+                        lon_str = str(lon).replace('.', ',') if lon is not None else None
+
+                        inspection_row = [
+                            record.get('numero_identificacao'), record.get('numero_selo_inmetro'),
+                            record.get('tipo_agente'), record.get('capacidade'), record.get('marca_fabricante'),
+                            record.get('ano_fabricacao'), record.get('tipo_servico'), record.get('data_servico'),
+                            record.get('inspetor_responsavel'), record.get('empresa_executante'),
+                            record.get('data_proxima_inspecao'), record.get('data_proxima_manutencao_2_nivel'),
+                            record.get('data_proxima_manutencao_3_nivel'), record.get('data_ultimo_ensaio_hidrostatico'),
+                            record.get('aprovado_inspecao'), record.get('observacoes_gerais'),
+                            record.get('plano_de_acao'), record.get('link_relatorio_pdf'),
+                            lat_str, lon_str, record.get('link_foto_nao_conformidade')
+                        ]
+                        inspection_rows.append(inspection_row)
+                        
+                        # Prepara a linha de log de auditoria
+                        audit_log_row = [
+                            get_sao_paulo_time_str(),
+                            get_user_email() or "não logado",
+                            get_user_role(),
+                            "SALVOU_INSPECAO_EXTINTOR_LOTE",
+                            f"ID: {record.get('numero_identificacao')}, Status: {record.get('aprovado_inspecao')}",
+                            st.session_state.get('current_unit_name', 'N/A')
+                        ]
+                        audit_log_rows.append(audit_log_row)
+
+                    # Salva os dados em lote
+                    try:
+                        uploader = GoogleDriveUploader()
+                        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, inspection_rows)
+                        
+                        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                        matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
+                        
+                        st.success("Registros salvos com sucesso!")
+                        st.balloons()
+                        st.session_state.batch_step = 'start'
+                        st.session_state.processed_data = None
+                        st.session_state.uploaded_pdf_file = None
+                        st.cache_data.clear()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Ocorreu um erro durante o salvamento em lote: {e}")
+
+
 
     with tab_qr:
         st.header("Verificação Rápida de Equipamento")
