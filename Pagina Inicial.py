@@ -1,7 +1,3 @@
-# FILE: Pagina_Inicial.py
-
-# ... (importações no topo do arquivo permanecem as mesmas)
-# Certifique-se de que can_view está sendo importado de auth_utils
 from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view
 from utils.auditoria import log_action
 import streamlit as st
@@ -99,7 +95,7 @@ def main():
             options=page_options,
             # Ícones precisam ser ajustados para corresponder à lista dinâmica
             # Uma abordagem mais segura é mapear nomes de página para ícones
-            icons=["speedometer2", "fire", "droplet", "lungs", "droplet-half", "clock-history", "tools", "person-badge"][:len(page_options)],
+            icons=["speedometer2", "fire", "droplet", "droplet-half", "lungs", "clock-history", "tools", "person-badge"][:len(page_options)],
             menu_icon="compass-fill",
             default_index=0,
             styles={ # Estilos
@@ -111,9 +107,7 @@ def main():
         )
         st.markdown("---")
 
-    # --- Roteador Principal ---
-    # A verificação de permissão já foi feita ao criar o menu,
-    # então aqui só precisamos renderizar a página selecionada.
+
     if is_uo_selected or (is_admin() and selected_page == "Super Admin"):
         if selected_page in PAGES:
             PAGES[selected_page]()
