@@ -124,7 +124,7 @@ def get_global_status_summary(units_df):
             st.warning(f"Falha ao processar Chuveiros/Lava-Olhos da UO '{unit_name}': {e}", icon="🚿")
             all_summaries["Eyewash"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
 
-       try:
+        try:
             data = uploader.get_data_from_sheet(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
             if data and len(data) > 1:
                 df = pd.DataFrame(data[1:], columns=data[0])
