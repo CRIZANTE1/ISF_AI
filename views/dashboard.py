@@ -512,7 +512,7 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash = st.tabs([
+    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam = st.tabs([
         "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"
     ])
 
