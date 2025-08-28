@@ -19,6 +19,7 @@ from views import (
     inspecao_mangueiras, 
     inspecao_scba,
     inspecao_chuveiros,
+    inspecao_camaras_espuma,
     historico,
     utilitarios
 )
@@ -38,6 +39,7 @@ PAGES = {
     "Inspeção de Mangueiras": inspecao_mangueiras.show_page,
     "Inspeção de SCBA": inspecao_scba.show_page,
     "Inspeção de Chuveiros/LO": inspecao_chuveiros.show_page,
+    "Inspeção de Câmaras de Espuma": inspecao_camaras_espuma.show_page,
     "Histórico e Logs": historico.show_page,
     "Utilitários": utilitarios.show_page,
     "Super Admin": administracao.show_page,
@@ -78,6 +80,7 @@ def main():
             page_options.append("Inspeção de Mangueiras")
             page_options.append("Inspeção de SCBA")
             page_options.append("Inspeção de Chuveiros/LO")
+            page_options.append("Inspeção de Câmaras de Espuma")
             page_options.append("Utilitários")
             
         if is_admin(): # Apenas admin pode ver a página de Super Admin
@@ -95,7 +98,7 @@ def main():
             options=page_options,
             # Ícones precisam ser ajustados para corresponder à lista dinâmica
             # Uma abordagem mais segura é mapear nomes de página para ícones
-            icons=["speedometer2", "fire", "droplet", "droplet-half", "lungs", "clock-history", "tools", "person-badge"][:len(page_options)],
+            icons=["speedometer2", "fire", "droplet", "droplet-half", "lungs", "cloud-rain-heavy", "clock-history", "tools", "person-badge"][:len(page_options)],
             menu_icon="compass-fill",
             default_index=0,
             styles={ # Estilos
