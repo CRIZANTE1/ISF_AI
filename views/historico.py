@@ -112,8 +112,7 @@ def show_page():
         subtabs = st.tabs([
             "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos (Cadastro)", "📋 Abrigos (Inspeções)",
             "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)", 
-            "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)"
-        ])
+            "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)"])
 
         with subtabs[0]: display_formatted_dataframe(EXTINGUISHER_SHEET_NAME)
         with subtabs[1]: display_formatted_dataframe(HOSE_SHEET_NAME)
@@ -128,7 +127,7 @@ def show_page():
 
     with tab_logs:
         st.header("Logs de Ações Corretivas")
-        subtabs = st.tabs(["🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"])])
+        subtabs = st.tabs(["🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"])
 
         with subtabs[0]: display_formatted_dataframe(LOG_ACTIONS)
         with subtabs[1]: display_formatted_dataframe(LOG_SHELTER_SHEET_NAME)
