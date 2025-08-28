@@ -11,45 +11,92 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from utils.auditoria import log_action
 
-# Checklist baseado nos requisitos fornecidos
+# --- ALTERAÇÃO AQUI: Checklist agora é um dicionário de modelos ---
 CHECKLIST_QUESTIONS = {
-    "Condições Gerais": [
-        "Pintura e estrutura sem corrosão ou amassados",
-        "Sem vazamentos visíveis no tanque e conexões",
-        "Válvulas em bom estado e lubrificadas"
-    ],
-    "Componentes da Câmara": [
-        "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)",
-        "Junta de vedação em boas condições",
-        "Selo de vidro limpo e fixado",
-        "Defletor e barragem de espuma íntegros"
-    ],
-    "Linhas e Conexões": [
-        "Tomadas de solução e linhas sem obstrução",
-        "Anéis de borracha e tampões em bom estado",
-        "Drenos livres e estanques",
-        "Ejetores e orifícios desobstruídos"
-    ],
-    "Teste Funcional": [
-        "Verificação de fluxo de água/espuma",
-        "Verificação de estanqueidade da linha",
-        "Funcionamento do sistema confirmado"
-    ]
+    "MCS - Selo de Vidro": {
+        "Condições Gerais": [
+            "Pintura e estrutura sem corrosão ou amassados",
+            "Sem vazamentos visíveis no tanque e conexões",
+            "Válvulas em bom estado e lubrificadas"
+        ],
+        "Componentes da Câmara": [
+            "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)",
+            "Selo de vidro limpo, íntegro e bem fixado",
+            "Junta de vedação em boas condições",
+            "Defletor e barragem de espuma íntegros"
+        ],
+        "Linhas e Conexões": [
+            "Tomadas de solução e linhas sem obstrução",
+            "Drenos livres e estanques",
+            "Ejetores e orifícios desobstruídos"
+        ],
+        "Teste Funcional": [
+            "Verificação de fluxo de água/espuma",
+            "Verificação de estanqueidade da linha",
+            "Funcionamento do sistema confirmado"
+        ]
+    },
+    "TF - Tubo de Filme": {
+        "Condições Gerais": [
+            "Pintura e estrutura sem corrosão ou amassados",
+            "Sem vazamentos visíveis no tanque e conexões",
+            "Válvulas em bom estado e lubrificadas"
+        ],
+        "Componentes da Câmara": [
+            "Tubo de projeção íntegro (sem corrosão ou danos)",
+            "Defletor de projeção íntegro e bem fixado"
+        ],
+        "Linhas e Conexões": [
+            "Tomadas de solução e linhas sem obstrução",
+            "Drenos livres e estanques",
+            "Ejetores e orifícios desobstruídos"
+        ],
+        "Teste Funcional": [
+            "Verificação de fluxo de água/espuma",
+            "Verificação de estanqueidade da linha",
+            "Funcionamento do sistema confirmado"
+        ]
+    },
+    "MLS - Membrana Low Shear": {
+        "Condições Gerais": [
+            "Pintura e estrutura sem corrosão ou amassados",
+            "Sem vazamentos visíveis no tanque e conexões",
+            "Válvulas em bom estado e lubrificadas"
+        ],
+        "Componentes da Câmara": [
+            "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)",
+            "Membrana de elastômero sem ressecamento ou danos visíveis",
+            "Junta de vedação em boas condições",
+            "Defletor e barragem de espuma íntegros"
+        ],
+        "Linhas e Conexões": [
+            "Tomadas de solução e linhas sem obstrução",
+            "Drenos livres e estanques",
+            "Ejetores e orifícios desobstruídos"
+        ],
+        "Teste Funcional": [
+            "Verificação de fluxo de água/espuma",
+            "Verificação de estanqueidade da linha",
+            "Funcionamento do sistema confirmado"
+        ]
+    }
 }
 
-# Mapa de planos de ação para não conformidades
+# Mapa de planos de ação (agora cobre todos os modelos)
 ACTION_PLAN_MAP = {
     "Pintura e estrutura sem corrosão ou amassados": "Programar serviço de tratamento de corrosão, reparo e repintura.",
     "Sem vazamentos visíveis no tanque e conexões": "Identificar ponto de vazamento, substituir juntas/vedações ou reparar a conexão.",
     "Válvulas em bom estado e lubrificadas": "Realizar a limpeza, lubrificação ou substituição da válvula defeituosa.",
     "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)": "Avaliar a integridade estrutural. Se comprometida, programar a substituição da câmara.",
+    "Selo de vidro limpo, íntegro e bem fixado": "Realizar a limpeza ou substituição do selo de vidro caso esteja sujo ou trincado.",
     "Junta de vedação em boas condições": "Substituir a junta de vedação ressecada ou danificada.",
-    "Selo de vidro limpo e fixado": "Realizar a limpeza do selo de vidro ou substituir o selo caso esteja trincado.",
     "Defletor e barragem de espuma íntegros": "Reparar ou substituir o defletor/barragem de espuma danificado.",
     "Tomadas de solução e linhas sem obstrução": "Realizar a desobstrução e limpeza completa das linhas de solução.",
-    "Anéis de borracha e tampões em bom estado": "Substituir anéis e tampões desgastados ou danificados.",
     "Drenos livres e estanques": "Desobstruir e verificar a estanqueidade dos drenos.",
     "Ejetores e orifícios desobstruídos": "Realizar a limpeza e desobstrução dos ejetores e orifícios.",
+    "Tubo de projeção íntegro (sem corrosão ou danos)": "Avaliar a integridade do tubo. Programar reparo ou substituição se necessário.",
+    "Defletor de projeção íntegro e bem fixado": "Reapertar ou substituir o defletor de projeção.",
+    "Membrana de elastômero sem ressecamento ou danos visíveis": "Substituir a membrana de elastômero.",
     "Verificação de fluxo de água/espuma": "Investigar a causa da falha de fluxo (obstrução, problema na bomba, etc.) e corrigir.",
     "Verificação de estanqueidade da linha": "Localizar e reparar o vazamento na linha.",
     "Funcionamento do sistema confirmado": "Realizar diagnóstico completo para identificar e corrigir a falha funcional."
@@ -68,7 +115,7 @@ def save_new_foam_chamber(chamber_id, location, brand, model):
 
         data_row = [chamber_id, location, brand, model, date.today().isoformat()]
         uploader.append_data_to_sheet(FOAM_CHAMBER_INVENTORY_SHEET_NAME, data_row)
-        log_action("CADASTROU_CAMARA_ESPUMA", f"ID: {chamber_id}")
+        log_action("CADASTROU_CAMARA_ESPUMA", f"ID: {chamber_id}, Modelo: {model}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar nova câmara de espuma: {e}")
@@ -87,10 +134,9 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
         uploader = GoogleDriveUploader()
         today = date.today()
         
-        # Calcula a próxima data de inspeção com base no tipo
         if inspection_type == "Funcional Anual":
             next_inspection_date = (today + relativedelta(years=1)).isoformat()
-        else: # Visual Mensal
+        else:
             next_inspection_date = (today + relativedelta(months=1)).isoformat()
             
         non_conformities = [q for q, status in results_dict.items() if status == "Não Conforme"]
