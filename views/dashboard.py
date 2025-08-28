@@ -849,12 +849,26 @@ def show_page():
     
     with tab_foam:
         st.header("Dashboard de Câmaras de Espuma")
+        
+        df_foam_inventory = load_sheet_data(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
         df_foam_history = load_sheet_data(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
         
         if df_foam_history.empty:
             st.warning("Nenhuma inspeção de câmara de espuma registrada.")
         else:
             dashboard_df = get_foam_chamber_status_df(df_foam_history)
+            
+            # Juntar com o inventário para obter o modelo e a localização
+            if not df_foam_inventory.empty:
+                dashboard_df = pd.merge(
+                    dashboard_df, 
+                    df_foam_inventory[['id_camara', 'localizacao', 'modelo']], 
+                    on='id_camara', 
+                    how='left'
+                )
+            else:
+                dashboard_df['localizacao'] = 'N/A'
+                dashboard_df['modelo'] = 'N/A'
             
             status_counts = dashboard_df['status_dashboard'].value_counts()
             col1, col2, col3, col4 = st.columns(4)
@@ -868,9 +882,11 @@ def show_page():
             for _, row in dashboard_df.iterrows():
                 status = row['status_dashboard']
                 prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
-                expander_title = f"{status} | **ID:** {row['id_camara']} | **Próx. Inspeção:** {prox_inspecao}"
+                modelo = row.get('modelo', 'N/A') # Obter o modelo
+                expander_title = f"{status} | **ID:** {row['id_camara']} | **Modelo:** {modelo} | **Próx. Inspeção:** {prox_inspecao}"
                 
                 with st.expander(expander_title):
+                    st.write(f"**Localização:** {row.get('localizacao', 'N/A')}")
                     st.write(f"**Última inspeção:** {pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y')} por **{row['inspetor']}**")
                     st.write(f"**Tipo da Última Inspeção:** {row['tipo_inspecao']}")
                     st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
