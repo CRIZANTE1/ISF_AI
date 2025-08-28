@@ -15,10 +15,11 @@ from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SHELTER_SHEET_NAME,
     INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
     EYEWASH_INVENTORY_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME,
-    LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME, LOG_EYEWASH_SHEET_NAME
+    FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
+    LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME, LOG_EYEWASH_SHEET_NAME,
+    LOG_FOAM_CHAMBER_SHEET_NAME
 )
 
-# --- CORREÇÃO APLICADA AQUI ---
 # O dicionário ALL_COLUMNS foi movido para fora da função, tornando-se uma constante do módulo.
 ALL_COLUMNS = {
     # Comuns
@@ -54,6 +55,9 @@ def format_dataframe_for_display(df, sheet_name):
         SCBA_VISUAL_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'numero_serie_equipamento', 'status_geral', 'data_proxima_inspecao', 'inspetor'],
         EYEWASH_INVENTORY_SHEET_NAME: ['id_equipamento', 'localizacao', 'marca', 'modelo', 'data_cadastro'],
         EYEWASH_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_equipamento', 'status_geral', 'plano_de_acao', 'data_proxima_inspecao', 'inspetor'],
+        FOAM_CHAMBER_INVENTORY_SHEET_NAME: ['id_camara', 'localizacao', 'marca', 'modelo', 'data_cadastro'],
+        FOAM_CHAMBER_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_camara', 'tipo_inspecao', 'status_geral', 'plano_de_acao', 'data_proxima_inspecao', 'inspetor'],
+        LOG_FOAM_CHAMBER_SHEET_NAME: ['data_acao', 'id_camara', 'problema_original', 'acao_realizada', 'responsavel'],
         LOG_ACTIONS: ['data_acao', 'id_equipamento', 'problema_original', 'acao_realizada', 'responsavel_acao'],
         LOG_SHELTER_SHEET_NAME: ['data_acao', 'id_abrigo', 'problema_original', 'acao_realizada', 'responsavel'],
         LOG_SCBA_SHEET_NAME: ['data_acao', 'numero_serie_equipamento', 'problema_original', 'acao_realizada', 'responsavel'],
@@ -62,7 +66,6 @@ def format_dataframe_for_display(df, sheet_name):
 
     cols_to_show = SHEET_VIEW_COLUMNS.get(sheet_name, df.columns.tolist())
     final_cols = [col for col in cols_to_show if col in df.columns]
-    # A função usa a constante ALL_COLUMNS do escopo do módulo para renomear.
     renamed_df = df[final_cols].rename(columns=ALL_COLUMNS)
     
     return renamed_df
@@ -108,7 +111,8 @@ def show_page():
         st.header("Histórico de Registros por Tipo de Equipamento")
         subtabs = st.tabs([
             "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos (Cadastro)", "📋 Abrigos (Inspeções)",
-            "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)"
+            "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)", 
+            "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)"
         ])
 
         with subtabs[0]: display_formatted_dataframe(EXTINGUISHER_SHEET_NAME)
@@ -119,14 +123,17 @@ def show_page():
         with subtabs[5]: display_formatted_dataframe(SCBA_VISUAL_INSPECTIONS_SHEET_NAME)
         with subtabs[6]: display_formatted_dataframe(EYEWASH_INVENTORY_SHEET_NAME)
         with subtabs[7]: display_formatted_dataframe(EYEWASH_INSPECTIONS_SHEET_NAME)
+        with subtabs[8]: display_formatted_dataframe(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
+        with subtabs[9]: display_formatted_dataframe(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)    
 
     with tab_logs:
         st.header("Logs de Ações Corretivas")
-        subtabs = st.tabs(["🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos"])
+        subtabs = st.tabs(["🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"])])
 
         with subtabs[0]: display_formatted_dataframe(LOG_ACTIONS)
         with subtabs[1]: display_formatted_dataframe(LOG_SHELTER_SHEET_NAME)
         with subtabs[2]: display_formatted_dataframe(LOG_SCBA_SHEET_NAME)
         with subtabs[3]: display_formatted_dataframe(LOG_EYEWASH_SHEET_NAME)
+        with subtabs[4]: display_formatted_dataframe(LOG_FOAM_CHAMBER_SHEET_NAME)    
 
 
