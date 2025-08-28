@@ -16,7 +16,7 @@ from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from operations.eyewash_operations import CHECKLIST_QUESTIONS
 
-from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME
+from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME, LOG_FOAM_CHAMBER_SHEET_NAME
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
 from operations.corrective_actions import save_corrective_action
@@ -25,9 +25,32 @@ from operations.photo_operations import upload_evidence_photo
 from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
+from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
+
 
 
 set_page_config()
+
+
+def get_foam_chamber_status_df(df_inspections):
+    if df_inspections.empty:
+        return pd.DataFrame()
+
+    df_inspections['data_inspecao'] = pd.to_datetime(df_inspections['data_inspecao'], errors='coerce')
+    latest_inspections = df_inspections.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_camara', keep='first').copy()
+    
+    today = pd.Timestamp(date.today())
+    latest_inspections['data_proxima_inspecao'] = pd.to_datetime(latest_inspections['data_proxima_inspecao'], errors='coerce')
+    
+    conditions = [
+        (latest_inspections['data_proxima_inspecao'] < today),
+        (latest_inspections['status_geral'] == 'Reprovado com Pendências')
+    ]
+    choices = ['🔴 VENCIDO', '🟠 COM PENDÊNCIAS']
+    latest_inspections['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
+    
+    return latest_inspections
+
 
 def get_eyewash_status_df(df_inspections):
     if df_inspections.empty:
@@ -240,6 +263,45 @@ def get_consolidated_status_df(df_full, df_locais):
     return dashboard_df
 
 
+@st.dialog("Registrar Ação Corretiva para Câmara de Espuma")
+def action_dialog_foam_chamber(item_row):
+    chamber_id = item_row['id_camara']
+    problem = item_row['plano_de_acao']
+    
+    st.write(f"**Câmara ID:** `{chamber_id}`")
+    st.write(f"**Problema Identificado:** `{problem}`")
+    
+    action_taken = st.text_area("Descreva a ação corretiva realizada:")
+    responsible = st.text_input("Responsável pela ação:", value=get_user_display_name())
+    
+    if st.button("Salvar Ação e Regularizar Status", type="primary"):
+        if not action_taken:
+            st.error("Por favor, descreva a ação realizada.")
+            return
+
+        with st.spinner("Registrando ação e regularizando status..."):
+            log_saved = save_foam_chamber_action_log(chamber_id, problem, action_taken, responsible)
+            
+            if not log_saved:
+                st.error("Falha ao salvar o log da ação."); return
+
+            # Salva uma nova inspeção "Visual" aprovada para regularizar o status
+            mock_results = {q: "Conforme" for q_list in CHECKLIST_QUESTIONS.values() for q in q_list}
+            inspection_saved = save_foam_chamber_inspection(
+                chamber_id=chamber_id,
+                inspection_type="Visual Mensal",
+                overall_status="Aprovado",
+                results_dict=mock_results,
+                inspector_name=get_user_display_name()
+            )
+            
+            if inspection_saved:
+                st.success("Ação registrada e status do equipamento regularizado com sucesso!")
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("Log salvo, mas falha ao registrar a nova inspeção de regularização.")
+                
 @st.dialog("Registrar Ação Corretiva para Chuveiro / Lava-Olhos")
 def action_dialog_eyewash(item_row):
     equipment_id = item_row['id_equipamento']
@@ -445,7 +507,7 @@ def show_page():
         st.rerun()
 
     tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash = st.tabs([
-        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos"
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"
     ])
 
     location = streamlit_js_eval(js_expressions="""
@@ -778,5 +840,49 @@ def show_page():
                     except (json.JSONDecodeError, TypeError):
                         st.error("Não foi possível carregar os detalhes da inspeção.")
 
+    
+    with tab_foam:
+        st.header("Dashboard de Câmaras de Espuma")
+        df_foam_history = load_sheet_data(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
+        
+        if df_foam_history.empty:
+            st.warning("Nenhuma inspeção de câmara de espuma registrada.")
+        else:
+            dashboard_df = get_foam_chamber_status_df(df_foam_history)
+            
+            status_counts = dashboard_df['status_dashboard'].value_counts()
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("✅ Total de Câmaras", len(dashboard_df))
+            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+            col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
+            col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+            st.markdown("---")
+
+            st.subheader("Lista de Equipamentos e Status")
+            for _, row in dashboard_df.iterrows():
+                status = row['status_dashboard']
+                prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
+                expander_title = f"{status} | **ID:** {row['id_camara']} | **Próx. Inspeção:** {prox_inspecao}"
+                
+                with st.expander(expander_title):
+                    st.write(f"**Última inspeção:** {pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y')} por **{row['inspetor']}**")
+                    st.write(f"**Tipo da Última Inspeção:** {row['tipo_inspecao']}")
+                    st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
+                    
+                    if status == "🟠 COM PENDÊNCIAS":
+                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_foam_{row['id_camara']}"):
+                            action_dialog_foam_chamber(row.to_dict())
+
+                    st.markdown("---")
+                    st.write("**Detalhes da Última Inspeção:**")
+                    try:
+                        results = json.loads(row['resultados_json'])
+                        non_conformities = {q: status for q, status in results.items() if status == "Não Conforme"}
+                        if non_conformities:
+                            st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+                        else:
+                            st.success("Todos os itens estavam conformes na última inspeção.")
+                    except (json.JSONDecodeError, TypeError):
+                        st.error("Não foi possível carregar os detalhes da inspeção.")
 
 
