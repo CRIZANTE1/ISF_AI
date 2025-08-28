@@ -13,7 +13,7 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
     UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID,
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, 
-    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME
+    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME 
 )
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
@@ -43,7 +43,7 @@ def get_global_status_summary(units_df):
     """
     # Adicionado "Eyewash" ao dicionário de resumos
     all_summaries = {
-        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": [], "Eyewash": []
+        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": [], "Eyewash": [], "Câmaras de Espuma": [] 
     }
     today = pd.Timestamp.today().date()
     progress_bar = st.progress(0, "Iniciando consolidação de dados...")
@@ -124,6 +124,19 @@ def get_global_status_summary(units_df):
             st.warning(f"Falha ao processar Chuveiros/Lava-Olhos da UO '{unit_name}': {e}", icon="🚿")
             all_summaries["Eyewash"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
 
+       try:
+            data = uploader.get_data_from_sheet(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                latest = df.dropna(subset=['id_camara']).sort_values('data_inspecao', ascending=False).drop_duplicates('id_camara', keep='first')
+                pending = latest[latest['status_geral'] == 'Reprovado com Pendências'].shape[0] if 'status_geral' in latest.columns else 0
+                all_summaries["Câmaras de Espuma"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else:
+                all_summaries["Câmaras de Espuma"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar Câmaras de Espuma da UO '{unit_name}': {e}", icon="☁️")
+            all_summaries["Câmaras de Espuma"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})    
+
     progress_bar.empty()
     for key, data in all_summaries.items():
         all_summaries[key] = pd.DataFrame(data) if data else pd.DataFrame(columns=['Unidade Operacional', 'OK', 'Com Pendência'])
@@ -198,7 +211,7 @@ def show_page():
                 # Adicionada nova aba para Chuveiros/Lava-Olhos
                 tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba, tab_eyewash = st.tabs([
                     "📈 Visão Geral", "🔥 Extintores", "💧 Mangueiras", 
-                    "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos"
+                    "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos", "☁️ Câmaras de Espuma"
                 ])
                 
                 with tab_overview:
@@ -210,25 +223,27 @@ def show_page():
                     df_shelter_pending = all_summaries.get("Abrigos", pd.DataFrame()).rename(columns={"Com Pendência": "Abrigos"})
                     df_scba_pending = all_summaries.get("SCBA", pd.DataFrame()).rename(columns={"Com Pendência": "SCBA"})
                     df_eyewash_pending = all_summaries.get("Eyewash", pd.DataFrame()).rename(columns={"Com Pendência": "Lava-Olhos"})
+                    df_foam_pending = all_summaries.get("Câmaras de Espuma", pd.DataFrame()).rename(columns={"Com Pendência": "Câmaras de Espuma"}) 
 
                     # Adicionada a nova lista
-                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending]
+                    f_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending, df_foam_pending]
                     df_pending_consolidated = pd.DataFrame(columns=['Unidade Operacional'])
                     
                     for df in df_list:
                         if not df.empty and 'Unidade Operacional' in df.columns:
-                           cols_to_merge = [col for col in ['Unidade Operacional', 'Extintores', 'Mangueiras', 'Abrigos', 'SCBA', 'Lava-Olhos'] if col in df.columns]
+                           cols_to_merge = [col for col in ['Unidade Operacional', 'Extintores', 'Mangueiras', 'Abrigos', 'SCBA', 'Lava-Olhos', 'Câmaras de Espuma'] if col in df.columns]
                            df_pending_consolidated = pd.merge(df_pending_consolidated, df[cols_to_merge], on='Unidade Operacional', how='outer')
 
                     df_pending_consolidated = df_pending_consolidated.set_index('Unidade Operacional').fillna(0).astype(int)
                     
                     st.markdown("##### Total de Pendências por Categoria")
-                    cols = st.columns(5)
+                    cols = st.columns(6)
                     cols[0].metric("🔥 Extintores", df_pending_consolidated['Extintores'].sum())
                     cols[1].metric("💧 Mangueiras", df_pending_consolidated['Mangueiras'].sum())
                     cols[2].metric("🧯 Abrigos", df_pending_consolidated['Abrigos'].sum())
                     cols[3].metric("💨 SCBA", df_pending_consolidated['SCBA'].sum())
                     cols[4].metric("🚿 Lava-Olhos", df_pending_consolidated['Lava-Olhos'].sum())
+                    cols[5].metric("☁️ Câmaras Espuma", df_pending_consolidated['Câmaras de Espuma'].sum())
                     
                     st.markdown("---")
 
