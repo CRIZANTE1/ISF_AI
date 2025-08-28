@@ -31,6 +31,9 @@ LOG_SHELTER_SHEET_NAME = "log_abrigos"
 LOG_SCBA_SHEET_NAME = "log_scba"
 TH_SHIPMENT_LOG_SHEET_NAME = "log_remessas_th"
 EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME = "log_remessas_extintores"
+FOAM_CHAMBER_INVENTORY_SHEET_NAME = "camaras_espuma_inventario"
+FOAM_CHAMBER_INSPECTIONS_SHEET_NAME = "inspecoes_camaras_espuma"
+LOG_FOAM_CHAMBER_SHEET_NAME = "log_acoes_camaras_espuma"
 
 def get_credentials_dict():
     """Retorna as credenciais do serviço do Google, seja do arquivo local ou do Streamlit Cloud."""
