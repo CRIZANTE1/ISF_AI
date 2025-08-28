@@ -226,7 +226,7 @@ def show_page():
                     df_foam_pending = all_summaries.get("Câmaras de Espuma", pd.DataFrame()).rename(columns={"Com Pendência": "Câmaras de Espuma"}) 
 
                     # Adicionada a nova lista
-                    f_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending, df_foam_pending]
+                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending, df_foam_pending]
                     df_pending_consolidated = pd.DataFrame(columns=['Unidade Operacional'])
                     
                     for df in df_list:
