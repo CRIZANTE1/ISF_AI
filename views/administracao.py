@@ -209,9 +209,9 @@ def show_page():
                     all_summaries = get_global_status_summary(units_df)
                 
                 # Adicionada nova aba para Chuveiros/Lava-Olhos
-                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba, tab_eyewash tab_foam = st.tabs([
-                    "📈 Visão Geral", "🔥 Extintores", "💧 Mangueiras", 
-                    "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos", "☁️ Câmaras de Espuma"
+                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba, tab_eyewash, tab_foam = st.tabs([
+                "📈 Visão Geral", "🔥 Extintores", "💧 Mangueiras",
+                "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos", "☁️ Câmaras de Espuma"
                 ])
                 
                 with tab_overview:
