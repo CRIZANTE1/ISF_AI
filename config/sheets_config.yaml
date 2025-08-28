@@ -146,5 +146,26 @@ log_acoes_chuveiros:
   - problema_original
   - acao_realizada
   - responsavel
-  - link_foto_evidencia  
-  
+  - link_foto_evidencia
+ 
+camaras_espuma_inventario:
+  - id_camara
+  - localizacao
+  - marca
+  - modelo
+  - data_cadastro
+inspecoes_camaras_espuma:
+  - data_inspecao
+  - id_camara
+  - tipo_inspecao
+  - status_geral
+  - plano_de_acao
+  - resultados_json
+  - inspetor
+  - data_proxima_inspecao
+log_acoes_camaras_espuma:
+  - data_acao
+  - id_camara
+  - problema_original
+  - acao_realizada
+  - responsavel
