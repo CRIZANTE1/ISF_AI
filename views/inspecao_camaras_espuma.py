@@ -34,11 +34,18 @@ def show_page():
             selected_chamber_id = st.selectbox("Selecione a Câmara para Inspecionar", equipment_options)
 
             if selected_chamber_id != "Selecione uma câmara...":
-                location_row = df_inventory[df_inventory['id_camara'] == selected_chamber_id]
-                if not location_row.empty:
-                    location = location_row.iloc[0].get('localizacao', 'N/A')
-                    st.info(f"**Localização:** {location}")
+                chamber_data = df_inventory[df_inventory['id_camara'] == selected_chamber_id].iloc[0]
+                location = chamber_data.get('localizacao', 'N/A')
+                model = chamber_data.get('modelo', 'N/A')
                 
+                st.info(f"**Localização:** {location} | **Modelo:** {model}")
+                
+                # --- ALTERAÇÃO AQUI: Carrega o checklist correto para o modelo ---
+                checklist_for_model = CHECKLIST_QUESTIONS.get(model)
+                if not checklist_for_model:
+                    st.error(f"Modelo '{model}' não reconhecido. Não é possível gerar o checklist de inspeção.")
+                    st.stop()
+
                 inspection_type = st.radio(
                     "Selecione o Tipo de Inspeção:",
                     ("Visual Mensal", "Funcional Anual"),
@@ -52,15 +59,15 @@ def show_page():
                     inspection_results = {}
                     has_issues = False
                     
-                    sections_to_show = list(CHECKLIST_QUESTIONS.keys())
+                    sections_to_show = list(checklist_for_model.keys())
                     if inspection_type == "Visual Mensal":
                         sections_to_show.pop()
                     
                     for category in sections_to_show:
                         st.subheader(category)
-                        questions = CHECKLIST_QUESTIONS.get(category, [])
+                        questions = checklist_for_model.get(category, [])
                         for question in questions:
-                            key = f"{selected_chamber_id}_{question}".replace(" ", "_").replace("(", "").replace(")", "").replace("/", "")
+                            key = f"{selected_chamber_id}_{question}".replace(" ", "_").replace("/", "")
                             answer = st.radio(
                                 label=question, options=["Conforme", "Não Conforme", "N/A"],
                                 key=key, horizontal=True
@@ -82,8 +89,7 @@ def show_page():
                                 inspector_name=get_user_display_name()
                             ):
                                 st.success(f"Inspeção '{inspection_type}' para a câmara '{selected_chamber_id}' salva com sucesso!")
-                                if not has_issues:
-                                    st.balloons()
+                                st.balloons() if not has_issues else None
                                 st.cache_data.clear()
                                 st.rerun()
                             else:
@@ -96,17 +102,19 @@ def show_page():
             st.info("Preencha os dados do novo equipamento a ser adicionado ao sistema.")
             new_id = st.text_input("**ID da Câmara (Obrigatório)**", help="Use um código único, ex: CE-TQ-01")
             new_location = st.text_input("**Localização (Obrigatório)**", help="Descrição da localização física, ex: Topo do Tanque TQ-101")
+            
+            model_options = list(CHECKLIST_QUESTIONS.keys())
+            new_model = st.selectbox("**Modelo da Câmara (Obrigatório)**", options=model_options)
+            
             new_brand = st.text_input("Marca")
-            new_model = st.text_input("Modelo")
             
             submit_register = st.form_submit_button("➕ Cadastrar Equipamento", type="primary", use_container_width=True)
             
             if submit_register:
-                if not new_id or not new_location:
-                    st.error("Os campos 'ID da Câmara' e 'Localização' são obrigatórios.")
+                if not new_id or not new_location or not new_model:
+                    st.error("Os campos 'ID', 'Localização' e 'Modelo' são obrigatórios.")
                 else:
                     with st.spinner("Cadastrando novo equipamento..."):
                         if save_new_foam_chamber(new_id, new_location, new_brand, new_model):
                             st.success(f"Câmara de espuma '{new_id}' cadastrada com sucesso!")
                             st.cache_data.clear()
-                        # A mensagem de erro já é tratada dentro da função save_new_foam_chamber
