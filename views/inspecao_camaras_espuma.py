@@ -34,8 +34,10 @@ def show_page():
             selected_chamber_id = st.selectbox("Selecione a Câmara para Inspecionar", equipment_options)
 
             if selected_chamber_id != "Selecione uma câmara...":
-                location = df_inventory[df_inventory['id_camara'] == selected_chamber_id].iloc[0].get('localizacao', 'N/A')
-                st.info(f"**Localização:** {location}")
+                location_row = df_inventory[df_inventory['id_camara'] == selected_chamber_id]
+                if not location_row.empty:
+                    location = location_row.iloc[0].get('localizacao', 'N/A')
+                    st.info(f"**Localização:** {location}")
                 
                 inspection_type = st.radio(
                     "Selecione o Tipo de Inspeção:",
@@ -50,16 +52,15 @@ def show_page():
                     inspection_results = {}
                     has_issues = False
                     
-                    # Define quais seções do checklist mostrar
                     sections_to_show = list(CHECKLIST_QUESTIONS.keys())
                     if inspection_type == "Visual Mensal":
-                        sections_to_show.pop() # Remove a última seção (Teste Funcional)
+                        sections_to_show.pop()
                     
                     for category in sections_to_show:
                         st.subheader(category)
-                        questions = CHECKLIST_QUESTIONS[category]
+                        questions = CHECKLIST_QUESTIONS.get(category, [])
                         for question in questions:
-                            key = f"{selected_chamber_id}_{question}".replace(" ", "_")
+                            key = f"{selected_chamber_id}_{question}".replace(" ", "_").replace("(", "").replace(")", "").replace("/", "")
                             answer = st.radio(
                                 label=question, options=["Conforme", "Não Conforme", "N/A"],
                                 key=key, horizontal=True
@@ -81,7 +82,8 @@ def show_page():
                                 inspector_name=get_user_display_name()
                             ):
                                 st.success(f"Inspeção '{inspection_type}' para a câmara '{selected_chamber_id}' salva com sucesso!")
-                                st.balloons() if not has_issues else None
+                                if not has_issues:
+                                    st.balloons()
                                 st.cache_data.clear()
                                 st.rerun()
                             else:
@@ -107,3 +109,4 @@ def show_page():
                         if save_new_foam_chamber(new_id, new_location, new_brand, new_model):
                             st.success(f"Câmara de espuma '{new_id}' cadastrada com sucesso!")
                             st.cache_data.clear()
+                        # A mensagem de erro já é tratada dentro da função save_new_foam_chamber
