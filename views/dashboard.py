@@ -15,8 +15,14 @@ from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_use
 from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from operations.eyewash_operations import CHECKLIST_QUESTIONS
-
-from gdrive.config import HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME, LOG_FOAM_CHAMBER_SHEET_NAME
+from gdrive.config import (
+    HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME,
+    LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
+    EYEWASH_INSPECTIONS_SHEET_NAME,
+    FOAM_CHAMBER_INVENTORY_SHEET_NAME,
+    FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
+    LOG_FOAM_CHAMBER_SHEET_NAME
+)
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
 from operations.corrective_actions import save_corrective_action
