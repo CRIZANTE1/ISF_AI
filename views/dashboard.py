@@ -894,8 +894,9 @@ def show_page():
                 with st.expander(expander_title):
                     for _, row in group_df.iterrows():
                         status = row['status_dashboard']
-                        prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
                         modelo = row.get('modelo', 'N/A')
+                        ultima_inspecao_str = pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_inspecao']) else "N/A"
+                        prox_inspecao_str = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_proxima_inspecao']) else "N/A"
                         
                         with st.container(border=True):
                             st.markdown(f"##### {status} | **ID:** {row['id_camara']} | **Modelo:** {modelo}")
