@@ -40,12 +40,11 @@ def show_page():
                 
                 st.info(f"**Localização:** {location} | **Modelo:** {model}")
                 
-                # --- ALTERAÇÃO AQUI: Carrega o checklist correto para o modelo ---
                 checklist_for_model = CHECKLIST_QUESTIONS.get(model)
                 if not checklist_for_model:
                     st.error(f"Modelo '{model}' não reconhecido. Não é possível gerar o checklist de inspeção.")
                     st.stop()
-
+                
                 inspection_type = st.radio(
                     "Selecione o Tipo de Inspeção:",
                     ("Visual Semestral", "Funcional Anual"),
@@ -60,7 +59,7 @@ def show_page():
                     has_issues = False
                     
                     sections_to_show = list(checklist_for_model.keys())
-                    if inspection_type == "Visual Mensal":
+                    if inspection_type == "Visual Semestral":
                         sections_to_show.pop()
                     
                     for category in sections_to_show:
@@ -76,24 +75,38 @@ def show_page():
                             if answer == "Não Conforme":
                                 has_issues = True
                     
+                    st.markdown("---")
+                    photo_file = None
+                    if has_issues:
+                        st.warning("Foi encontrada pelo menos uma não conformidade. Por favor, anexe uma foto como evidência.")
+                        photo_file = st.file_uploader(
+                            "Anexar foto da não conformidade", 
+                            type=["jpg", "jpeg", "png"], 
+                            key=f"photo_{selected_chamber_id}"
+                        )
+
                     submitted = st.form_submit_button("✅ Salvar Inspeção", type="primary", use_container_width=True)
 
                     if submitted:
-                        overall_status = "Reprovado com Pendências" if has_issues else "Aprovado"
-                        with st.spinner("Salvando inspeção..."):
-                            if save_foam_chamber_inspection(
-                                chamber_id=selected_chamber_id,
-                                inspection_type=inspection_type,
-                                overall_status=overall_status,
-                                results_dict=inspection_results,
-                                inspector_name=get_user_display_name()
-                            ):
-                                st.success(f"Inspeção '{inspection_type}' para a câmara '{selected_chamber_id}' salva com sucesso!")
-                                st.balloons() if not has_issues else None
-                                st.cache_data.clear()
-                                st.rerun()
-                            else:
-                                st.error("Ocorreu um erro ao salvar a inspeção.")
+                        if has_issues and not photo_file:
+                            st.error("É obrigatório anexar uma foto quando há não conformidades.")
+                        else:
+                            overall_status = "Reprovado com Pendências" if has_issues else "Aprovado"
+                            with st.spinner("Salvando inspeção..."):
+                                if save_foam_chamber_inspection(
+                                    chamber_id=selected_chamber_id,
+                                    inspection_type=inspection_type,
+                                    overall_status=overall_status,
+                                    results_dict=inspection_results,
+                                    photo_file=photo_file, # Passa o arquivo da foto
+                                    inspector_name=get_user_display_name()
+                                ):
+                                    st.success(f"Inspeção '{inspection_type}' para a câmara '{selected_chamber_id}' salva com sucesso!")
+                                    st.balloons() if not has_issues else None
+                                    st.cache_data.clear()
+                                    st.rerun()
+                                else:
+                                    st.error("Ocorreu um erro ao salvar a inspeção.")
 
     with tab_register:
         st.header("Cadastrar Nova Câmara de Espuma")
