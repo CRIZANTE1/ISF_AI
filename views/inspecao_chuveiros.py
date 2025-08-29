@@ -12,7 +12,6 @@ from operations.eyewash_operations import (
     CHECKLIST_QUESTIONS
 )
 from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
-from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
 from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME
