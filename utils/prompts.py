@@ -57,22 +57,23 @@ def get_hose_inspection_prompt():
     Retorna um prompt para extrair dados de certificados de inspeção e manutenção de mangueiras de incêndio.
     """
     return """
-    Você é um especialista em analisar certificados de inspeção de mangueiras de incêndio (NBR 12779).
+    Você é um especialista em analisar relatórios de inspeção de mangueiras de incêndio (NBR 12779).
     Sua tarefa é analisar o documento PDF e extrair informações para CADA mangueira listada na tabela principal.
-    O identificador principal e permanente é o "Número".
+    O identificador principal é a coluna "IDENTIFICAÇÃO".
 
     **Para cada mangueira (cada linha da tabela), extraia os seguintes campos:**
 
-    1.  `id_mangueira`: Extraia da coluna "Número". Este é o campo chave.
-    2.  `marca`: Extraia da coluna "Marca do Duto Flexível".
-    3.  `diametro`: Extraia da coluna "Diâmetro".
-    4.  `tipo`: Extraia da coluna "Tipo".
-    5.  `comprimento`: Extraia da coluna "Comprimento Nominal".
-    6.  `ano_fabricacao`: Extraia da coluna "Mês/Ano Fabricação". Retorne apenas o ano.
-    7.  `data_inspecao`: Use a data global do relatório, especificamente a "Data saída". Formate como YYYY-MM-DD.
-    8.  `empresa_executante`: Extraia do campo "Vendedor" ou do nome da empresa no topo.
-    9.  `inspetor_responsavel`: Extraia do campo "Responsável Técnico".
-    10. `resultado`: Extraia da coluna "Resultado Final". 'A' significa "Aprovado" (vide legenda do laudo).
+    1.  `id_mangueira`: Extraia da coluna "IDENTIFICAÇÃO". Este é o campo chave. Se o valor for "COND", use o valor da coluna "ITEM" precedido de "COND-". Exemplo: "COND-11".
+    2.  `marca`: Extraia da coluna "FABRICANTE".
+    3.  `diametro`: Extraia da coluna "DIÂMETRO (mm)". Converta polegadas para o formato numérico, por exemplo '2 1/2"' deve ser "2 1/2".
+    4.  `tipo`: Extraia da coluna "TIPO".
+    5.  `comprimento`: Extraia da coluna "COMPRIMENTO NOMINAL (m)".
+    6.  `ano_fabricacao`: Se houver uma coluna de ano de fabricação, use-a. Se não, extraia o ano do campo "DATA DA PRÓXIMA MANUTENÇÃO" e subtraia 5 anos, assumindo um ciclo de vida padrão. Retorne apenas o ano.
+    7.  `data_inspecao`: **ESSENCIAL**. Encontre a data em que o serviço foi realizado. A melhor fonte é a "Data" no rodapé do documento (Ex: "Data 08 / 2025"). Se essa data não existir, use a "DATA DA PRÓXIMA MANUTENÇÃO" e subtraia 1 ano. Formate como YYYY-MM-DD.
+    8.  `data_proximo_teste`: **ESSENCIAL**. Extraia diretamente da coluna "DATA DA PRÓXIMA MANUTENÇÃO". Formate como YYYY-MM-DD. O ano deve ser 2026 conforme o documento.
+    9.  `empresa_executante`: Extraia do nome da empresa no topo do relatório (Ex: "THUNDER Equipamentos C/ Incêndio").
+    10. `inspetor_responsavel`: Extraia do campo "RESPONSÁVEL TÉCNICO".
+    11. `resultado`: Extraia da coluna "RESULTADO FINAL". Use a legenda para decodificar ('A' = "Aprovado", 'R' = "Reprovado", 'C' = "Condenada").
 
     **Formato de Saída OBRIGATÓRIO:**
     Retorne a resposta APENAS como um objeto JSON com uma chave "mangueiras" contendo uma LISTA de objetos,
@@ -82,28 +83,30 @@ def get_hose_inspection_prompt():
     {
       "mangueiras": [
         {
-          "id_mangueira": "04",
-          "marca": "KIDDE BRASIL",
+          "id_mangueira": "01",
+          "marca": "BUCKA",
           "diametro": "2 1/2",
-          "tipo": "5",
-          "comprimento": "15,00",
-          "ano_fabricacao": "2011",
-          "data_inspecao": "2024-10-04",
-          "empresa_executante": "EXTINTORES ARMENIA",
-          "inspetor_responsavel": "Renato Busch",
-          "resultado": "APROVADO"
+          "tipo": "4",
+          "comprimento": "15",
+          "ano_fabricacao": "2021",
+          "data_inspecao": "2025-08-01",
+          "data_proximo_teste": "2026-08-01",
+          "empresa_executante": "THUNDER Equipamentos C/ Incêndio",
+          "inspetor_responsavel": "342.079.138-07 / 14.184.086-9",
+          "resultado": "Aprovado"
         },
         {
-          "id_mangueira": "48",
-          "marca": "KIDDE BRASIL",
-          "diametro": "2 1/2",
+          "id_mangueira": "COND-11",
+          "marca": "KIDDE",
+          "diametro": "1 1/2",
           "tipo": "5",
-          "comprimento": "15,00",
-          "ano_fabricacao": "2011",
-          "data_inspecao": "2024-10-04",
-          "empresa_executante": "EXTINTORES ARMENIA",
-          "inspetor_responsavel": "Renato Busch",
-          "resultado": "APROVADO"
+          "comprimento": "15",
+          "ano_fabricacao": "2021",
+          "data_inspecao": "2025-08-01",
+          "data_proximo_teste": null,
+          "empresa_executante": "THUNDER Equipamentos C/ Incêndio",
+          "inspetor_responsavel": "342.079.138-07 / 14.184.086-9",
+          "resultado": "Condenada"
         }
       ]
     }
