@@ -7,7 +7,9 @@ from . import (
     inspecao_chuveiros,
     inspecao_camaras_espuma,
     historico,
-    utilitarios
+    utilitarios,
+    resumo_gerencial 
+    
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "inspecao_camaras_espuma",
     "historico",
     "utilitarios"
+    "resumo_gerencial"
 ]
+
