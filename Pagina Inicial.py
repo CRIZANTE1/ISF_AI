@@ -1,6 +1,6 @@
-# FILE: Pagina_Inicial.py (VERSÃO COM FLUXO SEGURO)
+# FILE: Pagina_Inicial.py (VERSÃO FINAL COM ROTEAMENTO POR PERFIL)
 
-from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view, get_user_email, get_matrix_data
+from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view, get_user_email, get_matrix_data, get_user_role
 from utils.auditoria import log_action
 import streamlit as st
 from streamlit_option_menu import option_menu
@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from views import (
     administracao,
     dashboard, 
+    resumo_gerencial, 
     inspecao_extintores, 
     inspecao_mangueiras, 
     inspecao_scba,
@@ -29,6 +30,7 @@ set_page_config()
 
 PAGES = {
     "Dashboard": dashboard.show_page,
+    "Resumo Gerencial": resumo_gerencial.show_page, 
     "Inspeção de Extintores": inspecao_extintores.show_page,
     "Inspeção de Mangueiras": inspecao_mangueiras.show_page,
     "Inspeção de SCBA": inspecao_scba.show_page,
@@ -40,6 +42,7 @@ PAGES = {
 }
 
 def main():
+    # 1. Gerenciamento de Login
     if not is_user_logged_in():
         show_login_page()
         st.stop()
@@ -48,45 +51,50 @@ def main():
         log_action("LOGIN_SUCCESS")
         st.session_state['user_logged_in'] = True
 
+    # 2. Verificação de Autorização
     permissions_df, _ = get_matrix_data()
     user_email = get_user_email()
-    
-    # Verifica se o email do usuário está na lista de permissões
     is_authorized = user_email is not None and user_email in permissions_df['email'].values
 
-    # Se o usuário está logado mas não está autorizado, mostra a página de acesso negado.
     if not is_authorized:
         show_user_header()
-        show_logout_button() # Permite que o usuário deslogue
-        demo_page.show_page() # Mostra a página de "Acesso Negado"
-        st.stop() # Interrompe a execução para não mostrar o resto da UI
+        show_logout_button()
+        demo_page.show_page()
+        st.stop()
 
+    # A partir daqui, o usuário está LOGADO e AUTORIZADO
     show_user_header()
     is_uo_selected = setup_sidebar()
-    
+    user_role = get_user_role()
+
+    # 3. Roteamento Específico para 'viewer'
+    if user_role == 'viewer':
+        # Para viewers, não mostramos o menu de navegação.
+        # A página de resumo é a única visualização.
+        if is_uo_selected:
+            resumo_gerencial.show_page()
+        else:
+            st.info("👈 Por favor, selecione uma Unidade Operacional na barra lateral para carregar os dados.")
+        st.stop() # Interrompe aqui para não renderizar o menu de editores/admins
+
+    # 4. Roteamento para 'editor' e 'admin'
     with st.sidebar:
         st.markdown("---")
         
         page_options = []
-        if can_view():
+        if can_view(): # can_view é True para editor e admin
             page_options.append("Dashboard")
             page_options.append("Histórico e Logs")
-            
-        if can_edit():
+        if can_edit(): # can_edit é True para editor e admin
             page_options.append("Inspeção de Extintores")
             page_options.append("Inspeção de Mangueiras")
             page_options.append("Inspeção de SCBA")
             page_options.append("Inspeção de Chuveiros/LO")
             page_options.append("Inspeção de Câmaras de Espuma")
             page_options.append("Utilitários")
-            
         if is_admin():
             page_options.append("Super Admin")
         
-        if not page_options:
-            st.warning("Seu usuário não tem permissão para visualizar nenhuma página.")
-            st.stop()
-
         icon_map = {
             "Dashboard": "speedometer2", "Histórico e Logs": "clock-history",
             "Inspeção de Extintores": "fire", "Inspeção de Mangueiras": "droplet",
@@ -115,12 +123,13 @@ def main():
         if selected_page in PAGES:
             PAGES[selected_page]()
         else:
-            if "Dashboard" in page_options:
-                PAGES["Dashboard"]()
-            else:
-                PAGES[page_options[0]]()
+            # Fallback para a primeira página disponível
+            PAGES[page_options[0]]()
     else:
         st.info("👈 Por favor, selecione uma Unidade Operacional na barra lateral para carregar os dados.")
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
