@@ -48,7 +48,7 @@ def show_page():
 
                 inspection_type = st.radio(
                     "Selecione o Tipo de Inspeção:",
-                    ("Visual Mensal", "Funcional Anual"),
+                    ("Visual Semestral", "Funcional Anual"),
                     horizontal=True,
                     help="A inspeção funcional anual inclui todos os itens da inspeção visual."
                 )
