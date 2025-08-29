@@ -13,7 +13,8 @@ CENTRAL_DRIVE_FOLDER_ID = "1FLoqUSwF_9v-j8a8bZMaRAvrC-7Oklm_"
 # --- Nomes das Abas na Planilha MATRIZ ---
 ADMIN_SHEET_NAME = "adm"
 UNITS_SHEET_NAME = "unidades"
-AUDIT_LOG_SHEET_NAME = "log_auditoria" # <--- ADICIONE ESTA LINHA
+AUDIT_LOG_SHEET_NAME = "log_auditoria"
+ACCESS_REQUESTS_SHEET_NAME = "solicitacoes_acesso"
 
 # --- Nomes das Abas nas Planilhas DAS UNIDADES (permanecem os mesmos) ---
 LOCATIONS_SHEET_NAME = "locais"
