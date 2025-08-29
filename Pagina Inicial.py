@@ -1,16 +1,11 @@
-from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view
+from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view, get_user_info
 from utils.auditoria import log_action
 import streamlit as st
 from streamlit_option_menu import option_menu
 import sys
 import os
 
-
-
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-
 
 from views import (
     administracao,
@@ -21,18 +16,15 @@ from views import (
     inspecao_chuveiros,
     inspecao_camaras_espuma,
     historico,
-    utilitarios
+    utilitarios,
+    demo_page 
 )
 
-# --- 2. Suas importações normais ---
 from auth.login_page import show_login_page, show_logout_button, show_user_header
 from config.page_config import set_page_config
 
-# Configuração da página, sempre no início
 set_page_config()
 
-# --- 3. Dicionário de Roteamento ---
-# Mapeia o nome do menu para a função que desenha a página.
 PAGES = {
     "Dashboard": dashboard.show_page,
     "Inspeção de Extintores": inspecao_extintores.show_page,
@@ -45,37 +37,37 @@ PAGES = {
     "Super Admin": administracao.show_page,
 }
 
-
 def main():
-    # --- Gerenciamento de Login ---
     if not is_user_logged_in():
         show_login_page()
         st.stop()
 
-    # --- LOG DE LOGIN ---
     if 'user_logged_in' not in st.session_state:
         log_action("LOGIN_SUCCESS")
         st.session_state['user_logged_in'] = True
-    # --------------------
 
-    # --- Interface Comum ---
+    user_role, assigned_unit = get_user_info()
+
+    if user_role == 'viewer' and assigned_unit is None:
+        show_user_header()
+        show_logout_button()
+        demo_page.show_page() # Mostra a página de demonstração
+        st.stop() 
+
     show_user_header()
     is_uo_selected = setup_sidebar()
     
-    # --- Menu de Navegação Dinâmico com PERMISSÕES ---
     with st.sidebar:
         st.markdown("---")
         
-        # Define a lista completa de páginas
         all_pages = list(PAGES.keys())
         
-        # Filtra a lista com base no nível de permissão do usuário
         page_options = []
-        if can_view(): # Todos (admin, editor, viewer) podem ver o dashboard
+        if can_view():
             page_options.append("Dashboard")
             page_options.append("Histórico e Logs")
             
-        if can_edit(): # Apenas admin e editor podem acessar páginas de edição/criação
+        if can_edit():
             page_options.append("Inspeção de Extintores")
             page_options.append("Inspeção de Mangueiras")
             page_options.append("Inspeção de SCBA")
@@ -83,25 +75,30 @@ def main():
             page_options.append("Inspeção de Câmaras de Espuma")
             page_options.append("Utilitários")
             
-        if is_admin(): # Apenas admin pode ver a página de Super Admin
+        if is_admin():
             page_options.append("Super Admin")
         
-        # Remove duplicatas e mantém a ordem original, se necessário
-        # (Neste caso, a lógica acima já cria a lista na ordem desejada)
-
         if not page_options:
             st.warning("Seu usuário não tem permissão para visualizar nenhuma página.")
             st.stop()
 
+        # Ajuste dinâmico de ícones
+        icon_map = {
+            "Dashboard": "speedometer2", "Histórico e Logs": "clock-history",
+            "Inspeção de Extintores": "fire", "Inspeção de Mangueiras": "droplet",
+            "Inspeção de SCBA": "lungs", "Inspeção de Chuveiros/LO": "droplet-half",
+            "Inspeção de Câmaras de Espuma": "cloud-rain-heavy", "Utilitários": "tools",
+            "Super Admin": "person-badge"
+        }
+        icons = [icon_map.get(page, "question-circle") for page in page_options]
+
         selected_page = option_menu(
             menu_title="Navegação",
             options=page_options,
-            # Ícones precisam ser ajustados para corresponder à lista dinâmica
-            # Uma abordagem mais segura é mapear nomes de página para ícones
-            icons=["speedometer2", "fire", "droplet", "droplet-half", "lungs", "cloud-rain-heavy", "clock-history", "tools", "person-badge"][:len(page_options)],
+            icons=icons,
             menu_icon="compass-fill",
             default_index=0,
-            styles={ # Estilos
+            styles={
                 "container": {"padding": "0 !important", "background-color": "transparent"},
                 "icon": {"color": "inherit", "font-size": "15px"},
                 "nav-link": {"font-size": "12px", "text-align": "left", "margin": "0px", "--hover-color": "rgba(255, 255, 255, 0.1)" if st.get_option("theme.base") == "dark" else "#f0f2f6"},
@@ -110,12 +107,10 @@ def main():
         )
         st.markdown("---")
 
-
     if is_uo_selected or (is_admin() and selected_page == "Super Admin"):
         if selected_page in PAGES:
             PAGES[selected_page]()
         else:
-            # Se a página padrão (Dashboard) não for permitida, redireciona para a primeira permitida
             if "Dashboard" in page_options:
                 PAGES["Dashboard"]()
             else:
