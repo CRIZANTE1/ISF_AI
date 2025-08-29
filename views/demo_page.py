@@ -1,13 +1,14 @@
 import streamlit as st
 import sys
 import os
+import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from auth.auth_utils import get_user_display_name
+from auth.auth_utils import get_user_display_name, get_matrix_data, save_access_request
 
-def show_page(admin_email="seu_email_de_admin@exemplo.com"):
+def show_page():
     """
-    Exibe uma página estática de acesso negado para usuários autenticados, mas não autorizados.
+    Exibe uma página de acesso negado com um formulário para solicitar acesso.
     """
     st.title("Sistema de Gestão de Inspeções de Incêndio")
     st.header("Acesso Restrito")
@@ -18,23 +19,32 @@ def show_page(admin_email="seu_email_de_admin@exemplo.com"):
         user_email = st.user.email
 
     st.warning(f"🔒 Olá, **{user_name}**. Você está autenticado, mas seu usuário (`{user_email}`) ainda não tem permissão para acessar o sistema.")
+    st.session_state.setdefault('request_submitted', False)
 
-    st.markdown("---")
-    st.subheader("Como Obter Acesso?")
-    st.write("Para visualizar os dashboards e registrar inspeções, seu e-mail precisa ser cadastrado por um administrador. Clique no botão abaixo para enviar uma solicitação de acesso.")
+    if st.session_state.request_submitted:
+        st.success("✅ Sua solicitação de acesso foi enviada com sucesso! Você será notificado por e-mail quando o administrador avaliar seu pedido.")
+    else:
+        st.markdown("---")
+        st.subheader("Solicitar Acesso")
+        st.write("Para obter acesso, preencha o formulário abaixo. Sua solicitação será enviada a um administrador global para aprovação.")
 
-    # Cria o link mailto:
-    subject = "Solicitação de Acesso ao Sistema de Inspeção"
-    body = (f"Olá,\n\nEu, {user_name}, gostaria de solicitar acesso ao Sistema de Gestão de Inspeções.\n\n"
-            f"Por favor, me conceda permissão de 'visualizador' (viewer) para a Unidade Operacional [PREENCHA O NOME DA UO AQUI].\n\n"
-            f"Meu e-mail de login é: {user_email}\n\nObrigado(a).")
-    
-    # Codifica o corpo do e-mail para URL
-    import urllib.parse
-    body_encoded = urllib.parse.quote(body)
-    
-    link = f"mailto:{admin_email}?subject={subject}&body={body_encoded}"
-    st.link_button("📧 Enviar Solicitação de Acesso por E-mail", url=link, type="primary")
+        _, units_df = get_matrix_data()
+        unit_options = ["Selecione a UO desejada..."] + units_df['nome_unidade'].tolist()
+
+        with st.form("access_request_form"):
+            requested_unit = st.selectbox("Unidade Operacional (UO) que deseja acessar:", unit_options)
+            justification = st.text_area("Justificativa (Opcional)", placeholder="Ex: Faço parte da equipe de segurança da UO e preciso visualizar os relatórios.")
+            
+            submitted = st.form_submit_button("Enviar Solicitação", type="primary")
+
+            if submitted:
+                if requested_unit == "Selecione a UO desejada...":
+                    st.error("Por favor, selecione uma Unidade Operacional.")
+                else:
+                    with st.spinner("Enviando..."):
+                        if save_access_request(user_name, user_email, requested_unit, justification):
+                            st.session_state.request_submitted = True
+                            st.rerun()
 
     st.markdown("---")
     st.subheader("Demonstração do Sistema")
