@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from auth.auth_utils import get_user_info, get_matrix_data, setup_sidebar
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
-    UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID,
+    UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID, ACCESS_REQUESTS_SHEET_NAME
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, 
     SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME 
 )
@@ -187,8 +187,8 @@ def show_page():
     st.title("👑 Painel de Controle do Super Administrador")
 
     # Adicione a nova aba 'Log de Auditoria'
-    tab_dashboard, tab_users, tab_units, tab_provision, tab_audit = st.tabs([
-        "📊 Dashboard Global", "👤 Gestão de Usuários", "🏢 Gestão de UOs", 
+    tab_dashboard, tab_requests, tab_users, tab_units, tab_provision, tab_audit = st.tabs([
+        "📊 Dashboard Global", "📬 Solicitações de Acesso", "👤 Gestão de Usuários", "🏢 Gestão de UOs", 
         "🚀 Provisionar Nova UO", "🛡️ Log de Auditoria"
     ])
 
@@ -272,7 +272,61 @@ def show_page():
                 with tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
                 with tab_eyewash: display_summary(all_summaries.get("Eyewash"), "Chuveiros e Lava-Olhos")
                 with tab_foam: display_summary(all_summaries.get("Câmaras de Espuma"), "Câmaras de Espuma")
+
+    
+    with tab_requests:
+        st.header("Gerenciar Solicitações de Acesso Pendentes")
+        
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+        
+        try:
+            requests_data = matrix_uploader.get_data_from_sheet(ACCESS_REQUESTS_SHEET_NAME)
+            if requests_data and len(requests_data) > 1:
+                df_requests = pd.DataFrame(requests_data[1:], columns=requests_data[0])
+                pending_requests = df_requests[df_requests['status'] == 'Pendente']
+
+                if pending_requests.empty:
+                    st.success("✅ Nenhuma solicitação de acesso pendente.")
+                else:
+                    st.info(f"Você tem {len(pending_requests)} solicitação(ões) pendente(s).")
                     
+                    for index, request in pending_requests.iterrows():
+                        with st.container(border=True):
+                            st.write(f"**Usuário:** {request['nome_usuario']} (`{request['email_usuario']}`)")
+                            st.write(f"**UO Solicitada:** {request['uo_solicitada']}")
+                            st.write(f"**Justificativa:** *{request.get('justificativa', 'Não informada')}*")
+                            
+                            cols = st.columns([2, 1, 1])
+                            with cols[0]:
+                                role = st.selectbox("Atribuir Perfil:", ["viewer", "editor"], key=f"role_{index}")
+                            with cols[1]:
+                                if st.button("Aprovar", key=f"approve_{index}", type="primary", use_container_width=True):
+                                    with st.spinner("Processando..."):
+                                        # 1. Adicionar usuário à lista 'adm'
+                                        matrix_uploader.append_data_to_sheet(ADMIN_SHEET_NAME, [[request['email_usuario'], request['nome_usuario'], role, request['uo_solicitada']]])
+                                        # 2. Atualizar status da solicitação para 'Aprovado'
+                                        range_to_update = f"F{index + 2}" # Coluna F é o status
+                                        matrix_uploader.update_cells(ACCESS_REQUESTS_SHEET_NAME, range_to_update, [['Aprovado']])
+                                        log_action("APROVOU_ACESSO", f"Email: {request['email_usuario']}, Role: {role}, UO: {request['uo_solicitada']}")
+                                        st.success(f"Acesso aprovado para {request['nome_usuario']}!")
+                                        st.cache_data.clear()
+                                        st.rerun()
+                            with cols[2]:
+                                if st.button("Rejeitar", key=f"reject_{index}", use_container_width=True):
+                                    with st.spinner("Processando..."):
+                                        # Atualizar status para 'Rejeitado'
+                                        range_to_update = f"F{index + 2}"
+                                        matrix_uploader.update_cells(ACCESS_REQUESTS_SHEET_NAME, range_to_update, [['Rejeitado']])
+                                        log_action("REJEITOU_ACESSO", f"Email: {request['email_usuario']}")
+                                        st.warning(f"Solicitação de {request['nome_usuario']} rejeitada.")
+                                        st.cache_data.clear()
+                                        st.rerun()
+            else:
+                st.info("Nenhuma solicitação de acesso recebida ainda.")
+        except Exception as e:
+            st.error(f"Não foi possível carregar as solicitações de acesso: {e}")
+            
+    
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
         if st.button("➕ Adicionar Novo Usuário", type="primary"): add_user_dialog()
