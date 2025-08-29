@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import ADMIN_SHEET_NAME, UNITS_SHEET_NAME
+from gdrive.config import ADMIN_SHEET_NAME, UNITS_SHEET_NAME, ACCESS_REQUESTS_SHEET_NAME
+from datetime import datetime
+import pytz
 
 def is_oidc_available():
     try:
@@ -156,3 +158,40 @@ def setup_sidebar():
             return False
     
     return False
+
+def save_access_request(user_name, user_email, requested_unit, justification):
+    """Salva uma nova solicitação de acesso na Planilha Matriz."""
+    try:
+        # Pega o timestamp atual formatado para São Paulo
+        sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
+        timestamp = datetime.now(sao_paulo_tz).strftime('%Y-%m-%d %H:%M:%S')
+
+        # Monta a linha de dados para o log
+        request_row = [
+            timestamp,
+            user_name,
+            user_email,
+            requested_unit,
+            justification,
+            "Pendente"  # Status inicial
+        ]
+        
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+        
+        # Verifica se já existe uma solicitação pendente para este usuário
+        requests_data = matrix_uploader.get_data_from_sheet(ACCESS_REQUESTS_SHEET_NAME)
+        if requests_data and len(requests_data) > 1:
+            df_requests = pd.DataFrame(requests_data[1:], columns=requests_data[0])
+            existing_request = df_requests[
+                (df_requests['email_usuario'] == user_email) & 
+                (df_requests['status'] == 'Pendente')
+            ]
+            if not existing_request.empty:
+                st.warning("Você já possui uma solicitação de acesso pendente. Por favor, aguarde a aprovação do administrador.")
+                return False
+
+        matrix_uploader.append_data_to_sheet(ACCESS_REQUESTS_SHEET_NAME, [request_row])
+        return True
+    except Exception as e:
+        st.error(f"Ocorreu um erro ao enviar sua solicitação: {e}")
+        return False
