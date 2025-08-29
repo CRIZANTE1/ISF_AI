@@ -15,7 +15,6 @@ from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, 
     SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME 
 )
-from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 from utils.auditoria import log_action
 
