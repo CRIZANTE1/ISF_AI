@@ -42,7 +42,7 @@ mangueiras:
   - empresa_executante
   - resp_tecnico_certificado
 
-  log_baixas_mangueiras: 
+log_baixas_mangueiras: 
   - data_baixa
   - id_mangueira
   - motivo
