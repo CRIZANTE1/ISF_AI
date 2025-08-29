@@ -128,24 +128,30 @@ def get_hose_status_df(df_hoses, df_disposals):
     latest_hoses = df_hoses.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_mangueira', keep='first').copy()
     
     # Remove mangueiras que já foram baixadas
-    if not df_disposals.empty:
-        disposed_ids = df_disposals['id_mangueira'].unique()
-        latest_hoses = latest_hoses[~latest_hoses['id_mangueira'].isin(disposed_ids)]
+    if not df_disposals.empty and 'id_mangueira' in df_disposals.columns:
+        disposed_ids = df_disposals['id_mangueira'].astype(str).unique()
+        latest_hoses = latest_hoses[~latest_hoses['id_mangueira'].astype(str).isin(disposed_ids)]
 
     if latest_hoses.empty:
         return pd.DataFrame()
 
     today = pd.Timestamp(date.today())
     
-    # Define as condições de status em ordem de prioridade
+    if 'resultado' not in latest_hoses.columns:
+        latest_hoses['resultado'] = ''
+    latest_hoses['resultado'] = latest_hoses['resultado'].fillna('').str.lower()
+    
+    rejection_keywords = ['reprovado', 'condenada', 'rejeitado', 'condenado']
+    
+    is_rejected = latest_hoses['resultado'].str.contains('|'.join(rejection_keywords), na=False)
+
     conditions = [
-        (latest_hoses['resultado'].str.lower() != 'aprovado'),
-        (latest_hoses['data_proximo_teste'] < today)
+        is_rejected,  # 1. Prioridade máxima: se o resultado for negativo
+        (latest_hoses['data_proximo_teste'] < today) # 2. Segunda prioridade: se a data estiver vencida
     ]
     choices = ['🟠 REPROVADA', '🔴 VENCIDO']
     latest_hoses['status'] = np.select(conditions, choices, default='🟢 OK')
     
-    # Formatação para exibição
     latest_hoses['data_inspecao'] = latest_hoses['data_inspecao'].dt.strftime('%d/%m/%Y')
     latest_hoses['data_proximo_teste'] = latest_hoses['data_proximo_teste'].dt.strftime('%d/%m/%Y')
     
