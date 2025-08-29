@@ -869,7 +869,6 @@ def show_page():
                 dashboard_df['localizacao'] = 'Localização não definida'
                 dashboard_df['modelo'] = 'N/A'
             
-            # Garante que localizações vazias tenham um valor padrão para agrupamento
             dashboard_df['localizacao'] = dashboard_df['localizacao'].fillna('Localização não definida')
 
             status_counts = dashboard_df['status_dashboard'].value_counts()
@@ -882,28 +881,22 @@ def show_page():
 
             st.subheader("Status dos Equipamentos por Localização")
             
-            
-            # Agrupa o DataFrame por 'localizacao'
             grouped_by_location = dashboard_df.groupby('localizacao')
 
             for location, group_df in grouped_by_location:
-                # Conta os status dentro de cada grupo para exibir no título do expander
                 location_status_counts = group_df['status_dashboard'].value_counts()
                 ok_count = location_status_counts.get("🟢 OK", 0)
                 pending_count = location_status_counts.get("🟠 COM PENDÊNCIAS", 0)
                 expired_count = location_status_counts.get("🔴 VENCIDO", 0)
 
-                # Cria um título de expander informativo com o resumo do local
                 expander_title = f"📍 **Local:** {location}  |  (🟢{ok_count} OK, 🟠{pending_count} Pendente, 🔴{expired_count} Vencido)"
                 
                 with st.expander(expander_title):
-                    # Itera sobre cada câmara dentro daquele local
                     for _, row in group_df.iterrows():
                         status = row['status_dashboard']
                         prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
                         modelo = row.get('modelo', 'N/A')
                         
-                        # Cria um container com borda para cada câmara individual
                         with st.container(border=True):
                             st.markdown(f"##### {status} | **ID:** {row['id_camara']} | **Modelo:** {modelo}")
                             
@@ -918,7 +911,6 @@ def show_page():
                                 if st.button("✍️ Registrar Ação Corretiva", key=f"action_foam_{row['id_camara']}", use_container_width=True):
                                     action_dialog_foam_chamber(row.to_dict())
 
-                            # Expander para detalhes da última inspeção
                             with st.expander("Ver detalhes da última inspeção"):
                                 try:
                                     results = json.loads(row['resultados_json'])
@@ -927,7 +919,11 @@ def show_page():
                                         st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
                                     else:
                                         st.success("Todos os itens estavam conformes na última inspeção.")
+                                    
+                                    photo_link = row.get('link_foto_nao_conformidade')
+                                    if pd.notna(photo_link):
+                                        st.markdown(f"**[🔗 Ver Foto da Evidência]({photo_link})**", unsafe_allow_html=True)
+
                                 except (json.JSONDecodeError, TypeError):
                                     st.error("Não foi possível carregar os detalhes da inspeção.")
-
 
