@@ -68,6 +68,7 @@ def show_page():
             st.subheader("2. Confira os Dados Extraídos e Salve no Sistema")
             st.dataframe(pd.DataFrame(st.session_state.hose_processed_data))
             
+            # --- INÍCIO DA ALTERAÇÃO ---
             if st.button("💾 Confirmar e Salvar Registros", type="primary", use_container_width=True):
                 with st.spinner("Salvando registros em lote..."):
                     uploader = GoogleDriveUploader()
@@ -82,19 +83,32 @@ def show_page():
                     audit_log_rows = []
 
                     for record in st.session_state.hose_processed_data:
-                        inspection_date_str = record.get('data_inspecao')
+                        # Converte as datas para o formato correto, tratando possíveis erros
                         try:
-                            inspection_date_obj = pd.to_datetime(inspection_date_str).date()
+                            inspection_date_str = pd.to_datetime(record.get('data_inspecao')).strftime('%Y-%m-%d')
                         except (ValueError, TypeError):
-                            inspection_date_obj = date.today()
+                            inspection_date_str = date.today().isoformat()
                         
-                        next_test_date = (inspection_date_obj + relativedelta(years=1)).isoformat()
-                        
+                        try:
+                            # Usa a data extraída pela IA diretamente
+                            next_test_date_str = pd.to_datetime(record.get('data_proximo_teste')).strftime('%Y-%m-%d')
+                        except (ValueError, TypeError):
+                            # Fallback caso a IA falhe em extrair a data do próximo teste
+                            next_test_date_str = (pd.to_datetime(inspection_date_str).date() + relativedelta(years=1)).isoformat()
+
                         hose_row = [
-                            record.get('id_mangueira'), record.get('marca'), record.get('diametro'),
-                            record.get('tipo'), record.get('comprimento'), record.get('ano_fabricacao'),
-                            inspection_date_obj.isoformat(), next_test_date, record.get('resultado'),
-                            pdf_link, get_user_display_name(), record.get('empresa_executante'),
+                            record.get('id_mangueira'),
+                            record.get('marca'),
+                            record.get('diametro'),
+                            record.get('tipo'),
+                            record.get('comprimento'),
+                            record.get('ano_fabricacao'),
+                            inspection_date_str,
+                            next_test_date_str, # <--- Usa a data extraída/tratada
+                            record.get('resultado'),
+                            pdf_link,
+                            get_user_display_name(),
+                            record.get('empresa_executante'),
                             record.get('inspetor_responsavel')
                         ]
                         hose_rows.append(hose_row)
