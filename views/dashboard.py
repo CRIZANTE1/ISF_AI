@@ -858,7 +858,6 @@ def show_page():
         else:
             dashboard_df = get_foam_chamber_status_df(df_foam_history)
             
-            # Juntar com o inventário para obter o modelo e a localização
             if not df_foam_inventory.empty:
                 dashboard_df = pd.merge(
                     dashboard_df, 
@@ -867,9 +866,12 @@ def show_page():
                     how='left'
                 )
             else:
-                dashboard_df['localizacao'] = 'N/A'
+                dashboard_df['localizacao'] = 'Localização não definida'
                 dashboard_df['modelo'] = 'N/A'
             
+            # Garante que localizações vazias tenham um valor padrão para agrupamento
+            dashboard_df['localizacao'] = dashboard_df['localizacao'].fillna('Localização não definida')
+
             status_counts = dashboard_df['status_dashboard'].value_counts()
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("✅ Total de Câmaras", len(dashboard_df))
@@ -878,33 +880,54 @@ def show_page():
             col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
             st.markdown("---")
 
-            st.subheader("Lista de Equipamentos e Status")
-            for _, row in dashboard_df.iterrows():
-                status = row['status_dashboard']
-                prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
-                modelo = row.get('modelo', 'N/A') # Obter o modelo
-                expander_title = f"{status} | **ID:** {row['id_camara']} | **Modelo:** {modelo} | **Próx. Inspeção:** {prox_inspecao}"
+            st.subheader("Status dos Equipamentos por Localização")
+            
+            
+            # Agrupa o DataFrame por 'localizacao'
+            grouped_by_location = dashboard_df.groupby('localizacao')
+
+            for location, group_df in grouped_by_location:
+                # Conta os status dentro de cada grupo para exibir no título do expander
+                location_status_counts = group_df['status_dashboard'].value_counts()
+                ok_count = location_status_counts.get("🟢 OK", 0)
+                pending_count = location_status_counts.get("🟠 COM PENDÊNCIAS", 0)
+                expired_count = location_status_counts.get("🔴 VENCIDO", 0)
+
+                # Cria um título de expander informativo com o resumo do local
+                expander_title = f"📍 **Local:** {location}  |  (🟢{ok_count} OK, 🟠{pending_count} Pendente, 🔴{expired_count} Vencido)"
                 
                 with st.expander(expander_title):
-                    st.write(f"**Localização:** {row.get('localizacao', 'N/A')}")
-                    st.write(f"**Última inspeção:** {pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y')} por **{row['inspetor']}**")
-                    st.write(f"**Tipo da Última Inspeção:** {row['tipo_inspecao']}")
-                    st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
-                    
-                    if status == "🟠 COM PENDÊNCIAS":
-                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_foam_{row['id_camara']}"):
-                            action_dialog_foam_chamber(row.to_dict())
+                    # Itera sobre cada câmara dentro daquele local
+                    for _, row in group_df.iterrows():
+                        status = row['status_dashboard']
+                        prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
+                        modelo = row.get('modelo', 'N/A')
+                        
+                        # Cria um container com borda para cada câmara individual
+                        with st.container(border=True):
+                            st.markdown(f"##### {status} | **ID:** {row['id_camara']} | **Modelo:** {modelo}")
+                            
+                            cols = st.columns(3)
+                            cols[0].metric("Última Inspeção", pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y'))
+                            cols[1].metric("Próxima Inspeção", prox_inspecao)
+                            cols[2].metric("Tipo da Última Insp.", row.get('tipo_inspecao', 'N/A'))
+                            
+                            st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
+                            
+                            if status == "🟠 COM PENDÊNCIAS":
+                                if st.button("✍️ Registrar Ação Corretiva", key=f"action_foam_{row['id_camara']}", use_container_width=True):
+                                    action_dialog_foam_chamber(row.to_dict())
 
-                    st.markdown("---")
-                    st.write("**Detalhes da Última Inspeção:**")
-                    try:
-                        results = json.loads(row['resultados_json'])
-                        non_conformities = {q: status for q, status in results.items() if status == "Não Conforme"}
-                        if non_conformities:
-                            st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
-                        else:
-                            st.success("Todos os itens estavam conformes na última inspeção.")
-                    except (json.JSONDecodeError, TypeError):
-                        st.error("Não foi possível carregar os detalhes da inspeção.")
+                            # Expander para detalhes da última inspeção
+                            with st.expander("Ver detalhes da última inspeção"):
+                                try:
+                                    results = json.loads(row['resultados_json'])
+                                    non_conformities = {q: status_item for q, status_item in results.items() if status_item == "Não Conforme"}
+                                    if non_conformities:
+                                        st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+                                    else:
+                                        st.success("Todos os itens estavam conformes na última inspeção.")
+                                except (json.JSONDecodeError, TypeError):
+                                    st.error("Não foi possível carregar os detalhes da inspeção.")
 
 
