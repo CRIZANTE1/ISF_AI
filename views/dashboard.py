@@ -21,6 +21,7 @@ from gdrive.config import (
     EYEWASH_INSPECTIONS_SHEET_NAME,
     FOAM_CHAMBER_INVENTORY_SHEET_NAME,
     FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
+    HOSE_DISPOSAL_LOG_SHEET_NAME,
     LOG_FOAM_CHAMBER_SHEET_NAME
 )
 from reports.reports_pdf import generate_shelters_html
