@@ -1,4 +1,6 @@
-from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view, get_user_info
+# FILE: Pagina_Inicial.py (VERSÃO COM FLUXO SEGURO)
+
+from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view, get_user_email, get_matrix_data
 from utils.auditoria import log_action
 import streamlit as st
 from streamlit_option_menu import option_menu
@@ -17,7 +19,7 @@ from views import (
     inspecao_camaras_espuma,
     historico,
     utilitarios,
-    demo_page 
+    demo_page
 )
 
 from auth.login_page import show_login_page, show_logout_button, show_user_header
@@ -46,21 +48,24 @@ def main():
         log_action("LOGIN_SUCCESS")
         st.session_state['user_logged_in'] = True
 
-    user_role, assigned_unit = get_user_info()
+    permissions_df, _ = get_matrix_data()
+    user_email = get_user_email()
+    
+    # Verifica se o email do usuário está na lista de permissões
+    is_authorized = user_email is not None and user_email in permissions_df['email'].values
 
-    if user_role == 'viewer' and assigned_unit is None:
+    # Se o usuário está logado mas não está autorizado, mostra a página de acesso negado.
+    if not is_authorized:
         show_user_header()
-        show_logout_button()
-        demo_page.show_page() # Mostra a página de demonstração
-        st.stop() 
+        show_logout_button() # Permite que o usuário deslogue
+        demo_page.show_page() # Mostra a página de "Acesso Negado"
+        st.stop() # Interrompe a execução para não mostrar o resto da UI
 
     show_user_header()
     is_uo_selected = setup_sidebar()
     
     with st.sidebar:
         st.markdown("---")
-        
-        all_pages = list(PAGES.keys())
         
         page_options = []
         if can_view():
@@ -82,7 +87,6 @@ def main():
             st.warning("Seu usuário não tem permissão para visualizar nenhuma página.")
             st.stop()
 
-        # Ajuste dinâmico de ícones
         icon_map = {
             "Dashboard": "speedometer2", "Histórico e Logs": "clock-history",
             "Inspeção de Extintores": "fire", "Inspeção de Mangueiras": "droplet",
