@@ -42,6 +42,13 @@ mangueiras:
   - empresa_executante
   - resp_tecnico_certificado
 
+  log_baixas_mangueiras: 
+  - data_baixa
+  - id_mangueira
+  - motivo
+  - responsavel
+  - id_mangueira_substituta
+
 abrigos:
   - id_abrigo
   - cliente
