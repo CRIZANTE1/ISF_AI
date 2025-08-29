@@ -23,7 +23,6 @@ from reports.shipment_report import (
     generate_shipment_html_and_pdf, log_shipment, 
     select_extinguishers_for_maintenance, select_hoses_for_th
 )
-from operations.demo_page import show_demo_page
 from config.page_config import set_page_config 
 from gdrive.gdrive_upload import GoogleDriveUploader
 from utils.auditoria import log_action
