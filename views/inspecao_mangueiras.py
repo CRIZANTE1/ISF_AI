@@ -68,7 +68,6 @@ def show_page():
             st.subheader("2. Confira os Dados Extraídos e Salve no Sistema")
             st.dataframe(pd.DataFrame(st.session_state.hose_processed_data))
             
-            # --- INÍCIO DA ALTERAÇÃO ---
             if st.button("💾 Confirmar e Salvar Registros", type="primary", use_container_width=True):
                 with st.spinner("Salvando registros em lote..."):
                     uploader = GoogleDriveUploader()
@@ -83,18 +82,23 @@ def show_page():
                     audit_log_rows = []
 
                     for record in st.session_state.hose_processed_data:
-                        # Converte as datas para o formato correto, tratando possíveis erros
-                        try:
-                            inspection_date_str = pd.to_datetime(record.get('data_inspecao')).strftime('%Y-%m-%d')
-                        except (ValueError, TypeError):
-                            inspection_date_str = date.today().isoformat()
                         
-                        try:
-                            # Usa a data extraída pela IA diretamente
-                            next_test_date_str = pd.to_datetime(record.get('data_proximo_teste')).strftime('%Y-%m-%d')
-                        except (ValueError, TypeError):
-                            # Fallback caso a IA falhe em extrair a data do próximo teste
+                        # Trata a data de inspeção
+                        inspection_date_val = record.get('data_inspecao')
+                        inspection_date_str = pd.to_datetime(inspection_date_val).strftime('%Y-%m-%d') if pd.notna(inspection_date_val) else date.today().isoformat()
+                        
+                        # Trata a data do próximo teste
+                        next_test_date_val = record.get('data_proximo_teste')
+                        if pd.notna(next_test_date_val):
+                            # Se a IA forneceu uma data, use-a
+                            next_test_date_str = pd.to_datetime(next_test_date_val).strftime('%Y-%m-%d')
+                        elif record.get('resultado', '').lower() in ['condenada', 'reprovado']:
+                            # Se a mangueira foi condenada/reprovada, não há próximo teste
+                            next_test_date_str = None
+                        else:
+                            # Fallback: calcula a data se não foi fornecida e a mangueira foi aprovada
                             next_test_date_str = (pd.to_datetime(inspection_date_str).date() + relativedelta(years=1)).isoformat()
+                        
 
                         hose_row = [
                             record.get('id_mangueira'),
@@ -104,7 +108,7 @@ def show_page():
                             record.get('comprimento'),
                             record.get('ano_fabricacao'),
                             inspection_date_str,
-                            next_test_date_str, # <--- Usa a data extraída/tratada
+                            next_test_date_str,
                             record.get('resultado'),
                             pdf_link,
                             get_user_display_name(),
