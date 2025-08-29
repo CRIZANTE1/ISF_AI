@@ -20,7 +20,6 @@ from utils.prompts import get_hose_inspection_prompt, get_shelter_inventory_prom
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name, get_user_email, get_user_role
 from utils.auditoria import get_sao_paulo_time_str
-from operations.demo_page import show_demo_page
 from config.page_config import set_page_config
 
 set_page_config()
