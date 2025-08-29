@@ -272,6 +272,7 @@ def show_page():
                 with tab_shelter: display_summary(all_summaries.get("Abrigos"), "Abrigos")
                 with tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
                 with tab_eyewash: display_summary(all_summaries.get("Eyewash"), "Chuveiros e Lava-Olhos")
+                with tab_foam: display_summary(all_summaries.get("Câmaras de Espuma"), "Câmaras de Espuma")
                     
     with tab_users:
         st.header("Gerenciar Acessos de Usuários")
