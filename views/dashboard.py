@@ -114,22 +114,40 @@ def get_scba_status_df(df_scba_main, df_scba_visual):
     
     return dashboard_df
     
-def get_hose_status_df(df_hoses):
+def get_hose_status_df(df_hoses, df_disposals):
     if df_hoses.empty:
         return pd.DataFrame()
     
+    # Garante que as colunas de data existam e sejam do tipo datetime
     for col in ['data_inspecao', 'data_proximo_teste']:
         if col not in df_hoses.columns:
             df_hoses[col] = pd.NaT
         df_hoses[col] = pd.to_datetime(df_hoses[col], errors='coerce')
 
-    df_hoses = df_hoses.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_mangueira', keep='first').copy()
+    # Pega apenas o último registro de cada mangueira
+    latest_hoses = df_hoses.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_mangueira', keep='first').copy()
     
+    # Remove mangueiras que já foram baixadas
+    if not df_disposals.empty:
+        disposed_ids = df_disposals['id_mangueira'].unique()
+        latest_hoses = latest_hoses[~latest_hoses['id_mangueira'].isin(disposed_ids)]
+
+    if latest_hoses.empty:
+        return pd.DataFrame()
+
     today = pd.Timestamp(date.today())
-    df_hoses['status'] = np.where(df_hoses['data_proximo_teste'] < today, "🔴 VENCIDO", "🟢 OK")
     
-    df_hoses['data_inspecao'] = df_hoses['data_inspecao'].dt.strftime('%d/%m/%Y')
-    df_hoses['data_proximo_teste'] = df_hoses['data_proximo_teste'].dt.strftime('%d/%m/%Y')
+    # Define as condições de status em ordem de prioridade
+    conditions = [
+        (latest_hoses['resultado'].str.lower() != 'aprovado'),
+        (latest_hoses['data_proximo_teste'] < today)
+    ]
+    choices = ['🟠 REPROVADA', '🔴 VENCIDO']
+    latest_hoses['status'] = np.select(conditions, choices, default='🟢 OK')
+    
+    # Formatação para exibição
+    latest_hoses['data_inspecao'] = latest_hoses['data_inspecao'].dt.strftime('%d/%m/%Y')
+    latest_hoses['data_proximo_teste'] = latest_hoses['data_proximo_teste'].dt.strftime('%d/%m/%Y')
     
     display_columns = [
         'id_mangueira', 'status', 'marca', 'diametro', 'tipo',
@@ -137,9 +155,38 @@ def get_hose_status_df(df_hoses):
         'data_proximo_teste', 'link_certificado_pdf', 'registrado_por'
     ]
     
-    existing_display_columns = [col for col in display_columns if col in df_hoses.columns]
+    existing_display_columns = [col for col in display_columns if col in latest_hoses.columns]
     
-    return df_hoses[existing_display_columns]
+    return latest_hoses[existing_display_columns]
+
+@st.dialog("Registrar Baixa e Substituição de Mangueira")
+def dispose_hose_dialog(hose_id):
+    st.warning(f"Você está registrando a baixa da mangueira **ID: {hose_id}**.")
+    st.info("Esta ação irá remover a mangueira da lista de equipamentos ativos.")
+    
+    reason = st.selectbox(
+        "Motivo da Baixa:",
+        ["Reprovada no Teste Hidrostático", "Dano Irreparável", "Fim da Vida Útil", "Outro"]
+    )
+    substitute_id = st.text_input("ID da Mangueira Substituta (Opcional)")
+    
+    if st.button("Confirmar Baixa", type="primary"):
+        with st.spinner("Registrando..."):
+            log_row = [
+                date.today().isoformat(),
+                hose_id,
+                reason,
+                get_user_display_name(),
+                substitute_id if substitute_id else None
+            ]
+            try:
+                uploader = GoogleDriveUploader()
+                uploader.append_data_to_sheet(HOSE_DISPOSAL_LOG_SHEET_NAME, [log_row])
+                st.success(f"Baixa da mangueira {hose_id} registrada com sucesso!")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Ocorreu um erro ao registrar a baixa: {e}")
 
 
 
@@ -587,37 +634,54 @@ def show_page():
 
     with tab_hoses:
         st.header("Dashboard de Mangueiras de Incêndio")
-                
+        
         df_hoses_history = load_sheet_data(HOSE_SHEET_NAME)
+        df_disposals = load_sheet_data(HOSE_DISPOSAL_LOG_SHEET_NAME) 
 
         if df_hoses_history.empty:
             st.warning("Ainda não há registros de inspeção de mangueiras para exibir no dashboard.")
         else:
-            dashboard_df_hoses = get_hose_status_df(df_hoses_history)
+            dashboard_df_hoses = get_hose_status_df(df_hoses_history, df_disposals)
             
             status_counts = dashboard_df_hoses['status'].value_counts()
-            col1, col2, col3 = st.columns(3)
-            col1.metric("✅ Total de Mangueiras", len(dashboard_df_hoses))
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("✅ Total Ativas", len(dashboard_df_hoses))
             col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
             col3.metric("🔴 VENCIDO", status_counts.get("🔴 VENCIDO", 0))
+            col4.metric("🟠 REPROVADA", status_counts.get("🟠 REPROVADA", 0)) # Nova métrica
             
             st.markdown("---")
             
-            st.subheader("Lista de Mangueiras")
-            st.dataframe(
-                dashboard_df_hoses,
-                column_config={
-                    "id_mangueira": "ID", "status": "Status", "marca": "Marca",
-                    "diametro": "Diâmetro", "tipo": "Tipo", "comprimento": "Comprimento",
-                    "ano_fabricacao": "Ano Fab.", "data_inspecao": "Último Teste",
-                    "data_proximo_teste": "Próximo Teste", "registrado_por": "Registrado Por",
-                    "link_certificado_pdf": st.column_config.LinkColumn(
-                        "Certificado", display_text="🔗 Ver PDF"
-                    )
-                },
-                hide_index=True,
-                use_container_width=True
-            )
+            st.subheader("Lista de Mangueiras Ativas")
+            
+            # Itera sobre o dataframe para adicionar o botão de ação
+            for _, row in dashboard_df_hoses.iterrows():
+                if row['status'] == '🟠 REPROVADA':
+                    with st.container(border=True):
+                        cols = st.columns([5, 2])
+                        with cols[0]:
+                            st.markdown(f"**ID:** {row['id_mangueira']} | **Status:** {row['status']} | **Próx. Teste:** {row['data_proximo_teste']}")
+                        with cols[1]:
+                            if st.button("🗑️ Registrar Baixa", key=f"dispose_{row['id_mangueira']}", use_container_width=True):
+                                dispose_hose_dialog(row['id_mangueira'])
+                else:
+                    st.text(f"ID: {row['id_mangueira']} | Status: {row['status']} | Próx. Teste: {row['data_proximo_teste']}")
+            
+            with st.expander("Ver tabela completa de mangueiras ativas"):
+                st.dataframe(
+                    dashboard_df_hoses,
+                    column_config={
+                        "id_mangueira": "ID", "status": "Status", "marca": "Marca",
+                        "diametro": "Diâmetro", "tipo": "Tipo", "comprimento": "Comprimento",
+                        "ano_fabricacao": "Ano Fab.", "data_inspecao": "Último Teste",
+                        "data_proximo_teste": "Próximo Teste", "registrado_por": "Registrado Por",
+                        "link_certificado_pdf": st.column_config.LinkColumn(
+                            "Certificado", display_text="🔗 Ver PDF"
+                        )
+                    },
+                    hide_index=True,
+                    use_container_width=True
+                )
     
     with tab_shelters:
         st.header("Dashboard de Status dos Abrigos de Emergência")
