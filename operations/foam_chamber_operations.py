@@ -128,16 +128,28 @@ def generate_foam_chamber_action_plan(non_conformities):
     first_issue = non_conformities[0]
     return ACTION_PLAN_MAP.get(first_issue, "Corrigir a não conformidade reportada.")
 
-def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, results_dict, inspector_name):
-    """Salva uma nova inspeção de câmara de espuma."""
+def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, results_dict, photo_file, inspector_name):
+    """Salva uma nova inspeção de câmara de espuma, incluindo a foto de não conformidade."""
     try:
         uploader = GoogleDriveUploader()
         today = date.today()
         
+        photo_link = None
+        if photo_file:
+            st.info("Fazendo upload da foto de evidência...")
+            photo_link = upload_evidence_photo(
+                photo_file, 
+                chamber_id, 
+                "nao_conformidade_camara_espuma"
+            )
+            if not photo_link:
+                st.error("Falha crítica no upload da foto. A inspeção não foi salva.")
+                return False
+
         if inspection_type == "Funcional Anual":
             next_inspection_date = (today + relativedelta(years=1)).isoformat()
         else:
-            next_inspection_date = (today + relativedelta(months=1)).isoformat()
+            next_inspection_date = (today + relativedelta(months=6)).isoformat()
             
         non_conformities = [q for q, status in results_dict.items() if status == "Não Conforme"]
         action_plan = generate_foam_chamber_action_plan(non_conformities)
@@ -151,6 +163,7 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
             overall_status,
             action_plan,
             results_json,
+            photo_link,
             inspector_name,
             next_inspection_date
         ]
