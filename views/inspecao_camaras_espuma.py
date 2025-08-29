@@ -93,24 +93,26 @@ def show_page():
                         else:
                             overall_status = "Reprovado com Pendências" if has_issues else "Aprovado"
                             with st.spinner("Salvando inspeção..."):
+                                # --- INÍCIO DA CORREÇÃO ---
                                 if save_foam_chamber_inspection(
                                     chamber_id=selected_chamber_id,
                                     inspection_type=inspection_type,
                                     overall_status=overall_status,
                                     results_dict=inspection_results,
-                                    photo_file=photo_file, # Passa o arquivo da foto
+                                    photo_file=photo_file,  # Adiciona o argumento que faltava
                                     inspector_name=get_user_display_name()
                                 ):
+                                # --- FIM DA CORREÇÃO ---
                                     st.success(f"Inspeção '{inspection_type}' para a câmara '{selected_chamber_id}' salva com sucesso!")
                                     st.balloons() if not has_issues else None
                                     st.cache_data.clear()
                                     st.rerun()
                                 else:
                                     st.error("Ocorreu um erro ao salvar a inspeção.")
-
+    
+    # A aba de cadastro ('with tab_register:') não precisa de alterações.
     with tab_register:
         st.header("Cadastrar Nova Câmara de Espuma")
-        
         with st.form("new_foam_chamber_form", clear_on_submit=True):
             st.info("Preencha os dados do novo equipamento a ser adicionado ao sistema.")
             new_id = st.text_input("**ID da Câmara (Obrigatório)**", help="Use um código único, ex: CE-TQ-01")
