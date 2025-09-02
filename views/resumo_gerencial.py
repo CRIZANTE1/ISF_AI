@@ -13,7 +13,8 @@ from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME, HOSE_SHEET_NAME, HOSE_DISPOSAL_LOG_SHEET_NAME,
     SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME,
     SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME,
-    FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME
+    FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
+    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
 )
 
 # Importa as funções de status do dashboard.py (reutilização de código)
@@ -23,7 +24,8 @@ from .dashboard import (
     get_shelter_status_df,
     get_scba_status_df,
     get_eyewash_status_df,
-    get_foam_chamber_status_df
+    get_foam_chamber_status_df,
+    get_multigas_status_df
 )
 
 set_page_config()
@@ -36,8 +38,8 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam = st.tabs([
-        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"
+    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas = st.tabs([
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás"
     ])
 
     with tab_extinguishers:
@@ -204,5 +206,37 @@ def show_page():
                 st.dataframe(
                     pending_foam[['id_camara', 'status_dashboard', 'plano_de_acao', 'localizacao', 'data_proxima_inspecao']],
                     column_config={"id_camara": "ID", "status_dashboard": "Status", "plano_de_acao": "Ação Recomendada", "localizacao": "Localização", "data_proxima_inspecao": "Vencimento"},
+                    use_container_width=True, hide_index=True
+                )
+
+    with tab_multigas:
+        st.header("Situação dos Detectores Multigás")
+        df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
+        df_inspections = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
+
+        if df_inventory.empty:
+            st.warning("Nenhum detector multigás cadastrado.")
+        else:
+            dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
+            status_counts = dashboard_df['status_dashboard'].value_counts()
+            col1, col2, col3, col4, col5 = st.columns(5)
+            col1.metric("✅ Total", len(dashboard_df))
+            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+            col3.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+            col4.metric("🟠 Reprovado", status_counts.get("🟠 REPROVADO", 0))
+            col5.metric("🔵 Pendente", status_counts.get("🔵 PENDENTE (Nova Calibração)", 0))
+            st.markdown("---")
+            
+            st.subheader("Detectores com Pendências")
+            pending_df = dashboard_df[dashboard_df['status_dashboard'] != '🟢 OK']
+            if pending_df.empty:
+                st.success("✅ Todos os detectores estão em conformidade!")
+            else:
+                st.dataframe(
+                    pending_df[['id_equipamento', 'numero_serie', 'status_dashboard', 'proxima_calibracao']],
+                    column_config={
+                        "id_equipamento": "ID Equip.", "numero_serie": "S/N",
+                        "status_dashboard": "Status", "proxima_calibracao": "Venc. Calibração"
+                    },
                     use_container_width=True, hide_index=True
                 )
