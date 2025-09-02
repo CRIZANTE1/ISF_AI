@@ -9,7 +9,8 @@ from operations.history import load_sheet_data
 from operations.multigas_operations import (
     save_new_multigas_detector, 
     save_multigas_inspection, 
-    process_calibration_pdf_analysis, # Importa a nova função de análise
+    process_calibration_pdf_analysis,
+    verify_bump_test,
     update_cylinder_values
 )
 from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
@@ -118,6 +119,7 @@ def show_page():
     with tab_inspection:
         st.header("Registrar Teste de Resposta (Bump Test)")
 
+        # --- SEÇÃO DE RELATÓRIO ---
         with st.expander("📄 Gerar Relatório de Bump Tests do Dia"):
             df_inspections_full = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
             df_inventory_full = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
@@ -125,6 +127,7 @@ def show_page():
             today_str = datetime.now().strftime('%Y-%m-%d')
             
             if not df_inspections_full.empty:
+                # Filtra apenas os testes de resposta (não calibrações) do dia de hoje
                 tests_today = df_inspections_full[
                     (df_inspections_full['data_teste'] == today_str) &
                     (df_inspections_full['tipo_teste'] != 'Calibração Anual')
@@ -156,6 +159,7 @@ def show_page():
             else:
                 st.info("Nenhum teste de resposta registrado no sistema.")
         st.markdown("---")
+        # --- FIM DA SEÇÃO DE RELATÓRIO ---
 
         df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
 
@@ -181,17 +185,17 @@ def show_page():
                 c6.metric("H²S (ppm)", f"{detector_info.get('H2S_cilindro', 0)}")
                 c7.metric("CO (ppm)", f"{detector_info.get('CO_cilindro', 0)}")
 
-                with st.form(f"inspection_form_{selected_id}", clear_on_submit=False):
+                with st.form(f"inspection_form_{selected_id}", clear_on_submit=True):
                     st.markdown("---")
                     
                     if st.toggle("Atualizar valores de referência do cilindro?"):
                         st.warning("Os novos valores informados abaixo serão salvos permanentemente para este detector.")
                         st.subheader("Novos Valores de Referência do Cilindro")
                         nc1, nc2, nc3, nc4 = st.columns(4)
-                        new_lel_cylinder = nc1.number_input("LEL (% LEL)", step=0.1, format="%.1f", key="new_lel")
-                        new_o2_cylinder = nc2.number_input("O² (% Vol)", step=0.1, format="%.1f", key="new_o2")
-                        new_h2s_cylinder = nc3.number_input("H²S (ppm)", step=1, key="new_h2s")
-                        new_co_cylinder = nc4.number_input("CO (ppm)", step=1, key="new_co")
+                        new_lel_cylinder = nc1.number_input("LEL (% LEL)", step=0.1, format="%.1f", key="new_lel", value=float(detector_info.get('LEL_cilindro', 0)))
+                        new_o2_cylinder = nc2.number_input("O² (% Vol)", step=0.1, format="%.1f", key="new_o2", value=float(detector_info.get('O2_cilindro', 0)))
+                        new_h2s_cylinder = nc3.number_input("H²S (ppm)", step=1, key="new_h2s", value=int(detector_info.get('H2S_cilindro', 0)))
+                        new_co_cylinder = nc4.number_input("CO (ppm)", step=1, key="new_co", value=int(detector_info.get('CO_cilindro', 0)))
 
                     st.subheader("Registro do Teste")
                     c8, c9 = st.columns(2)
@@ -205,16 +209,7 @@ def show_page():
                     h2s_found = c12.text_input("H²S")
                     co_found = c13.text_input("CO")
                     
-                    c14, c15 = st.columns(2)
-                    test_type = c14.radio("Tipo de Teste", ["Periódico", "Extraordinário"], horizontal=True)
-                    test_result = c15.radio("Resultado do Teste", ["Aprovado", "Reprovado"], horizontal=True)
-
-                    st.subheader("Observações (Opcional)")
-                    observations = st.text_area(
-                        "Adicione observações sobre o teste",
-                        placeholder="Ex: Sensor de H2S com resposta baixa, mas dentro da tolerância. Agendar calibração preventiva.",
-                        label_visibility="collapsed"
-                    )
+                    test_type = st.radio("Tipo de Teste", ["Periódico", "Extraordinário"], horizontal=True)
 
                     st.subheader("Responsável pelo Teste")
                     c16, c17 = st.columns(2)
@@ -222,18 +217,38 @@ def show_page():
                     resp_id = c17.text_input("Matrícula")
 
                     submit_insp = st.form_submit_button("💾 Salvar Teste", width='stretch')
+                    
                     if submit_insp:
-                        # Se o toggle de atualização estiver ativo, primeiro atualiza os valores
-                        if 'new_lel' in st.session_state and st.session_state.new_lel is not None:
-                            new_values = {
-                                "LEL": st.session_state.new_lel, "O2": st.session_state.new_o2,
-                                "H2S": st.session_state.new_h2s, "CO": st.session_state.new_co
-                            }
-                            if not update_cylinder_values(selected_id, new_values):
+                        # Pega os valores de referência corretos (os atuais ou os novos, se o toggle estiver ativo)
+                        reference_values = {
+                            'LEL': st.session_state.new_lel if 'new_lel' in st.session_state else detector_info.get('LEL_cilindro'),
+                            'O2': st.session_state.new_o2 if 'new_o2' in st.session_state else detector_info.get('O2_cilindro'),
+                            'H2S': st.session_state.new_h2s if 'new_h2s' in st.session_state else detector_info.get('H2S_cilindro'),
+                            'CO': st.session_state.new_co if 'new_co' in st.session_state else detector_info.get('CO_cilindro')
+                        }
+                        found_values = {
+                            'LEL': lel_found, 'O2': o2_found,
+                            'H2S': h2s_found, 'CO': co_found
+                        }
+
+                        # Chama a função de verificação
+                        auto_result, auto_observation = verify_bump_test(reference_values, found_values)
+
+                        # Exibe o resultado automático para o usuário antes de salvar
+                        st.subheader("Resultado da Verificação Automática")
+                        if auto_result == "Aprovado":
+                            st.success(f"✔️ **Resultado:** {auto_result}")
+                        else:
+                            st.error(f"❌ **Resultado:** {auto_result}")
+                        st.info(f"**Observações Geradas:** {auto_observation}")
+                        
+                        # Se o toggle de atualização estiver ativo, atualiza os valores no inventário
+                        if 'new_lel' in st.session_state:
+                            if update_cylinder_values(selected_id, reference_values):
+                                st.success("Valores de referência do cilindro atualizados com sucesso!")
+                            else:
                                 st.error("Falha ao atualizar valores de referência. O teste não foi salvo.")
-                                st.stop()
-                            
-                            st.success("Valores de referência do cilindro atualizados com sucesso!")
+                                st.stop() # Interrompe se a atualização falhar
                         
                         inspection_data = {
                             "data_teste": test_date.isoformat(),
@@ -242,20 +257,21 @@ def show_page():
                             "LEL_encontrado": lel_found, "O2_encontrado": o2_found,
                             "H2S_encontrado": h2s_found, "CO_encontrado": co_found,
                             "tipo_teste": test_type, 
-                            "resultado_teste": test_result,
-                            "observacoes": observations,
+                            "resultado_teste": auto_result,
+                            "observacoes": auto_observation,
                             "responsavel_nome": resp_name, 
                             "responsavel_matricula": resp_id
                         }
-                        if save_multigas_inspection(inspection_data):
-                            st.success(f"Teste para o detector '{selected_id}' salvo com sucesso!")
-                            st.cache_data.clear()
-                            # Limpa as chaves para resetar o toggle e os inputs
-                            keys_to_clear = ['new_lel', 'new_o2', 'new_h2s', 'new_co']
-                            for key in keys_to_clear:
-                                if key in st.session_state:
-                                    del st.session_state[key]
-                            st.rerun()
+                        
+                        with st.spinner("Salvando o registro..."):
+                            if save_multigas_inspection(inspection_data):
+                                st.success(f"Teste para o detector '{selected_id}' salvo com sucesso!")
+                                st.cache_data.clear()
+                                # Limpa as chaves para resetar o toggle e os inputs
+                                keys_to_clear = ['new_lel', 'new_o2', 'new_h2s', 'new_co']
+                                for key in keys_to_clear:
+                                    if key in st.session_state:
+                                        del st.session_state[key]
 
     # --- ABA DE CADASTRO MANUAL RESTAURADA ---
     with tab_register:
