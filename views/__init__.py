@@ -8,7 +8,8 @@ from . import (
     inspecao_camaras_espuma,
     historico,
     utilitarios,
-    resumo_gerencial 
+    resumo_gerencial,
+    inspecao_multigas
     
 )
 
@@ -21,7 +22,10 @@ __all__ = [
     "inspecao_chuveiros",
     "inspecao_camaras_espuma",
     "historico",
-    "utilitarios"
-    "resumo_gerencial"
+    "utilitarios",
+    "resumo_gerencial",
+    "inspecao_multigas"
+    
 ]
+
 
