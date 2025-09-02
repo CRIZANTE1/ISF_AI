@@ -200,4 +200,5 @@ inspecoes_multigas:
   - responsavel_matricula
   - proxima_calibracao
   - numero_certificado
-  - link_certificado 
+  - link_certificado
+  - observacoes 
