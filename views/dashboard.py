@@ -39,6 +39,7 @@ from operations.foam_chamber_operations import save_foam_chamber_inspection, sav
 
 set_page_config()
 
+
 def get_multigas_status_df(df_inventory, df_inspections):
     if df_inventory.empty:
         return pd.DataFrame()
@@ -47,16 +48,20 @@ def get_multigas_status_df(df_inventory, df_inspections):
     dashboard_df = df_inventory.copy()
 
     # Se não houver inspeções, define todos como pendentes e retorna
+    # Esta parte garante que a estrutura de colunas seja sempre a mesma
     if df_inspections.empty:
         dashboard_df['status_calibracao'] = '🔵 PENDENTE'
         dashboard_df['status_bump_test'] = '🔵 PENDENTE'
         dashboard_df['proxima_calibracao'] = pd.NaT
         dashboard_df['resultado_ultimo_bump_test'] = 'N/A'
+        dashboard_df['data_ultimo_bump_test'] = pd.NaT
+        dashboard_df['link_certificado'] = None
         return dashboard_df
 
+    # Converte a coluna de data para o formato datetime uma única vez
     df_inspections['data_teste'] = pd.to_datetime(df_inspections['data_teste'], errors='coerce')
 
-    # Cria colunas de resultados no DataFrame principal
+    # Cria as colunas de resultados no DataFrame principal com valores padrão
     dashboard_df['proxima_calibracao'] = pd.NaT
     dashboard_df['link_certificado'] = None
     dashboard_df['resultado_ultimo_bump_test'] = 'N/A'
@@ -65,17 +70,18 @@ def get_multigas_status_df(df_inventory, df_inspections):
     # Itera sobre cada equipamento do inventário para encontrar seus últimos testes
     for index, row in dashboard_df.iterrows():
         equip_id = row['id_equipamento']
+        # Filtra as inspeções apenas para o equipamento atual
         equip_inspections = df_inspections[df_inspections['id_equipamento'] == equip_id]
 
         if not equip_inspections.empty:
-            # Encontra a última calibração
+            # Encontra a última calibração anual
             calibrations = equip_inspections[equip_inspections['tipo_teste'] == 'Calibração Anual']
             if not calibrations.empty:
                 last_calib = calibrations.sort_values('data_teste', ascending=False).iloc[0]
                 dashboard_df.loc[index, 'proxima_calibracao'] = last_calib.get('proxima_calibracao')
                 dashboard_df.loc[index, 'link_certificado'] = last_calib.get('link_certificado')
 
-            # Encontra o último bump test
+            # Encontra o último bump test (qualquer teste que não seja calibração anual)
             bump_tests = equip_inspections[equip_inspections['tipo_teste'] != 'Calibração Anual']
             if not bump_tests.empty:
                 last_bump = bump_tests.sort_values('data_teste', ascending=False).iloc[0]
@@ -94,7 +100,7 @@ def get_multigas_status_df(df_inventory, df_inspections):
 
     # Status do Bump Test
     dashboard_df['status_bump_test'] = np.where(
-        dashboard_df['resultado_ultimo_bump_test'].isin(['N/A', None]), '🔵 PENDENTE',
+        dashboard_df['resultado_ultimo_bump_test'].isin(['N/A', None, '']), '🔵 PENDENTE',
         np.where(dashboard_df['resultado_ultimo_bump_test'] == 'Reprovado', '🟠 REPROVADO', '🟢 OK')
     )
     
