@@ -176,3 +176,25 @@ log_acoes_camaras_espuma:
   - problema_original
   - acao_realizada
   - responsavel
+multigas_inventario:
+  - id_equipamento
+  - marca
+  - modelo
+  - numero_serie
+  - data_cadastro
+  - LEL_cilindro
+  - O2_cilindro
+  - H2S_cilindro
+  - CO_cilindro
+inspecoes_multigas:
+  - data_teste
+  - hora_teste
+  - id_equipamento
+  - LEL_encontrado
+  - O2_encontrado
+  - H2S_encontrado
+  - CO_encontrado
+  - tipo_teste
+  - resultado_teste
+  - responsavel_nome
+  - responsavel_matricula
