@@ -14,6 +14,13 @@ def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinde
     try:
         uploader = GoogleDriveUploader()
         inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
+
+        expected_columns = 9
+        if inventory_data and len(inventory_data[0]) < expected_columns:
+            st.error(f"Erro de Configuração: A planilha 'multigas_inventario' possui apenas {len(inventory_data[0])} colunas, mas são esperadas {expected_columns}. Por favor, adicione as colunas faltantes (LEL_cilindro, O2_cilindro, etc.) e tente novamente.")
+            return False
+        # --- FIM DA MELHORIA ---
+
         if inventory_data and len(inventory_data) > 1:
             df_inv = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
             if detector_id in df_inv['id_equipamento'].values:
