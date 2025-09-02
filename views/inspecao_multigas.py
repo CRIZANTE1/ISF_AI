@@ -1,3 +1,5 @@
+# FILE: views/inspecao_multigas.py (VERSÃO CORRIGIDA)
+
 import streamlit as st
 import pandas as pd
 import sys
@@ -51,9 +53,8 @@ def show_page():
                 with st.spinner("Salvando..."):
                     record_to_save = st.session_state.calib_processed_data
                     
-                    # Upload do PDF
                     uploader = GoogleDriveUploader()
-                    pdf_name = f"Certificado_Multigas_{record_to_save['numero_certificado']}_{record_to_save['id_equipamento']}.pdf"
+                    pdf_name = f"Certificado_Multigas_{record_to_save.get('numero_certificado', 'S-N')}_{record_to_save['id_equipamento']}.pdf"
                     pdf_link = uploader.upload_file(st.session_state.calib_uploaded_pdf, novo_nome=pdf_name)
                     
                     if not pdf_link:
@@ -70,7 +71,6 @@ def show_page():
                         st.session_state.calib_uploaded_pdf = None
                         st.cache_data.clear()
                         st.rerun()
-
 
     with tab_inspection:
         st.header("Registrar Teste de Resposta (Bump Test)")
@@ -136,3 +136,36 @@ def show_page():
                         if save_multigas_inspection(inspection_data):
                             st.success(f"Teste para o detector '{selected_id}' salvo com sucesso!")
                             st.cache_data.clear()
+
+    # --- ABA DE CADASTRO MANUAL RESTAURADA ---
+    with tab_register:
+        st.header("Cadastrar Novo Detector Multigás")
+        st.info("Cadastre o equipamento e os valores de referência do cilindro de gás utilizado para os testes de resposta (bump tests).")
+
+        with st.form("new_detector_form", clear_on_submit=True):
+            st.subheader("Dados do Equipamento")
+            c1, c2 = st.columns(2)
+            detector_id = c1.text_input("**ID do Equipamento (Obrigatório)**", help="Um código único para identificar o equipamento, ex: MG-01")
+            serial_number = c2.text_input("**Nº de Série (Obrigatório)**")
+            brand = c1.text_input("Marca")
+            model = c2.text_input("Modelo")
+
+            st.subheader("Valores de Referência do Cilindro de Calibração")
+            c3, c4, c5, c6 = st.columns(4)
+            lel_cylinder = c3.number_input("LEL (% LEL)", step=0.1, format="%.1f")
+            o2_cylinder = c4.number_input("O² (% Vol)", step=0.1, format="%.1f")
+            h2s_cylinder = c5.number_input("H²S (ppm)", step=1)
+            co_cylinder = c6.number_input("CO (ppm)", step=1)
+
+            submitted = st.form_submit_button("➕ Cadastrar Detector", width='stretch')
+            if submitted:
+                if not detector_id or not serial_number:
+                    st.error("Os campos 'ID do Equipamento' e 'Nº de Série' são obrigatórios.")
+                else:
+                    cylinder_values = {
+                        "LEL": lel_cylinder, "O2": o2_cylinder,
+                        "H2S": h2s_cylinder, "CO": co_cylinder
+                    }
+                    if save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
+                        st.success(f"Detector '{detector_id}' cadastrado com sucesso!")
+                        st.cache_data.clear()
