@@ -169,3 +169,60 @@ def update_cylinder_values(detector_id, new_cylinder_values):
     except Exception as e:
         st.error(f"Ocorreu um erro ao atualizar os valores do cilindro: {e}")
         return False
+
+def verify_bump_test(reference_values, found_values, tolerance_percent=20):
+    """
+    Verifica os resultados de um bump test em relação aos valores de referência.
+    Retorna o resultado geral e uma lista de observações.
+    """
+    observations = []
+    is_approved = True
+    
+    # Mapeia os nomes dos gases para uma exibição mais amigável
+    gas_map = {
+        'LEL': 'LEL', 'O2': 'O²', 'H2S': 'H²S', 'CO': 'CO'
+    }
+
+    for gas_key, ref_val_str in reference_values.items():
+        found_val_str = found_values.get(gas_key)
+        
+        try:
+            ref_val = float(ref_val_str)
+            found_val = float(found_val_str)
+        except (ValueError, TypeError):
+            continue # Pula para o próximo gás se os valores não forem numéricos
+
+        # Não verifica gases com referência 0
+        if ref_val == 0:
+            continue
+
+        # Calcula a variação percentual
+        difference = found_val - ref_val
+        variation_percent = (difference / ref_val) * 100
+        
+        gas_name = gas_map.get(gas_key, gas_key)
+
+        # Verifica se a variação excede a tolerância
+        if abs(variation_percent) > tolerance_percent:
+            is_approved = False
+            observations.append(
+                f"Sensor de {gas_name} REPROVADO. "
+                f"Leitura: {found_val}, Referência: {ref_val} (Variação: {variation_percent:.1f}%)."
+            )
+        # Verifica se está no limite (entre 10% e 20% de variação)
+        elif abs(variation_percent) > 10:
+            observations.append(
+                f"Sensor de {gas_name} com resposta baixa/alta. "
+                f"Leitura: {found_val}, Referência: {ref_val} (Variação: {variation_percent:.1f}%). "
+                f"Calibração preventiva recomendada."
+            )
+
+    # Define o resultado e a observação final
+    final_result = "Aprovado" if is_approved else "Reprovado"
+    
+    if not observations and is_approved:
+        final_observation = "Todos os sensores responderam corretamente."
+    else:
+        final_observation = " | ".join(observations)
+        
+    return final_result, final_observation
