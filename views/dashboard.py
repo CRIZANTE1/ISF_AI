@@ -41,35 +41,75 @@ set_page_config()
 
 def get_multigas_status_df(df_inventory, df_inspections):
     if df_inventory.empty:
-        return pd.DataFrame()
+        return pd.DataFrame() # Retorna um DataFrame vazio se não houver inventário
 
+
+    dashboard_df = df_inventory.copy()
+    dashboard_df['status_calibracao'] = '🔵 PENDENTE'
+    dashboard_df['status_bump_test'] = '🔵 PENDENTE'
+    dashboard_df['data_ultimo_bump_test'] = pd.NaT
+    dashboard_df['resultado_ultimo_bump_test'] = 'N/A'
+    dashboard_df['proxima_calibracao'] = pd.NaT
+    dashboard_df['link_certificado'] = None # Garante que a coluna exista
+
+    # Se não houver inspeções, retorna o DataFrame já preparado
     if df_inspections.empty:
-        # Se não há inspeções, todos os equipamentos estão pendentes
-        df_inventory['status_dashboard'] = '🔵 PENDENTE (Nova Calibração)'
-        df_inventory['proxima_calibracao'] = None
-        df_inventory['resultado_teste'] = 'N/A'
-        return df_inventory
+        return dashboard_df
+    # --- FIM DA CORREÇÃO ---
 
-    # Pega a última inspeção de cada equipamento
     df_inspections['data_teste'] = pd.to_datetime(df_inspections['data_teste'], errors='coerce')
-    latest_inspections = df_inspections.sort_values('data_teste', ascending=False).drop_duplicates('id_equipamento', keep='first')
 
-    # Junta o inventário com a última inspeção
-    dashboard_df = pd.merge(df_inventory, latest_inspections, on='id_equipamento', how='left')
+    # Processa as Calibrações Anuais
+    calibrations = df_inspections[df_inspections['tipo_teste'] == 'Calibração Anual'].copy()
+    if not calibrations.empty:
+        latest_calibrations = calibrations.sort_values('data_teste', ascending=False).drop_duplicates('id_equipamento', keep='first')
+        # Seleciona as colunas relevantes da calibração
+        calib_cols = ['id_equipamento', 'proxima_calibracao', 'link_certificado']
+        latest_calibrations = latest_calibrations[[c for c in calib_cols if c in latest_calibrations.columns]]
+        
+        # Usa merge para atualizar os dados, o how='left' mantém todos os itens do inventário
+        dashboard_df = pd.merge(dashboard_df, latest_calibrations, on='id_equipamento', how='left', suffixes=('', '_calib'))
+        
+        # Preenche as colunas originais com os novos dados onde eles existem
+        dashboard_df['proxima_calibracao'] = dashboard_df['proxima_calibracao_calib'].fillna(dashboard_df['proxima_calibracao'])
+        if 'link_certificado_calib' in dashboard_df.columns:
+            dashboard_df['link_certificado'] = dashboard_df['link_certificado_calib'].fillna(dashboard_df['link_certificado'])
+        # Remove as colunas temporárias do merge
+        dashboard_df.drop(columns=[col for col in dashboard_df.columns if '_calib' in col], inplace=True)
 
+
+    # Processa os Bump Tests
+    bump_tests = df_inspections[df_inspections['tipo_teste'] != 'Calibração Anual'].copy()
+    if not bump_tests.empty:
+        latest_bump_tests = bump_tests.sort_values('data_teste', ascending=False).drop_duplicates('id_equipamento', keep='first')
+        latest_bump_tests = latest_bump_tests[['id_equipamento', 'data_teste', 'resultado_teste']]
+        
+        dashboard_df = pd.merge(dashboard_df, latest_bump_tests, on='id_equipamento', how='left', suffixes=('', '_bump'))
+        dashboard_df['data_ultimo_bump_test'] = dashboard_df['data_teste'].fillna(dashboard_df['data_ultimo_bump_test'])
+        dashboard_df['resultado_ultimo_bump_test'] = dashboard_df['resultado_teste'].fillna(dashboard_df['resultado_ultimo_bump_test'])
+        dashboard_df.drop(columns=['data_teste', 'resultado_teste'], inplace=True)
+
+    # Calcula os status separadamente
     today = pd.Timestamp(date.today())
+    
+    # Status da Calibração
     dashboard_df['proxima_calibracao'] = pd.to_datetime(dashboard_df['proxima_calibracao'], errors='coerce')
-
-    conditions = [
+    calib_conditions = [
         (dashboard_df['proxima_calibracao'].isna()),
-        (dashboard_df['proxima_calibracao'] < today),
-        (dashboard_df['resultado_teste'] == 'Reprovado')
+        (dashboard_df['proxima_calibracao'] < today)
     ]
-    choices = ['🔵 PENDENTE (Nova Calibração)', '🔴 VENCIDO', '🟠 REPROVADO']
-    dashboard_df['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
+    calib_choices = ['🔵 PENDENTE', '🔴 VENCIDO']
+    dashboard_df['status_calibracao'] = np.select(calib_conditions, calib_choices, default='🟢 OK')
+
+    # Status do Bump Test
+    bump_conditions = [
+        (dashboard_df['resultado_ultimo_bump_test'] == 'N/A'),
+        (dashboard_df['resultado_ultimo_bump_test'] == 'Reprovado')
+    ]
+    bump_choices = ['🔵 PENDENTE', '🟠 REPROVADO']
+    dashboard_df['status_bump_test'] = np.select(bump_conditions, bump_choices, default='🟢 OK')
     
     return dashboard_df
-
 
 def get_foam_chamber_status_df(df_inspections):
     if df_inspections.empty:
