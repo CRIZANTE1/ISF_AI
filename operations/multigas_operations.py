@@ -1,11 +1,18 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from datetime import date
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
 from utils.auditoria import log_action
 from AI.api_Operation import PDFQA
 from utils.prompts import get_multigas_calibration_prompt
+
+def to_safe_cell(value):
+    """Converte None ou NaN para string vazia para garantir a escrita correta na planilha."""
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return ''
+    return value
 
 def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
     """Salva um novo detector multigás no inventário, tratando valores nulos."""
@@ -15,25 +22,18 @@ def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinde
 
         expected_columns = 9
         if inventory_data and len(inventory_data[0]) != expected_columns:
-            st.error(f"Erro de Configuração: O cabeçalho da planilha 'multigas_inventario' tem {len(inventory_data[0])} colunas, mas o sistema espera {expected_columns}. Por favor, corrija os cabeçalhos na planilha.")
+            st.error(f"Erro de Configuração: O cabeçalho da planilha 'multigas_inventario' tem {len(inventory_data[0])} colunas, mas o sistema espera {expected_columns}. Por favor, corrija os cabeçalhos.")
             return False
 
         if inventory_data and len(inventory_data) > 1:
-            # Limpa os dados lidos para evitar erros no DataFrame
             headers = inventory_data[0]
-            rows = inventory_data[1:]
-            num_columns = len(headers)
-            cleaned_rows = [row[:num_columns] for row in rows if any(cell for cell in row)]
-            if cleaned_rows:
-                df_inv = pd.DataFrame(cleaned_rows, columns=headers)
+            rows = [row for row in inventory_data[1:] if any(cell for cell in row)]
+            if rows:
+                df_inv = pd.DataFrame(rows, columns=headers)
                 if detector_id in df_inv['id_equipamento'].values:
-                    st.error(f"Erro: O ID de equipamento '{detector_id}' já existe. Cancele e escolha outro ID.")
+                    st.error(f"Erro: O ID de equipamento '{detector_id}' já existe.")
                     return False
         
-        # Garante que todos os valores sejam strings vazias se forem None
-        def to_safe_cell(value):
-            return '' if value is None or (isinstance(value, float) and np.isnan(value)) else value
-
         data_row = [
             to_safe_cell(detector_id),
             to_safe_cell(brand),
@@ -54,16 +54,27 @@ def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinde
         return False
 
 def save_multigas_inspection(data):
-    """Salva um novo registro de teste (bump test ou calibração)."""
+    """Salva um novo registro de teste (bump test ou calibração), tratando valores nulos."""
     try:
         uploader = GoogleDriveUploader()
+        
         data_row = [
-            data.get('data_teste'), data.get('hora_teste'), data.get('id_equipamento'),
-            data.get('LEL_encontrado'), data.get('O2_encontrado'), data.get('H2S_encontrado'), data.get('CO_encontrado'),
-            data.get('tipo_teste'), data.get('resultado_teste'),
-            data.get('responsavel_nome'), data.get('responsavel_matricula'),
-            data.get('proxima_calibracao'), data.get('numero_certificado'), data.get('link_certificado')
+            to_safe_cell(data.get('data_teste')),
+            to_safe_cell(data.get('hora_teste')),
+            to_safe_cell(data.get('id_equipamento')),
+            to_safe_cell(data.get('LEL_encontrado')),
+            to_safe_cell(data.get('O2_encontrado')),
+            to_safe_cell(data.get('H2S_encontrado')),
+            to_safe_cell(data.get('CO_encontrado')),
+            to_safe_cell(data.get('tipo_teste')),
+            to_safe_cell(data.get('resultado_teste')),
+            to_safe_cell(data.get('responsavel_nome')),
+            to_safe_cell(data.get('responsavel_matricula')),
+            to_safe_cell(data.get('proxima_calibracao')),
+            to_safe_cell(data.get('numero_certificado')),
+            to_safe_cell(data.get('link_certificado'))
         ]
+        
         uploader.append_data_to_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME, [data_row])
         log_action("SALVOU_INSPECAO_MULTIGAS", f"ID: {data.get('id_equipamento')}, Resultado: {data.get('resultado_teste')}")
         return True
@@ -73,8 +84,7 @@ def save_multigas_inspection(data):
 
 def process_calibration_pdf_analysis(pdf_file):
     """
-    Etapa 1: Apenas analisa o PDF, extrai os dados e verifica a existência do detector.
-    Retorna os dados extraídos e um status ('exists', 'new_detector', ou 'error').
+    Analisa o PDF, extrai dados e verifica a existência do detector.
     """
     pdf_qa = PDFQA()
     prompt = get_multigas_calibration_prompt()
@@ -120,7 +130,6 @@ def process_calibration_pdf_analysis(pdf_file):
 
     return calib_data, status
 
-# --- FUNÇÃO RESTAURADA ---
 def update_cylinder_values(detector_id, new_cylinder_values):
     """
     Atualiza os valores de referência do cilindro para um detector específico no inventário.
@@ -146,10 +155,10 @@ def update_cylinder_values(detector_id, new_cylinder_values):
         range_to_update = f"F{sheet_row_index}:I{sheet_row_index}"
         
         values_to_update = [[
-            new_cylinder_values['LEL'],
-            new_cylinder_values['O2'],
-            new_cylinder_values['H2S'],
-            new_cylinder_values['CO']
+            to_safe_cell(new_cylinder_values['LEL']),
+            to_safe_cell(new_cylinder_values['O2']),
+            to_safe_cell(new_cylinder_values['H2S']),
+            to_safe_cell(new_cylinder_values['CO'])
         ]]
 
         uploader.update_cells(MULTIGAS_INVENTORY_SHEET_NAME, range_to_update, values_to_update)
