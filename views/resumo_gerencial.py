@@ -71,7 +71,7 @@ def show_page():
                             "numero_identificacao": "ID Equip.", "status_atual": "Status",
                             "plano_de_acao": "Ação Recomendada", "status_instalacao": "Localização"
                         },
-                        use_container_width=True, hide_index=True
+                        width='stretch', hide_index=True
                     )
 
     with tab_hoses:
@@ -99,7 +99,7 @@ def show_page():
                 st.dataframe(
                     pending_hoses[['id_mangueira', 'status', 'data_proximo_teste']],
                     column_config={"id_mangueira": "ID", "status": "Status", "data_proximo_teste": "Vencimento"},
-                    use_container_width=True, hide_index=True
+                    width='stretch', hide_index=True
                 )
 
     with tab_shelters:
@@ -125,7 +125,7 @@ def show_page():
                 st.dataframe(
                     pending_shelters[['id_abrigo', 'status_dashboard', 'local', 'data_proxima_inspecao_str']],
                     column_config={"id_abrigo": "ID", "status_dashboard": "Status", "local": "Localização", "data_proxima_inspecao_str": "Vencimento"},
-                    use_container_width=True, hide_index=True
+                    width='stretch', hide_index=True
                 )
 
     with tab_scba:
@@ -152,7 +152,7 @@ def show_page():
                     st.dataframe(
                         pending_scba[['numero_serie_equipamento', 'status_consolidado', 'data_validade', 'data_proxima_inspecao']],
                         column_config={"numero_serie_equipamento": "S/N", "status_consolidado": "Status", "data_validade": "Val. Teste", "data_proxima_inspecao": "Próx. Inspeção"},
-                        use_container_width=True, hide_index=True
+                        width='stretch', hide_index=True
                     )
 
     with tab_eyewash:
@@ -177,7 +177,7 @@ def show_page():
                 st.dataframe(
                     pending_eyewash[['id_equipamento', 'status_dashboard', 'plano_de_acao', 'data_proxima_inspecao']],
                     column_config={"id_equipamento": "ID", "status_dashboard": "Status", "plano_de_acao": "Ação Recomendada", "data_proxima_inspecao": "Vencimento"},
-                    use_container_width=True, hide_index=True
+                    width='stretch', hide_index=True
                 )
 
     with tab_foam:
@@ -206,7 +206,7 @@ def show_page():
                 st.dataframe(
                     pending_foam[['id_camara', 'status_dashboard', 'plano_de_acao', 'localizacao', 'data_proxima_inspecao']],
                     column_config={"id_camara": "ID", "status_dashboard": "Status", "plano_de_acao": "Ação Recomendada", "localizacao": "Localização", "data_proxima_inspecao": "Vencimento"},
-                    use_container_width=True, hide_index=True
+                    width='stretch', hide_index=True
                 )
 
     with tab_multigas:
@@ -238,5 +238,5 @@ def show_page():
                         "id_equipamento": "ID Equip.", "numero_serie": "S/N",
                         "status_dashboard": "Status", "proxima_calibracao": "Venc. Calibração"
                     },
-                    use_container_width=True, hide_index=True
+                    width='stretch', hide_index=True
                 )
