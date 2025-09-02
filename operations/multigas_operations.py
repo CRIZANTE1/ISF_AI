@@ -115,35 +115,55 @@ def process_calibration_pdf(pdf_file):
         st.error("Não foi possível identificar o Número de Série no certificado.")
         return None, None
         
-    # Verifica se o detector já existe no inventário pelo N/S
     uploader = GoogleDriveUploader()
     inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
     detector_id = None
     is_new = False
     
+    # --- INÍCIO DA CORREÇÃO ---
     if inventory_data and len(inventory_data) > 1:
-        df_inventory = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
-        existing_detector = df_inventory[df_inventory['numero_serie'] == serial_number]
-        if not existing_detector.empty:
-            detector_id = existing_detector.iloc[0]['id_equipamento']
-        else:
+        headers = inventory_data[0]
+        rows = inventory_data[1:]
+        
+        # Filtra linhas vazias e garante que todas as linhas tenham o mesmo número de colunas
+        num_columns = len(headers)
+        cleaned_rows = []
+        for row in rows:
+            if any(cell for cell in row): # Ignora linhas completamente vazias
+                row.extend([None] * (num_columns - len(row))) # Garante que a linha tenha o tamanho certo
+                cleaned_rows.append(row[:num_columns])
+
+        if cleaned_rows:
+            df_inventory = pd.DataFrame(cleaned_rows, columns=headers)
+            existing_detector = df_inventory[df_inventory['numero_serie'] == serial_number]
+            if not existing_detector.empty:
+                detector_id = existing_detector.iloc[0]['id_equipamento']
+            else:
+                is_new = True
+        else: # Se a planilha só tinha cabeçalho e linhas vazias
             is_new = True
-    else:
+    else: # Se a planilha está completamente vazia
         is_new = True
+    # --- FIM DA CORREÇÃO ---
         
     if is_new:
-        # Gera um ID temporário/sugerido
         suger_id = f"MG-{serial_number[-4:]}"
         st.info(f"Detector com S/N {serial_number} não encontrado. Ele será cadastrado automaticamente.")
-        detector_id = st.text_input("Confirme ou edite o ID para o novo equipamento:", suger_id)
+        # Usamos uma chave única para o text_input para evitar problemas de estado
+        detector_id = st.text_input("Confirme ou edite o ID para o novo equipamento:", suger_id, key=f"new_id_{serial_number}")
         
-        # Como não temos o cilindro, deixamos em branco por enquanto
         cylinder_values = {"LEL": None, "O2": None, "H2S": None, "CO": None}
         
-        if save_new_multigas_detector(detector_id, calib_data.get('marca'), calib_data.get('modelo'), serial_number, cylinder_values):
-            st.success(f"Novo detector com ID '{detector_id}' cadastrado com sucesso!")
+        # Botão para confirmar o cadastro dentro da lógica
+        if st.button("Confirmar Cadastro do Novo Detector", key=f"confirm_new_{serial_number}"):
+            if save_new_multigas_detector(detector_id, calib_data.get('marca'), calib_data.get('modelo'), serial_number, cylinder_values):
+                st.success(f"Novo detector com ID '{detector_id}' cadastrado com sucesso! Por favor, clique em 'Analisar Certificado com IA' novamente.")
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                return None, None
         else:
-            # Se o salvamento falhar (ex: ID duplicado), interrompe
+            # Se o usuário ainda não confirmou o novo cadastro, paramos aqui.
             return None, None
             
     # Prepara os dados da inspeção para serem salvos
@@ -162,7 +182,7 @@ def process_calibration_pdf(pdf_file):
         "responsavel_matricula": calib_data.get('empresa_executante'),
         "proxima_calibracao": calib_data.get('proxima_calibracao'),
         "numero_certificado": calib_data.get('numero_certificado'),
-        "link_certificado": None # O link será adicionado depois
+        "link_certificado": None
     }
     
     return inspection_record, calib_data
