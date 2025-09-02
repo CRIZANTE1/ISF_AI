@@ -8,7 +8,7 @@ from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data
-from operations.multigas_operations import save_new_multigas_detector, save_multigas_inspection, process_calibration_pdf
+from operations.multigas_operations import save_new_multigas_detector, save_multigas_inspection, process_calibration_pdf, update_cylinder_values
 from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME
 from gdrive.gdrive_upload import GoogleDriveUploader
 from auth.auth_utils import get_user_display_name
@@ -91,17 +91,28 @@ def show_page():
                 c2.metric("Modelo", detector_info.get('modelo', 'N/A'))
                 c3.metric("Nº Série", detector_info.get('numero_serie', 'N/A'))
 
-                st.subheader("Valores de Referência do Cilindro (para conferência)")
+                st.subheader("Valores de Referência do Cilindro (atuais)")
                 c4, c5, c6, c7 = st.columns(4)
                 c4.metric("LEL (% LEL)", f"{detector_info.get('LEL_cilindro', 0)}")
                 c5.metric("O² (% Vol)", f"{detector_info.get('O2_cilindro', 0)}")
                 c6.metric("H²S (ppm)", f"{detector_info.get('H2S_cilindro', 0)}")
                 c7.metric("CO (ppm)", f"{detector_info.get('CO_cilindro', 0)}")
 
-                with st.form(f"inspection_form_{selected_id}", clear_on_submit=True):
+                with st.form(f"inspection_form_{selected_id}", clear_on_submit=False): # clear_on_submit=False para manter o toggle
                     st.markdown("---")
-                    st.subheader("Registro do Teste")
                     
+                    # --- INÍCIO DA ALTERAÇÃO ---
+                    if st.toggle("Atualizar valores de referência do cilindro?"):
+                        st.warning("Os novos valores informados abaixo serão salvos permanentemente para este detector.")
+                        st.subheader("Novos Valores de Referência do Cilindro")
+                        nc1, nc2, nc3, nc4 = st.columns(4)
+                        new_lel_cylinder = nc1.number_input("LEL (% LEL)", step=0.1, format="%.1f", key="new_lel")
+                        new_o2_cylinder = nc2.number_input("O² (% Vol)", step=0.1, format="%.1f", key="new_o2")
+                        new_h2s_cylinder = nc3.number_input("H²S (ppm)", step=1, key="new_h2s")
+                        new_co_cylinder = nc4.number_input("CO (ppm)", step=1, key="new_co")
+                    # --- FIM DA ALTERAÇÃO ---
+
+                    st.subheader("Registro do Teste")
                     c8, c9 = st.columns(2)
                     test_date = c8.date_input("Data do Teste", value=datetime.now())
                     test_time = c9.time_input("Hora do Teste", value=datetime.now().time())
@@ -124,6 +135,20 @@ def show_page():
 
                     submit_insp = st.form_submit_button("💾 Salvar Teste", width='stretch')
                     if submit_insp:
+                        # --- INÍCIO DA ALTERAÇÃO ---
+                        # Se o toggle de atualização estiver ativo, primeiro atualiza os valores
+                        if 'new_lel' in st.session_state and st.session_state.new_lel is not None:
+                            new_values = {
+                                "LEL": st.session_state.new_lel, "O2": st.session_state.new_o2,
+                                "H2S": st.session_state.new_h2s, "CO": st.session_state.new_co
+                            }
+                            if not update_cylinder_values(selected_id, new_values):
+                                st.error("Falha ao atualizar valores de referência. O teste não foi salvo.")
+                                st.stop() # Interrompe se a atualização falhar
+                            
+                            st.success("Valores de referência do cilindro atualizados com sucesso!")
+                        # --- FIM DA ALTERAÇÃO ---
+                        
                         inspection_data = {
                             "data_teste": test_date.isoformat(),
                             "hora_teste": test_time.strftime("%H:%M:%S"),
@@ -136,6 +161,12 @@ def show_page():
                         if save_multigas_inspection(inspection_data):
                             st.success(f"Teste para o detector '{selected_id}' salvo com sucesso!")
                             st.cache_data.clear()
+                            # Limpa as chaves para resetar o toggle e os inputs
+                            keys_to_clear = ['new_lel', 'new_o2', 'new_h2s', 'new_co']
+                            for key in keys_to_clear:
+                                if key in st.session_state:
+                                    del st.session_state[key]
+                            st.rerun()
 
     # --- ABA DE CADASTRO MANUAL RESTAURADA ---
     with tab_register:
