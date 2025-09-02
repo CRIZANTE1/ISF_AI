@@ -6,8 +6,9 @@ from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data
-from operations.multigas_operations import save_new_multigas_detector, save_multigas_inspection
+from operations.multigas_operations import save_new_multigas_detector, save_multigas_inspection, process_calibration_pdf
 from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME
+from gdrive.gdrive_upload import GoogleDriveUploader
 from auth.auth_utils import get_user_display_name
 from config.page_config import set_page_config
 
@@ -16,39 +17,60 @@ set_page_config()
 def show_page():
     st.title("💨 Gestão de Detectores Multigás")
 
-    tab_inspection, tab_register = st.tabs(["📋 Registrar Teste de Resposta", "➕ Cadastrar Novo Detector"])
+    tab_inspection, tab_calibration, tab_register = st.tabs([
+        "📋 Registrar Teste de Resposta", 
+        "📄 Registrar Calibração Anual (PDF)", 
+        "➕ Cadastrar Novo Detector"
+    ])
 
-    with tab_register:
-        st.header("Cadastrar Novo Detector Multigás")
-        st.info("Cadastre o equipamento e os valores de referência do cilindro de gás utilizado para os testes de resposta (bump tests).")
+    with tab_calibration:
+        st.header("Registrar Calibração Anual com IA")
+        st.info("Faça o upload do Certificado de Calibração em PDF. O sistema irá extrair os dados, salvar o registro e, se o detector não existir, irá cadastrá-lo automaticamente.")
+        
+        st.session_state.setdefault('calib_step', 'start')
+        st.session_state.setdefault('calib_processed_data', None)
+        st.session_state.setdefault('calib_uploaded_pdf', None)
 
-        with st.form("new_detector_form", clear_on_submit=True):
-            st.subheader("Dados do Equipamento")
-            c1, c2 = st.columns(2)
-            detector_id = c1.text_input("**ID do Equipamento (Obrigatório)**", help="Um código único para identificar o equipamento, ex: MG-01")
-            serial_number = c2.text_input("**Nº de Série (Obrigatório)**")
-            brand = c1.text_input("Marca")
-            model = c2.text_input("Modelo")
+        uploaded_pdf = st.file_uploader("Escolha o certificado PDF", type=["pdf"], key="calib_pdf_uploader")
+        if uploaded_pdf:
+            st.session_state.calib_uploaded_pdf = uploaded_pdf
+        
+        if st.session_state.calib_uploaded_pdf and st.button("🔎 Analisar Certificado com IA"):
+            with st.spinner("Analisando o documento..."):
+                inspection_record, calib_data = process_calibration_pdf(st.session_state.calib_uploaded_pdf)
+                if inspection_record:
+                    st.session_state.calib_processed_data = inspection_record
+                    st.session_state.calib_step = 'confirm'
+                    st.rerun()
 
-            st.subheader("Valores de Referência do Cilindro de Calibração")
-            c3, c4, c5, c6 = st.columns(4)
-            lel_cylinder = c3.number_input("LEL (% LEL)", step=0.1, format="%.1f")
-            o2_cylinder = c4.number_input("O² (% Vol)", step=0.1, format="%.1f")
-            h2s_cylinder = c5.number_input("H²S (ppm)", step=1)
-            co_cylinder = c6.number_input("CO (ppm)", step=1)
+        if st.session_state.calib_step == 'confirm' and st.session_state.calib_processed_data:
+            st.subheader("Confira os Dados Extraídos e Salve")
+            st.dataframe(pd.DataFrame([st.session_state.calib_processed_data]))
 
-            submitted = st.form_submit_button("➕ Cadastrar Detector", width='stretch')
-            if submitted:
-                if not detector_id or not serial_number:
-                    st.error("Os campos 'ID do Equipamento' e 'Nº de Série' são obrigatórios.")
-                else:
-                    cylinder_values = {
-                        "LEL": lel_cylinder, "O2": o2_cylinder,
-                        "H2S": h2s_cylinder, "CO": co_cylinder
-                    }
-                    if save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
-                        st.success(f"Detector '{detector_id}' cadastrado com sucesso!")
+            if st.button("💾 Confirmar e Salvar Registro", width='stretch', type="primary"):
+                with st.spinner("Salvando..."):
+                    record_to_save = st.session_state.calib_processed_data
+                    
+                    # Upload do PDF
+                    uploader = GoogleDriveUploader()
+                    pdf_name = f"Certificado_Multigas_{record_to_save['numero_certificado']}_{record_to_save['id_equipamento']}.pdf"
+                    pdf_link = uploader.upload_file(st.session_state.calib_uploaded_pdf, novo_nome=pdf_name)
+                    
+                    if not pdf_link:
+                        st.error("Falha ao fazer upload do certificado. O registro não foi salvo.")
+                        st.stop()
+                    
+                    record_to_save['link_certificado'] = pdf_link
+
+                    if save_multigas_inspection(record_to_save):
+                        st.success("Registro de calibração salvo com sucesso!")
+                        st.balloons()
+                        st.session_state.calib_step = 'start'
+                        st.session_state.calib_processed_data = None
+                        st.session_state.calib_uploaded_pdf = None
                         st.cache_data.clear()
+                        st.rerun()
+
 
     with tab_inspection:
         st.header("Registrar Teste de Resposta (Bump Test)")
