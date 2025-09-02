@@ -198,3 +198,6 @@ inspecoes_multigas:
   - resultado_teste
   - responsavel_nome
   - responsavel_matricula
+  - proxima_calibracao
+  - numero_certificado
+  - link_certificado 
