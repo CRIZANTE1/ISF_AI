@@ -1041,37 +1041,57 @@ def show_page():
         else:
             dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
             
-            status_counts = dashboard_df['status_dashboard'].value_counts()
-            col1, col2, col3, col4, col5 = st.columns(5)
-            col1.metric("✅ Total", len(dashboard_df))
-            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
-            col3.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
-            col4.metric("🟠 Reprovado", status_counts.get("🟠 REPROVADO", 0))
-            col5.metric("🔵 Pendente", status_counts.get("🔵 PENDENTE (Nova Calibração)", 0))
+            # --- LÓGICA DE MÉTRICAS ATUALIZADA ---
+            total_equip = len(dashboard_df)
+            calib_ok = (dashboard_df['status_calibracao'] == '🟢 OK').sum()
+            bump_ok = (dashboard_df['status_bump_test'] == '🟢 OK').sum()
+            
+            col1, col2, col3 = st.columns(3)
+            col1.metric("✅ Total de Detectores", total_equip)
+            col2.metric("🗓️ Calibração Anual OK", f"{calib_ok} / {total_equip}")
+            col3.metric("💨 Bump Test OK", f"{bump_ok} / {total_equip}")
             st.markdown("---")
 
             st.subheader("Lista de Detectores e Status")
             for _, row in dashboard_df.iterrows():
-                status = row['status_dashboard']
-                prox_calibracao = pd.to_datetime(row['proxima_calibracao']).strftime('%d/%m/%Y') if pd.notna(row['proxima_calibracao']) else "N/A"
-                expander_title = f"{status} | **ID:** {row['id_equipamento']} | **S/N:** {row['numero_serie']} | **Próx. Calibração:** {prox_calibracao}"
+                
+                # --- LÓGICA DE EXIBIÇÃO ATUALIZADA ---
+                status_calibracao = row['status_calibracao']
+                status_bump = row['status_bump_test']
+                
+                # Define um ícone de status geral (a pior condição prevalece)
+                geral_icon = "🟢"
+                if "🔴" in status_calibracao or "🟠" in status_bump:
+                    geral_icon = "🔴" if "🔴" in status_calibracao else "🟠"
+                elif "🔵" in status_calibracao or "🔵" in status_bump:
+                    geral_icon = "🔵"
+                
+                prox_calibracao_str = pd.to_datetime(row['proxima_calibracao']).strftime('%d/%m/%Y') if pd.notna(row['proxima_calibracao']) else "N/A"
+                
+                expander_title = f"{geral_icon} **ID:** {row['id_equipamento']} | **S/N:** {row['numero_serie']}"
                 
                 with st.expander(expander_title):
                     st.write(f"**Marca/Modelo:** {row.get('marca', 'N/A')} / {row.get('modelo', 'N/A')}")
                     
-                    if status in ["🟠 REPROVADO", "🔴 VENCIDO", "🔵 PENDENTE (Nova Calibração)"]:
-                        st.warning(f"**Ação Necessária:** Realizar calibração do equipamento.")
+                    cols = st.columns(2)
+                    with cols[0]:
+                        st.subheader("Status da Calibração Anual")
+                        st.markdown(f"**Status:** {status_calibracao}")
+                        st.markdown(f"**Próxima Calibração:** {prox_calibracao_str}")
+                        if status_calibracao != '🟢 OK':
+                            st.warning(f"**Ação:** Realizar calibração anual do equipamento.")
 
-                    st.markdown("---")
-                    st.write("**Detalhes da Última Calibração/Teste:**")
-                    if pd.notna(row.get('data_teste')):
-                        cols = st.columns(4)
-                        cols[0].metric("Tipo do Teste", row.get('tipo_teste', 'N/A'))
-                        cols[1].metric("Resultado", row.get('resultado_teste', 'N/A'))
-                        cols[2].metric("Data", pd.to_datetime(row.get('data_teste')).strftime('%d/%m/%Y'))
-                        cols[3].metric("Responsável", row.get('responsavel_nome', 'N/A'))
-                        if pd.notna(row.get('link_certificado')):
-                            st.markdown(f"**[🔗 Ver Certificado]({row.get('link_certificado')})**")
-                    else:
-                        st.info("Nenhum registro de calibração ou teste encontrado para este equipamento.")
+                    with cols[1]:
+                        st.subheader("Status do Último Bump Test")
+                        ultimo_bump_str = pd.to_datetime(row['data_ultimo_bump_test']).strftime('%d/%m/%Y') if pd.notna(row['data_ultimo_bump_test']) else "N/A"
+                        st.markdown(f"**Status:** {status_bump}")
+                        st.markdown(f"**Data do Último Teste:** {ultimo_bump_str}")
+                        if status_bump == '🟠 REPROVADO':
+                            st.error(f"**Ação:** Equipamento reprovado. Enviar para manutenção/calibração.")
+                        elif status_bump == '🔵 PENDENTE':
+                             st.info(f"**Ação:** Realizar novo teste de resposta.")
+
+                    # Opcional: Mostrar detalhes da última calibração (se houver)
+                    if pd.notna(row.get('link_certificado')):
+                        st.markdown(f"**[🔗 Ver Último Certificado de Calibração]({row.get('link_certificado')})**")
 
