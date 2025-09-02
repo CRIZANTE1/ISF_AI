@@ -1,5 +1,3 @@
-# FILE: Pagina_Inicial.py (VERSÃO FINAL COM ROTEAMENTO POR PERFIL)
-
 from auth.auth_utils import is_user_logged_in, setup_sidebar, can_edit, is_admin, can_view, get_user_email, get_matrix_data, get_user_role
 from utils.auditoria import log_action
 import streamlit as st
@@ -20,7 +18,8 @@ from views import (
     inspecao_camaras_espuma,
     historico,
     utilitarios,
-    demo_page
+    demo_page,
+    inspecao_multigas
 )
 
 from auth.login_page import show_login_page, show_logout_button, show_user_header
@@ -36,6 +35,7 @@ PAGES = {
     "Inspeção de SCBA": inspecao_scba.show_page,
     "Inspeção de Chuveiros/LO": inspecao_chuveiros.show_page,
     "Inspeção de Câmaras de Espuma": inspecao_camaras_espuma.show_page,
+    "Inspeção Multigás": inspecao_multigas.show_page,
     "Histórico e Logs": historico.show_page,
     "Utilitários": utilitarios.show_page,
     "Super Admin": administracao.show_page,
@@ -91,6 +91,7 @@ def main():
             page_options.append("Inspeção de SCBA")
             page_options.append("Inspeção de Chuveiros/LO")
             page_options.append("Inspeção de Câmaras de Espuma")
+            page_options.append("Inspeção Multigás")
             page_options.append("Utilitários")
         if is_admin():
             page_options.append("Super Admin")
@@ -99,8 +100,8 @@ def main():
             "Dashboard": "speedometer2", "Histórico e Logs": "clock-history",
             "Inspeção de Extintores": "fire", "Inspeção de Mangueiras": "droplet",
             "Inspeção de SCBA": "lungs", "Inspeção de Chuveiros/LO": "droplet-half",
-            "Inspeção de Câmaras de Espuma": "cloud-rain-heavy", "Utilitários": "tools",
-            "Super Admin": "person-badge"
+            "Inspeção de Câmaras de Espuma": "cloud-rain-heavy", "Inspeção Multigás": "wind",
+            "Utilitários": "tools", "Super Admin": "person-badge"
         }
         icons = [icon_map.get(page, "question-circle") for page in page_options]
 
