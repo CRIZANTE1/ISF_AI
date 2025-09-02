@@ -234,3 +234,54 @@ def get_air_quality_prompt():
       }
     }
     """
+    
+def get_multigas_calibration_prompt():
+    """
+    Retorna um prompt para extrair dados de Certificados de Calibração de detectores multigás.
+    """
+    return """
+    Você é um especialista em analisar Certificados de Calibração de detectores de gás (modelo Almont).
+    Sua tarefa é analisar o documento PDF e extrair as informações detalhadas do equipamento e dos resultados.
+    O PDF pode conter apenas um relatório.
+
+    **Para o equipamento/relatório no PDF, extraia os seguintes campos:**
+
+    1.  `numero_serie`: O "N.º de Série" do equipamento, encontrado na "Identificação do Item".
+    2.  `marca`: A "Marca" do equipamento.
+    3.  `modelo`: O "Modelo" do equipamento.
+    4.  `data_calibracao`: A "Data da Calibração". Formate como YYYY-MM-DD.
+    5.  `proxima_calibracao`: Calcule adicionando 1 ano à `data_calibracao`. Formate como YYYY-MM-DD.
+    6.  `numero_certificado`: O número do certificado, localizado no topo (Ex: "N° 1140-2025").
+    7.  `empresa_executante`: O nome da empresa que emitiu o certificado (Ex: "Almont do Brasil").
+    8.  `tecnico_responsavel`: O nome do "Técnico Executor".
+    9.  `resultado_geral`: Verifique a tabela "Resultado Obtido". Se todos os valores na coluna "Erro" estiverem dentro de um limite aceitável (ex: < 5%), considere "Aprovado". Caso contrário, "Reprovado". Use "Aprovado" como padrão se a análise for complexa.
+    10. `resultados_detalhados`: Um objeto contendo os resultados para cada gás da tabela "Resultado Obtido". Extraia os valores das colunas "Gás", "V.R" (Valor de Referência) e "R.M" (Resultado da Medição).
+        -   CH4 deve ser a chave "LEL".
+        -   O2 deve ser a chave "O2".
+        -   CO deve ser a chave "CO".
+        -   H2S deve ser a chave "H2S".
+
+    **Formato de Saída OBRIGATÓRIO:**
+    Retorne a resposta APENAS como um objeto JSON com uma chave "calibracao".
+
+    Exemplo de formato de saída:
+    {
+      "calibracao": {
+        "numero_serie": "MA220-604451",
+        "marca": "BW Technologies",
+        "modelo": "GasAlert Max XT II",
+        "data_calibracao": "2025-03-12",
+        "proxima_calibracao": "2026-03-12",
+        "numero_certificado": "1140-2025",
+        "empresa_executante": "Almont do Brasil Imp. Com. e Repr. Ltda",
+        "tecnico_responsavel": "Vinicius L. A. Gonçalez",
+        "resultado_geral": "Aprovado",
+        "resultados_detalhados": {
+          "O2": {"referencia": "18,0", "medido": "18"},
+          "LEL": {"referencia": "50,4", "medido": "50"},
+          "CO": {"referencia": "102,8", "medido": "103"},
+          "H2S": {"referencia": "25,9", "medido": "26"}
+        }
+      }
+    }
+    """
