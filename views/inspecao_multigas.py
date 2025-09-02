@@ -12,7 +12,7 @@ from operations.multigas_operations import (
     process_calibration_pdf_analysis, # Importa a nova função de análise
     update_cylinder_values
 )
-from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME
+from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
 from gdrive.gdrive_upload import GoogleDriveUploader
 from auth.auth_utils import get_user_display_name
 from config.page_config import set_page_config
