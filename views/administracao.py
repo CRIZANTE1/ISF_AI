@@ -236,13 +236,13 @@ def show_page():
                     st.subheader("Painel de Pendências Globais")
                     st.info("Resumo das pendências (equipamentos vencidos ou não conformes) em todas as UOs.")
     
-                    df_ext_pending = all_summaries.get("Extintores", pd.DataFrame()).rename(columns={"Com Pendência": "Extintores"})
-                    df_hose_pending = all_summaries.get("Mangueiras", pd.DataFrame()).rename(columns={"Com Pendência": "Mangueiras"})
-                    df_shelter_pending = all_summaries.get("Abrigos", pd.DataFrame()).rename(columns={"Com Pendência": "Abrigos"})
-                    df_scba_pending = all_summaries.get("SCBA", pd.DataFrame()).rename(columns={"Com Pendência": "SCBA"})
-                    df_eyewash_pending = all_summaries.get("Eyewash", pd.DataFrame()).rename(columns={"Com Pendência": "Lava-Olhos"})
-                    df_foam_pending = all_summaries.get("Câmaras de Espuma", pd.DataFrame()).rename(columns={"Com Pendência": "Câmaras de Espuma"})
-                    df_multigas_pending = all_summaries.get("Multigás", pd.DataFrame()).rename(columns={"Com Pendência": "Multigás"})
+                    df_ext_pending = all_summaries.get("Extintores", pd.DataFrame()).rename(columns={"Com Pendência": "Extintores"})[['Unidade Operacional', 'Extintores']]
+                    df_hose_pending = all_summaries.get("Mangueiras", pd.DataFrame()).rename(columns={"Com Pendência": "Mangueiras"})[['Unidade Operacional', 'Mangueiras']]
+                    df_shelter_pending = all_summaries.get("Abrigos", pd.DataFrame()).rename(columns={"Com Pendência": "Abrigos"})[['Unidade Operacional', 'Abrigos']]
+                    df_scba_pending = all_summaries.get("SCBA", pd.DataFrame()).rename(columns={"Com Pendência": "SCBA"})[['Unidade Operacional', 'SCBA']]
+                    df_eyewash_pending = all_summaries.get("Eyewash", pd.DataFrame()).rename(columns={"Com Pendência": "Lava-Olhos"})[['Unidade Operacional', 'Lava-Olhos']]
+                    df_foam_pending = all_summaries.get("Câmaras de Espuma", pd.DataFrame()).rename(columns={"Com Pendência": "Câmaras de Espuma"})[['Unidade Operacional', 'Câmaras de Espuma']]
+                    df_multigas_pending = all_summaries.get("Multigás", pd.DataFrame()).rename(columns={"Com Pendência": "Multigás"})[['Unidade Operacional', 'Multigás']]
     
                     df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending, df_foam_pending, df_multigas_pending]
                     df_pending_consolidated = pd.DataFrame(columns=['Unidade Operacional'])
