@@ -21,7 +21,9 @@ from gdrive.config import (
     FOAM_CHAMBER_INVENTORY_SHEET_NAME,
     FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
     HOSE_DISPOSAL_LOG_SHEET_NAME,
-    LOG_FOAM_CHAMBER_SHEET_NAME
+    LOG_FOAM_CHAMBER_SHEET_NAME,
+    MULTIGAS_INVENTORY_SHEET_NAME, 
+    MULTIGAS_INSPECTIONS_SHEET_NAME
 )
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
@@ -36,6 +38,37 @@ from operations.foam_chamber_operations import save_foam_chamber_inspection, sav
 
 
 set_page_config()
+
+def get_multigas_status_df(df_inventory, df_inspections):
+    if df_inventory.empty:
+        return pd.DataFrame()
+
+    if df_inspections.empty:
+        # Se não há inspeções, todos os equipamentos estão pendentes
+        df_inventory['status_dashboard'] = '🔵 PENDENTE (Nova Calibração)'
+        df_inventory['proxima_calibracao'] = None
+        df_inventory['resultado_teste'] = 'N/A'
+        return df_inventory
+
+    # Pega a última inspeção de cada equipamento
+    df_inspections['data_teste'] = pd.to_datetime(df_inspections['data_teste'], errors='coerce')
+    latest_inspections = df_inspections.sort_values('data_teste', ascending=False).drop_duplicates('id_equipamento', keep='first')
+
+    # Junta o inventário com a última inspeção
+    dashboard_df = pd.merge(df_inventory, latest_inspections, on='id_equipamento', how='left')
+
+    today = pd.Timestamp(date.today())
+    dashboard_df['proxima_calibracao'] = pd.to_datetime(dashboard_df['proxima_calibracao'], errors='coerce')
+
+    conditions = [
+        (dashboard_df['proxima_calibracao'].isna()),
+        (dashboard_df['proxima_calibracao'] < today),
+        (dashboard_df['resultado_teste'] == 'Reprovado')
+    ]
+    choices = ['🔵 PENDENTE (Nova Calibração)', '🔴 VENCIDO', '🟠 REPROVADO']
+    dashboard_df['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
+    
+    return dashboard_df
 
 
 def get_foam_chamber_status_df(df_inspections):
@@ -565,8 +598,8 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam = st.tabs([
-        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"
+    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas = st.tabs([
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás"
     ])
 
     location = streamlit_js_eval(js_expressions="""
@@ -997,4 +1030,48 @@ def show_page():
 
                                 except (json.JSONDecodeError, TypeError):
                                     st.error("Não foi possível carregar os detalhes da inspeção.")
+
+    with tab_multigas:
+        st.header("Dashboard de Detectores Multigás")
+        df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
+        df_inspections = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
+
+        if df_inventory.empty:
+            st.warning("Nenhum detector multigás cadastrado.")
+        else:
+            dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
+            
+            status_counts = dashboard_df['status_dashboard'].value_counts()
+            col1, col2, col3, col4, col5 = st.columns(5)
+            col1.metric("✅ Total", len(dashboard_df))
+            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+            col3.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+            col4.metric("🟠 Reprovado", status_counts.get("🟠 REPROVADO", 0))
+            col5.metric("🔵 Pendente", status_counts.get("🔵 PENDENTE (Nova Calibração)", 0))
+            st.markdown("---")
+
+            st.subheader("Lista de Detectores e Status")
+            for _, row in dashboard_df.iterrows():
+                status = row['status_dashboard']
+                prox_calibracao = pd.to_datetime(row['proxima_calibracao']).strftime('%d/%m/%Y') if pd.notna(row['proxima_calibracao']) else "N/A"
+                expander_title = f"{status} | **ID:** {row['id_equipamento']} | **S/N:** {row['numero_serie']} | **Próx. Calibração:** {prox_calibracao}"
+                
+                with st.expander(expander_title):
+                    st.write(f"**Marca/Modelo:** {row.get('marca', 'N/A')} / {row.get('modelo', 'N/A')}")
+                    
+                    if status in ["🟠 REPROVADO", "🔴 VENCIDO", "🔵 PENDENTE (Nova Calibração)"]:
+                        st.warning(f"**Ação Necessária:** Realizar calibração do equipamento.")
+
+                    st.markdown("---")
+                    st.write("**Detalhes da Última Calibração/Teste:**")
+                    if pd.notna(row.get('data_teste')):
+                        cols = st.columns(4)
+                        cols[0].metric("Tipo do Teste", row.get('tipo_teste', 'N/A'))
+                        cols[1].metric("Resultado", row.get('resultado_teste', 'N/A'))
+                        cols[2].metric("Data", pd.to_datetime(row.get('data_teste')).strftime('%d/%m/%Y'))
+                        cols[3].metric("Responsável", row.get('responsavel_nome', 'N/A'))
+                        if pd.notna(row.get('link_certificado')):
+                            st.markdown(f"**[🔗 Ver Certificado]({row.get('link_certificado')})**")
+                    else:
+                        st.info("Nenhum registro de calibração ou teste encontrado para este equipamento.")
 
