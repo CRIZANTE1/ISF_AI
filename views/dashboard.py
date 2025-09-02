@@ -45,7 +45,7 @@ def get_multigas_status_df(df_inventory, df_inspections):
 
     dashboard_df = df_inventory.copy()
 
-    # Se não houver inspeções, inicializa colunas e retorna
+    # Se não houver inspeções, inicializa colunas com status padrão e retorna
     if df_inspections.empty:
         dashboard_df['status_calibracao'] = '🔵 PENDENTE'
         dashboard_df['status_bump_test'] = '🔵 PENDENTE'
@@ -55,14 +55,12 @@ def get_multigas_status_df(df_inventory, df_inspections):
         dashboard_df['link_certificado'] = None
         return dashboard_df
 
-    # --- INÍCIO DA LÓGICA CORRIGIDA ---
     df_inspections['data_teste'] = pd.to_datetime(df_inspections['data_teste'], errors='coerce')
 
     # Processa Calibrações Anuais
     calibrations = df_inspections[df_inspections['tipo_teste'] == 'Calibração Anual'].copy()
     if not calibrations.empty:
         latest_calibrations = calibrations.sort_values('data_teste', ascending=False).drop_duplicates('id_equipamento', keep='first')
-        # Renomeia as colunas ANTES do merge para evitar conflitos
         calib_data_to_merge = latest_calibrations[['id_equipamento', 'proxima_calibracao', 'link_certificado']].rename(
             columns={'proxima_calibracao': 'proxima_calibracao_nova', 'link_certificado': 'link_certificado_novo'}
         )
@@ -86,7 +84,13 @@ def get_multigas_status_df(df_inventory, df_inspections):
     # Consolida as colunas e calcula os status
     dashboard_df['proxima_calibracao'] = pd.to_datetime(dashboard_df['proxima_calibracao_nova'], errors='coerce')
     dashboard_df['link_certificado'] = dashboard_df['link_certificado_novo']
-    dashboard_df.drop(columns=['proxima_calibracao_nova', 'link_certificado_novo'], inplace=True)
+    # Preenche NaNs com valores de colunas antigas se existirem (improvável, mas seguro)
+    if 'proxima_calibracao_x' in dashboard_df.columns:
+        dashboard_df['proxima_calibracao'] = dashboard_df['proxima_calibracao'].fillna(dashboard_df['proxima_calibracao_x'])
+    
+    # Remove colunas temporárias
+    cols_to_drop = [col for col in dashboard_df.columns if '_nova' in col or col.endswith('_x') or col.endswith('_y')]
+    dashboard_df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
     
     today = pd.Timestamp(date.today())
     
@@ -99,13 +103,13 @@ def get_multigas_status_df(df_inventory, df_inspections):
     dashboard_df['status_calibracao'] = np.select(calib_conditions, calib_choices, default='🟢 OK')
 
     # Status do Bump Test
+    dashboard_df['resultado_ultimo_bump_test'] = dashboard_df['resultado_ultimo_bump_test'].fillna('N/A')
     bump_conditions = [
-        (dashboard_df['resultado_ultimo_bump_test'].isna()) | (dashboard_df['resultado_ultimo_bump_test'] == 'N/A'),
+        (dashboard_df['resultado_ultimo_bump_test'] == 'N/A'),
         (dashboard_df['resultado_ultimo_bump_test'] == 'Reprovado')
     ]
     bump_choices = ['🔵 PENDENTE', '🟠 REPROVADO']
     dashboard_df['status_bump_test'] = np.select(bump_conditions, bump_choices, default='🟢 OK')
-    # --- FIM DA LÓGICA CORRIGIDA ---
     
     return dashboard_df
 
