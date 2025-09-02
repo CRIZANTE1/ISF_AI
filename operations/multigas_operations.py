@@ -30,7 +30,6 @@ def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinde
                     st.error(f"Erro: O ID de equipamento '{detector_id}' já existe. Cancele e escolha outro ID.")
                     return False
         
-        # --- INÍCIO DA CORREÇÃO ---
         # Garante que todos os valores sejam strings vazias se forem None
         def to_safe_cell(value):
             return '' if value is None or (isinstance(value, float) and np.isnan(value)) else value
