@@ -16,10 +16,10 @@ from views import (
     inspecao_scba,
     inspecao_chuveiros,
     inspecao_camaras_espuma,
+    inspecao_multigas,
     historico,
     utilitarios,
-    demo_page,
-    inspecao_multigas
+    demo_page
 )
 
 from auth.login_page import show_login_page, show_logout_button, show_user_header
@@ -42,7 +42,6 @@ PAGES = {
 }
 
 def main():
-    # 1. Gerenciamento de Login
     if not is_user_logged_in():
         show_login_page()
         st.stop()
@@ -51,7 +50,6 @@ def main():
         log_action("LOGIN_SUCCESS")
         st.session_state['user_logged_in'] = True
 
-    # 2. Verificação de Autorização
     permissions_df, _ = get_matrix_data()
     user_email = get_user_email()
     is_authorized = user_email is not None and user_email in permissions_df['email'].values
@@ -62,46 +60,41 @@ def main():
         demo_page.show_page()
         st.stop()
 
-    # A partir daqui, o usuário está LOGADO e AUTORIZADO
     show_user_header()
     is_uo_selected = setup_sidebar()
-    user_role = get_user_role()
-
-    # 3. Roteamento Específico para 'viewer'
-    if user_role == 'viewer':
-        # Para viewers, não mostramos o menu de navegação.
-        # A página de resumo é a única visualização.
-        if is_uo_selected:
-            resumo_gerencial.show_page()
-        else:
-            st.info("👈 Por favor, selecione uma Unidade Operacional na barra lateral para carregar os dados.")
-        st.stop() # Interrompe aqui para não renderizar o menu de editores/admins
-
-    # 4. Roteamento para 'editor' e 'admin'
+    
     with st.sidebar:
         st.markdown("---")
         
+        user_role = get_user_role()
         page_options = []
-        if can_view(): # can_view é True para editor e admin
-            page_options.append("Dashboard")
-            page_options.append("Histórico e Logs")
-        if can_edit(): # can_edit é True para editor e admin
-            page_options.append("Inspeção de Extintores")
-            page_options.append("Inspeção de Mangueiras")
-            page_options.append("Inspeção de SCBA")
-            page_options.append("Inspeção de Chuveiros/LO")
-            page_options.append("Inspeção de Câmaras de Espuma")
-            page_options.append("Inspeção Multigás")
-            page_options.append("Utilitários")
-        if is_admin():
-            page_options.append("Super Admin")
+
+        # Constrói a lista de páginas permitidas com base no perfil
+        if user_role == 'viewer':
+            page_options.extend(["Resumo Gerencial", "Histórico e Logs"])
+        else:
+            if can_view():
+                page_options.extend(["Dashboard", "Histórico e Logs"])
+            if can_edit():
+                page_options.extend([
+                    "Inspeção de Extintores", "Inspeção de Mangueiras", "Inspeção de SCBA",
+                    "Inspeção de Chuveiros/LO", "Inspeção de Câmaras de Espuma", "Inspeção Multigás",
+                    "Utilitários"
+                ])
+            if is_admin():
+                page_options.append("Super Admin")
         
+        if not page_options:
+            st.warning("Seu usuário não tem permissão para visualizar nenhuma página.")
+            st.stop()
+
+        # --- BLOCO option_menu RESTAURADO ---
         icon_map = {
-            "Dashboard": "speedometer2", "Histórico e Logs": "clock-history",
-            "Inspeção de Extintores": "fire", "Inspeção de Mangueiras": "droplet",
-            "Inspeção de SCBA": "lungs", "Inspeção de Chuveiros/LO": "droplet-half",
-            "Inspeção de Câmaras de Espuma": "cloud-rain-heavy", "Inspeção Multigás": "wind",
-            "Utilitários": "tools", "Super Admin": "person-badge"
+            "Dashboard": "speedometer2", "Resumo Gerencial": "clipboard-data",
+            "Histórico e Logs": "clock-history", "Inspeção de Extintores": "fire",
+            "Inspeção de Mangueiras": "droplet", "Inspeção de SCBA": "lungs",
+            "Inspeção de Chuveiros/LO": "droplet-half", "Inspeção de Câmaras de Espuma": "cloud-rain-heavy",
+            "Inspeção Multigás": "wind", "Utilitários": "tools", "Super Admin": "person-badge"
         }
         icons = [icon_map.get(page, "question-circle") for page in page_options]
 
@@ -119,16 +112,16 @@ def main():
             }
         )
         st.markdown("---")
+        # --- FIM DO BLOCO RESTAURADO ---
 
     if is_uo_selected or (is_admin() and selected_page == "Super Admin"):
         if selected_page in PAGES:
             PAGES[selected_page]()
         else:
-            # Fallback para a primeira página disponível
+            # Fallback para a primeira página disponível no menu
             PAGES[page_options[0]]()
     else:
         st.info("👈 Por favor, selecione uma Unidade Operacional na barra lateral para carregar os dados.")
 
 if __name__ == "__main__":
     main()
-
