@@ -10,14 +10,14 @@ from AI.api_Operation import PDFQA
 from utils.prompts import get_multigas_calibration_prompt
 
 def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
-    """Salva um novo detector multigás no inventário."""
     try:
         uploader = GoogleDriveUploader()
         inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
 
+        # Esta verificação é útil para diagnosticar o problema
         expected_columns = 9
-        if inventory_data and len(inventory_data[0]) < expected_columns:
-            st.error(f"Erro de Configuração: A planilha 'multigas_inventario' possui apenas {len(inventory_data[0])} colunas, mas são esperadas {expected_columns}. Por favor, adicione as colunas faltantes (LEL_cilindro, O2_cilindro, etc.) e tente novamente.")
+        if inventory_data and len(inventory_data[0]) != expected_columns:
+            st.error(f"Erro de Configuração: O cabeçalho da planilha 'multigas_inventario' tem {len(inventory_data[0])} colunas, mas o sistema espera {expected_columns}. Por favor, corrija os cabeçalhos na planilha.")
             return False
         # --- FIM DA MELHORIA ---
 
