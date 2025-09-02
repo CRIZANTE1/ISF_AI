@@ -214,20 +214,23 @@ def show_page():
         df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
         df_inspections = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
 
+        dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
+        
+        # As métricas são calculadas mesmo que o dataframe esteja vazio (resultarão em 0)
+        status_counts = dashboard_df['status_dashboard'].value_counts() if not dashboard_df.empty else pd.Series()
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("✅ Total", len(dashboard_df))
+        col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+        col3.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+        col4.metric("🟠 Reprovado", status_counts.get("🟠 REPROVADO", 0))
+        col5.metric("🔵 Pendente", status_counts.get("🔵 PENDENTE (Nova Calibração)", 0))
+        st.markdown("---")
+        
+        st.subheader("Detectores com Pendências")
         if df_inventory.empty:
-            st.warning("Nenhum detector multigás cadastrado.")
+            st.warning("Nenhum detector multigás cadastrado no sistema.")
         else:
-            dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
-            status_counts = dashboard_df['status_dashboard'].value_counts()
-            col1, col2, col3, col4, col5 = st.columns(5)
-            col1.metric("✅ Total", len(dashboard_df))
-            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
-            col3.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
-            col4.metric("🟠 Reprovado", status_counts.get("🟠 REPROVADO", 0))
-            col5.metric("🔵 Pendente", status_counts.get("🔵 PENDENTE (Nova Calibração)", 0))
-            st.markdown("---")
-            
-            st.subheader("Detectores com Pendências")
             pending_df = dashboard_df[dashboard_df['status_dashboard'] != '🟢 OK']
             if pending_df.empty:
                 st.success("✅ Todos os detectores estão em conformidade!")
