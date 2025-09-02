@@ -50,6 +50,51 @@ def save_multigas_inspection(data):
         st.error(f"Erro ao salvar inspeção: {e}")
         return False
 
+def update_cylinder_values(detector_id, new_cylinder_values):
+    """
+    Atualiza os valores de referência do cilindro para um detector específico no inventário.
+    """
+    try:
+        uploader = GoogleDriveUploader()
+        inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
+        
+        if not inventory_data or len(inventory_data) < 2:
+            st.error("Inventário de detectores não encontrado ou vazio. Não foi possível atualizar.")
+            return False
+
+        df_inventory = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
+        
+        # Encontra o índice da linha do detector a ser atualizado
+        target_indices = df_inventory.index[df_inventory['id_equipamento'] == detector_id].tolist()
+        
+        if not target_indices:
+            st.error(f"Detector com ID '{detector_id}' não encontrado no inventário.")
+            return False
+            
+        row_index = target_indices[0]
+        
+        # O índice da planilha é o índice do DataFrame + 2 (cabeçalho e base 0)
+        sheet_row_index = row_index + 2
+        
+        # Define o range para atualização (Colunas F a I)
+        range_to_update = f"F{sheet_row_index}:I{sheet_row_index}"
+        
+        # Prepara os novos valores na ordem correta
+        values_to_update = [[
+            new_cylinder_values['LEL'],
+            new_cylinder_values['O2'],
+            new_cylinder_values['H2S'],
+            new_cylinder_values['CO']
+        ]]
+
+        uploader.update_cells(MULTIGAS_INVENTORY_SHEET_NAME, range_to_update, values_to_update)
+        log_action("ATUALIZOU_CILINDRO_MULTIGAS", f"ID: {detector_id}")
+        return True
+        
+    except Exception as e:
+        st.error(f"Ocorreu um erro ao atualizar os valores do cilindro: {e}")
+        return False
+
 def process_calibration_pdf(pdf_file):
     """
     Processa um PDF de calibração, extrai dados com IA, verifica o inventário
