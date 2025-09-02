@@ -16,6 +16,7 @@ from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME
 from gdrive.gdrive_upload import GoogleDriveUploader
 from auth.auth_utils import get_user_display_name
 from config.page_config import set_page_config
+from reports.multigas_report import generate_bump_test_html
 
 set_page_config()
 
@@ -116,6 +117,47 @@ def show_page():
 
     with tab_inspection:
         st.header("Registrar Teste de Resposta (Bump Test)")
+
+        with st.expander("📄 Gerar Relatório de Bump Tests do Dia"):
+            df_inspections_full = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
+            df_inventory_full = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
+            
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            
+            if not df_inspections_full.empty:
+                # Filtra apenas os testes de resposta (não calibrações) do dia de hoje
+                tests_today = df_inspections_full[
+                    (df_inspections_full['data_teste'] == today_str) &
+                    (df_inspections_full['tipo_teste'] != 'Calibração Anual')
+                ]
+                
+                if tests_today.empty:
+                    st.info("Nenhum teste de resposta foi registrado hoje.")
+                else:
+                    st.write(f"Encontrados {len(tests_today)} testes registrados hoje. Clique abaixo para gerar o relatório para impressão.")
+                    if st.button("Gerar e Imprimir Relatório do Dia", width='stretch', type="primary"):
+                        unit_name = st.session_state.get('current_unit_name', 'N/A')
+                        report_html = generate_bump_test_html(tests_today, df_inventory_full, unit_name)
+                        
+                        js_code = f"""
+                            const reportHtml = {json.dumps(report_html)};
+                            const printWindow = window.open('', '_blank');
+                            if (printWindow) {{
+                                printWindow.document.write(reportHtml);
+                                printWindow.document.close();
+                                printWindow.focus();
+                                setTimeout(() => {{ printWindow.print(); printWindow.close(); }}, 500);
+                            }} else {{
+                                alert('Por favor, desabilite o bloqueador de pop-ups para este site.');
+                            }}
+                        """
+                        streamlit_js_eval(js_expressions=js_code, key="print_bump_test_js")
+                        st.success("Relatório enviado para impressão!")
+
+            else:
+                st.info("Nenhum teste de resposta registrado no sistema.")
+        st.markdown("---")
+        
         df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
 
         if df_inventory.empty:
