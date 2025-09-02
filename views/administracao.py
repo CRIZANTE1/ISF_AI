@@ -13,7 +13,8 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
     UNITS_SHEET_NAME, ADMIN_SHEET_NAME, CENTRAL_DRIVE_FOLDER_ID, ACCESS_REQUESTS_SHEET_NAME,
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, 
-    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME 
+    SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME, 
+    FOAM_CHAMBER_INSPECTIONS_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
 )
 from config.page_config import set_page_config
 from utils.auditoria import log_action
@@ -40,9 +41,9 @@ def get_global_status_summary(units_df):
     """
     Busca e consolida o status de TODOS os tipos de equipamentos de todas as UOs.
     """
-    # Adicionado "Eyewash" ao dicionário de resumos
     all_summaries = {
-        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": [], "Eyewash": [], "Câmaras de Espuma": [] 
+        "Extintores": [], "Mangueiras": [], "Abrigos": [], "SCBA": [], "Eyewash": [], 
+        "Câmaras de Espuma": [], "Multigás": []
     }
     today = pd.Timestamp.today().date()
     progress_bar = st.progress(0, "Iniciando consolidação de dados...")
@@ -75,10 +76,9 @@ def get_global_status_summary(units_df):
             if data and len(data) > 1:
                 df = pd.DataFrame(data[1:], columns=data[0])
                 latest = df.dropna(subset=['id_mangueira']).sort_values('data_inspecao', ascending=False).drop_duplicates('id_mangueira', keep='first')
-                # CONDIÇÃO DE PENDÊNCIA ATUALIZADA
                 vencidas = pd.to_datetime(latest['data_proximo_teste'], errors='coerce').dt.date < today
-                reprovadas = latest['resultado'].str.lower() != 'aprovado'
-                pending = latest[vencidas | reprovadas].shape[0]
+                reprovadas = 'resultado' in latest.columns and latest['resultado'].str.lower() != 'aprovado'
+                pending = latest[vencidas | reprovadas].shape[0] if 'resultado' in latest.columns else latest[vencidas].shape[0]
                 all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
             else: all_summaries["Mangueiras"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
         except Exception as e:
@@ -98,6 +98,7 @@ def get_global_status_summary(units_df):
             st.warning(f"Falha ao processar Abrigos da UO '{unit_name}': {e}", icon="🧯")
             all_summaries["Abrigos"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
             
+        # 4. Processar SCBA
         try:
             data = uploader.get_data_from_sheet(SCBA_VISUAL_INSPECTIONS_SHEET_NAME)
             if data and len(data) > 1:
@@ -110,6 +111,7 @@ def get_global_status_summary(units_df):
             st.warning(f"Falha ao processar SCBA da UO '{unit_name}': {e}", icon="💨")
             all_summaries["SCBA"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
         
+        # 5. Processar Chuveiros/Lava-Olhos
         try:
             data = uploader.get_data_from_sheet(EYEWASH_INSPECTIONS_SHEET_NAME)
             if data and len(data) > 1:
@@ -123,6 +125,7 @@ def get_global_status_summary(units_df):
             st.warning(f"Falha ao processar Chuveiros/Lava-Olhos da UO '{unit_name}': {e}", icon="🚿")
             all_summaries["Eyewash"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
 
+        # 6. Processar Câmaras de Espuma
         try:
             data = uploader.get_data_from_sheet(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
             if data and len(data) > 1:
@@ -135,6 +138,22 @@ def get_global_status_summary(units_df):
         except Exception as e:
             st.warning(f"Falha ao processar Câmaras de Espuma da UO '{unit_name}': {e}", icon="☁️")
             all_summaries["Câmaras de Espuma"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})    
+
+        # --- 7. BLOCO ADICIONADO PARA MULTIGÁS ---
+        try:
+            data = uploader.get_data_from_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME)
+            if data and len(data) > 1:
+                df = pd.DataFrame(data[1:], columns=data[0])
+                # Para Multigás, a pendência é se o último teste foi 'Reprovado'
+                latest = df.dropna(subset=['id_equipamento']).sort_values('data_teste', ascending=False).drop_duplicates('id_equipamento', keep='first')
+                pending = latest[latest['resultado_teste'] == 'Reprovado'].shape[0] if 'resultado_teste' in latest.columns else 0
+                all_summaries["Multigás"].append({'Unidade Operacional': unit_name, 'OK': latest.shape[0] - pending, 'Com Pendência': pending})
+            else:
+                all_summaries["Multigás"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        except Exception as e:
+            st.warning(f"Falha ao processar Detectores Multigás da UO '{unit_name}': {e}", icon="💨")
+            all_summaries["Multigás"].append({'Unidade Operacional': unit_name, 'OK': 0, 'Com Pendência': 0})
+        # --- FIM DO BLOCO ADICIONADO ---
 
     progress_bar.empty()
     for key, data in all_summaries.items():
@@ -198,54 +217,56 @@ def show_page():
             if st.button("Recarregar Dados de Todas as UOs"):
                 st.cache_data.clear()
                 st.rerun()
-
+    
             _, units_df = get_matrix_data()
-
+    
             if units_df.empty:
                 st.warning("Nenhuma Unidade Operacional cadastrada para exibir.")
             else:
                 with st.spinner("Buscando e consolidando dados de todas as planilhas..."):
                     all_summaries = get_global_status_summary(units_df)
                 
-                # Adicionada nova aba para Chuveiros/Lava-Olhos
-                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba, tab_eyewash, tab_foam = st.tabs([
-                "📈 Visão Geral", "🔥 Extintores", "💧 Mangueiras",
-                "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos", "☁️ Câmaras de Espuma"
+                # --- ADICIONADO "Multigás" À LISTA DE ABAS ---
+                tab_overview, tab_ext, tab_hose, tab_shelter, tab_scba, tab_eyewash, tab_foam, tab_multigas = st.tabs([
+                    "📈 Visão Geral", "🔥 Extintores", "💧 Mangueiras",
+                    "🧯 Abrigos", "💨 SCBA", "🚿 Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás"
                 ])
                 
                 with tab_overview:
                     st.subheader("Painel de Pendências Globais")
                     st.info("Resumo das pendências (equipamentos vencidos ou não conformes) em todas as UOs.")
-
+    
                     df_ext_pending = all_summaries.get("Extintores", pd.DataFrame()).rename(columns={"Com Pendência": "Extintores"})
                     df_hose_pending = all_summaries.get("Mangueiras", pd.DataFrame()).rename(columns={"Com Pendência": "Mangueiras"})
                     df_shelter_pending = all_summaries.get("Abrigos", pd.DataFrame()).rename(columns={"Com Pendência": "Abrigos"})
                     df_scba_pending = all_summaries.get("SCBA", pd.DataFrame()).rename(columns={"Com Pendência": "SCBA"})
                     df_eyewash_pending = all_summaries.get("Eyewash", pd.DataFrame()).rename(columns={"Com Pendência": "Lava-Olhos"})
-                    df_foam_pending = all_summaries.get("Câmaras de Espuma", pd.DataFrame()).rename(columns={"Com Pendência": "Câmaras de Espuma"}) 
-
-                    # Adicionada a nova lista
-                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending, df_foam_pending]
+                    df_foam_pending = all_summaries.get("Câmaras de Espuma", pd.DataFrame()).rename(columns={"Com Pendência": "Câmaras de Espuma"})
+                    df_multigas_pending = all_summaries.get("Multigás", pd.DataFrame()).rename(columns={"Com Pendência": "Multigás"})
+    
+                    df_list = [df_ext_pending, df_hose_pending, df_shelter_pending, df_scba_pending, df_eyewash_pending, df_foam_pending, df_multigas_pending]
                     df_pending_consolidated = pd.DataFrame(columns=['Unidade Operacional'])
                     
-                    for df in df_list:
-                        if not df.empty and 'Unidade Operacional' in df.columns:
-                           cols_to_merge = [col for col in ['Unidade Operacional', 'Extintores', 'Mangueiras', 'Abrigos', 'SCBA', 'Lava-Olhos', 'Câmaras de Espuma'] if col in df.columns]
-                           df_pending_consolidated = pd.merge(df_pending_consolidated, df[cols_to_merge], on='Unidade Operacional', how='outer')
-
+                    # Usando reduce para junção segura de múltiplos dataframes
+                    from functools import reduce
+                    non_empty_dfs = [df for df in df_list if not df.empty]
+                    if non_empty_dfs:
+                        df_pending_consolidated = reduce(lambda left, right: pd.merge(left, right, on='Unidade Operacional', how='outer'), non_empty_dfs)
+    
                     df_pending_consolidated = df_pending_consolidated.set_index('Unidade Operacional').fillna(0).astype(int)
                     
                     st.markdown("##### Total de Pendências por Categoria")
-                    cols = st.columns(6)
-                    cols[0].metric("🔥 Extintores", df_pending_consolidated['Extintores'].sum())
-                    cols[1].metric("💧 Mangueiras", df_pending_consolidated['Mangueiras'].sum())
-                    cols[2].metric("🧯 Abrigos", df_pending_consolidated['Abrigos'].sum())
-                    cols[3].metric("💨 SCBA", df_pending_consolidated['SCBA'].sum())
-                    cols[4].metric("🚿 Lava-Olhos", df_pending_consolidated['Lava-Olhos'].sum())
-                    cols[5].metric("☁️ Câmaras Espuma", df_pending_consolidated['Câmaras de Espuma'].sum())
-                    
+                    cols = st.columns(7)
+                    cols[0].metric("🔥 Extintores", df_pending_consolidated['Extintores'].sum() if 'Extintores' in df_pending_consolidated else 0)
+                    cols[1].metric("💧 Mangueiras", df_pending_consolidated['Mangueiras'].sum() if 'Mangueiras' in df_pending_consolidated else 0)
+                    cols[2].metric("🧯 Abrigos", df_pending_consolidated['Abrigos'].sum() if 'Abrigos' in df_pending_consolidated else 0)
+                    cols[3].metric("💨 SCBA", df_pending_consolidated['SCBA'].sum() if 'SCBA' in df_pending_consolidated else 0)
+                    cols[4].metric("🚿 Lava-Olhos", df_pending_consolidated['Lava-Olhos'].sum() if 'Lava-Olhos' in df_pending_consolidated else 0)
+                    cols[5].metric("☁️ Câmaras Espuma", df_pending_consolidated['Câmaras de Espuma'].sum() if 'Câmaras de Espuma' in df_pending_consolidated else 0)
+                    cols[6].metric("💨 Multigás", df_pending_consolidated['Multigás'].sum() if 'Multigás' in df_pending_consolidated else 0)
+    
                     st.markdown("---")
-
+    
                     st.subheader("Gráfico de Pendências por Unidade Operacional")
                     if not df_pending_consolidated.empty:
                         st.bar_chart(df_pending_consolidated)
@@ -253,8 +274,8 @@ def show_page():
                         st.info("Nenhum dado de pendência para exibir no gráfico.")
                         
                     with st.expander("Ver tabela de dados de pendências consolidada"):
-                        st.dataframe(df_pending_consolidated, use_container_width=True)
-
+                        st.dataframe(df_pending_consolidated, width='stretch')
+    
                 def display_summary(summary_df, name):
                     if summary_df is None or summary_df.empty or (summary_df['OK'].sum() == 0 and summary_df['Com Pendência'].sum() == 0):
                         st.info(f"Nenhum dado de {name.lower()} encontrado para consolidar."); return
@@ -264,14 +285,15 @@ def show_page():
                     st.subheader("Status por Unidade Operacional")
                     chart_df = summary_df.set_index('Unidade Operacional')
                     st.bar_chart(chart_df, color=["#28a745", "#dc3545"])
-                    with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, use_container_width=True)
+                    with st.expander("Ver tabela detalhada"): st.dataframe(chart_df, width='stretch')
                 
                 with tab_ext: display_summary(all_summaries.get("Extintores"), "Extintores")
                 with tab_hose: display_summary(all_summaries.get("Mangueiras"), "Mangueiras")
                 with tab_shelter: display_summary(all_summaries.get("Abrigos"), "Abrigos")
-                with tab_scba: display_summary(all_summaries.get("SCBA"), "Conjuntos Autônomos")
-                with tab_eyewash: display_summary(all_summaries.get("Eyewash"), "Chuveiros e Lava-Olhos")
+                with tab_scba: display_summary(all_summaries.get("SCBA"), "SCBA")
+                with tab_eyewash: display_summary(all_summaries.get("Eyewash"), "Lava-Olhos")
                 with tab_foam: display_summary(all_summaries.get("Câmaras de Espuma"), "Câmaras de Espuma")
+                with tab_multigas: display_summary(all_summaries.get("Multigás"), "Multigás")
 
     
     with tab_requests:
