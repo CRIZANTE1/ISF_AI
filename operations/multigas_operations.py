@@ -1,5 +1,3 @@
-# FILE: operations/multigas_operations.py (VERSÃO FINAL E COMPLETA)
-
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -10,28 +8,45 @@ from AI.api_Operation import PDFQA
 from utils.prompts import get_multigas_calibration_prompt
 
 def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
+    """Salva um novo detector multigás no inventário, tratando valores nulos."""
     try:
         uploader = GoogleDriveUploader()
         inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
 
-        # Esta verificação é útil para diagnosticar o problema
         expected_columns = 9
         if inventory_data and len(inventory_data[0]) != expected_columns:
             st.error(f"Erro de Configuração: O cabeçalho da planilha 'multigas_inventario' tem {len(inventory_data[0])} colunas, mas o sistema espera {expected_columns}. Por favor, corrija os cabeçalhos na planilha.")
             return False
-        # --- FIM DA MELHORIA ---
 
         if inventory_data and len(inventory_data) > 1:
-            df_inv = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
-            if detector_id in df_inv['id_equipamento'].values:
-                st.error(f"Erro: O ID de equipamento '{detector_id}' já existe. Cancele e escolha outro ID.")
-                return False
+            # Limpa os dados lidos para evitar erros no DataFrame
+            headers = inventory_data[0]
+            rows = inventory_data[1:]
+            num_columns = len(headers)
+            cleaned_rows = [row[:num_columns] for row in rows if any(cell for cell in row)]
+            if cleaned_rows:
+                df_inv = pd.DataFrame(cleaned_rows, columns=headers)
+                if detector_id in df_inv['id_equipamento'].values:
+                    st.error(f"Erro: O ID de equipamento '{detector_id}' já existe. Cancele e escolha outro ID.")
+                    return False
         
+        # --- INÍCIO DA CORREÇÃO ---
+        # Garante que todos os valores sejam strings vazias se forem None
+        def to_safe_cell(value):
+            return '' if value is None or (isinstance(value, float) and np.isnan(value)) else value
+
         data_row = [
-            detector_id, brand, model, serial_number, date.today().isoformat(),
-            cylinder_values.get('LEL'), cylinder_values.get('O2'),
-            cylinder_values.get('H2S'), cylinder_values.get('CO')
+            to_safe_cell(detector_id),
+            to_safe_cell(brand),
+            to_safe_cell(model),
+            to_safe_cell(serial_number),
+            to_safe_cell(date.today().isoformat()),
+            to_safe_cell(cylinder_values.get('LEL')),
+            to_safe_cell(cylinder_values.get('O2')),
+            to_safe_cell(cylinder_values.get('H2S')),
+            to_safe_cell(cylinder_values.get('CO'))
         ]
+        
         uploader.append_data_to_sheet(MULTIGAS_INVENTORY_SHEET_NAME, [data_row])
         log_action("CADASTROU_MULTIGAS", f"ID: {detector_id}, S/N: {serial_number}")
         return True
