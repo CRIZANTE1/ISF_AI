@@ -72,7 +72,8 @@ def save_multigas_inspection(data):
             to_safe_cell(data.get('responsavel_matricula')),
             to_safe_cell(data.get('proxima_calibracao')),
             to_safe_cell(data.get('numero_certificado')),
-            to_safe_cell(data.get('link_certificado'))
+            to_safe_cell(data.get('link_certificado')),
+            to_safe_cell(data.get('observacoes')) 
         ]
         
         uploader.append_data_to_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME, [data_row])
