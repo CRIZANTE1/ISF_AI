@@ -119,27 +119,49 @@ def show_page():
     with tab_inspection:
         st.header("Registrar Teste de Resposta (Bump Test)")
 
-        # --- SEÇÃO DE RELATÓRIO ---
-        with st.expander("📄 Gerar Relatório de Bump Tests do Dia"):
+        # --- INÍCIO DA SEÇÃO DE RELATÓRIO MENSAL (MODIFICADA) ---
+        with st.expander("📄 Gerar Relatório Mensal de Bump Tests"):
             df_inspections_full = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
             df_inventory_full = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
             
-            today_str = datetime.now().strftime('%Y-%m-%d')
-            
-            if not df_inspections_full.empty:
-                # Filtra apenas os testes de resposta (não calibrações) do dia de hoje
-                tests_today = df_inspections_full[
-                    (df_inspections_full['data_teste'] == today_str) &
-                    (df_inspections_full['tipo_teste'] != 'Calibração Anual')
-                ]
+            if df_inspections_full.empty:
+                st.info("Nenhum teste de resposta registrado no sistema para gerar relatórios.")
+            else:
+                # Converte a coluna de data para o formato datetime para permitir a filtragem
+                df_inspections_full['data_teste_dt'] = pd.to_datetime(df_inspections_full['data_teste'], errors='coerce')
+
+                # Filtros para mês e ano
+                today = datetime.now()
+                col1, col2 = st.columns(2)
                 
-                if tests_today.empty:
-                    st.info("Nenhum teste de resposta foi registrado hoje.")
+                with col1:
+                    years_with_data = sorted(df_inspections_full['data_teste_dt'].dt.year.unique(), reverse=True)
+                    if not years_with_data:
+                        years_with_data = [today.year]
+                    selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="multigas_report_year")
+                
+                with col2:
+                    months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+                    # Sugere o mês passado como padrão
+                    default_month_index = today.month - 2 if today.month > 1 else 11
+                    selected_month_name = st.selectbox("Selecione o Mês:", months, index=default_month_index, key="multigas_report_month")
+                
+                selected_month_number = months.index(selected_month_name) + 1
+
+                # Filtra os dados pelo mês e ano selecionados
+                tests_selected_month = df_inspections_full[
+                    (df_inspections_full['data_teste_dt'].dt.year == selected_year) &
+                    (df_inspections_full['data_teste_dt'].dt.month == selected_month_number) &
+                    (df_inspections_full['tipo_teste'] != 'Calibração Anual')
+                ].sort_values(by='data_teste_dt')
+
+                if tests_selected_month.empty:
+                    st.info(f"Nenhum teste de resposta foi registrado em {selected_month_name} de {selected_year}.")
                 else:
-                    st.write(f"Encontrados {len(tests_today)} testes registrados hoje. Clique abaixo para gerar o relatório para impressão.")
-                    if st.button("Gerar e Imprimir Relatório do Dia", width='stretch', type="primary"):
+                    st.write(f"Encontrados {len(tests_selected_month)} testes em {selected_month_name}/{selected_year}. Clique abaixo para gerar o relatório.")
+                    if st.button("Gerar e Imprimir Relatório do Mês", width='stretch', type="primary"):
                         unit_name = st.session_state.get('current_unit_name', 'N/A')
-                        report_html = generate_bump_test_html(tests_today, df_inventory_full, unit_name)
+                        report_html = generate_bump_test_html(tests_selected_month, df_inventory_full, unit_name)
                         
                         js_code = f"""
                             const reportHtml = {json.dumps(report_html)};
@@ -153,11 +175,8 @@ def show_page():
                                 alert('Por favor, desabilite o bloqueador de pop-ups para este site.');
                             }}
                         """
-                        streamlit_js_eval(js_expressions=js_code, key="print_bump_test_js")
+                        streamlit_js_eval(js_expressions=js_code, key="print_monthly_bump_test_js")
                         st.success("Relatório enviado para impressão!")
-
-            else:
-                st.info("Nenhum teste de resposta registrado no sistema.")
         st.markdown("---")
         # --- FIM DA SEÇÃO DE RELATÓRIO ---
 
