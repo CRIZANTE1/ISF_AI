@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
+import json  
 from datetime import datetime
+from streamlit_js_eval import streamlit_js_eval 
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data
