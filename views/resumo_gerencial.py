@@ -216,30 +216,36 @@ def show_page():
 
         dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
         
-        # As métricas são calculadas mesmo que o dataframe esteja vazio (resultarão em 0)
-        status_counts = dashboard_df['status_dashboard'].value_counts() if not dashboard_df.empty else pd.Series()
+        total_equip = len(dashboard_df)
+        calib_ok = (dashboard_df['status_calibracao'] == '🟢 OK').sum() if not dashboard_df.empty else 0
+        bump_ok = (dashboard_df['status_bump_test'] == '🟢 OK').sum() if not dashboard_df.empty else 0
         
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("✅ Total", len(dashboard_df))
-        col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
-        col3.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
-        col4.metric("🟠 Reprovado", status_counts.get("🟠 REPROVADO", 0))
-        col5.metric("🔵 Pendente", status_counts.get("🔵 PENDENTE (Nova Calibração)", 0))
+        col1, col2, col3 = st.columns(3)
+        col1.metric("✅ Total de Detectores", total_equip)
+        col2.metric("🗓️ Calibração Anual OK", f"{calib_ok} / {total_equip}")
+        col3.metric("💨 Bump Test OK", f"{bump_ok} / {total_equip}")
         st.markdown("---")
         
         st.subheader("Detectores com Pendências")
         if df_inventory.empty:
             st.warning("Nenhum detector multigás cadastrado no sistema.")
         else:
-            pending_df = dashboard_df[dashboard_df['status_dashboard'] != '🟢 OK']
+            pending_df = dashboard_df[
+                (dashboard_df['status_calibracao'] != '🟢 OK') | 
+                (dashboard_df['status_bump_test'] != '🟢 OK')
+            ]
+            
             if pending_df.empty:
                 st.success("✅ Todos os detectores estão em conformidade!")
             else:
                 st.dataframe(
-                    pending_df[['id_equipamento', 'numero_serie', 'status_dashboard', 'proxima_calibracao']],
+                    pending_df[['id_equipamento', 'numero_serie', 'status_calibracao', 'status_bump_test', 'proxima_calibracao']],
                     column_config={
-                        "id_equipamento": "ID Equip.", "numero_serie": "S/N",
-                        "status_dashboard": "Status", "proxima_calibracao": "Venc. Calibração"
+                        "id_equipamento": "ID Equip.",
+                        "numero_serie": "S/N",
+                        "status_calibracao": "Status Calibração",
+                        "status_bump_test": "Status Bump Test",
+                        "proxima_calibracao": "Venc. Calibração"
                     },
                     width='stretch', hide_index=True
                 )
