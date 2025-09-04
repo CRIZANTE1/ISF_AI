@@ -21,6 +21,8 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from auth.auth_utils import get_user_display_name
 from config.page_config import set_page_config
 from reports.multigas_report import generate_bump_test_html
+from utils.auditoria import get_sao_paulo_time_str 
+from datetime import datetime
 
 set_page_config()
 
@@ -134,19 +136,20 @@ def show_page():
                 df_inspections_full['data_teste_dt'] = pd.to_datetime(df_inspections_full['data_teste'], errors='coerce')
 
                 # Filtros para mês e ano
-                today = datetime.now()
+                now_str = get_sao_paulo_time_str()
+                today_sao_paulo = datetime.strptime(now_str, '%Y-%m-%d %H:%M:%S')
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     years_with_data = sorted(df_inspections_full['data_teste_dt'].dt.year.unique(), reverse=True)
                     if not years_with_data:
-                        years_with_data = [today.year]
+                        years_with_data = [today_sao_paulo.year]
                     selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="multigas_report_year")
                 
                 with col2:
                     months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-                    # Sugere o mês passado como padrão
-                    default_month_index = today.month - 2 if today.month > 1 else 11
+                    # Sugere o mês atual como padrão
+                    default_month_index = today_sao_paulo.month - 1
                     selected_month_name = st.selectbox("Selecione o Mês:", months, index=default_month_index, key="multigas_report_month")
                 
                 selected_month_number = months.index(selected_month_name) + 1
@@ -220,9 +223,13 @@ def show_page():
                         new_co_cylinder = nc4.number_input("CO (ppm)", step=1, key="new_co", value=int(detector_info.get('CO_cilindro', 0)))
 
                     st.subheader("Registro do Teste")
+                    
+                    now_str = get_sao_paulo_time_str()
+                    now_dt = datetime.strptime(now_str, '%Y-%m-%d %H:%M:%S')
+                    
                     c8, c9 = st.columns(2)
-                    test_date = c8.date_input("Data do Teste", value=datetime.now())
-                    test_time = c9.time_input("Hora do Teste", value=datetime.now().time())
+                    test_date = c8.date_input("Data do Teste", value=now_dt.date())
+                    test_time = c9.time_input("Hora do Teste", value=now_dt.time())
 
                     st.write("**Valores Encontrados no Teste:**")
                     c10, c11, c12, c13 = st.columns(4)
