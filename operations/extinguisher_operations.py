@@ -277,8 +277,8 @@ def update_extinguisher_location(equip_id, location_desc):
 
 def batch_regularize_monthly_inspections(df_all_extinguishers):
     """
-    Encontra todos os extintores com inspeção mensal vencida e cria novos
-    registros de inspeção "Aprovado" para a data atual.
+    Encontra extintores com inspeção mensal vencida E que estavam 'Aprovado'
+    na última verificação, e cria novos registros de inspeção "Aprovado".
     Retorna o número de extintores regularizados.
     """
     if df_all_extinguishers.empty:
@@ -293,14 +293,15 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
     
     today = pd.Timestamp(date.today())
 
-    # Filtra apenas os extintores com inspeção vencida e que estão ativos
-    vencidos = latest_records[
+
+    vencidos_e_aprovados = latest_records[
         (latest_records['data_proxima_inspecao'] < today) &
-        (latest_records['plano_de_acao'] != 'FORA DE OPERAÇÃO (SUBSTITUÍDO)')
+        (latest_records['plano_de_acao'] != 'FORA DE OPERAÇÃO (SUBSTITUÍDO)') &
+        (latest_records['aprovado_inspecao'] == 'Sim')
     ]
 
-    if vencidos.empty:
-        st.success("✅ Nenhuma inspeção mensal de extintor está vencida. Tudo em dia!")
+    if vencidos_e_aprovados.empty:
+        st.success("✅ Nenhuma inspeção mensal (de equipamentos previamente aprovados) está vencida. Tudo em dia!")
         return 0
 
     new_inspection_rows = []
@@ -311,23 +312,21 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
     current_time_str = get_sao_paulo_time_str()
     current_unit = st.session_state.get('current_unit_name', 'N/A')
 
-    for _, original_record in vencidos.iterrows():
-        # Cria uma cópia do último registro para manter os dados do equipamento
+    # Itera apenas sobre os extintores que podem ser regularizados com segurança
+    for _, original_record in vencidos_e_aprovados.iterrows():
         new_record = original_record.copy()
         
-        # Define os dados da nova inspeção de regularização
         new_record.update({
             'tipo_servico': "Inspeção",
             'data_servico': date.today().isoformat(),
             'inspetor_responsavel': user_name,
             'aprovado_inspecao': "Sim",
-            'observacoes_gerais': "Inspeção mensal regularizada em massa.",
+            'observacoes_gerais': "Inspeção mensal de rotina regularizada em massa.",
             'plano_de_acao': "Manter em monitoramento periódico.",
             'link_relatorio_pdf': None,
             'link_foto_nao_conformidade': None
         })
 
-        # Recalcula as próximas datas com base na data de hoje
         existing_dates = {
             'data_proxima_manutencao_2_nivel': original_record.get('data_proxima_manutencao_2_nivel'),
             'data_proxima_manutencao_3_nivel': original_record.get('data_proxima_manutencao_3_nivel'),
@@ -340,7 +339,6 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
         )
         new_record.update(updated_dates)
 
-        # Prepara a linha para a planilha
         new_inspection_rows.append([
             new_record.get('numero_identificacao'), new_record.get('numero_selo_inmetro'),
             new_record.get('tipo_agente'), new_record.get('capacidade'), new_record.get('marca_fabricante'),
@@ -355,7 +353,6 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
             new_record.get('link_foto_nao_conformidade')
         ])
 
-        # Prepara a linha de log de auditoria
         audit_log_rows.append([
             current_time_str, user_email, user_role,
             "REGULARIZOU_INSPECAO_EXTINTOR_MASSA",
@@ -364,15 +361,13 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
         ])
 
     try:
-        # Salva todos os novos registros de uma vez
         uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, new_inspection_rows)
         
-        # Salva todos os logs de auditoria de uma vez
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
         matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
 
-        return len(vencidos)
+        return len(vencidos_e_aprovados)
     except Exception as e:
         st.error(f"Ocorreu um erro durante a regularização em massa: {e}")
-        return -1 # Retorna -1 para indicar erro
+        return -1
