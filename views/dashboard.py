@@ -700,7 +700,7 @@ def show_page():
                     
                     if row['status_atual'] != 'OK':
                         st.markdown("---")
-                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_{row['numero_identificacao']}", use_container_width=True):
+                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_ext_{index}", width='stretch'):
                             action_form(row.to_dict(), df_full_history, location)
                             
                            
