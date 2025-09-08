@@ -274,3 +274,105 @@ def update_extinguisher_location(equip_id, location_desc):
     except Exception as e:
         st.error(f"Erro ao salvar local para o equipamento '{equip_id}': {e}")
         return False
+
+def batch_regularize_monthly_inspections(df_all_extinguishers):
+    """
+    Encontra todos os extintores com inspeção mensal vencida e cria novos
+    registros de inspeção "Aprovado" para a data atual.
+    Retorna o número de extintores regularizados.
+    """
+    if df_all_extinguishers.empty:
+        st.warning("Não há extintores cadastrados para regularizar.")
+        return 0
+
+    # Pega o último registro de cada extintor
+    latest_records = df_all_extinguishers.sort_values(by='data_servico', ascending=False).drop_duplicates(subset=['numero_identificacao'], keep='first').copy()
+
+    # Converte a coluna de próxima inspeção para datetime
+    latest_records['data_proxima_inspecao'] = pd.to_datetime(latest_records['data_proxima_inspecao'], errors='coerce')
+    
+    today = pd.Timestamp(date.today())
+
+    # Filtra apenas os extintores com inspeção vencida e que estão ativos
+    vencidos = latest_records[
+        (latest_records['data_proxima_inspecao'] < today) &
+        (latest_records['plano_de_acao'] != 'FORA DE OPERAÇÃO (SUBSTITUÍDO)')
+    ]
+
+    if vencidos.empty:
+        st.success("✅ Nenhuma inspeção mensal de extintor está vencida. Tudo em dia!")
+        return 0
+
+    new_inspection_rows = []
+    audit_log_rows = []
+    user_name = get_user_display_name()
+    user_email = get_user_email()
+    user_role = get_user_role()
+    current_time_str = get_sao_paulo_time_str()
+    current_unit = st.session_state.get('current_unit_name', 'N/A')
+
+    for _, original_record in vencidos.iterrows():
+        # Cria uma cópia do último registro para manter os dados do equipamento
+        new_record = original_record.copy()
+        
+        # Define os dados da nova inspeção de regularização
+        new_record.update({
+            'tipo_servico': "Inspeção",
+            'data_servico': date.today().isoformat(),
+            'inspetor_responsavel': user_name,
+            'aprovado_inspecao': "Sim",
+            'observacoes_gerais': "Inspeção mensal regularizada em massa.",
+            'plano_de_acao': "Manter em monitoramento periódico.",
+            'link_relatorio_pdf': None,
+            'link_foto_nao_conformidade': None
+        })
+
+        # Recalcula as próximas datas com base na data de hoje
+        existing_dates = {
+            'data_proxima_manutencao_2_nivel': original_record.get('data_proxima_manutencao_2_nivel'),
+            'data_proxima_manutencao_3_nivel': original_record.get('data_proxima_manutencao_3_nivel'),
+            'data_ultimo_ensaio_hidrostatico': original_record.get('data_ultimo_ensaio_hidrostatico'),
+        }
+        updated_dates = calculate_next_dates(
+            service_date_str=new_record['data_servico'],
+            service_level="Inspeção",
+            existing_dates=existing_dates
+        )
+        new_record.update(updated_dates)
+
+        # Prepara a linha para a planilha
+        new_inspection_rows.append([
+            new_record.get('numero_identificacao'), new_record.get('numero_selo_inmetro'),
+            new_record.get('tipo_agente'), new_record.get('capacidade'), new_record.get('marca_fabricante'),
+            new_record.get('ano_fabricacao'), new_record.get('tipo_servico'), new_record.get('data_servico'),
+            new_record.get('inspetor_responsavel'), new_record.get('empresa_executante'),
+            new_record.get('data_proxima_inspecao'), new_record.get('data_proxima_manutencao_2_nivel'),
+            new_record.get('data_proxima_manutencao_3_nivel'), new_record.get('data_ultimo_ensaio_hidrostatico'),
+            new_record.get('aprovado_inspecao'), new_record.get('observacoes_gerais'),
+            new_record.get('plano_de_acao'), new_record.get('link_relatorio_pdf'),
+            str(new_record.get('latitude', '')).replace('.', ','), 
+            str(new_record.get('longitude', '')).replace('.', ','), 
+            new_record.get('link_foto_nao_conformidade')
+        ])
+
+        # Prepara a linha de log de auditoria
+        audit_log_rows.append([
+            current_time_str, user_email, user_role,
+            "REGULARIZOU_INSPECAO_EXTINTOR_MASSA",
+            f"ID: {new_record.get('numero_identificacao')}",
+            current_unit
+        ])
+
+    try:
+        # Salva todos os novos registros de uma vez
+        uploader = GoogleDriveUploader()
+        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, new_inspection_rows)
+        
+        # Salva todos os logs de auditoria de uma vez
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+        matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
+
+        return len(vencidos)
+    except Exception as e:
+        st.error(f"Ocorreu um erro durante a regularização em massa: {e}")
+        return -1 # Retorna -1 para indicar erro
