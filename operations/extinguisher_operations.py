@@ -6,6 +6,8 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME 
 from AI.api_Operation import PDFQA
 from utils.prompts import get_extinguisher_inspection_prompt
+from utils.auditoria import log_action, get_sao_paulo_time_str
+from auth.auth_utils import get_user_display_name, get_user_email, get_user_role
 from utils.auditoria import log_action
 
 uploader = GoogleDriveUploader()
