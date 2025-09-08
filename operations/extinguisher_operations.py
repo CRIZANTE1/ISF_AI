@@ -264,7 +264,6 @@ def update_extinguisher_location(equip_id, location_desc):
             existing_row = df_locais[df_locais['id'] == str(equip_id)]
             
             if not existing_row.empty:
-                # Atualiza a linha existente
                 row_index = existing_row.index[0] + 2  # +1 para cabeçalho, +1 para base 0
                 range_to_update = f"B{row_index}"  # Atualiza apenas a coluna B (local)
                 uploader.update_cells(LOCATIONS_SHEET_NAME, range_to_update, [[location_desc]])
@@ -280,21 +279,16 @@ def update_extinguisher_location(equip_id, location_desc):
 def batch_regularize_monthly_inspections(df_all_extinguishers):
     """
     Encontra extintores com inspeção mensal vencida E que estavam 'Aprovado'
-    na última verificação, e cria novos registros de inspeção "Aprovado".
+    na última verificação, cria novos registros de inspeção "Aprovado" e LOGA CADA AÇÃO.
     Retorna o número de extintores regularizados.
     """
     if df_all_extinguishers.empty:
         st.warning("Não há extintores cadastrados para regularizar.")
         return 0
 
-    # Pega o último registro de cada extintor
     latest_records = df_all_extinguishers.sort_values(by='data_servico', ascending=False).drop_duplicates(subset=['numero_identificacao'], keep='first').copy()
-
-    # Converte a coluna de próxima inspeção para datetime
     latest_records['data_proxima_inspecao'] = pd.to_datetime(latest_records['data_proxima_inspecao'], errors='coerce')
-    
     today = pd.Timestamp(date.today())
-
 
     vencidos_e_aprovados = latest_records[
         (latest_records['data_proxima_inspecao'] < today) &
@@ -314,7 +308,6 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
     current_time_str = get_sao_paulo_time_str()
     current_unit = st.session_state.get('current_unit_name', 'N/A')
 
-    # Itera apenas sobre os extintores que podem ser regularizados com segurança
     for _, original_record in vencidos_e_aprovados.iterrows():
         new_record = original_record.copy()
         
@@ -356,13 +349,16 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
         ])
 
         audit_log_rows.append([
-            current_time_str, user_email, user_role,
+            current_time_str,
+            user_email or "não logado",
+            user_role,
             "REGULARIZOU_INSPECAO_EXTINTOR_MASSA",
             f"ID: {new_record.get('numero_identificacao')}",
             current_unit
         ])
 
     try:
+        # Salva todos os novos registros de inspeção de uma vez
         uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, new_inspection_rows)
         
