@@ -13,6 +13,7 @@ from operations.history import load_sheet_data, find_last_record
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
 from config.page_config import set_page_config
+from operations.extinguisher_operations import batch_regularize_monthly_inspections
 from operations.eyewash_operations import CHECKLIST_QUESTIONS
 from gdrive.config import (
     HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME,
@@ -648,6 +649,26 @@ def show_page():
 
     with tab_extinguishers:
         st.header("Dashboard de Extintores")
+        
+        if is_admin():
+            with st.expander("⚙️ Ações de Administrador"):
+                st.warning("Esta ação criará um registro de inspeção 'Aprovado' com a data de hoje para TODOS os extintores com inspeção mensal vencida.")
+                if st.button("Regularizar Todas as Inspeções Mensais Vencidas", type="primary"):
+                    with st.spinner("Verificando e regularizando extintores..."):
+                        df_history_for_action = load_sheet_data("extintores")
+                        num_regularized = batch_regularize_monthly_inspections(df_history_for_action)
+                        
+                        if num_regularized > 0:
+                            st.success(f"{num_regularized} extintores foram regularizados com sucesso!")
+                            st.balloons()
+                            st.cache_data.clear()
+                            st.rerun()
+                        elif num_regularized == 0:
+                            # A mensagem de sucesso/aviso já é mostrada dentro da função
+                            pass
+                        else: # num_regularized == -1
+                            st.error("A operação de regularização falhou. Verifique os logs.")
+                            
 
         with st.expander("📄 Gerar Relatório Mensal..."):
             show_monthly_report_interface()
