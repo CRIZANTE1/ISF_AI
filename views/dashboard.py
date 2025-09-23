@@ -978,12 +978,13 @@ def show_page():
             st.subheader("Lista de Equipamentos e Status")
             for _, row in dashboard_df.iterrows():
                 status = row['status_dashboard']
-                prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
+                prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_proxima_inspecao']) else "N/A"
                 expander_title = f"{status} | **ID:** {row['id_equipamento']} | **Próx. Inspeção:** {prox_inspecao}"
                 
                 with st.expander(expander_title):
-                    st.write(f"**Última inspeção:** {pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y')} por **{row['inspetor']}**")
-                    st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
+                    ultima_inspecao = pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_inspecao']) else "N/A"
+                    st.write(f"**Última inspeção:** {ultima_inspecao} por **{row['inspetor']}**")
+                    st.write(f"**Plano de Ação Sugerido:** {row.get('plano_de_acao', 'N/A')}")
                     
                     if status == "🟠 COM PENDÊNCIAS":
                         if st.button("✍️ Registrar Ação Corretiva", key=f"action_eyewash_{row['id_equipamento']}"):
@@ -992,19 +993,25 @@ def show_page():
                     st.markdown("---")
                     st.write("**Detalhes da Última Inspeção:**")
                     try:
-                        results = json.loads(row['resultados_json'])
-                        non_conformities = {q: status for q, status in results.items() if status == "Não Conforme"}
-                        if non_conformities:
-                            st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+                        results_json = row.get('resultados_json')
+                        if results_json and pd.notna(results_json):
+                            results = json.loads(results_json)
+                            # Filtra apenas os itens que não estão conformes para destacar o problema
+                            non_conformities = {q: status for q, status in results.items() if str(status).upper() == "NÃO CONFORME"}
+                            
+                            if non_conformities:
+                                st.write("Itens não conformes encontrados:")
+                                st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+                            else:
+                                st.success("Todos os itens estavam conformes na última inspeção.")
                         else:
-                            st.success("Todos os itens estavam conformes na última inspeção.")
+                            st.info("Nenhum detalhe de inspeção disponível.")
                         
                         photo_link = row.get('link_foto_nao_conformidade')
-                        if pd.notna(photo_link):
-                            st.image(photo_link, caption="Foto da Não Conformidade", width=300)
+                        display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
 
                     except (json.JSONDecodeError, TypeError):
-                        st.error("Não foi possível carregar os detalhes da inspeção.")
+                        st.error("Não foi possível carregar os detalhes da inspeção (formato de dados inválido).")
 
     
     with tab_foam:
