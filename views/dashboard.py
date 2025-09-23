@@ -7,6 +7,8 @@ import os
 import numpy as np
 import json
 from streamlit_js_eval import streamlit_js_eval
+from operations.photo_operations import display_drive_image
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data, find_last_record
@@ -491,7 +493,6 @@ def action_dialog_scba(equipment_id, problem):
             st.success("Ação registrada e status regularizado!")
             st.cache_data.clear()
             st.rerun()
-
 
 @st.dialog("Registrar Plano de Ação para Abrigo")
 def action_dialog_shelter(shelter_id, problem):
