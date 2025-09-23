@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import date
 from gdrive.gdrive_upload import GoogleDriveUploader
+import requests
 
 def upload_evidence_photo(photo_file, id_equipamento, photo_type="nao_conformidade"):
     """
