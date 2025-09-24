@@ -455,6 +455,6 @@ def show_page():
                                     st.balloons() if not has_issues else None
                                     st.cache_data.clear()
                                 else:
-                                    st.error("Ocorreu um erro ao salvar a inspeção.")v
+                                    st.error("Ocorreu um erro ao salvar a inspeção.")
 
 
