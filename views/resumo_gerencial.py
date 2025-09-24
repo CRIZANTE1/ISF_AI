@@ -9,6 +9,7 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data
 from config.page_config import set_page_config
+from auth.auth_utils import check_user_access, can_view
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME, HOSE_SHEET_NAME, HOSE_DISPOSAL_LOG_SHEET_NAME,
     SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME,
@@ -32,6 +33,12 @@ set_page_config()
 
 def show_page():
     st.title("📊 Resumo Gerencial de Equipamentos de Emergência")
+    
+    # Check if user has at least viewer permissions
+    if not check_user_access("viewer"):
+        st.warning("Você não tem permissão para acessar esta página.")
+        return
+        
     st.info("Esta é uma visão geral do status atual de todos os equipamentos. Para detalhes completos ou registros, contate um 'editor' ou 'administrador'.")
 
     if st.button("Limpar Cache e Recarregar Dados"):
