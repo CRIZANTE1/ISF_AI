@@ -77,6 +77,42 @@ def save_manual_scba(scba_data):
         st.error(f"Erro ao salvar SCBA: {e}")
         return False
 
+def save_manual_air_quality_record(air_data):
+    """
+    Salva um registro manual de qualidade do ar.
+    """
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Para cada cilindro mencionado, cria um registro
+        cilindros = [c.strip() for c in air_data['cilindros_text'].split(',') if c.strip()]
+        
+        if not cilindros:
+            st.error("É necessário informar pelo menos um número de série de cilindro.")
+            return False
+            
+        for cilindro_sn in cilindros:
+            # Cria uma linha com os dados do laudo
+            data_row = [None] * 18  # Preenche as primeiras 18 colunas com None
+            data_row[2] = cilindro_sn  # Coluna C: numero_serie_equipamento
+            
+            # Adiciona os dados específicos do laudo de qualidade do ar
+            data_row.extend([
+                air_data['data_ensaio'],
+                air_data['resultado_geral'],
+                air_data.get('observacoes', 'Registro manual'),
+                None  # link_laudo_ar (será None para registro manual)
+            ])
+            
+            uploader.append_data_to_sheet(SCBA_SHEET_NAME, data_row)
+        
+        log_action("REGISTROU_QUALIDADE_AR_MANUAL", f"Cilindros: {', '.join(cilindros)}, Resultado: {air_data['resultado_geral']}")
+        return True
+        
+    except Exception as e:
+        st.error(f"Erro ao salvar registro de qualidade do ar: {e}")
+        return False
+
 def show_page():
     st.title("💨 Inspeção de Conjuntos Autônomos (SCBA)")
 
@@ -85,11 +121,13 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
         
-    tab_test_scba, tab_quality_air, tab_visual_insp, tab_manual_scba = st.tabs([
-        "Teste de Equipamentos (Posi3)",
-        "Laudo de Qualidade do Ar",
+    tab_test_scba, tab_manual_test, tab_quality_air, tab_manual_air, tab_visual_insp, tab_manual_scba = st.tabs([
+        "Teste de Equipamentos (IA)",
+        "Cadastro Manual de Teste",
+        "Laudo de Qualidade do Ar (IA)",
+        "Registro Manual de Qualidade do Ar",
         "Inspeção Visual Periódica",
-        "Cadastro Manual de SCBA"  # Nova aba adicionada
+        "Cadastro Manual de SCBA"
     ])
     
     with tab_test_scba:
@@ -102,7 +140,7 @@ def show_page():
         else:
             # Check for AI features
             if not has_ai_features():
-                st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho!", icon="🚀")
+                st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou use as abas de cadastro manual!", icon="🚀")
             else:
                 st.session_state.setdefault('scba_step', 'start')
                 st.session_state.setdefault('scba_processed_data', None)
@@ -157,6 +195,84 @@ def show_page():
                             st.cache_data.clear()
                             st.rerun()
 
+    # Nova aba para cadastro manual de teste SCBA
+    with tab_manual_test:
+        st.header("Cadastrar Teste de SCBA Manualmente")
+        
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para registrar testes.")
+        else:
+            st.info("Use este formulário para registrar manualmente um teste de equipamento SCBA (Posi3) sem necessidade de processar um relatório PDF.")
+            
+            with st.form("manual_scba_test_form", clear_on_submit=True):
+                st.subheader("Dados do Teste")
+                
+                col1, col2 = st.columns(2)
+                data_teste = col1.date_input("Data do Teste", value=date.today())
+                data_validade = col2.date_input("Data de Validade do Laudo", value=date.today() + timedelta(days=365))
+                
+                st.subheader("Identificação do Equipamento")
+                col3, col4 = st.columns(2)
+                numero_serie = col3.text_input("Número de Série do Equipamento (Obrigatório)*")
+                marca = col4.text_input("Marca")
+                
+                col5, col6 = st.columns(2)
+                modelo = col5.text_input("Modelo")
+                numero_serie_mascara = col6.text_input("Número de Série da Máscara")
+                numero_serie_segundo_estagio = st.text_input("Número de Série do Segundo Estágio")
+                
+                st.subheader("Resultados dos Testes")
+                resultado_final = st.selectbox("Resultado Final", ["APTO PARA USO", "NÃO APTO PARA USO"])
+                
+                # Teste de vazamento de máscara
+                col7, col8 = st.columns(2)
+                vazamento_mascara_resultado = col7.selectbox("Vazamento de Máscara", ["Aprovado", "Reprovado"])
+                vazamento_mascara_valor = col8.text_input("Valor (mbar)", value="0,2 mbar")
+                
+                # Teste de vazamento de pressão alta
+                col9, col10 = st.columns(2)
+                vazamento_pressao_alta_resultado = col9.selectbox("Vazamento Pressão Alta", ["Aprovado", "Reprovado"])
+                vazamento_pressao_alta_valor = col10.text_input("Valor (bar)", value="0,7 bar")
+                
+                # Teste de pressão de alarme
+                col11, col12 = st.columns(2)
+                pressao_alarme_resultado = col11.selectbox("Pressão de Alarme", ["Aprovado", "Reprovado"])
+                pressao_alarme_valor = col12.text_input("Valor de Disparo (bar)", value="57,0 bar")
+                
+                st.subheader("Informações da Empresa")
+                empresa_executante = st.text_input("Empresa Executante")
+                responsavel_tecnico = st.text_input("Responsável Técnico")
+                
+                submitted = st.form_submit_button("Registrar Teste", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not numero_serie:
+                        st.error("O número de série do equipamento é obrigatório.")
+                    else:
+                        record = {
+                            'data_teste': data_teste.isoformat(),
+                            'data_validade': data_validade.isoformat(),
+                            'numero_serie_equipamento': numero_serie,
+                            'marca': marca,
+                            'modelo': modelo,
+                            'numero_serie_mascara': numero_serie_mascara,
+                            'numero_serie_segundo_estagio': numero_serie_segundo_estagio,
+                            'resultado_final': resultado_final,
+                            'vazamento_mascara_resultado': vazamento_mascara_resultado,
+                            'vazamento_mascara_valor': vazamento_mascara_valor,
+                            'vazamento_pressao_alta_resultado': vazamento_pressao_alta_resultado,
+                            'vazamento_pressao_alta_valor': vazamento_pressao_alta_valor,
+                            'pressao_alarme_resultado': pressao_alarme_resultado,
+                            'pressao_alarme_valor': pressao_alarme_valor,
+                            'empresa_executante': empresa_executante,
+                            'responsavel_tecnico': responsavel_tecnico
+                        }
+                        
+                        if save_scba_inspection(record=record, pdf_link=None, user_name=get_user_display_name()):
+                            st.success(f"Teste para o SCBA '{numero_serie}' registrado com sucesso!")
+                            st.balloons()
+                            st.cache_data.clear()
+
     with tab_quality_air:
         st.header("Registrar Laudo de Qualidade do Ar com IA")
         
@@ -167,7 +283,7 @@ def show_page():
         else:
             # Check for AI features
             if not has_ai_features():
-                st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho!", icon="🚀")
+                st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou use a aba de registro manual!", icon="🚀")
             else:
                 st.session_state.setdefault('airq_step', 'start')
                 st.session_state.setdefault('airq_processed_data', None)
@@ -231,6 +347,48 @@ def show_page():
                             else:
                                 st.error("Falha no upload do PDF para o Google Drive. Nenhum dado foi salvo.")
 
+    # Nova aba para registro manual de qualidade do ar
+    with tab_manual_air:
+        st.header("Registrar Qualidade do Ar Manualmente")
+        
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para registrar laudos de qualidade do ar.")
+        else:
+            st.info("Use este formulário para registrar manualmente um laudo de qualidade do ar sem necessidade de processar um PDF.")
+            
+            with st.form("manual_air_quality_form", clear_on_submit=True):
+                st.subheader("Dados do Laudo")
+                
+                col1, col2 = st.columns(2)
+                data_ensaio = col1.date_input("Data do Ensaio", value=date.today())
+                resultado_geral = col2.selectbox("Resultado Geral", ["Aprovado", "Reprovado"])
+                
+                observacoes = st.text_area("Observações/Metodologia", 
+                                         placeholder="Descreva a metodologia utilizada ou outras observações relevantes")
+                
+                st.subheader("Cilindros Analisados")
+                cilindros_text = st.text_area("Números de Série dos Cilindros", 
+                                            placeholder="Digite os números de série separados por vírgula\nEx: 1807087005, 1807087148, 1807087200",
+                                            help="Informe todos os números de série dos cilindros que foram analisados no laudo, separados por vírgula")
+                
+                submitted = st.form_submit_button("Registrar Laudo de Qualidade do Ar", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not cilindros_text.strip():
+                        st.error("É obrigatório informar pelo menos um número de série de cilindro.")
+                    else:
+                        air_data = {
+                            'data_ensaio': data_ensaio.isoformat(),
+                            'resultado_geral': resultado_geral,
+                            'observacoes': observacoes or "Registro manual",
+                            'cilindros_text': cilindros_text
+                        }
+                        
+                        if save_manual_air_quality_record(air_data):
+                            cilindros_count = len([c.strip() for c in cilindros_text.split(',') if c.strip()])
+                            st.success(f"Laudo de qualidade do ar registrado com sucesso para {cilindros_count} cilindro(s)!")
+                            st.balloons()
+                            st.cache_data.clear()
 
     with tab_visual_insp:
         st.header("Realizar Inspeção Periódica de SCBA")
@@ -249,7 +407,7 @@ def show_page():
                 equipment_list = []
 
             if not equipment_list:
-                st.warning("Nenhum equipamento SCBA cadastrado. Registre um teste na primeira aba para começar.")
+                st.warning("Nenhum equipamento SCBA cadastrado. Registre um teste nas abas anteriores para começar.")
             else:
                 options = ["Selecione um equipamento..."] + sorted(equipment_list)
                 selected_scba_id = st.selectbox("Selecione o Equipamento para Inspecionar", options, key="scba_visual_select")
@@ -332,7 +490,7 @@ def show_page():
                                 else:
                                     st.error("Ocorreu um erro ao salvar a inspeção.")
 
-    # Nova aba para cadastro manual de SCBA
+    # Aba para cadastro manual de SCBA
     with tab_manual_scba:
         st.header("Cadastrar Novo SCBA Manualmente")
         
@@ -384,6 +542,4 @@ def show_page():
                         
                         if save_manual_scba(scba_data):
                             st.success(f"SCBA com número de série '{numero_serie}' cadastrado com sucesso!")
-                            st.balloons()
                             st.cache_data.clear()
-
