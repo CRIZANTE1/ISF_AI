@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
-from datetime import date
+from datetime import date, timedelta
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -16,10 +16,66 @@ from auth.auth_utils import (
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
 from gdrive.config import SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
+from utils.auditoria import log_action
 
 
 set_page_config()
 pdf_qa = PDFQA()
+
+def save_manual_scba(scba_data):
+    """
+    Salva um novo SCBA manualmente cadastrado.
+    
+    Args:
+        scba_data (dict): Dados do SCBA
+    
+    Returns:
+        bool: True se bem-sucedido, False caso contrário
+    """
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Verificar se o número de série já existe
+        scba_records = uploader.get_data_from_sheet(SCBA_SHEET_NAME)
+        if scba_records and len(scba_records) > 1:
+            df = pd.DataFrame(scba_records[1:], columns=scba_records[0])
+            if 'numero_serie_equipamento' in df.columns and scba_data['numero_serie_equipamento'] in df['numero_serie_equipamento'].values:
+                st.error(f"Erro: SCBA com número de série '{scba_data['numero_serie_equipamento']}' já existe.")
+                return False
+        
+        # Criar linha para a planilha
+        # Importante: a ordem dos campos deve corresponder à ordem das colunas na planilha
+        today = date.today()
+        validade = today + timedelta(days=365)  # Validade padrão de 1 ano
+        
+        data_row = [
+            scba_data.get('data_teste', today.isoformat()),
+            validade.isoformat(),  # data_validade
+            scba_data['numero_serie_equipamento'],
+            scba_data['marca'],
+            scba_data['modelo'],
+            scba_data.get('numero_serie_mascara', 'N/A'),
+            scba_data.get('numero_serie_segundo_estagio', 'N/A'),
+            "APTO PARA USO",  # resultado_final padrão para registro manual
+            "Aprovado",  # vazamento_mascara_resultado
+            "N/A",  # vazamento_mascara_valor
+            "Aprovado",  # vazamento_pressao_alta_resultado
+            "N/A",  # vazamento_pressao_alta_valor
+            "Aprovado",  # pressao_alarme_resultado
+            "N/A",  # pressao_alarme_valor
+            None,  # link_relatorio_pdf
+            get_user_display_name(),  # inspetor_responsavel
+            scba_data.get('empresa_executante', "Cadastro Manual"),
+            scba_data.get('resp_tecnico', "N/A")
+        ]
+        
+        uploader.append_data_to_sheet(SCBA_SHEET_NAME, [data_row])
+        log_action("CADASTROU_SCBA_MANUAL", f"S/N: {scba_data['numero_serie_equipamento']}")
+        return True
+        
+    except Exception as e:
+        st.error(f"Erro ao salvar SCBA: {e}")
+        return False
 
 def show_page():
     st.title("💨 Inspeção de Conjuntos Autônomos (SCBA)")
@@ -29,11 +85,13 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
         
-    tab_test_scba, tab_quality_air, tab3 = st.tabs([
+    tab_test_scba, tab_quality_air, tab_visual_insp, tab_manual_scba = st.tabs([
         "Teste de Equipamentos (Posi3)",
         "Laudo de Qualidade do Ar",
-        "Inspeção Visual Periódica"
+        "Inspeção Visual Periódica",
+        "Cadastro Manual de SCBA"  # Nova aba adicionada
     ])
+    
     with tab_test_scba:
         st.header("Registrar Teste de SCBA com IA")
         
@@ -174,7 +232,7 @@ def show_page():
                                 st.error("Falha no upload do PDF para o Google Drive. Nenhum dado foi salvo.")
 
 
-    with tab3:
+    with tab_visual_insp:
         st.header("Realizar Inspeção Periódica de SCBA")
         
         # Check for edit permissions
@@ -274,6 +332,58 @@ def show_page():
                                 else:
                                     st.error("Ocorreu um erro ao salvar a inspeção.")
 
-
-
+    # Nova aba para cadastro manual de SCBA
+    with tab_manual_scba:
+        st.header("Cadastrar Novo SCBA Manualmente")
+        
+        # Check for edit permissions
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para cadastrar novos equipamentos.")
+            st.info("Os dados abaixo são somente para visualização.")
+        else:
+            st.info("Use este formulário para cadastrar um novo conjunto autônomo (SCBA) sem necessidade de processar um relatório de teste Posi3.")
+            
+            with st.form("manual_scba_form", clear_on_submit=True):
+                st.subheader("Dados do Equipamento SCBA")
+                
+                col1, col2 = st.columns(2)
+                
+                # Dados essenciais
+                numero_serie = col1.text_input("Número de Série do Equipamento (Obrigatório)*")
+                marca = col2.text_input("Marca")
+                
+                col3, col4 = st.columns(2)
+                modelo = col3.text_input("Modelo")
+                data_teste = col4.date_input("Data do Teste/Cadastro", value=date.today())
+                
+                # Dados opcionais
+                st.markdown("---")
+                st.subheader("Dados Complementares (Opcional)")
+                
+                col5, col6 = st.columns(2)
+                numero_serie_mascara = col5.text_input("Número de Série da Máscara")
+                numero_serie_segundo_estagio = col6.text_input("Número de Série do Segundo Estágio")
+                
+                empresa_executante = st.text_input("Empresa Fornecedora/Executante")
+                
+                submitted = st.form_submit_button("Cadastrar Novo SCBA", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not numero_serie:
+                        st.error("O número de série do equipamento é obrigatório.")
+                    else:
+                        scba_data = {
+                            'numero_serie_equipamento': numero_serie,
+                            'marca': marca,
+                            'modelo': modelo,
+                            'data_teste': data_teste.isoformat(),
+                            'numero_serie_mascara': numero_serie_mascara,
+                            'numero_serie_segundo_estagio': numero_serie_segundo_estagio,
+                            'empresa_executante': empresa_executante
+                        }
+                        
+                        if save_manual_scba(scba_data):
+                            st.success(f"SCBA com número de série '{numero_serie}' cadastrado com sucesso!")
+                            st.balloons()
+                            st.cache_data.clear()
 
