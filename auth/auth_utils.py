@@ -6,6 +6,7 @@ import pytz
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import USERS_SHEET_NAME, ACCESS_REQUESTS_SHEET_NAME
 
+
 def is_oidc_available():
     try: return hasattr(st.user, 'is_logged_in')
     except Exception: return False
@@ -24,8 +25,7 @@ def is_superuser() -> bool:
 
 def get_user_display_name():
     try:
-        if is_superuser():
-            return "Desenvolvedor (Mestre)"
+        if is_superuser(): return "Desenvolvedor (Mestre)"
         if hasattr(st.user, 'name') and st.user.name: return st.user.name
         elif hasattr(st.user, 'email'): return st.user.email
         return "Usuário Anônimo"
@@ -37,7 +37,8 @@ def get_user_email() -> str | None:
         return None
     except Exception: return None
 
-@st.cache_data(ttl=600, show_spinner="Verificando permissões de usuário...")
+
+@st.cache_data(ttl=600, show_spinner="Verificando permissões...")
 def get_users_data():
     try:
         uploader = GoogleDriveUploader(is_matrix=True)
@@ -55,19 +56,31 @@ def get_users_data():
         st.error(f"Erro crítico ao carregar dados de usuários: {e}"); return pd.DataFrame()
 
 def get_user_info() -> dict | None:
+    """
+    Retorna o registro do usuário. Se for o superusuário, "fabrica" o registro
+    usando os dados dos segredos, incluindo o ambiente de testes.
+    """
     if is_superuser():
+        # "Fabrica" um registro de usuário mestre, agora incluindo o ambiente de testes dos segredos.
         return {
-            'email': get_user_email(), 'nome': 'Desenvolvedor (Mestre)', 'role': 'admin',
-            'plano': 'premium_ia', 'status': 'ativo', 'spreadsheet_id': None, 'folder_id': None,
-            'data_cadastro': date.today().isoformat(), 'trial_end_date': None
+            'email': get_user_email(),
+            'nome': 'Desenvolvedor (Mestre)',
+            'role': 'admin',
+            'plano': 'premium_ia',
+            'status': 'ativo',
+            'spreadsheet_id': st.secrets["superuser"].get("spreadsheet_id"),
+            'folder_id': st.secrets["superuser"].get("folder_id"),
+            'data_cadastro': date.today().isoformat(),
+            'trial_end_date': None
         }
+
+    # Se não for o superusuário, executa a lógica normal.
     user_email = get_user_email()
     if not user_email: return None
     users_df = get_users_data()
     if users_df.empty: return None
     user_entry = users_df[users_df['email'] == user_email]
     return user_entry.iloc[0].to_dict() if not user_entry.empty else None
-
 def get_effective_user_status() -> str:
     user_info = get_user_info()
     if not user_info: return 'inativo'
