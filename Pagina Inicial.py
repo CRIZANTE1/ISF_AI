@@ -20,17 +20,24 @@ from views import (
     administracao, dashboard, resumo_gerencial, inspecao_extintores, 
     inspecao_mangueiras, inspecao_scba, inspecao_chuveiros,
     inspecao_camaras_espuma, inspecao_multigas, historico,
-    utilitarios, demo_page, trial_expired_page
+    utilitarios, demo_page, trial_expired_page, perfil_usuario
 )
 
 set_page_config()
 
 PAGES = {
-    "Dashboard": dashboard.show_page, "Resumo Gerencial": resumo_gerencial.show_page, 
-    "Inspeção de Extintores": inspecao_extintores.show_page, "Inspeção de Mangueiras": inspecao_mangueiras.show_page,
-    "Inspeção de SCBA": inspecao_scba.show_page, "Inspeção de Chuveiros/LO": inspecao_chuveiros.show_page,
-    "Inspeção de Câmaras de Espuma": inspecao_camaras_espuma.show_page, "Inspeção Multigás": inspecao_multigas.show_page,
-    "Histórico e Logs": historico.show_page, "Utilitários": utilitarios.show_page, "Super Admin": administracao.show_page,
+    "Dashboard": dashboard.show_page, 
+    "Resumo Gerencial": resumo_gerencial.show_page, 
+    "Inspeção de Extintores": inspecao_extintores.show_page, 
+    "Inspeção de Mangueiras": inspecao_mangueiras.show_page,
+    "Inspeção de SCBA": inspecao_scba.show_page, 
+    "Inspeção de Chuveiros/LO": inspecao_chuveiros.show_page,
+    "Inspeção de Câmaras de Espuma": inspecao_camaras_espuma.show_page, 
+    "Inspeção Multigás": inspecao_multigas.show_page,
+    "Histórico e Logs": historico.show_page, 
+    "Utilitários": utilitarios.show_page, 
+    "Super Admin": administracao.show_page,
+    "Meu Perfil": perfil_usuario.show_page,
 }
 
 def main():
@@ -82,25 +89,44 @@ def main():
         if user_plan == 'basico':
             page_options.extend(["Resumo Gerencial"])
         elif user_plan in ['pro', 'premium_ia']:
-            if user_role == 'viewer': page_options.extend(["Resumo Gerencial", "Histórico e Logs"])
-            else: page_options.extend([
+            if user_role == 'viewer': 
+                page_options.extend(["Resumo Gerencial", "Histórico e Logs"])
+            else: 
+                page_options.extend([
                     "Dashboard", "Histórico e Logs", "Inspeção de Extintores", "Inspeção de Mangueiras", 
                     "Inspeção de SCBA", "Inspeção de Chuveiros/LO", "Inspeção de Câmaras de Espuma", 
                     "Inspeção Multigás", "Utilitários"
                 ])
+        
+        # Adiciona "Meu Perfil" para todos os usuários autorizados
+        if "Meu Perfil" not in page_options:
+            page_options.append("Meu Perfil")
+            
         if is_admin() and "Super Admin" not in page_options:
             page_options.append("Super Admin")
         
         icon_map = {
-            "Dashboard": "speedometer2", "Resumo Gerencial": "clipboard-data", "Histórico e Logs": "clock-history",
-            "Inspeção de Extintores": "fire", "Inspeção de Mangueiras": "droplet", "Inspeção de SCBA": "lungs",
-            "Inspeção de Chuveiros/LO": "droplet-half", "Inspeção de Câmaras de Espuma": "cloud-rain-heavy",
-            "Inspeção Multigás": "wind", "Utilitários": "tools", "Super Admin": "person-badge"
+            "Dashboard": "speedometer2", 
+            "Resumo Gerencial": "clipboard-data", 
+            "Histórico e Logs": "clock-history",
+            "Inspeção de Extintores": "fire", 
+            "Inspeção de Mangueiras": "droplet", 
+            "Inspeção de SCBA": "lungs",
+            "Inspeção de Chuveiros/LO": "droplet-half", 
+            "Inspeção de Câmaras de Espuma": "cloud-rain-heavy",
+            "Inspeção Multigás": "wind", 
+            "Utilitários": "tools", 
+            "Super Admin": "person-badge",
+            "Meu Perfil": "person-circle"
         }
         icons = [icon_map.get(page, "question-circle") for page in page_options]
 
         selected_page = option_menu(
-            menu_title="Navegação", options=page_options, icons=icons, menu_icon="compass-fill", default_index=0,
+            menu_title="Navegação", 
+            options=page_options, 
+            icons=icons, 
+            menu_icon="compass-fill", 
+            default_index=0,
             styles={
                 "container": {"padding": "0 !important", "background-color": "transparent"},
                 "icon": {"color": "inherit", "font-size": "15px"},
@@ -111,14 +137,20 @@ def main():
         st.markdown("---")
         show_logout_button()
 
-    if is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
+    # Lógica especial para "Meu Perfil" - sempre permite acesso
+    if selected_page == "Meu Perfil":
+        PAGES[selected_page]()
+    elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
         if selected_page in PAGES:
             PAGES[selected_page]()
         else:
-            if page_options: PAGES[page_options[0]]()
+            if page_options: 
+                PAGES[page_options[0]]()
     else:
-        if is_admin(): st.info("👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
-        else: st.warning("👈 Seu ambiente de dados não pôde ser carregado. Verifique o status da sua conta ou contate o administrador.")
+        if is_admin(): 
+            st.info("👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
+        else: 
+            st.warning("👈 Seu ambiente de dados não pôde ser carregado. Verifique o status da sua conta ou contate o administrador.")
 
 if __name__ == "__main__":
     main()
