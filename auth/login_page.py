@@ -4,7 +4,6 @@ from .auth_utils import is_oidc_available, is_user_logged_in, get_user_display_n
 def show_login_page():
     """Mostra a página de login"""
     st.title("Login do Sistema de Inspeções")
-    st.image("https://sindicom.com.br/wp-content/uploads/2021/11/vibra-sem-fundo.png", width=200)
 
     # A função é usada aqui para verificar se a autenticação é possível
     if not is_oidc_available():
