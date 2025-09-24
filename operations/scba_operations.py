@@ -87,4 +87,59 @@ def save_scba_action_log(equipment_id, problem, action_taken, responsible):
         return True
     except Exception as e:
         st.error(f"Erro ao salvar log de ação para o SCBA {equipment_id}: {e}")
-        return False        
+        return False     
+        
+def save_manual_scba(scba_data):
+    """
+    Salva um novo SCBA manualmente cadastrado.
+    
+    Args:
+        scba_data (dict): Dados do SCBA
+    
+    Returns:
+        bool: True se bem-sucedido, False caso contrário
+    """
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Verificar se o número de série já existe
+        scba_records = uploader.get_data_from_sheet(SCBA_SHEET_NAME)
+        if scba_records and len(scba_records) > 1:
+            df = pd.DataFrame(scba_records[1:], columns=scba_records[0])
+            if 'numero_serie_equipamento' in df.columns and scba_data['numero_serie_equipamento'] in df['numero_serie_equipamento'].values:
+                st.error(f"Erro: SCBA com número de série '{scba_data['numero_serie_equipamento']}' já existe.")
+                return False
+        
+        # Criar linha para a planilha
+        # Importante: a ordem dos campos deve corresponder à ordem das colunas na planilha
+        today = date.today()
+        validade = today + timedelta(days=365)  # Validade padrão de 1 ano
+        
+        data_row = [
+            scba_data.get('data_teste', today.isoformat()),
+            validade.isoformat(),  # data_validade
+            scba_data['numero_serie_equipamento'],
+            scba_data['marca'],
+            scba_data['modelo'],
+            scba_data.get('numero_serie_mascara', 'N/A'),
+            scba_data.get('numero_serie_segundo_estagio', 'N/A'),
+            "APTO PARA USO",  # resultado_final padrão para registro manual
+            "Aprovado",  # vazamento_mascara_resultado
+            "N/A",  # vazamento_mascara_valor
+            "Aprovado",  # vazamento_pressao_alta_resultado
+            "N/A",  # vazamento_pressao_alta_valor
+            "Aprovado",  # pressao_alarme_resultado
+            "N/A",  # pressao_alarme_valor
+            None,  # link_relatorio_pdf
+            get_user_display_name(),  # inspetor_responsavel
+            scba_data.get('empresa_executante', "Cadastro Manual"),
+            scba_data.get('resp_tecnico', "N/A")
+        ]
+        
+        uploader.append_data_to_sheet(SCBA_SHEET_NAME, [data_row])
+        log_action("CADASTROU_SCBA_MANUAL", f"S/N: {scba_data['numero_serie_equipamento']}")
+        return True
+        
+    except Exception as e:
+        st.error(f"Erro ao salvar SCBA: {e}")
+        return False
