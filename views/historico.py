@@ -9,7 +9,7 @@ set_page_config()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from operations.history import load_sheet_data
-from auth.auth_utils import can_edit, setup_sidebar
+from auth.auth_utils import check_user_access, can_view
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SHELTER_SHEET_NAME,
     INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
@@ -95,9 +95,13 @@ def display_formatted_dataframe(sheet_name):
     )
     
 def show_page():
-    
-        
     st.title("Histórico e Logs do Sistema")
+    
+    # Check if user has at least viewer permissions
+    if not check_user_access("viewer"):
+        st.warning("Você não tem permissão para acessar esta página.")
+        return
+        
     st.info("Consulte o histórico de registros e ações para todos os equipamentos do sistema.")
     
     if st.button("Limpar Cache e Recarregar Dados"):
@@ -132,6 +136,5 @@ def show_page():
         with subtabs[1]: display_formatted_dataframe(LOG_SHELTER_SHEET_NAME)
         with subtabs[2]: display_formatted_dataframe(LOG_SCBA_SHEET_NAME)
         with subtabs[3]: display_formatted_dataframe(LOG_EYEWASH_SHEET_NAME)
-        with subtabs[4]: display_formatted_dataframe(LOG_FOAM_CHAMBER_SHEET_NAME)    
-
+        with subtabs[4]: display_formatted_dataframe(LOG_FOAM_CHAMBER_SHEET_NAME)
 
