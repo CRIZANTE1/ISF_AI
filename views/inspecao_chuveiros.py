@@ -28,7 +28,11 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
         
-    tab_inspection, tab_register = st.tabs(["📋 Realizar Inspeção", "➕ Cadastrar Novo Equipamento"])
+    tab_inspection, tab_register, tab_quick_register = st.tabs([
+        "📋 Realizar Inspeção", 
+        "➕ Cadastrar Novo Equipamento (Completo)",
+        "✍️ Cadastro Rápido"
+    ])
 
     # --- ABA DE INSPEÇÃO ---
     with tab_inspection:
@@ -41,12 +45,9 @@ def show_page():
         else:
             df_inventory = load_sheet_data(EYEWASH_INVENTORY_SHEET_NAME)
             
-            # --- LÓGICA CORRIGIDA AQUI ---
             if df_inventory.empty:
-                st.warning("Nenhum equipamento cadastrado. Vá para a aba 'Cadastrar Novo Equipamento' para começar.")
-                # O st.stop() foi removido daqui para permitir que a outra aba seja renderizada.
+                st.warning("Nenhum equipamento cadastrado. Vá para as abas de cadastro para começar.")
             else:
-                # Todo o conteúdo da inspeção agora fica dentro do 'else'
                 equipment_options = df_inventory['id_equipamento'].tolist()
                 options = ["Selecione um equipamento..."] + sorted(equipment_options)
                 
@@ -97,22 +98,45 @@ def show_page():
                                     else:
                                         st.error("Ocorreu um erro ao salvar a inspeção.")
 
-    # --- ABA DE CADASTRO ---
+    # --- ABA DE CADASTRO COMPLETO ---
     with tab_register:
-        st.header("Cadastrar Novo Chuveiro / Lava-Olhos")
+        st.header("Cadastrar Novo Chuveiro / Lava-Olhos (Completo)")
         
         # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novos equipamentos.")
         else:        
             with st.form("new_eyewash_form", clear_on_submit=True):
-                st.info("Preencha os dados do novo equipamento a ser adicionado ao sistema.")
-                new_id = st.text_input("**ID do Equipamento (Obrigatório)**", help="Use um código único, ex: CLO-01")
-                new_location = st.text_input("**Localização (Obrigatório)**", help="Descrição da localização física, ex: Ao lado do Laboratório Químico")
-                new_brand = st.text_input("Marca")
-                new_model = st.text_input("Modelo")
+                st.info("Preencha os dados completos do novo equipamento a ser adicionado ao sistema.")
                 
-                submit_register = st.form_submit_button("➕ Cadastrar Equipamento", type="primary", use_container_width=True)
+                col1, col2 = st.columns(2)
+                new_id = col1.text_input("**ID do Equipamento (Obrigatório)**", help="Use um código único, ex: CLO-01")
+                new_location = col2.text_input("**Localização (Obrigatório)**", help="Descrição da localização física, ex: Ao lado do Laboratório Químico")
+                
+                col3, col4 = st.columns(2)
+                new_brand = col3.text_input("Marca")
+                new_model = col4.text_input("Modelo")
+                
+                # Informações adicionais
+                st.markdown("---")
+                st.subheader("Especificações Técnicas (Opcional)")
+                
+                col5, col6 = st.columns(2)
+                equipment_type = col5.selectbox(
+                    "Tipo de Equipamento",
+                    ["", "Chuveiro de Emergência", "Lava-Olhos", "Chuveiro + Lava-Olhos Combinado", "Chuveiro Portátil", "Lava-Olhos Portátil"]
+                )
+                installation_date = col6.date_input("Data de Instalação", value=None)
+                
+                water_pressure = st.text_input("Pressão da Água (opcional)", placeholder="Ex: 2,5 bar")
+                flow_rate = st.text_input("Taxa de Fluxo (opcional)", placeholder="Ex: 76 L/min (chuveiro), 5,7 L/min (lava-olhos)")
+                
+                additional_notes = st.text_area(
+                    "Observações Adicionais",
+                    placeholder="Informações sobre instalação, manutenções anteriores, etc."
+                )
+                
+                submit_register = st.form_submit_button("➕ Cadastrar Equipamento Completo", type="primary", use_container_width=True)
                 
                 if submit_register:
                     if not new_id or not new_location:
@@ -121,6 +145,55 @@ def show_page():
                         with st.spinner("Cadastrando novo equipamento..."):
                             if save_new_eyewash_station(new_id, new_location, new_brand, new_model):
                                 st.success(f"Equipamento '{new_id}' cadastrado com sucesso!")
+                                if additional_notes:
+                                    st.info(f"Observações registradas: {additional_notes}")
                                 st.cache_data.clear()
-                            # A mensagem de erro já é tratada dentro da função
 
+    # --- NOVA ABA DE CADASTRO RÁPIDO ---
+    with tab_quick_register:
+        st.header("Cadastro Rápido de Equipamento")
+        
+        # Check for edit permissions
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para cadastrar novos equipamentos.")
+        else:
+            st.info("Use este formulário simplificado para cadastrar rapidamente um chuveiro/lava-olhos com informações básicas.")
+            
+            with st.form("quick_eyewash_form", clear_on_submit=True):
+                st.subheader("Dados Essenciais")
+                
+                quick_id = st.text_input("ID do Equipamento*", placeholder="CLO-001")
+                quick_location = st.text_input("Localização*", placeholder="Laboratório - Setor A")
+                
+                # Tipo pré-definido
+                quick_type = st.selectbox(
+                    "Tipo de Equipamento",
+                    ["Chuveiro de Emergência", "Lava-Olhos", "Chuveiro + Lava-Olhos Combinado"]
+                )
+                
+                # Marca comum
+                common_brands = ["", "HAWS", "BRADLEY", "SPEAKMAN", "GUARDIAN", "ENWARE", "OUTRO"]
+                quick_brand = st.selectbox("Marca (opcional)", common_brands)
+                
+                if quick_brand == "OUTRO":
+                    custom_brand = st.text_input("Digite a marca:")
+                    final_brand = custom_brand
+                else:
+                    final_brand = quick_brand
+                
+                quick_submit = st.form_submit_button("Cadastrar Rápido", type="primary", use_container_width=True)
+                
+                if quick_submit:
+                    if not quick_id or not quick_location:
+                        st.error("ID e Localização são obrigatórios.")
+                    else:
+                        # Usa o tipo selecionado como modelo se não houver marca específica
+                        model_to_use = quick_type if not final_brand else ""
+                        
+                        with st.spinner("Cadastrando..."):
+                            if save_new_eyewash_station(quick_id, quick_location, final_brand, model_to_use):
+                                st.success(f"Equipamento '{quick_id}' ({quick_type}) cadastrado rapidamente!")
+                                st.balloons()
+                                st.cache_data.clear()
+                            else:
+                                st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
