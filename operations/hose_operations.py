@@ -7,6 +7,8 @@ from gdrive.config import HOSE_SHEET_NAME
 from utils.auditoria import log_action
 from auth.auth_utils import get_user_display_name
 
+
+# Nova função a ser adicionada
 def save_new_hose(hose_data):
     """
     Salva uma nova mangueira na planilha.
@@ -54,6 +56,4 @@ def save_new_hose(hose_data):
         st.error(f"Erro ao salvar nova mangueira: {e}")
         return False
 
-# Funções adicionais para gerenciamento de mangueiras podem ser adicionadas aqui conforme necessário
-# Por exemplo, funções para atualizar mangueiras, calcular próximas datas de teste, etc.
-
+# Mantenha todas as outras funções que possam existir no arquivo original
