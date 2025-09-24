@@ -6,16 +6,14 @@ import pytz
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import USERS_SHEET_NAME, ACCESS_REQUESTS_SHEET_NAME
 
+
+def is_oidc_available():
+    try: return hasattr(st.user, 'is_logged_in')
+    except Exception: return False
+
 def is_user_logged_in():
     try: return st.user.is_logged_in
     except Exception: return False
-
-def is_oidc_available():
-    """Verifica se o componente de autenticação do Streamlit (st.user) está disponível."""
-    try:
-        return hasattr(st.user, 'is_logged_in')
-    except Exception:
-        return False
 
 def get_user_display_name():
     try:
@@ -29,6 +27,7 @@ def get_user_email() -> str | None:
         if hasattr(st.user, 'email') and st.user.email: return st.user.email.lower().strip()
         return None
     except Exception: return None
+
 
 @st.cache_data(ttl=600, show_spinner="Verificando permissões de usuário...")
 def get_users_data():
@@ -54,6 +53,7 @@ def get_user_info() -> dict | None:
     if users_df.empty: return None
     user_entry = users_df[users_df['email'] == user_email]
     return user_entry.iloc[0].to_dict() if not user_entry.empty else None
+
 
 def get_effective_user_status() -> str:
     user_info = get_user_info()
@@ -82,10 +82,24 @@ def get_user_role():
     user_info = get_user_info()
     return user_info.get('role', 'viewer') if user_info else 'viewer'
 
+
+def can_edit():
+    """Verifica se o usuário tem permissão para editar (admin ou editor)."""
+    return get_user_role() in ['admin', 'editor']
+
+def can_view():
+    """Verifica se o usuário tem permissão para visualizar (qualquer perfil logado e autorizado)."""
+    return get_user_role() in ['admin', 'editor', 'viewer']
+
+
 def is_admin(): return get_user_role() == 'admin'
 def has_pro_features(): return get_effective_user_plan() in ['pro', 'premium_ia']
 def has_ai_features(): return get_effective_user_plan() == 'premium_ia'
 
+
+# ==============================================================================
+# SEÇÃO 5: SETUP DA SESSÃO E SIDEBAR
+# ==============================================================================
 def setup_sidebar():
     user_info = get_user_info()
     effective_status = get_effective_user_status()
