@@ -13,8 +13,8 @@ python-dateutil
 # ========================
 # Google APIs & Autenticação
 # ========================
-google-api-python-client>=2.108.0
-google-auth-httplib2>=0.1.1
+google-api-python-client
+google-auth-httplib2
 google-auth-oauthlib
 google-generativeai
 authlib
