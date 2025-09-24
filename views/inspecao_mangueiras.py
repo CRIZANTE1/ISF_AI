@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Imports necessários para o novo fluxo
 from operations.shelter_operations import save_shelter_inventory, save_shelter_inspection
+from operations.hose_operations import save_new_hose
 from gdrive.gdrive_upload import GoogleDriveUploader
 from AI.api_Operation import PDFQA
 from gdrive.config import SHELTER_SHEET_NAME, HOSE_SHEET_NAME, AUDIT_LOG_SHEET_NAME
@@ -20,7 +21,7 @@ from auth.auth_utils import (
     get_user_display_name, get_user_email, get_user_role,
     check_user_access, can_edit, has_ai_features
 )
-from utils.auditoria import get_sao_paulo_time_str
+from utils.auditoria import get_sao_paulo_time_str, log_action
 from config.page_config import set_page_config
 
 set_page_config()
@@ -34,8 +35,10 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    tab_hoses, tab_shelters, tab_shelters_insp = st.tabs([
+    # Adicionando uma nova aba para cadastro manual de mangueiras
+    tab_hoses, tab_manual_hose, tab_shelters, tab_shelters_insp = st.tabs([
         "Inspeção de Mangueiras com IA", 
+        "Cadastro Manual de Mangueiras",
         "Cadastro de Abrigos de Emergência",
         "Inspeção de Abrigos"
     ])
@@ -48,7 +51,7 @@ def show_page():
             st.warning("Você precisa de permissões de edição para registrar testes de mangueiras.")
         # Check for AI features
         elif not has_ai_features():
-            st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho!", icon="🚀")
+            st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou utilize a aba 'Cadastro Manual de Mangueiras'.", icon="🚀")
         else:
             st.session_state.setdefault('hose_step', 'start')
             st.session_state.setdefault('hose_processed_data', None)
@@ -153,6 +156,70 @@ def show_page():
                         except Exception as e:
                             st.error(f"Ocorreu um erro durante o salvamento em lote: {e}")
 
+    # Nova aba de cadastro manual de mangueiras
+    with tab_manual_hose:
+        st.header("Cadastrar Nova Mangueira Manualmente")
+        
+        # Check for edit permissions
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para cadastrar novas mangueiras.")
+            st.info("Os dados abaixo são somente para visualização.")
+        else:
+            st.info("Use este formulário para cadastrar uma nova mangueira sem necessidade de importar um certificado.")
+            
+            with st.form("new_hose_form", clear_on_submit=True):
+                st.subheader("Dados da Mangueira")
+                
+                col1, col2 = st.columns(2)
+                
+                # Primeira linha
+                hose_id = col1.text_input("ID da Mangueira (Obrigatório)*")
+                marca = col2.text_input("Marca/Fabricante")
+                
+                # Segunda linha
+                diametro_options = ["1", "1 1/2", "2", "2 1/2", "3"]
+                diametro = col1.selectbox("Diâmetro (polegadas)", diametro_options)
+                
+                tipo_options = ["1", "2", "3", "4", "5"]
+                tipo = col2.selectbox("Tipo", tipo_options)
+                
+                # Terceira linha
+                comprimento_options = ["15", "20", "25", "30"]
+                comprimento = col1.selectbox("Comprimento (metros)", comprimento_options)
+                
+                current_year = date.today().year
+                ano_fabricacao = col2.number_input("Ano de Fabricação", 
+                                                   min_value=current_year-30,  
+                                                   max_value=current_year, 
+                                                   value=current_year)
+                
+                st.markdown("---")
+                
+                # Opcional - dados da empresa que forneceu
+                empresa_executante = st.text_input("Empresa Fornecedora (opcional)")
+                
+                # Botão de envio
+                submitted = st.form_submit_button("Cadastrar Nova Mangueira", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not hose_id:
+                        st.error("O campo 'ID da Mangueira' é obrigatório.")
+                    else:
+                        hose_data = {
+                            'id_mangueira': hose_id,
+                            'marca': marca,
+                            'diametro': diametro,
+                            'tipo': tipo,
+                            'comprimento': comprimento,
+                            'ano_fabricacao': str(ano_fabricacao),
+                            'empresa_executante': empresa_executante
+                        }
+                        
+                        if save_new_hose(hose_data):
+                            st.success(f"Mangueira '{hose_id}' cadastrada com sucesso!")
+                            st.cache_data.clear()
+                            st.balloons()
+
     with tab_shelters:
         st.header("Cadastrar Abrigos de Emergência com IA")
         
@@ -161,7 +228,7 @@ def show_page():
             st.warning("Você precisa de permissões de edição para cadastrar abrigos.")
         # Check for AI features
         elif not has_ai_features():
-            st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho!", icon="🚀")
+            st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou cadastre manualmente na aba 'Inspeção de Abrigos'.", icon="🚀")
         else:
             # Gerenciamento de estado para a aba de abrigos
             st.session_state.setdefault('shelter_step', 'start')
@@ -181,7 +248,7 @@ def show_page():
             
             if st.session_state.shelter_uploaded_pdf and st.button("🔎 Analisar Inventário com IA", key="shelter_analyze_btn"):
                 with st.spinner("Analisando o documento..."):
-                    prompt = get_shelter_inventory_prompt() # <-- Usando o novo prompt
+                    prompt = get_shelter_inventory_prompt()
                     extracted_data = pdf_qa.extract_structured_data(st.session_state.shelter_uploaded_pdf, prompt)
                     
                     if extracted_data and "abrigos" in extracted_data and isinstance(extracted_data["abrigos"], list):
@@ -230,11 +297,108 @@ def show_page():
         if not can_edit():
             st.warning("Você precisa de permissões de edição para realizar inspeções de abrigos.")
         else:
+            # Cadastro Manual de Abrigos
+            with st.expander("➕ Cadastrar Novo Abrigo Manualmente", expanded=False):
+                st.info("Use este formulário para cadastrar um novo abrigo sem necessidade de processamento por IA.")
+                
+                with st.form("manual_shelter_form", clear_on_submit=True):
+                    st.subheader("Dados Básicos do Abrigo")
+                    
+                    col1, col2 = st.columns(2)
+                    shelter_id = col1.text_input("ID do Abrigo (Obrigatório)*", help="Ex: ABR-01, CECI-02, etc.")
+                    client = col2.text_input("Cliente/Unidade", value=st.session_state.get('current_unit_name', ''))
+                    
+                    local = st.text_input("Localização (Obrigatório)*", help="Descrição detalhada do local onde o abrigo está instalado")
+                    
+                    st.markdown("---")
+                    st.subheader("Inventário de Itens")
+                    st.markdown("Adicione os itens que compõem o abrigo e suas quantidades:")
+                    
+                    # Definir itens padrão comuns em abrigos
+                    standard_items = [
+                        "Mangueira de 1½\"", 
+                        "Mangueira de 2½\"",
+                        "Esguicho de 1½\"", 
+                        "Esguicho de 2½\"", 
+                        "Chave de Mangueira",
+                        "Chave de Hidrante", 
+                        "Chave Storz", 
+                        "Derivante/Divisor", 
+                        "Redutor",
+                        "Adaptador"
+                    ]
+                    
+                    # Estado para armazenar os itens do inventário
+                    if 'inventory_items' not in st.session_state:
+                        st.session_state.inventory_items = {}
+                    
+                    # Interface para adicionar novos itens
+                    col1, col2, col3 = st.columns([3, 1, 1])
+                    
+                    with col1:
+                        new_item = st.selectbox(
+                            "Item", 
+                            options=["Selecione ou digite..."] + standard_items,
+                            index=0
+                        )
+                        if new_item == "Selecione ou digite...":
+                            new_item = st.text_input("Ou digite um novo item:")
+                    
+                    with col2:
+                        quantity = st.number_input("Quantidade", min_value=0, value=1, step=1)
+                    
+                    with col3:
+                        st.write("")  # Espaço para alinhar com os outros campos
+                        if st.button("Adicionar Item"):
+                            if new_item and new_item != "Selecione ou digite..." and quantity > 0:
+                                st.session_state.inventory_items[new_item] = quantity
+                                st.success(f"Item '{new_item}' adicionado!")
+                                st.experimental_rerun()
+                    
+                    # Mostrar itens adicionados
+                    if st.session_state.inventory_items:
+                        st.markdown("**Itens do Inventário:**")
+                        
+                        for i, (item, qty) in enumerate(st.session_state.inventory_items.items()):
+                            col1, col2, col3 = st.columns([3, 1, 1])
+                            with col1:
+                                st.text(item)
+                            with col2:
+                                st.text(f"Qtd: {qty}")
+                            with col3:
+                                if st.button("Remover", key=f"remove_{i}"):
+                                    del st.session_state.inventory_items[item]
+                                    st.experimental_rerun()
+                    else:
+                        st.info("Nenhum item adicionado ao inventário ainda.")
+                    
+                    # Botão para salvar o abrigo
+                    submitted = st.form_submit_button("Cadastrar Novo Abrigo", type="primary", use_container_width=True)
+                    
+                    if submitted:
+                        if not shelter_id or not local:
+                            st.error("Os campos 'ID do Abrigo' e 'Localização' são obrigatórios.")
+                        elif not st.session_state.inventory_items:
+                            st.error("É necessário adicionar pelo menos um item ao inventário.")
+                        else:
+                            # Salvar o abrigo no sistema
+                            if save_shelter_inventory(shelter_id, client, local, st.session_state.inventory_items):
+                                st.success(f"Abrigo '{shelter_id}' cadastrado com sucesso!")
+                                # Limpar o inventário para o próximo cadastro
+                                st.session_state.inventory_items = {}
+                                st.cache_data.clear()
+                                st.balloons()
+                                st.experimental_rerun()
+            
+            # Inspeção de Abrigos
+            st.markdown("---")
+            st.subheader("Inspeção de Abrigo Existente")
+            
             # Carregar a lista de abrigos cadastrados
             df_shelters = load_sheet_data(SHELTER_SHEET_NAME)
             
             if df_shelters.empty:
-                st.warning("Nenhum abrigo cadastrado. Por favor, cadastre um abrigo na aba 'Cadastro de Abrigos' primeiro.")
+                st.warning("Nenhum abrigo cadastrado. Por favor, cadastre um abrigo utilizando o formulário acima primeiro.")
             else:
                 shelter_ids = ["Selecione um abrigo..."] + df_shelters['id_abrigo'].tolist()
                 selected_shelter_id = st.selectbox("Selecione o Abrigo para Inspecionar", shelter_ids)
@@ -291,6 +455,6 @@ def show_page():
                                     st.balloons() if not has_issues else None
                                     st.cache_data.clear()
                                 else:
-                                    st.error("Ocorreu um erro ao salvar a inspeção.")
+                                    st.error("Ocorreu um erro ao salvar a inspeção.")v
 
 
