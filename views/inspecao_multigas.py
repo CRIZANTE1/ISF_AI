@@ -5,7 +5,7 @@ import os
 import json  
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval 
-
+import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data
@@ -39,10 +39,11 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    tab_inspection, tab_calibration, tab_register = st.tabs([
+    tab_inspection, tab_calibration, tab_register, tab_manual = st.tabs([
         "📋 Registrar Teste de Resposta", 
-        "📄 Registrar Calibração Anual (PDF)", 
-        "➕ Cadastrar Novo Detector"
+        "📄 Registrar Calibração Anual (PDF)",
+        "➕ Cadastrar Novo Detector",
+        "📝 Cadastro Manual"
     ])
 
     with tab_calibration:
@@ -116,207 +117,4 @@ def show_page():
 
                         # Upload do PDF
                         uploader = GoogleDriveUploader()
-                        pdf_name = f"Certificado_Multigas_{inspection_record['numero_certificado']}_{inspection_record['id_equipamento']}.pdf"
-                        pdf_link = uploader.upload_file(st.session_state.calib_uploaded_pdf, novo_nome=pdf_name)
-                        
-                        if pdf_link:
-                            inspection_record['link_certificado'] = pdf_link
-                        else:
-                            st.error("Falha ao fazer upload do certificado. O registro não foi salvo.")
-                            st.stop()
-
-                        if save_multigas_inspection(inspection_record):
-                            st.success("Registro de calibração salvo com sucesso!")
-                            st.balloons()
-                            # Limpar estado
-                            st.session_state.calib_step = 'start'
-                            st.session_state.calib_data = None
-                            st.session_state.calib_status = None
-                            st.session_state.calib_uploaded_pdf = None
-                            st.cache_data.clear()
-                            st.rerun()
-
-    with tab_inspection:
-        st.header("Registrar Teste de Resposta (Bump Test)")
-        
-        # Check for edit permission for this functionality
-        if not can_edit():
-            st.warning("Você precisa de permissões de edição para registrar testes de resposta.")
-        else:
-            # --- INÍCIO DA SEÇÃO DE RELATÓRIO MENSAL (MODIFICADA) ---
-            with st.expander("📄 Gerar Relatório Mensal de Bump Tests"):
-                df_inspections_full = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
-                df_inventory_full = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
-                
-                if df_inspections_full.empty:
-                    st.info("Nenhum teste de resposta registrado no sistema para gerar relatórios.")
-                else:
-                    # Converte a coluna de data para o formato datetime para permitir a filtragem
-                    df_inspections_full['data_teste_dt'] = pd.to_datetime(df_inspections_full['data_teste'], errors='coerce')
-
-                    # Filtros para mês e ano
-                    now_str = get_sao_paulo_time_str()
-                    today_sao_paulo = datetime.strptime(now_str, '%Y-%m-%d %H:%M:%S')
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        years_with_data = sorted(df_inspections_full['data_teste_dt'].dt.year.unique(), reverse=True)
-                        if not years_with_data:
-                            years_with_data = [today_sao_paulo.year]
-                        selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="multigas_report_year")
-                    
-                    with col2:
-                        months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-                        # Sugere o mês atual como padrão
-                        default_month_index = today_sao_paulo.month - 1
-                        selected_month_name = st.selectbox("Selecione o Mês:", months, index=default_month_index, key="multigas_report_month")
-                    
-                    selected_month_number = months.index(selected_month_name) + 1
-
-                    # Filtra os dados pelo mês e ano selecionados
-                    tests_selected_month = df_inspections_full[
-                        (df_inspections_full['data_teste_dt'].dt.year == selected_year) &
-                        (df_inspections_full['data_teste_dt'].dt.month == selected_month_number) &
-                        (df_inspections_full['tipo_teste'] != 'Calibração Anual')
-                    ].sort_values(by='data_teste_dt')
-
-                    if tests_selected_month.empty:
-                        st.info(f"Nenhum teste de resposta foi registrado em {selected_month_name} de {selected_year}.")
-                    else:
-                        st.write(f"Encontrados {len(tests_selected_month)} testes em {selected_month_name}/{selected_year}. Clique abaixo para gerar o relatório.")
-                        if st.button("Gerar e Imprimir Relatório do Mês", width='stretch', type="primary"):
-                            unit_name = st.session_state.get('current_unit_name', 'N/A')
-                            report_html = generate_bump_test_html(tests_selected_month, df_inventory_full, unit_name)
-                            
-                            js_code = f"""
-                                const reportHtml = {json.dumps(report_html)};
-                                const printWindow = window.open('', '_blank');
-                                if (printWindow) {{
-                                    printWindow.document.write(reportHtml);
-                                    printWindow.document.close();
-                                    printWindow.focus();
-                                    setTimeout(() => {{ printWindow.print(); printWindow.close(); }}, 500);
-                                }} else {{
-                                    alert('Por favor, desabilite o bloqueador de pop-ups para este site.');
-                                }}
-                            """
-                            streamlit_js_eval(js_expressions=js_code, key="print_monthly_bump_test_js")
-                            st.success("Relatório enviado para impressão!")
-            st.markdown("---")
-            # --- FIM DA SEÇÃO DE RELATÓRIO ---
-
-            df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
-
-            if df_inventory.empty:
-                st.warning("Nenhum detector cadastrado. Vá para a aba 'Cadastrar Novo Detector' para começar.")
-            else:
-                detector_options = ["Selecione um detector..."] + df_inventory['id_equipamento'].tolist()
-                selected_id = st.selectbox("Selecione o Equipamento", detector_options)
-
-                if selected_id != "Selecione um detector...":
-                    detector_info = df_inventory[df_inventory['id_equipamento'] == selected_id].iloc[0]
-                    
-                    st.subheader("Dados do Equipamento Selecionado")
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Marca", detector_info.get('marca', 'N/A'))
-                    c2.metric("Modelo", detector_info.get('modelo', 'N/A'))
-                    c3.metric("Nº Série", detector_info.get('numero_serie', 'N/A'))
-
-                    st.subheader("Valores de Referência do Cilindro (atuais)")
-                    c4, c5, c6, c7 = st.columns(4)
-                    c4.metric("LEL (% LEL)", f"{detector_info.get('LEL_cilindro', 0)}")
-                    c5.metric("O² (% Vol)", f"{detector_info.get('O2_cilindro', 0)}")
-                    c6.metric("H²S (ppm)", f"{detector_info.get('H2S_cilindro', 0)}")
-                    c7.metric("CO (ppm)", f"{detector_info.get('CO_cilindro', 0)}")
-
-                    with st.form(f"inspection_form_{selected_id}", clear_on_submit=True):
-                        st.markdown("---")
-                        
-                        if st.toggle("Atualizar valores de referência do cilindro?"):
-                            st.warning("Os novos valores informados abaixo serão salvos permanentemente para este detector.")
-                            st.subheader("Novos Valores de Referência do Cilindro")
-                            nc1, nc2, nc3, nc4 = st.columns(4)
-                            new_lel_cylinder = nc1.number_input("LEL (% LEL)", step=0.1, format="%.1f", key="new_lel", value=float(detector_info.get('LEL_cilindro', 0)))
-                            new_o2_cylinder = nc2.number_input("O² (% Vol)", step=0.1, format="%.1f", key="new_o2", value=float(detector_info.get('O2_cilindro', 0)))
-                            new_h2s_cylinder = nc3.number_input("H²S (ppm)", step=1, key="new_h2s", value=int(detector_info.get('H2S_cilindro', 0)))
-                            new_co_cylinder = nc4.number_input("CO (ppm)", step=1, key="new_co", value=int(detector_info.get('CO_cilindro', 0)))
-
-                        st.subheader("Registro do Teste")
-                        
-                        now_str = get_sao_paulo_time_str()
-                        now_dt = datetime.strptime(now_str, '%Y-%m-%d %H:%M:%S')
-                        
-                        c8, c9 = st.columns(2)
-                        test_date = c8.date_input("Data do Teste", value=now_dt.date())
-                        test_time = c9.time_input("Hora do Teste", value=now_dt.time())
-
-                        st.write("**Valores Encontrados no Teste:**")
-                        c10, c11, c12, c13 = st.columns(4)
-                        lel_found = c10.text_input("LEL")
-                        o2_found = c11.text_input("O²")
-                        h2s_found = c12.text_input("H²S")
-                        co_found = c13.text_input("CO")
-                        
-                        test_type = st.radio("Tipo de Teste", ["Periódico", "Extraordinário"], horizontal=True)
-
-                        st.subheader("Responsável pelo Teste")
-                        c16, c17 = st.columns(2)
-                        resp_name = c16.text_input("Nome", value=get_user_display_name())
-                        resp_id = c17.text_input("Matrícula")
-
-                        submit_insp = st.form_submit_button("💾 Salvar Teste", width='stretch')
-                        
-                        if submit_insp:
-                            # Pega os valores de referência corretos (os atuais ou os novos, se o toggle estiver ativo)
-                            reference_values = {
-                                'LEL': st.session_state.new_lel if 'new_lel' in st.session_state else detector_info.get('LEL_cilindro'),
-                                'O2': st.session_state.new_o2 if 'new_o2' in st.session_state else detector_info.get('O2_cilindro'),
-                                'H2S': st.session_state.new_h2s if 'new_h2s' in st.session_state else detector_info.get('H2S_cilindro'),
-                                'CO': st.session_state.new_co if 'new_co' in st.session_state else detector_info.get('CO_cilindro')
-                            }
-                            found_values = {
-                                'LEL': lel_found, 'O2': o2_found,
-                                'H2S': h2s_found, 'CO': co_found
-                            }
-
-                            # Chama a função de verificação
-                            auto_result, auto_observation = verify_bump_test(reference_values, found_values)
-
-                            # Exibe o resultado automático para o usuário antes de salvar
-                            st.subheader("Resultado da Verificação Automática")
-                            if auto_result == "Aprovado":
-                                st.success(f"✔️ **Resultado:** {auto_result}")
-                            else:
-                                st.error(f"❌ **Resultado:** {auto_result}")
-                            st.info(f"**Observações Geradas:** {auto_observation}")
-                            
-                            # Se o toggle de atualização estiver ativo, atualiza os valores no inventário
-                            if 'new_lel' in st.session_state:
-                                if update_cylinder_values(selected_id, reference_values):
-                                    st.success("Valores de referência do cilindro atualizados com sucesso!")
-                                else:
-                                    st.error("Falha ao atualizar valores de referência. O teste não foi salvo.")
-                                    st.stop() # Interrompe se a atualização falhar
-                            
-                            inspection_data = {
-                                "data_teste": test_date.isoformat(),
-                                "hora_teste": test_time.strftime("%H:%M:%S"),
-                                "id_equipamento": selected_id,
-                                "LEL_encontrado": lel_found, "O2_encontrado": o2_found,
-                                "H2S_encontrado": h2s_found, "CO_encontrado": co_found,
-                                "tipo_teste": test_type, 
-                                "resultado_teste": auto_result,
-                                "observacoes": auto_observation,
-                                "responsavel_nome": resp_name, 
-                                "responsavel_matricula": resp_id
-                            }
-                            
-                            with st.spinner("Salvando o registro..."):
-                                if save_multigas_inspection(inspection_data):
-                                    st.success(f"Teste para o detector '{selected_id}' salvo com sucesso!")
-                                    st.cache_data.clear()
-                                    # Limpa as chaves para resetar o toggle e os inputs
-                                    keys_to_clear = ['new_lel', 'new_o2', 'new_h2s', 'new_co']
-                                    for key in keys_to_clear:
-                                        if key in st.session_state:
-                                            del st.session_state[key]
+                        pdf_name = f"Certificado_Multigas_{inspection_record['numero_certificado']}_{inspection_record['id_equip
