@@ -109,9 +109,38 @@ def get_user_role():
     user_info = get_user_info()
     return user_info.get('role', 'viewer') if user_info else 'viewer'
 
-def can_edit(): return get_user_role() in ['admin', 'editor']
-def can_view(): return get_user_role() in ['admin', 'editor', 'viewer']
-def is_admin(): return get_user_role() == 'admin'
+def check_user_access(required_role="viewer"):
+    """
+    Checks if the current user has the required role or higher.
+    Returns True if authorized, False otherwise.
+    
+    Roles hierarchy (highest to lowest):
+    - superuser (special role)
+    - admin
+    - editor
+    - viewer
+    
+    Usage:
+        if not check_user_access("editor"):
+            st.warning("You need editor permissions or higher.")
+            return
+    """
+    role_hierarchy = {"viewer": 1, "editor": 2, "admin": 3}
+    user_role = get_user_role()
+    
+    # Superuser always has access
+    if is_superuser():
+        return True
+        
+    # If required_role isn't in the hierarchy, default to viewer
+    required_level = role_hierarchy.get(required_role, 1)
+    user_level = role_hierarchy.get(user_role, 0)
+    
+    return user_level >= required_level
+
+def can_edit(): return check_user_access("editor")
+def can_view(): return check_user_access("viewer") 
+def is_admin(): return check_user_access("admin")
 def has_pro_features(): return get_effective_user_plan() in ['pro', 'premium_ia']
 def has_ai_features(): return get_effective_user_plan() == 'premium_ia'
 
