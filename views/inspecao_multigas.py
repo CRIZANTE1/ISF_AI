@@ -5,6 +5,7 @@ import os
 import json  
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval 
+import numpy as np
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -26,8 +27,8 @@ from auth.auth_utils import (
 )
 from config.page_config import set_page_config
 from reports.multigas_report import generate_bump_test_html
-from utils.auditoria import get_sao_paulo_time_str 
-from datetime import datetime
+from utils.auditoria import get_sao_paulo_time_str, log_action 
+from datetime import datetime, date
 
 set_page_config()
 
@@ -39,10 +40,11 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    tab_inspection, tab_calibration, tab_register = st.tabs([
+    tab_inspection, tab_calibration, tab_register, tab_manual_register = st.tabs([
         "📋 Registrar Teste de Resposta", 
-        "📄 Registrar Calibração Anual (PDF)", 
-        "➕ Cadastrar Novo Detector"
+        "📄 Registrar Calibração Anual (PDF)",
+        "➕ Cadastrar Novo Detector",
+        "✍️ Cadastro Manual de Detector"  # Nova aba adicionada
     ])
 
     with tab_calibration:
@@ -320,3 +322,90 @@ def show_page():
                                     for key in keys_to_clear:
                                         if key in st.session_state:
                                             del st.session_state[key]
+    
+    with tab_register:
+        st.header("Cadastrar Novo Detector")
+        
+        # Check for edit permission for this functionality
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para cadastrar novos detectores.")
+        else:
+            st.info("Este formulário permite adicionar um novo detector multigás com informações completas.")
+            
+            with st.form("new_detector_form", clear_on_submit=True):
+                st.subheader("Dados do Equipamento")
+                
+                col1, col2, col3 = st.columns(3)
+                detector_id = col1.text_input("ID do Equipamento (Obrigatório)*", 
+                                              help="Código de identificação único, ex: MG-001")
+                brand = col2.text_input("Marca")
+                model = col3.text_input("Modelo")
+                
+                serial_number = st.text_input("Número de Série (Obrigatório)*")
+                
+                st.subheader("Valores do Cilindro de Gás")
+                st.info("Estes são os valores de referência do cilindro de gás padrão utilizado nos testes.")
+                
+                col4, col5, col6, col7 = st.columns(4)
+                lel_cyl = col4.number_input("LEL (% LEL)", min_value=0.0, value=50.0, step=0.1, format="%.1f")
+                o2_cyl = col5.number_input("O² (% Vol)", min_value=0.0, value=18.0, step=0.1, format="%.1f")
+                h2s_cyl = col6.number_input("H²S (ppm)", min_value=0, value=25, step=1)
+                co_cyl = col7.number_input("CO (ppm)", min_value=0, value=100, step=1)
+                
+                submitted = st.form_submit_button("Cadastrar Detector", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not detector_id or not serial_number:
+                        st.error("Os campos 'ID do Equipamento' e 'Número de Série' são obrigatórios.")
+                    else:
+                        cylinder_values = {
+                            'LEL': lel_cyl,
+                            'O2': o2_cyl,
+                            'H2S': h2s_cyl,
+                            'CO': co_cyl
+                        }
+                        
+                        if save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
+                            st.success(f"Detector '{detector_id}' cadastrado com sucesso!")
+                            st.balloons()
+                            st.cache_data.clear()
+
+    # Nova aba para cadastro manual simplificado
+    with tab_manual_register:
+        st.header("Cadastro Manual Simplificado")
+        
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para cadastrar equipamentos.")
+        else:
+            st.info("Use este formulário simplificado para cadastrar rapidamente um detector multigás, com valores padrão de cilindro.")
+            
+            with st.form("simple_detector_form", clear_on_submit=True):
+                st.subheader("Dados Básicos do Detector")
+                
+                col1, col2 = st.columns(2)
+                simple_id = col1.text_input("ID do Detector (Obrigatório)*", placeholder="MG-001")
+                simple_serial = col2.text_input("Número de Série (Obrigatório)*")
+                
+                col3, col4 = st.columns(2)
+                simple_brand = col3.text_input("Marca", value="BW Technologies")
+                simple_model = col4.text_input("Modelo", value="GasAlert Max XT II")
+                
+                st.info("Valores padrão do cilindro serão configurados automaticamente: LEL (50%), O² (18%), H²S (25 ppm), CO (100 ppm)")
+                
+                simple_submit = st.form_submit_button("Cadastrar Rápido", type="primary", use_container_width=True)
+                
+                if simple_submit:
+                    if not simple_id or not simple_serial:
+                        st.error("Os campos 'ID do Detector' e 'Número de Série' são obrigatórios.")
+                    else:
+                        # Valores padrão para o cilindro
+                        default_cylinder = {
+                            'LEL': 50.0,
+                            'O2': 18.0,
+                            'H2S': 25,
+                            'CO': 100
+                        }
+                        
+                        if save_new_multigas_detector(simple_id, simple_brand, simple_model, simple_serial, default_cylinder):
+                            st.success(f"Detector '{simple_id}' cadastrado com sucesso com valores padrão de cilindro!")
+                            st.cache_data.clear()
