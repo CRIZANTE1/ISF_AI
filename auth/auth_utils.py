@@ -28,7 +28,9 @@ def get_user_email() -> str | None:
         return None
     except Exception: return None
 
-
+# ==============================================================================
+# SEÇÃO 2: ACESSO AOS DADOS DA PLANILHA MATRIZ
+# ==============================================================================
 @st.cache_data(ttl=600, show_spinner="Verificando permissões de usuário...")
 def get_users_data():
     try:
@@ -61,15 +63,33 @@ def get_effective_user_status() -> str:
     sheet_status = user_info.get('status', 'inativo')
     trial_end_date = user_info.get('trial_end_date')
     if sheet_status != 'ativo': return sheet_status
-    if trial_end_date and isinstance(trial_end_date, date) and date.today() > trial_end_date:
-        return 'trial_expirado'
+    
+    if not pd.isna(trial_end_date) and isinstance(trial_end_date, date):
+        if date.today() > trial_end_date:
+            return 'trial_expirado'
+            
     return sheet_status
 
 def is_on_trial() -> bool:
+    """
+    Verifica se o usuário está atualmente em um período de teste ativo.
+    Esta versão é segura contra valores vazios (NaT) na planilha.
+    """
     user_info = get_user_info()
-    if not user_info: return False
+    if not user_info:
+        return False
+    
     trial_end_date = user_info.get('trial_end_date')
-    return trial_end_date and isinstance(trial_end_date, date) and date.today() <= trial_end_date
+
+    # GUARDA: Verifica se a data é inválida (vazia, NaT, None).
+    # pd.isna() é a forma correta de checar "Not a Time" do Pandas.
+    if pd.isna(trial_end_date):
+        return False
+
+    # Se passamos da guarda, sabemos que é uma data válida e podemos comparar com segurança.
+    # A conversão para um objeto date já foi feita em get_users_data.
+    return date.today() <= trial_end_date
+# --- FIM DA FUNÇÃO CORRIGIDA ---
 
 def get_effective_user_plan() -> str:
     user_info = get_user_info()
@@ -78,24 +98,22 @@ def get_effective_user_plan() -> str:
     if is_on_trial(): return 'premium_ia'
     return sheet_plan
 
+# ==============================================================================
+# SEÇÃO 4: FUNÇÕES AUXILIARES DE PERMISSÃO (BASEADAS EM PERFIL E PLANO)
+# ==============================================================================
 def get_user_role():
     user_info = get_user_info()
     return user_info.get('role', 'viewer') if user_info else 'viewer'
 
-
 def can_edit():
-    """Verifica se o usuário tem permissão para editar (admin ou editor)."""
     return get_user_role() in ['admin', 'editor']
 
 def can_view():
-    """Verifica se o usuário tem permissão para visualizar (qualquer perfil logado e autorizado)."""
     return get_user_role() in ['admin', 'editor', 'viewer']
-
 
 def is_admin(): return get_user_role() == 'admin'
 def has_pro_features(): return get_effective_user_plan() in ['pro', 'premium_ia']
 def has_ai_features(): return get_effective_user_plan() == 'premium_ia'
-
 
 # ==============================================================================
 # SEÇÃO 5: SETUP DA SESSÃO E SIDEBAR
@@ -124,6 +142,7 @@ def setup_sidebar():
         plano_atual = get_effective_user_plan().replace('_', ' ').title()
         st.sidebar.success(f"**Plano:** {plano_atual}")
     return True
+
 
 def save_access_request(user_name, user_email, justification):
     try:
