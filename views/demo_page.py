@@ -4,8 +4,6 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- IMPORTAÇÕES CORRIGIDAS ---
-# Removemos a chamada para a função inexistente 'get_matrix_data'
 from auth.auth_utils import get_user_display_name, save_access_request
 
 def show_page():
@@ -32,8 +30,6 @@ def show_page():
         st.subheader("Solicite seu Período de Teste de 14 Dias")
         st.write("Para obter acesso, basta enviar a solicitação abaixo. Sua conta será provisionada com o plano Premium IA para você testar todas as funcionalidades.")
 
-        # --- LÓGICA SIMPLIFICADA ---
-        # REMOVIDO o selectbox de UO, pois não é mais necessário.
         with st.form("access_request_form"):
             justification = st.text_area(
                 "Deixe uma mensagem (Opcional)", 
@@ -44,11 +40,10 @@ def show_page():
 
             if submitted:
                 with st.spinner("Enviando solicitação..."):
-                    # Chamamos a função com a assinatura correta (sem 'requested_unit')
                     if save_access_request(user_name, user_email, justification):
                         st.session_state.request_submitted = True
                         st.rerun()
 
     st.markdown("---")
     st.subheader("Demonstração do Sistema")
-    st.video('https://youtu.be/h7DSCUAzHsE')
+    st.info("Em breve disponibilizaremos um vídeo demonstrativo das funcionalidades.")
