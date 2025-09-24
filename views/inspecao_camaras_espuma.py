@@ -27,7 +27,11 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    tab_inspection, tab_register = st.tabs(["📋 Realizar Inspeção", "➕ Cadastrar Nova Câmara"])
+    tab_inspection, tab_register, tab_manual_register = st.tabs([
+        "📋 Realizar Inspeção", 
+        "➕ Cadastrar Nova Câmara (Completo)", 
+        "✍️ Cadastro Rápido de Câmara"
+    ])
 
     with tab_inspection:
         st.header("Realizar Inspeção Periódica")
@@ -40,7 +44,7 @@ def show_page():
             df_inventory = load_sheet_data(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
             
             if df_inventory.empty:
-                st.warning("Nenhuma câmara de espuma cadastrada. Vá para a aba 'Cadastrar Nova Câmara' para começar.")
+                st.warning("Nenhuma câmara de espuma cadastrada. Vá para as abas de cadastro para começar.")
             else:
                 equipment_options = ["Selecione uma câmara..."] + sorted(df_inventory['id_camara'].tolist())
                 selected_chamber_id = st.selectbox("Selecione a Câmara para Inspecionar", equipment_options)
@@ -121,21 +125,32 @@ def show_page():
                                         st.error("Ocorreu um erro ao salvar a inspeção.")
     
     with tab_register:
-        st.header("Cadastrar Nova Câmara de Espuma")
+        st.header("Cadastrar Nova Câmara de Espuma (Completo)")
         
         # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novas câmaras.")
         else:
             with st.form("new_foam_chamber_form", clear_on_submit=True):
-                st.info("Preencha os dados do novo equipamento a ser adicionado ao sistema.")
-                new_id = st.text_input("**ID da Câmara (Obrigatório)**", help="Use um código único, ex: CE-TQ-01")
-                new_location = st.text_input("**Localização (Obrigatório)**", help="Descrição da localização física, ex: Topo do Tanque TQ-101")
+                st.info("Preencha os dados completos do novo equipamento a ser adicionado ao sistema.")
                 
+                col1, col2 = st.columns(2)
+                new_id = col1.text_input("**ID da Câmara (Obrigatório)**", help="Use um código único, ex: CE-TQ-01")
+                new_location = col2.text_input("**Localização (Obrigatório)**", help="Descrição da localização física, ex: Topo do Tanque TQ-101")
+                
+                col3, col4 = st.columns(2)
                 model_options = list(CHECKLIST_QUESTIONS.keys())
-                new_model = st.selectbox("**Modelo da Câmara (Obrigatório)**", options=model_options)
+                new_model = col3.selectbox("**Modelo da Câmara (Obrigatório)**", options=model_options)
+                new_brand = col4.text_input("Marca")
                 
-                new_brand = st.text_input("Marca")
+                # Informações adicionais
+                st.markdown("---")
+                st.subheader("Informações Complementares (Opcional)")
+                
+                additional_info = st.text_area(
+                    "Observações/Especificações Técnicas",
+                    placeholder="Ex: Capacidade de descarga, pressão de trabalho, especificações do tanque, etc."
+                )
                 
                 submit_register = st.form_submit_button("➕ Cadastrar Equipamento", type="primary", use_container_width=True)
                 
@@ -146,4 +161,57 @@ def show_page():
                         with st.spinner("Cadastrando novo equipamento..."):
                             if save_new_foam_chamber(new_id, new_location, new_brand, new_model):
                                 st.success(f"Câmara de espuma '{new_id}' cadastrada com sucesso!")
+                                if additional_info:
+                                    st.info(f"Observações registradas: {additional_info}")
                                 st.cache_data.clear()
+
+    # Nova aba para cadastro rápido
+    with tab_manual_register:
+        st.header("Cadastro Rápido de Câmara")
+        
+        # Check for edit permissions
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para cadastrar novas câmaras.")
+        else:
+            st.info("Use este formulário simplificado para cadastrar rapidamente uma câmara de espuma com informações básicas.")
+            
+            with st.form("quick_foam_chamber_form", clear_on_submit=True):
+                st.subheader("Dados Essenciais")
+                
+                quick_id = st.text_input("ID da Câmara*", placeholder="CE-001")
+                quick_location = st.text_input("Localização*", placeholder="Tanque TQ-101")
+                
+                # Modelo com opções mais diretas
+                st.markdown("**Tipo de Câmara:**")
+                chamber_type = st.radio(
+                    "Selecione o tipo",
+                    ["MCS - Selo de Vidro", "TF - Tubo de Filme", "MLS - Membrana Low Shear"],
+                    horizontal=False
+                )
+                
+                # Marca comum pré-preenchida
+                quick_brand = st.selectbox(
+                    "Marca (opcional)", 
+                    ["", "ANSUL", "TYCO", "KIDDE", "FLAMEX", "OUTRO"],
+                    index=0
+                )
+                
+                if quick_brand == "OUTRO":
+                    custom_brand = st.text_input("Digite a marca:")
+                    final_brand = custom_brand
+                else:
+                    final_brand = quick_brand
+                
+                quick_submit = st.form_submit_button("Cadastrar Rápido", type="primary", use_container_width=True)
+                
+                if quick_submit:
+                    if not quick_id or not quick_location:
+                        st.error("ID e Localização são obrigatórios.")
+                    else:
+                        with st.spinner("Cadastrando..."):
+                            if save_new_foam_chamber(quick_id, quick_location, final_brand, chamber_type):
+                                st.success(f"Câmara '{quick_id}' cadastrada rapidamente!")
+                                st.balloons()
+                                st.cache_data.clear()
+                            else:
+                                st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
