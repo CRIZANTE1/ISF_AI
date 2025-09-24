@@ -328,49 +328,27 @@ def show_page():
                         "Adaptador"
                     ]
                     
-                    # Estado para armazenar os itens do inventário
-                    if 'inventory_items' not in st.session_state:
-                        st.session_state.inventory_items = {}
+                    # Interface para adicionar novos itens dentro do formulário
+                    inventory_items = {}
                     
-                    # Interface para adicionar novos itens
-                    col1, col2, col3 = st.columns([3, 1, 1])
+                    # Seção de itens pré-definidos
+                    st.markdown("**Selecione os itens padrão:**")
+                    for item in standard_items:
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.text(item)
+                        with col2:
+                            qty = st.number_input(f"Qtd", min_value=0, value=0, step=1, key=f"qty_{item}")
+                            if qty > 0:
+                                inventory_items[item] = qty
                     
-                    with col1:
-                        new_item = st.selectbox(
-                            "Item", 
-                            options=["Selecione ou digite..."] + standard_items,
-                            index=0
-                        )
-                        if new_item == "Selecione ou digite...":
-                            new_item = st.text_input("Ou digite um novo item:")
+                    st.markdown("**Ou adicione item personalizado:**")
+                    col1, col2 = st.columns([3, 1])
+                    custom_item = col1.text_input("Nome do item personalizado")
+                    custom_qty = col2.number_input("Quantidade", min_value=0, value=0, step=1, key="custom_qty")
                     
-                    with col2:
-                        quantity = st.number_input("Quantidade", min_value=0, value=1, step=1)
-                    
-                    with col3:
-                        st.write("")  # Espaço para alinhar com os outros campos
-                        if st.button("Adicionar Item"):
-                            if new_item and new_item != "Selecione ou digite..." and quantity > 0:
-                                st.session_state.inventory_items[new_item] = quantity
-                                st.success(f"Item '{new_item}' adicionado!")
-                                st.experimental_rerun()
-                    
-                    # Mostrar itens adicionados
-                    if st.session_state.inventory_items:
-                        st.markdown("**Itens do Inventário:**")
-                        
-                        for i, (item, qty) in enumerate(st.session_state.inventory_items.items()):
-                            col1, col2, col3 = st.columns([3, 1, 1])
-                            with col1:
-                                st.text(item)
-                            with col2:
-                                st.text(f"Qtd: {qty}")
-                            with col3:
-                                if st.button("Remover", key=f"remove_{i}"):
-                                    del st.session_state.inventory_items[item]
-                                    st.experimental_rerun()
-                    else:
-                        st.info("Nenhum item adicionado ao inventário ainda.")
+                    if custom_item and custom_qty > 0:
+                        inventory_items[custom_item] = custom_qty
                     
                     # Botão para salvar o abrigo
                     submitted = st.form_submit_button("Cadastrar Novo Abrigo", type="primary", use_container_width=True)
@@ -378,17 +356,14 @@ def show_page():
                     if submitted:
                         if not shelter_id or not local:
                             st.error("Os campos 'ID do Abrigo' e 'Localização' são obrigatórios.")
-                        elif not st.session_state.inventory_items:
+                        elif not inventory_items:
                             st.error("É necessário adicionar pelo menos um item ao inventário.")
                         else:
                             # Salvar o abrigo no sistema
-                            if save_shelter_inventory(shelter_id, client, local, st.session_state.inventory_items):
+                            if save_shelter_inventory(shelter_id, client, local, inventory_items):
                                 st.success(f"Abrigo '{shelter_id}' cadastrado com sucesso!")
-                                # Limpar o inventário para o próximo cadastro
-                                st.session_state.inventory_items = {}
                                 st.cache_data.clear()
                                 st.balloons()
-                                st.experimental_rerun()
             
             # Inspeção de Abrigos
             st.markdown("---")
@@ -456,5 +431,4 @@ def show_page():
                                     st.cache_data.clear()
                                 else:
                                     st.error("Ocorreu um erro ao salvar a inspeção.")
-
 
