@@ -16,15 +16,30 @@ from auth.auth_utils import (
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from utils.auditoria import log_action
 from config.page_config import set_page_config
-from views import (
-    administracao, dashboard, resumo_gerencial, inspecao_extintores, 
-    inspecao_mangueiras, inspecao_scba, inspecao_chuveiros,
-    inspecao_camaras_espuma, inspecao_multigas, historico,
-    utilitarios, demo_page, trial_expired_page, perfil_usuario
-)
+
+# Import com tratamento de erro para módulos opcionais
+try:
+    from views import (
+        administracao, dashboard, resumo_gerencial, inspecao_extintores, 
+        inspecao_mangueiras, inspecao_scba, inspecao_chuveiros,
+        inspecao_camaras_espuma, inspecao_multigas, historico,
+        utilitarios, demo_page, trial_expired_page
+    )
+    # Import condicional do perfil_usuario
+    try:
+        from views import perfil_usuario
+        PERFIL_DISPONIVEL = True
+    except ImportError:
+        PERFIL_DISPONIVEL = False
+        st.error("Módulo perfil_usuario não encontrado. Algumas funcionalidades podem não estar disponíveis.")
+        
+except ImportError as e:
+    st.error(f"Erro ao importar módulos: {e}")
+    st.stop()
 
 set_page_config()
 
+# Páginas base (sempre disponíveis)
 PAGES = {
     "Dashboard": dashboard.show_page, 
     "Resumo Gerencial": resumo_gerencial.show_page, 
@@ -37,8 +52,11 @@ PAGES = {
     "Histórico e Logs": historico.show_page, 
     "Utilitários": utilitarios.show_page, 
     "Super Admin": administracao.show_page,
-    "Meu Perfil": perfil_usuario.show_page,
 }
+
+# Adiciona perfil apenas se disponível
+if PERFIL_DISPONIVEL:
+    PAGES["Meu Perfil"] = perfil_usuario.show_page
 
 def main():
     if not is_user_logged_in():
@@ -98,8 +116,8 @@ def main():
                     "Inspeção Multigás", "Utilitários"
                 ])
         
-        # Adiciona "Meu Perfil" para todos os usuários autorizados
-        if "Meu Perfil" not in page_options:
+        # Adiciona "Meu Perfil" apenas se o módulo estiver disponível
+        if PERFIL_DISPONIVEL and "Meu Perfil" not in page_options:
             page_options.append("Meu Perfil")
             
         if is_admin() and "Super Admin" not in page_options:
@@ -137,15 +155,18 @@ def main():
         st.markdown("---")
         show_logout_button()
 
-    # Lógica especial para "Meu Perfil" - sempre permite acesso
-    if selected_page == "Meu Perfil":
+    # Lógica especial para "Meu Perfil" - sempre permite acesso se disponível
+    if selected_page == "Meu Perfil" and PERFIL_DISPONIVEL:
         PAGES[selected_page]()
     elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
         if selected_page in PAGES:
             PAGES[selected_page]()
         else:
             if page_options: 
-                PAGES[page_options[0]]()
+                # Seleciona a primeira página disponível
+                first_available_page = page_options[0]
+                if first_available_page in PAGES:
+                    PAGES[first_available_page]()
     else:
         if is_admin(): 
             st.info("👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
