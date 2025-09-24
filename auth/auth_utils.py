@@ -10,6 +10,13 @@ def is_user_logged_in():
     try: return st.user.is_logged_in
     except Exception: return False
 
+def is_oidc_available():
+    """Verifica se o componente de autenticação do Streamlit (st.user) está disponível."""
+    try:
+        return hasattr(st.user, 'is_logged_in')
+    except Exception:
+        return False
+
 def get_user_display_name():
     try:
         if hasattr(st.user, 'name') and st.user.name: return st.user.name
