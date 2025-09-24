@@ -10,7 +10,9 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from auth.auth_utils import can_edit, get_user_display_name
+from auth.auth_utils import (
+    get_user_display_name, check_user_access, can_edit, has_ai_features
+)
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, 
     EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME, TH_SHIPMENT_LOG_SHEET_NAME
@@ -52,12 +54,21 @@ def image_to_bytes(img: Image.Image):
 
 def show_page():
     st.title("🛠️ Utilitários do Sistema")
+
+    # Check if user has at least viewer permissions
+    if not check_user_access("viewer"):
+        st.warning("Você não tem permissão para acessar esta página.")
+        return
+    
     if 'current_spreadsheet_id' not in st.session_state:
-        st.warning("Ambiente de dados não carregado."); st.stop()
+        st.warning("Ambiente de dados não carregado. Verifique o status da sua conta."); 
+        return
+    
     try:
         all_data = load_all_data()
     except Exception as e:
-        st.error(f"Não foi possível carregar os dados. Erro: {e}"); st.stop()
+        st.error(f"Não foi possível carregar os dados. Erro: {e}")
+        return
 
     tab_manual_entry, tab_qr, tab_shipment = st.tabs(["✍️ Cadastro Rápido", "Gerador de QR Code", "Boletim de Remessa"])
 
@@ -90,47 +101,52 @@ def show_page():
 
     with tab_shipment:
         st.header("Gerar Boletim de Remessa para Manutenção/Teste")
-        item_type = st.selectbox("Tipo de Equipamento", ["Extintores", "Mangueiras"], key="shipment_item_type", on_change=lambda: st.session_state.pop('pdf_generated_info', None))
-        df_all = all_data["extinguishers"] if item_type == 'Extintores' else all_data["hoses"]
-        df_log = all_data["extinguishers_log"] if item_type == 'Extintores' else all_data["hoses_log"]
-        id_col = 'numero_identificacao' if item_type == 'Extintores' else 'id_mangueira'
         
-        st.subheader("Sugestão Automática")
-        if st.button(f"Sugerir {item_type} para envio"):
-            suggested = select_extinguishers_for_maintenance(df_all, df_log) if item_type == 'Extintores' else select_hoses_for_th(df_all, df_log)
-            if not suggested.empty:
-                st.session_state['suggested_ids'] = suggested[id_col].tolist(); st.rerun()
-            else: st.success("Nenhum item elegível encontrado.")
-        
-        st.markdown("---")
-        st.subheader("Seleção e Geração do Boletim")
-        if df_all.empty:
-            st.warning(f"Nenhum registro de {item_type.lower()} encontrado.")
+        # Check for edit permissions
+        if not can_edit():
+            st.warning("Você não tem permissão para gerar boletins de remessa.")
+            st.info("Somente usuários com nível 'editor' ou superior podem utilizar esta funcionalidade.")
         else:
-            df_latest = df_all.sort_values(by=df_all.columns[0], ascending=False).drop_duplicates(subset=[id_col], keep='first')
-            options = df_latest[id_col].tolist()
-            selected_ids = st.multiselect(f"Selecione os IDs:", options, default=st.session_state.get('suggested_ids', []))
+            item_type = st.selectbox("Tipo de Equipamento", ["Extintores", "Mangueiras"], key="shipment_item_type", on_change=lambda: st.session_state.pop('pdf_generated_info', None))
+            df_all = all_data["extinguishers"] if item_type == 'Extintores' else all_data["hoses"]
+            df_log = all_data["extinguishers_log"] if item_type == 'Extintores' else all_data["hoses_log"]
+            id_col = 'numero_identificacao' if item_type == 'Extintores' else 'id_mangueira'
+            
+            st.subheader("Sugestão Automática")
+            if st.button(f"Sugerir {item_type} para envio"):
+                suggested = select_extinguishers_for_maintenance(df_all, df_log) if item_type == 'Extintores' else select_hoses_for_th(df_all, df_log)
+                if not suggested.empty:
+                    st.session_state['suggested_ids'] = suggested[id_col].tolist(); st.rerun()
+                else: st.success("Nenhum item elegível encontrado.")
+            
+            st.markdown("---")
+            st.subheader("Seleção e Geração do Boletim")
+            if df_all.empty:
+                st.warning(f"Nenhum registro de {item_type.lower()} encontrado.")
+            else:
+                df_latest = df_all.sort_values(by=df_all.columns[0], ascending=False).drop_duplicates(subset=[id_col], keep='first')
+                options = df_latest[id_col].tolist()
+                selected_ids = st.multiselect(f"Selecione os IDs:", options, default=st.session_state.get('suggested_ids', []))
 
-            if selected_ids:
-                df_selected = df_latest[df_latest[id_col].isin(selected_ids)]
-                st.dataframe(df_selected, use_container_width=True)
-                with st.form("shipment_data_form"):
-                    st.subheader("Dados do Boletim")
-                    bulletin_number = st.text_input("Número do Boletim/OS", f"REM-{date.today().strftime('%Y%m%d')}")
-                    submitted = st.form_submit_button("📄 Gerar e Registrar Boletim", type="primary")
-                    if submitted:
-                        with st.spinner("Gerando boletim..."):
-                            remetente = {"razao_social": "VIBRA ENERGIA S.A", "endereco": "Rod Pres Castelo Branco, Km 20 720", "bairro": "Jardim Mutinga", "cidade": "BARUERI", "uf": "SP", "cep": "06463-400", "fone": "2140022040"}
-                            destinatario = {"razao_social": "TECNO SERVIC DO BRASIL LTDA", "cnpj": "01.396.496/0001-27", "endereco": "AV ANALICE SAKATAUSKAS 1040", "cidade": "SAO PAULO", "uf": "SP", "fone": "1135918267", "responsavel": get_user_display_name()}
-                            pdf_bytes = generate_shipment_html_and_pdf(df_selected, item_type, remetente, destinatario, bulletin_number)
-                            log_shipment(df_selected, item_type, bulletin_number)
-                            st.session_state['pdf_generated_info'] = {"data": pdf_bytes, "file_name": f"Boletim_{bulletin_number}.pdf"}
-                            st.cache_data.clear(); st.rerun()
+                if selected_ids:
+                    df_selected = df_latest[df_latest[id_col].isin(selected_ids)]
+                    st.dataframe(df_selected, use_container_width=True)
+                    with st.form("shipment_data_form"):
+                        st.subheader("Dados do Boletim")
+                        bulletin_number = st.text_input("Número do Boletim/OS", f"REM-{date.today().strftime('%Y%m%d')}")
+                        submitted = st.form_submit_button("📄 Gerar e Registrar Boletim", type="primary")
+                        if submitted:
+                            with st.spinner("Gerando boletim..."):
+                                remetente = {"razao_social": "VIBRA ENERGIA S.A", "endereco": "Rod Pres Castelo Branco, Km 20 720", "bairro": "Jardim Mutinga", "cidade": "BARUERI", "uf": "SP", "cep": "06463-400", "fone": "2140022040"}
+                                destinatario = {"razao_social": "TECNO SERVIC DO BRASIL LTDA", "cnpj": "01.396.496/0001-27", "endereco": "AV ANALICE SAKATAUSKAS 1040", "cidade": "SAO PAULO", "uf": "SP", "fone": "1135918267", "responsavel": get_user_display_name()}
+                                pdf_bytes = generate_shipment_html_and_pdf(df_selected, item_type, remetente, destinatario, bulletin_number)
+                                log_shipment(df_selected, item_type, bulletin_number)
+                                st.session_state['pdf_generated_info'] = {"data": pdf_bytes, "file_name": f"Boletim_{bulletin_number}.pdf"}
+                                st.cache_data.clear(); st.rerun()
 
-            if st.session_state.get('pdf_generated_info'):
-                pdf_info = st.session_state['pdf_generated_info']
-                st.success("Boletim gerado e log de envio registrado!")
-                st.download_button("📥 Baixar Boletim (PDF)", pdf_info['data'], pdf_info['file_name'], "application/pdf")
-                if st.button("Gerar Novo Boletim"):
-                    st.session_state.pop('pdf_generated_info', None); st.session_state.pop('suggested_ids', None); st.rerun()
-   
+                if st.session_state.get('pdf_generated_info'):
+                    pdf_info = st.session_state['pdf_generated_info']
+                    st.success("Boletim gerado e log de envio registrado!")
+                    st.download_button("📥 Baixar Boletim (PDF)", pdf_info['data'], pdf_info['file_name'], "application/pdf")
+                    if st.button("Gerar Novo Boletim"):
+                        st.session_state.pop('pdf_generated_info', None); st.session_state.pop('suggested_ids', None); st.rerun()
