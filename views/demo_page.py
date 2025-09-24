@@ -32,6 +32,8 @@ def show_page():
         st.subheader("Solicite seu Período de Teste de 14 Dias")
         st.write("Para obter acesso, basta enviar a solicitação abaixo. Sua conta será provisionada com o plano Premium IA para você testar todas as funcionalidades.")
 
+        # --- LÓGICA SIMPLIFICADA ---
+        # REMOVIDO o selectbox de UO, pois não é mais necessário.
         with st.form("access_request_form"):
             justification = st.text_area(
                 "Deixe uma mensagem (Opcional)", 
