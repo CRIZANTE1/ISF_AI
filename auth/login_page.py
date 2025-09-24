@@ -1,50 +1,29 @@
 import streamlit as st
-import sys
-import os
+from .auth_utils import is_oidc_available, is_user_logged_in, get_user_display_name
 
-# Add the parent directory to the path to access modules
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+def show_login_page():
+    """Mostra a página de login"""
+    st.title("Login do Sistema de Inspeções")
 
-# Import required authentication utilities
-from auth.auth_utils import (
-    check_user_access,  # New unified auth check
-    can_edit,           # For edit-only features 
-    is_admin,           # For admin-only features
-    has_ai_features,    # For features requiring premium IA plan
-    get_user_display_name  # For showing user info or logging
-)
-from config.page_config import set_page_config
+    # A função é usada aqui para verificar se a autenticação é possível
+    if not is_oidc_available():
+        st.error("O sistema de autenticação (OIDC) não está disponível ou configurado.")
+        return False
+        
+    if not is_user_logged_in():
+        st.info("Por favor, faça login com sua conta Google para acessar o sistema.")
+        if st.button("Fazer Login com Google", type="primary", use_container_width=True):
+            st.login()
+        return False
+        
+    return True
 
-# Apply consistent page configuration
-set_page_config()
+def show_user_header():
+    """Mostra o nome do usuário logado na sidebar"""
+    st.sidebar.info(f"Usuário: **{get_user_display_name()}**")
 
-def show_page():
-    st.title("Page Title")
-    
-    # Check permissions - minimal needed to view the page
-    if not check_user_access("viewer"):  # Can use "viewer", "editor", or "admin"
-        st.warning("Você não tem permissão para acessar esta página.")
-        return
-    
-    # Continue with page content
-    st.write("Content accessible to users with 'viewer' role or higher")
-    
-    # For sections requiring edit permissions
-    if can_edit():
-        st.subheader("Edit Features")
-        st.write("Content accessible to users with 'editor' role or higher")
-    else:
-        st.info("Você precisa de permissões de edição para utilizar algumas funcionalidades.")
-    
-    # For admin-only features
-    if is_admin():
-        st.subheader("Admin Features")
-        st.write("Content accessible only to users with 'admin' role")
-    
-    # For features requiring premium_ia plan
-    if has_ai_features():
-        st.subheader("AI Features")
-        st.write("Content accessible to users with 'premium_ia' plan")
-    else:
-        # Optional: Show upgrade callout
-        st.info("✨ Este recurso está disponível no plano Premium IA. Faça o upgrade para usar IA!")
+def show_logout_button():
+    """Mostra o botão de logout na sidebar"""
+    if st.sidebar.button("Sair do Sistema (Logout)"):
+        st.logout()
+        st.rerun()
