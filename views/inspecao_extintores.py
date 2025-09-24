@@ -7,7 +7,7 @@ from streamlit_js_eval import streamlit_js_eval
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from operations.extinguisher_operations import process_extinguisher_pdf, calculate_next_dates, save_inspection, generate_action_plan, clean_and_prepare_ia_data
+from operations.extinguisher_operations import process_extinguisher_pdf, calculate_next_dates, save_inspection, generate_action_plan, clean_and_prepare_ia_data, save_new_extinguisher
 from operations.history import find_last_record
 from operations.qr_inspection_utils import decode_qr_from_image
 from operations.photo_operations import upload_evidence_photo
@@ -50,7 +50,12 @@ def show_page():
         st.error(f"Não foi possível carregar o inventário de extintores. Erro: {e}")
         st.stop()
 
-    tab_batch, tab_qr, tab_cadastro = st.tabs(["🗂️ Registro em Lote (PDF)", "📱 Inspeção Rápida (QR Code)", "➕ Cadastrar / Editar"])
+    tab_batch, tab_qr, tab_cadastro, tab_manual = st.tabs([
+        "🗂️ Registro em Lote (PDF)", 
+        "📱 Inspeção Rápida (QR Code)", 
+        "➕ Cadastrar / Editar",
+        "📝 Cadastro Manual"
+    ])
     
     with tab_batch:
         st.header("Processar Relatório de Manutenção em Lote")
@@ -233,4 +238,101 @@ def show_page():
                                     log_action("ATUALIZOU_EXTINTOR", f"ID: {ext_id_to_edit}")
                                     st.success(f"Extintor '{ext_id_to_edit}' atualizado com sucesso!"); st.cache_data.clear(); st.rerun()
                                 except Exception as e: st.error(f"Erro ao atualizar: {e}")
-
+    
+    # Nova aba para cadastro manual de inspeções
+    with tab_manual:
+        st.header("Cadastro Manual de Inspeção")
+        
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para registrar inspeções.")
+        else:
+            st.info("Use este formulário para cadastrar manualmente uma inspeção de extintor, sem necessidade de processamento IA.")
+            
+            with st.form("manual_inspection_form", clear_on_submit=True):
+                st.subheader("Dados da Inspeção")
+                
+                # Dados básicos do equipamento
+                col1, col2 = st.columns(2)
+                numero_identificacao = col1.text_input("Número de Identificação*", help="O ID único do extintor.")
+                numero_selo_inmetro = col2.text_input("Nº Selo INMETRO")
+                
+                col3, col4 = st.columns(2)
+                tipo_agente = col3.selectbox("Tipo de Agente", ["AP", "BC", "ABC", "CO2", "Espuma Mecânica"])
+                capacidade = col4.number_input("Capacidade", step=1.0, format="%.2f")
+                
+                col5, col6 = st.columns(2)
+                marca_fabricante = col5.text_input("Marca/Fabricante")
+                ano_fabricacao = col6.number_input("Ano de Fabricação", min_value=1980, max_value=date.today().year, step=1)
+                
+                # Dados da inspeção
+                st.markdown("---")
+                st.subheader("Informações da Inspeção")
+                
+                col7, col8 = st.columns(2)
+                tipo_servico = col7.selectbox("Tipo de Serviço", ["Inspeção", "Manutenção Nível 2", "Manutenção Nível 3"])
+                data_servico = col8.date_input("Data do Serviço", value=date.today())
+                
+                col9, col10 = st.columns(2)
+                aprovado = col9.radio("Aprovado na Inspeção?", ["Sim", "Não"], horizontal=True)
+                empresa_executante = col10.text_input("Empresa Executante (opcional)")
+                
+                observacoes_gerais = st.text_area("Observações", help="Descreva problemas encontrados, se houver.")
+                
+                submitted = st.form_submit_button("Salvar Inspeção", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not numero_identificacao:
+                        st.error("O campo 'Número de Identificação' é obrigatório.")
+                    else:
+                        # Busca o último registro para preservar datas existentes
+                        last_record = find_last_record(df_extintores, numero_identificacao, 'numero_identificacao')
+                        
+                        # Define datas existentes para preservar
+                        existing_dates = {}
+                        if last_record:
+                            existing_dates = {
+                                k: last_record.get(k) 
+                                for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
+                                         'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                            }
+                        
+                        # Calcula as novas datas com base no tipo de serviço
+                        updated_dates = calculate_next_dates(data_servico.isoformat(), tipo_servico, existing_dates)
+                        
+                        # Gera plano de ação
+                        inspection_data = {
+                            'aprovado_inspecao': aprovado,
+                            'observacoes_gerais': observacoes_gerais
+                        }
+                        plano_acao = generate_action_plan(inspection_data)
+                        
+                        # Dados completos da inspeção
+                        new_record = {
+                            'numero_identificacao': numero_identificacao,
+                            'numero_selo_inmetro': numero_selo_inmetro,
+                            'tipo_agente': tipo_agente,
+                            'capacidade': capacidade,
+                            'marca_fabricante': marca_fabricante,
+                            'ano_fabricacao': ano_fabricacao,
+                            'tipo_servico': tipo_servico,
+                            'data_servico': data_servico.isoformat(),
+                            'inspetor_responsavel': get_user_display_name(),
+                            'empresa_executante': empresa_executante,
+                            'aprovado_inspecao': aprovado,
+                            'observacoes_gerais': observacoes_gerais,
+                            'plano_de_acao': plano_acao,
+                            'link_relatorio_pdf': None,
+                            'link_foto_nao_conformidade': None
+                        }
+                        
+                        # Adiciona as datas calculadas
+                        new_record.update(updated_dates)
+                        
+                        try:
+                            if save_inspection(new_record):
+                                log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", f"ID: {numero_identificacao}, Status: {aprovado}")
+                                st.success(f"Inspeção para o extintor '{numero_identificacao}' registrada com sucesso!")
+                                st.balloons()
+                                st.cache_data.clear()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar a inspeção: {e}")
