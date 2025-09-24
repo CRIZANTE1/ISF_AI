@@ -7,9 +7,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from auth.auth_utils import (
     is_user_logged_in, setup_sidebar, get_user_email, get_users_data,
-    get_effective_user_status, get_effective_user_plan, get_user_role, is_admin
+    get_effective_user_status, get_effective_user_plan, get_user_role, 
+    is_admin, is_superuser
 )
-# --- MUDANÇA AQUI: Importamos a função do botão de logout ---
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from utils.auditoria import log_action
 from config.page_config import set_page_config
@@ -35,18 +35,38 @@ def main():
         show_login_page(); st.stop()
 
     if 'user_logged_in' not in st.session_state:
-        log_action("LOGIN_SUCCESS"); st.session_state['user_logged_in'] = True
+        log_action("LOGIN_SUCCESS", f"Email: {get_user_email()}")
+        if is_superuser():
+            log_action("SUPERUSER_LOGIN_SUCCESS", f"Email: {get_user_email()}")
+        st.session_state['user_logged_in'] = True
 
     users_df = get_users_data()
     user_email = get_user_email()
-    is_authorized = user_email is not None and user_email in users_df['email'].values
+    
+    # <<< MUDANÇA CRÍTICA AQUI >>>
+    # A autorização agora é verdadeira se o email estiver na planilha OU se for o superuser.
+    is_authorized = user_email is not None and (user_email in users_df['email'].values or is_superuser())
 
     if not is_authorized:
-        show_user_header(); demo_page.show_page(); st.stop()
+        log_action("ACCESS_DENIED_UNAUTHORIZED", f"Tentativa de acesso pelo email: {user_email}")
+        show_user_header()
+        demo_page.show_page()
+        st.stop()
 
     effective_status = get_effective_user_status()
+
     if effective_status == 'trial_expirado':
-        show_user_header(); trial_expired_page.show_page(); st.stop()
+        log_action("ACCESS_DENIED_TRIAL_EXPIRED", f"Usuário: {user_email}")
+        show_user_header()
+        trial_expired_page.show_page()
+        st.stop()
+
+    if effective_status == 'inativo' and not is_admin(): # is_admin() já cobre o superuser
+        log_action("ACCESS_DENIED_INACTIVE_ACCOUNT", f"Usuário: {user_email}")
+        show_user_header()
+        st.warning("🔒 Sua conta está atualmente inativa. Por favor, entre em contato com o suporte para reativá-la.")
+        show_logout_button()
+        st.stop()
     
     show_user_header()
     is_user_environment_loaded = setup_sidebar()
@@ -87,7 +107,6 @@ def main():
             }
         )
         st.markdown("---")
-        # --- MUDANÇA AQUI: O botão de logout agora é chamado aqui, no lugar certo. ---
         show_logout_button()
 
     if is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
