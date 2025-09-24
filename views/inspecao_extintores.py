@@ -13,7 +13,10 @@ from operations.qr_inspection_utils import decode_qr_from_image
 from operations.photo_operations import upload_evidence_photo
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import EXTINGUISHER_SHEET_NAME
-from auth.auth_utils import can_edit, has_ai_features, get_user_display_name
+from auth.auth_utils import (
+    check_user_access, can_edit, has_ai_features, 
+    get_user_display_name
+)
 from utils.auditoria import log_action
 from config.page_config import set_page_config 
 
@@ -32,6 +35,11 @@ def show_upgrade_callout(feature_name="Esta funcionalidade", required_plan="Prem
 def show_page():
     st.title("🔥 Gestão e Inspeção de Extintores")
 
+    # Check if user has at least viewer permissions
+    if not check_user_access("viewer"):
+        st.warning("Você não tem permissão para acessar esta página.")
+        return
+
     if 'current_spreadsheet_id' not in st.session_state:
         st.warning("Ambiente de dados não carregado. Verifique o status da sua conta na barra lateral.")
         st.stop()
@@ -46,8 +54,14 @@ def show_page():
     
     with tab_batch:
         st.header("Processar Relatório de Manutenção em Lote")
+
+        # Check for AI features for this tab
         if not has_ai_features():
             show_upgrade_callout("Processamento de PDF com IA")
+        # Check for edit permissions
+        elif not can_edit():
+            st.warning("Você precisa de permissões de edição para registrar inspeções.")
+            st.info("Somente usuários com nível 'editor' ou superior podem adicionar dados.")
         else:
             st.info("O sistema analisará o PDF, buscará o histórico de cada equipamento e atualizará as datas de vencimento.")
             st.session_state.setdefault('batch_step', 'start')
@@ -89,78 +103,84 @@ def show_page():
 
     with tab_qr:
         st.header("Verificação Rápida de Equipamento")
-        st.session_state.setdefault('qr_step', 'start')
-        st.session_state.setdefault('qr_id', None)
-        st.session_state.setdefault('last_record', None)
-        
-        if st.session_state.qr_step == 'start':
-            st.subheader("1. Identifique o Equipamento")
-            col1, col2, col3 = st.columns([2, 0.5, 2])
-            with col1:
-                if st.button("📷 Escanear QR Code", type="primary", use_container_width=True):
-                    st.session_state.qr_step = 'scan'; st.rerun()
-            with col3:
-                manual_id = st.text_input("Ou digite o ID do Equipamento")
-                if st.button("🔍 Buscar por ID", use_container_width=True):
-                    if manual_id:
-                        st.session_state.qr_id = manual_id
-                        st.session_state.last_record = find_last_record(df_extintores, manual_id, 'numero_identificacao')
-                        st.session_state.qr_step = 'inspect'; st.rerun()
-                    else: st.warning("Digite um ID.")
-        
-        if st.session_state.qr_step == 'scan':
-            st.subheader("2. Aponte a câmera para o QR Code")
-            qr_image = st.camera_input("Câmera", key="qr_camera", label_visibility="collapsed")
-            if qr_image:
-                with st.spinner("Processando..."):
-                    decoded_id, _ = decode_qr_from_image(qr_image)
-                    if decoded_id:
-                        st.session_state.qr_id = decoded_id
-                        st.session_state.last_record = find_last_record(df_extintores, decoded_id, 'numero_identificacao')
-                        st.session_state.qr_step = 'inspect'; st.rerun()
-                    else: st.warning("QR Code não detectado. Tente novamente.")
-            if st.button("Cancelar"):
-                st.session_state.qr_step = 'start'; st.rerun()
-        
-        if st.session_state.qr_step == 'inspect':
-            last_record = st.session_state.last_record
-            if last_record is not None:
-                st.success(f"Equipamento Encontrado! ID: **{st.session_state.qr_id}**")
-                st.dataframe(pd.DataFrame([last_record]), use_container_width=True, hide_index=True)
-                
-                st.subheader("3. Registrar Nova Inspeção (Nível 1)")
-                with st.form("quick_inspection_form"):
-                    status = st.radio("Status do Equipamento:", ["Conforme", "Não Conforme"], horizontal=True)
-                    observacoes = st.text_area("Observações (se 'Não Conforme', descreva os problemas)")
-                    photo_non_compliance = st.camera_input("Anexar foto da não conformidade (Opcional)")
-                    
-                    submitted = st.form_submit_button("✅ Confirmar e Registrar Inspeção", type="primary")
-                    if submitted:
-                        with st.spinner("Salvando..."):
-                            photo_link_nc = upload_evidence_photo(photo_non_compliance, st.session_state.qr_id, "nao_conformidade") if photo_non_compliance else None
-                            existing_dates = {k: last_record.get(k) for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']}
-                            updated_dates = calculate_next_dates(date.today().isoformat(), "Inspeção", existing_dates)
-                            aprovado_str = "Sim" if status == "Conforme" else "Não"
-                            
-                            new_record = last_record.copy()
-                            new_record.update({
-                                'tipo_servico': "Inspeção", 'data_servico': date.today().isoformat(),
-                                'inspetor_responsavel': get_user_display_name(), 'aprovado_inspecao': aprovado_str,
-                                'observacoes_gerais': observacoes or ("Inspeção de rotina OK." if status == "Conforme" else ""),
-                                'plano_de_acao': generate_action_plan({'aprovado_inspecao': aprovado_str, 'observacoes_gerais': observacoes}),
-                                'link_relatorio_pdf': None, 'link_foto_nao_conformidade': photo_link_nc
-                            })
-                            new_record.update(updated_dates)
-                            
-                            if save_inspection(new_record):
-                                log_action("INSPECIONOU_EXTINTOR_QR", f"ID: {st.session_state.qr_id}, Status: {status}")
-                                st.success("Inspeção registrada!"); st.balloons()
-                                st.session_state.qr_step = 'start'; st.cache_data.clear(); st.rerun()
-            else:
-                st.error(f"Nenhum registro encontrado para o ID '{st.session_state.qr_id}'. Verifique se o extintor está cadastrado na aba 'Cadastrar / Editar'.")
+
+        # Check for edit permissions
+        if not can_edit():
+            st.warning("Você precisa de permissões de edição para registrar inspeções.")
+            st.info("Somente usuários com nível 'editor' ou superior podem adicionar dados.")
+        else:
+            st.session_state.setdefault('qr_step', 'start')
+            st.session_state.setdefault('qr_id', None)
+            st.session_state.setdefault('last_record', None)
             
-            if st.button("Inspecionar Outro Equipamento"):
-                st.session_state.qr_step = 'start'; st.rerun()
+            if st.session_state.qr_step == 'start':
+                st.subheader("1. Identifique o Equipamento")
+                col1, col2, col3 = st.columns([2, 0.5, 2])
+                with col1:
+                    if st.button("📷 Escanear QR Code", type="primary", use_container_width=True):
+                        st.session_state.qr_step = 'scan'; st.rerun()
+                with col3:
+                    manual_id = st.text_input("Ou digite o ID do Equipamento")
+                    if st.button("🔍 Buscar por ID", use_container_width=True):
+                        if manual_id:
+                            st.session_state.qr_id = manual_id
+                            st.session_state.last_record = find_last_record(df_extintores, manual_id, 'numero_identificacao')
+                            st.session_state.qr_step = 'inspect'; st.rerun()
+                        else: st.warning("Digite um ID.")
+            
+            if st.session_state.qr_step == 'scan':
+                st.subheader("2. Aponte a câmera para o QR Code")
+                qr_image = st.camera_input("Câmera", key="qr_camera", label_visibility="collapsed")
+                if qr_image:
+                    with st.spinner("Processando..."):
+                        decoded_id, _ = decode_qr_from_image(qr_image)
+                        if decoded_id:
+                            st.session_state.qr_id = decoded_id
+                            st.session_state.last_record = find_last_record(df_extintores, decoded_id, 'numero_identificacao')
+                            st.session_state.qr_step = 'inspect'; st.rerun()
+                        else: st.warning("QR Code não detectado. Tente novamente.")
+                if st.button("Cancelar"):
+                    st.session_state.qr_step = 'start'; st.rerun()
+            
+            if st.session_state.qr_step == 'inspect':
+                last_record = st.session_state.last_record
+                if last_record is not None:
+                    st.success(f"Equipamento Encontrado! ID: **{st.session_state.qr_id}**")
+                    st.dataframe(pd.DataFrame([last_record]), use_container_width=True, hide_index=True)
+                    
+                    st.subheader("3. Registrar Nova Inspeção (Nível 1)")
+                    with st.form("quick_inspection_form"):
+                        status = st.radio("Status do Equipamento:", ["Conforme", "Não Conforme"], horizontal=True)
+                        observacoes = st.text_area("Observações (se 'Não Conforme', descreva os problemas)")
+                        photo_non_compliance = st.camera_input("Anexar foto da não conformidade (Opcional)")
+                        
+                        submitted = st.form_submit_button("✅ Confirmar e Registrar Inspeção", type="primary")
+                        if submitted:
+                            with st.spinner("Salvando..."):
+                                photo_link_nc = upload_evidence_photo(photo_non_compliance, st.session_state.qr_id, "nao_conformidade") if photo_non_compliance else None
+                                existing_dates = {k: last_record.get(k) for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']}
+                                updated_dates = calculate_next_dates(date.today().isoformat(), "Inspeção", existing_dates)
+                                aprovado_str = "Sim" if status == "Conforme" else "Não"
+                                
+                                new_record = last_record.copy()
+                                new_record.update({
+                                    'tipo_servico': "Inspeção", 'data_servico': date.today().isoformat(),
+                                    'inspetor_responsavel': get_user_display_name(), 'aprovado_inspecao': aprovado_str,
+                                    'observacoes_gerais': observacoes or ("Inspeção de rotina OK." if status == "Conforme" else ""),
+                                    'plano_de_acao': generate_action_plan({'aprovado_inspecao': aprovado_str, 'observacoes_gerais': observacoes}),
+                                    'link_relatorio_pdf': None, 'link_foto_nao_conformidade': photo_link_nc
+                                })
+                                new_record.update(updated_dates)
+                                
+                                if save_inspection(new_record):
+                                    log_action("INSPECIONOU_EXTINTOR_QR", f"ID: {st.session_state.qr_id}, Status: {status}")
+                                    st.success("Inspeção registrada!"); st.balloons()
+                                    st.session_state.qr_step = 'start'; st.cache_data.clear(); st.rerun()
+                else:
+                    st.error(f"Nenhum registro encontrado para o ID '{st.session_state.qr_id}'. Verifique se o extintor está cadastrado na aba 'Cadastrar / Editar'.")
+                
+                if st.button("Inspecionar Outro Equipamento"):
+                    st.session_state.qr_step = 'start'; st.rerun()
 
     with tab_cadastro:
         if not can_edit():
