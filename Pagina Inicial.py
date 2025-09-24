@@ -3,7 +3,10 @@ from streamlit_option_menu import option_menu
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Adiciona o diretório atual ao path para garantir que os módulos sejam encontrados
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 from auth.auth_utils import (
     is_user_logged_in, setup_sidebar, get_user_email, get_users_data,
@@ -43,8 +46,7 @@ def main():
     users_df = get_users_data()
     user_email = get_user_email()
     
-    # <<< MUDANÇA CRÍTICA AQUI >>>
-    # A autorização agora é verdadeira se o email estiver na planilha OU se for o superuser.
+
     is_authorized = user_email is not None and (user_email in users_df['email'].values or is_superuser())
 
     if not is_authorized:
