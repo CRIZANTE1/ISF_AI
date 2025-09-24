@@ -253,3 +253,70 @@ def show_page():
                         st.write("**Valores Encontrados no Teste:**")
                         c10, c11, c12, c13 = st.columns(4)
                         lel_found = c10.text_input("LEL")
+                        o2_found = c11.text_input("O²")
+                        h2s_found = c12.text_input("H²S")
+                        co_found = c13.text_input("CO")
+                        
+                        test_type = st.radio("Tipo de Teste", ["Periódico", "Extraordinário"], horizontal=True)
+
+                        st.subheader("Responsável pelo Teste")
+                        c16, c17 = st.columns(2)
+                        resp_name = c16.text_input("Nome", value=get_user_display_name())
+                        resp_id = c17.text_input("Matrícula")
+
+                        submit_insp = st.form_submit_button("💾 Salvar Teste", width='stretch')
+                        
+                        if submit_insp:
+                            # Pega os valores de referência corretos (os atuais ou os novos, se o toggle estiver ativo)
+                            reference_values = {
+                                'LEL': st.session_state.new_lel if 'new_lel' in st.session_state else detector_info.get('LEL_cilindro'),
+                                'O2': st.session_state.new_o2 if 'new_o2' in st.session_state else detector_info.get('O2_cilindro'),
+                                'H2S': st.session_state.new_h2s if 'new_h2s' in st.session_state else detector_info.get('H2S_cilindro'),
+                                'CO': st.session_state.new_co if 'new_co' in st.session_state else detector_info.get('CO_cilindro')
+                            }
+                            found_values = {
+                                'LEL': lel_found, 'O2': o2_found,
+                                'H2S': h2s_found, 'CO': co_found
+                            }
+
+                            # Chama a função de verificação
+                            auto_result, auto_observation = verify_bump_test(reference_values, found_values)
+
+                            # Exibe o resultado automático para o usuário antes de salvar
+                            st.subheader("Resultado da Verificação Automática")
+                            if auto_result == "Aprovado":
+                                st.success(f"✔️ **Resultado:** {auto_result}")
+                            else:
+                                st.error(f"❌ **Resultado:** {auto_result}")
+                            st.info(f"**Observações Geradas:** {auto_observation}")
+                            
+                            # Se o toggle de atualização estiver ativo, atualiza os valores no inventário
+                            if 'new_lel' in st.session_state:
+                                if update_cylinder_values(selected_id, reference_values):
+                                    st.success("Valores de referência do cilindro atualizados com sucesso!")
+                                else:
+                                    st.error("Falha ao atualizar valores de referência. O teste não foi salvo.")
+                                    st.stop() # Interrompe se a atualização falhar
+                            
+                            inspection_data = {
+                                "data_teste": test_date.isoformat(),
+                                "hora_teste": test_time.strftime("%H:%M:%S"),
+                                "id_equipamento": selected_id,
+                                "LEL_encontrado": lel_found, "O2_encontrado": o2_found,
+                                "H2S_encontrado": h2s_found, "CO_encontrado": co_found,
+                                "tipo_teste": test_type, 
+                                "resultado_teste": auto_result,
+                                "observacoes": auto_observation,
+                                "responsavel_nome": resp_name, 
+                                "responsavel_matricula": resp_id
+                            }
+                            
+                            with st.spinner("Salvando o registro..."):
+                                if save_multigas_inspection(inspection_data):
+                                    st.success(f"Teste para o detector '{selected_id}' salvo com sucesso!")
+                                    st.cache_data.clear()
+                                    # Limpa as chaves para resetar o toggle e os inputs
+                                    keys_to_clear = ['new_lel', 'new_o2', 'new_h2s', 'new_co']
+                                    for key in keys_to_clear:
+                                        if key in st.session_state:
+                                            del st.session_state[key]
