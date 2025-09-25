@@ -10,6 +10,7 @@ from gdrive.config import (
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from utils.auditoria import log_action
+from operations.photo_operations import upload_evidence_photo
 
 # --- ALTERAÇÃO AQUI: Checklist agora é um dicionário de modelos ---
 CHECKLIST_QUESTIONS = {
@@ -129,21 +130,43 @@ def generate_foam_chamber_action_plan(non_conformities):
     return ACTION_PLAN_MAP.get(first_issue, "Corrigir a não conformidade reportada.")
 
 def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, results_dict, photo_file, inspector_name):
-    """Salva uma nova inspeção de câmara de espuma, incluindo a foto de não conformidade."""
+    """
+    ✅ FUNÇÃO CORRIGIDA - Salva uma nova inspeção de câmara de espuma, incluindo a foto de não conformidade.
+    
+    Esta função executa as seguintes etapas em ordem:
+    1. Faz o upload da foto de não conformidade para o Google Drive, se uma for fornecida.
+    2. Gera um plano de ação padronizado com base nos resultados da inspeção.
+    3. Prepara a linha de dados completa para o registro.
+    4. Adiciona a linha de dados à planilha 'inspecoes_camaras_espuma'.
+    5. Retorna True se tudo for bem-sucedido, ou False se ocorrer um erro.
+
+    Args:
+        chamber_id (str): O ID da câmara inspecionada.
+        inspection_type (str): O tipo da inspeção ("Visual Semestral" ou "Funcional Anual").
+        overall_status (str): O status geral da inspeção ("Aprovado" ou "Reprovado com Pendências").
+        results_dict (dict): Dicionário com as respostas do checklist.
+        photo_file (UploadedFile or None): O arquivo da foto enviado pelo usuário.
+        inspector_name (str): O nome do usuário que está realizando a inspeção.
+
+    Returns:
+        bool: True para sucesso, False para falha.
+    """
     try:
         uploader = GoogleDriveUploader()
         today = date.today()
         
         photo_link = None
+
         if photo_file:
-            st.info("Fazendo upload da foto de evidência...")
+            st.info("Fazendo upload da foto de evidência para o Google Drive...")
             photo_link = upload_evidence_photo(
                 photo_file, 
                 chamber_id, 
                 "nao_conformidade_camara_espuma"
             )
+
             if not photo_link:
-                st.error("Falha crítica no upload da foto. A inspeção não foi salva.")
+                st.error("Falha crítica: Não foi possível obter o link da foto após o upload. A inspeção não foi salva.")
                 return False
 
         if inspection_type == "Funcional Anual":
@@ -157,19 +180,21 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
         results_json = json.dumps(results_dict, ensure_ascii=False)
 
         data_row = [
-            today.isoformat(),
-            chamber_id,
-            inspection_type,
-            overall_status,
-            action_plan,
-            results_json,
-            photo_link,
-            inspector_name,
-            next_inspection_date
+            today.isoformat(),           # data_inspecao
+            chamber_id,                  # id_camara
+            inspection_type,             # tipo_inspecao
+            overall_status,              # status_geral
+            action_plan,                 # plano_de_acao
+            results_json,                # resultados_json
+            inspector_name,              # inspetor
+            next_inspection_date         # data_proxima_inspecao
         ]
         
+        st.info("Registrando dados da inspeção na planilha...")
         uploader.append_data_to_sheet(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME, data_row)
+        
         log_action("SALVOU_INSPECAO_CAMARA_ESPUMA", f"ID: {chamber_id}, Tipo: {inspection_type}, Status: {overall_status}")
+        
         return True
 
     except Exception as e:
