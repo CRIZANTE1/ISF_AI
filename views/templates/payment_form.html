@@ -1,51 +1,360 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>Formulário de Pagamento</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pagamento Seguro - {plan_name}</title>
     <script src="https://sdk.mercadopago.com/js/v2"></script>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; background-color: transparent; }}
-        #form-checkout {{ display: flex; flex-direction: column; max-width: 500px; margin: auto; }}
-        .container {{ height: 48px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; padding: 0 10px; }}
-        .input-text {{ padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 26px; font-size: 16px; }}
-        .select {{ padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 48px; font-size: 16px; }}
-        .doc-container {{ display: flex; gap: 10px; }}
-        .doc-container .select {{ flex: 1; }}
-        .doc-container .input-text {{ flex: 2; }}
-        button {{ background-color: #009ee3; color: white; border: none; padding: 15px; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; font-weight: bold; }}
-        button:hover {{ background-color: #007bb5; }}
-        button:disabled {{ background-color: #ccc; cursor: not-allowed; }}
-        #spinner {{ text-align: center; display: none; margin-top: 10px; }}
+        * {{
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }}
+        
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }}
+        
+        .payment-container {{
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        .payment-container::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }}
+        
+        .header {{
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }}
+        
+        .header h2 {{
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }}
+        
+        .header .price {{
+            color: #667eea;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }}
+        
+        .header .plan-name {{
+            color: #666;
+            font-size: 16px;
+        }}
+        
+        .form-group {{
+            margin-bottom: 20px;
+        }}
+        
+        .form-row {{
+            display: flex;
+            gap: 15px;
+        }}
+        
+        .form-row .form-group {{
+            flex: 1;
+        }}
+        
+        label {{
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }}
+        
+        .form-control {{
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }}
+        
+        .form-control:focus {{
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }}
+        
+        .form-control:invalid {{
+            border-color: #e74c3c;
+        }}
+        
+        .form-control::placeholder {{
+            color: #aaa;
+        }}
+        
+        /* Estilos para campos do SDK do Mercado Pago */
+        .mp-form-control {{
+            width: 100% !important;
+            padding: 14px 16px !important;
+            border: 2px solid #e1e5e9 !important;
+            border-radius: 8px !important;
+            font-size: 16px !important;
+            transition: all 0.3s ease !important;
+            background: #fff !important;
+            font-family: inherit !important;
+        }}
+        
+        .mp-form-control:focus {{
+            outline: none !important;
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        }}
+        
+        /* Container para campos do SDK */
+        .sdk-container {{
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 0;
+            transition: all 0.3s ease;
+            background: white;
+        }}
+        
+        .sdk-container:focus-within {{
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }}
+        
+        select.form-control {{
+            cursor: pointer;
+        }}
+        
+        .btn-pay {{
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        
+        .btn-pay:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }}
+        
+        .btn-pay:active {{
+            transform: translateY(0);
+        }}
+        
+        .btn-pay:disabled {{
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }}
+        
+        .loading {{
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+        }}
+        
+        .spinner {{
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }}
+        
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        
+        .security-badge {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }}
+        
+        .security-badge::before {{
+            content: "🔒";
+            margin-right: 6px;
+        }}
+        
+        .error-message {{
+            display: none;
+            padding: 12px;
+            background: #ffe6e6;
+            border: 1px solid #ffcccc;
+            border-radius: 6px;
+            color: #d63031;
+            margin-top: 15px;
+            font-size: 14px;
+        }}
+        
+        .success-message {{
+            display: none;
+            padding: 12px;
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 6px;
+            color: #27ae60;
+            margin-top: 15px;
+            font-size: 14px;
+        }}
+        
+        .info-text {{
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+            line-height: 1.4;
+        }}
+        
+        /* Responsive */
+        @media (max-width: 480px) {{
+            .payment-container {{
+                margin: 10px;
+                padding: 20px;
+            }}
+            
+            .form-row {{
+                flex-direction: column;
+                gap: 0;
+            }}
+        }}
     </style>
 </head>
 <body>
-    <form id="form-checkout">
-        <!-- CAMPOS DO CARTÃO (RENDERIZADOS PELO SDK) -->
-        <div id="form-checkout__cardNumber" class="container"></div>
-        <div id="form-checkout__expirationDate" class="container"></div>
-        <div id="form-checkout__securityCode" class="container"></div>
-
-        <!-- CAMPO NOME DO TITULAR (HTML) -->
-        <input type="text" id="form-checkout__cardholderName" class="input-text" placeholder="Nome do titular do cartão" />
-
-        <!-- NOVOS CAMPOS DE DOCUMENTO (CPF/CNPJ) -->
-        <div class="doc-container">
-            <select id="form-checkout__identificationType" class="select"></select>
-            <input type="text" id="form-checkout__identificationNumber" class="input-text" placeholder="CPF/CNPJ" />
+    <div class="payment-container">
+        <div class="header">
+            <h2>Pagamento Seguro</h2>
+            <div class="plan-name">{plan_name}</div>
+            <div class="price">R$ {price}</div>
         </div>
         
-        <!-- CAMPOS DE PARCELAS E BANCO (PREENCHIDOS PELO SDK) -->
-        <select id="form-checkout__issuer" class="select" style="display: none;"></select>
-        <select id="form-checkout__installments" class="select"></select>
-
-        <!-- BOTÃO DE PAGAMENTO -->
-        <button type="submit" id="form-checkout__submit">Pagar R$ {price}</button>
-        <div id="spinner"><p>Processando...</p></div>
-    </form>
+        <form id="form-checkout">
+            <!-- Campo Número do Cartão -->
+            <div class="form-group">
+                <label for="cardNumber">Número do Cartão</label>
+                <div id="form-checkout__cardNumber" class="sdk-container"></div>
+            </div>
+            
+            <!-- Campos Validade e CVV -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="expirationDate">Validade</label>
+                    <div id="form-checkout__expirationDate" class="sdk-container"></div>
+                </div>
+                <div class="form-group">
+                    <label for="securityCode">CVV</label>
+                    <div id="form-checkout__securityCode" class="sdk-container"></div>
+                </div>
+            </div>
+            
+            <!-- Nome do Titular -->
+            <div class="form-group">
+                <label for="cardholderName">Nome do Titular</label>
+                <input type="text" 
+                       id="form-checkout__cardholderName" 
+                       class="form-control" 
+                       placeholder="Como aparece no cartão" 
+                       value="{user_name}"
+                       required>
+            </div>
+            
+            <!-- Documento -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="identificationType">Tipo de Documento</label>
+                    <select id="form-checkout__identificationType" class="form-control" required>
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="identificationNumber">Número do Documento</label>
+                    <input type="text" 
+                           id="form-checkout__identificationNumber" 
+                           class="form-control" 
+                           placeholder="CPF/CNPJ"
+                           required>
+                </div>
+            </div>
+            
+            <!-- Parcelas -->
+            <div class="form-group">
+                <label for="installments">Parcelas</label>
+                <select id="form-checkout__installments" class="form-control">
+                    <option value="">Carregando parcelas...</option>
+                </select>
+            </div>
+            
+            <!-- Banco Emissor (oculto) -->
+            <select id="form-checkout__issuer" style="display: none;"></select>
+            
+            <!-- Botão de Pagamento -->
+            <button type="submit" id="form-checkout__submit" class="btn-pay">
+                💳 Pagar R$ {price}
+            </button>
+            
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Processando pagamento...</p>
+                <p class="info-text">Por favor, não feche esta janela</p>
+            </div>
+            
+            <!-- Mensagens -->
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+            
+            <!-- Badge de Segurança -->
+            <div class="security-badge">
+                Pagamento 100% seguro e criptografado
+            </div>
+        </form>
+    </div>
 
     <script>
+        // Configuração inicial
         const publicKey = "{public_key}";
         const userEmail = "{user_email}";
         const userName = "{user_name}";
@@ -53,93 +362,286 @@
         const apiUrl = "{api_url}";
         const amount = "{price}";
 
-        const mp = new MercadoPago(publicKey);
+        // Inicialização do Mercado Pago
+        const mp = new MercadoPago(publicKey, {{
+            locale: 'pt-BR'
+        }});
 
-        // --- 2. INICIALIZAÇÃO DO CARD FORM COM OS NOVOS CAMPOS ---
+        // Elementos DOM
+        const submitButton = document.getElementById('form-checkout__submit');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error-message');
+        const successDiv = document.getElementById('success-message');
+
+        // Funções utilitárias
+        function showLoading(show) {{
+            loadingDiv.style.display = show ? 'block' : 'none';
+            submitButton.disabled = show;
+            if (show) {{
+                submitButton.textContent = 'Processando...';
+            }} else {{
+                submitButton.textContent = '💳 Pagar R$ ' + amount;
+            }}
+        }}
+
+        function showError(message) {{
+            hideMessages();
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        }}
+
+        function showSuccess(message) {{
+            hideMessages();
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            successDiv.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        }}
+
+        function hideMessages() {{
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+        }}
+
+        // Configuração do Card Form
         const cardForm = mp.cardForm({{
             amount: amount,
             iframe: true,
             form: {{
                 id: "form-checkout",
-                cardholderName: {{ id: "form-checkout__cardholderName" }},
-                cardNumber: {{ id: "form-checkout__cardNumber", placeholder: "Número do cartão" }},
-                expirationDate: {{ id: "form-checkout__expirationDate", placeholder: "MM/YY" }},
-                securityCode: {{ id: "form-checkout__securityCode", placeholder: "CVC" }},
-                installments: {{ id: "form-checkout__installments", placeholder: "Parcelas" }},
-                issuer: {{ id: "form-checkout__issuer" }},
-                // Adiciona os novos campos de identificação
-                identificationType: {{ id: "form-checkout__identificationType" }},
-                identificationNumber: {{ id: "form-checkout__identificationNumber" }},
+                cardholderName: {{
+                    id: "form-checkout__cardholderName",
+                    placeholder: "Nome do titular"
+                }},
+                cardNumber: {{
+                    id: "form-checkout__cardNumber",
+                    placeholder: "1234 1234 1234 1234"
+                }},
+                expirationDate: {{
+                    id: "form-checkout__expirationDate",
+                    placeholder: "MM/AA"
+                }},
+                securityCode: {{
+                    id: "form-checkout__securityCode",
+                    placeholder: "123"
+                }},
+                installments: {{
+                    id: "form-checkout__installments",
+                    placeholder: "Escolha o número de parcelas"
+                }},
+                issuer: {{
+                    id: "form-checkout__issuer"
+                }},
+                identificationType: {{
+                    id: "form-checkout__identificationType"
+                }},
+                identificationNumber: {{
+                    id: "form-checkout__identificationNumber",
+                    placeholder: "Número do documento"
+                }}
             }},
             callbacks: {{
                 onFormMounted: error => {{
-                    if (error) return console.warn("Form Mounted Handling error: ", error);
+                    if (error) {{
+                        console.error("Erro ao montar formulário:", error);
+                        showError("Erro ao carregar o formulário de pagamento");
+                        return;
+                    }}
+                    console.log("Formulário de pagamento carregado com sucesso");
                 }},
-                onIdentificationTypesReceived: (error, identificationTypes) => {{
-                    if (error) return console.warn('identificationTypes handling error: ', error)
-                    const docTypeSelect = document.getElementById('form-checkout__identificationType');
-                    identificationTypes.forEach( type => {{
-                        let opt = document.createElement('option');
-                        opt.value = type.id;
-                        opt.text = type.name;
-                        docTypeSelect.appendChild(opt);
-                    }});
-                }},
+                
                 onSubmit: event => {{
                     event.preventDefault();
-                    document.getElementById("form-checkout__submit").disabled = true;
-                    document.getElementById("spinner").style.display = "block";
-
-                    const {{
-                        token,
-                        issuerId,
-                        paymentMethodId,
-                        installments,
-                        identificationType,
-                        identificationNumber,
-                    }} = cardForm.getCardFormData();
-
-                    fetch(apiUrl + "/create-payment", {{
-                        method: "POST",
-                        headers: {{ "Content-Type": "application/json" }},
-                        body: JSON.stringify({{
-                            card_token: token,
-                            issuer_id: issuerId,
-                            payment_method_id: paymentMethodId,
-                            installments: parseInt(installments),
-                            // Adiciona os dados do pagador no corpo da requisição
-                            payer: {{
-                                email: userEmail,
-                                identification: {{
-                                    type: identificationType,
-                                    number: identificationNumber,
-                                }}
-                            }},
-                            user_email: userEmail,
-                            user_name: userName,
-                            plan_type: planType,
-                        }}),
-                    }})
-                    .then(response => response.json())
-                    .then(result => {{
-                        if (result.status === "approved") {{
-                            alert("Pagamento aprovado!");
-                            window.parent.postMessage({{ type: "payment_success" }}, "*");
-                        }} else {{
-                            const errorMessage = result.detail || result.status_detail || "Pagamento rejeitado. Verifique os dados.";
-                            alert(errorMessage);
-                        }}
-                    }})
-                    .catch(error => {{
-                        console.error("Fetch error:", error);
-                        alert("Erro de comunicação. Tente novamente.");
-                    }})
-                    .finally(() => {{
-                        document.getElementById("form-checkout__submit").disabled = false;
-                        document.getElementById("spinner").style.display = "none";
-                    }});
+                    processPayment();
                 }},
-            }},
+                
+                onFetching: (resource) => {{
+                    console.log("Buscando resource:", resource);
+                    // Pode mostrar loading específico por resource se necessário
+                }},
+                
+                onCardTokenReceived: (token) => {{
+                    console.log("Token do cartão recebido");
+                }},
+                
+                onInstallmentsReceived: (installments) => {{
+                    console.log("Parcelas carregadas:", installments.length, "opções");
+                }},
+                
+                onPaymentMethodsReceived: (paymentMethods) => {{
+                    console.log("Métodos de pagamento carregados:", paymentMethods.length);
+                }}
+            }}
+        }});
+
+        // Função principal de processamento do pagamento
+        async function processPayment() {{
+            showLoading(true);
+            hideMessages();
+
+            try {{
+                // Obter dados do formulário
+                const {{
+                    token,
+                    issuerId,
+                    paymentMethodId,
+                    installments,
+                    identificationType,
+                    identificationNumber,
+                    cardholderName
+                }} = cardForm.getCardFormData();
+
+                // Validações básicas
+                if (!token) {{
+                    throw new Error("Erro ao processar dados do cartão. Verifique as informações.");
+                }}
+
+                if (!identificationType || !identificationNumber) {{
+                    throw new Error("Por favor, selecione o tipo de documento e informe o número.");
+                }}
+
+                if (!cardholderName.trim()) {{
+                    throw new Error("Por favor, informe o nome do titular do cartão.");
+                }}
+
+                console.log("Enviando dados do pagamento...");
+
+                // Enviar dados para o backend
+                const response = await fetch(apiUrl + "/create-payment", {{
+                    method: "POST",
+                    headers: {{
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    }},
+                    body: JSON.stringify({{
+                        card_token: token,
+                        issuer_id: issuerId,
+                        payment_method_id: paymentMethodId,
+                        installments: parseInt(installments),
+                        payer: {{
+                            email: userEmail,
+                            identification: {{
+                                type: identificationType,
+                                number: identificationNumber
+                            }}
+                        }},
+                        user_email: userEmail,
+                        user_name: cardholderName,
+                        plan_type: planType
+                    }})
+                }});
+
+                const result = await response.json();
+                console.log("Resposta do servidor:", result);
+
+                if (!response.ok) {{
+                    throw new Error(result.detail || `Erro HTTP: ${{response.status}}`);
+                }}
+
+                // Processar resultado
+                switch (result.status) {{
+                    case "approved":
+                        showSuccess("✅ Pagamento aprovado com sucesso! Redirecionando...");
+                        
+                        // Notificar o Streamlit
+                        if (window.parent) {{
+                            window.parent.postMessage({{
+                                type: "payment_success",
+                                payment_id: result.payment_id,
+                                plan: planType
+                            }}, "*");
+                        }}
+                        
+                        // Redirecionar após delay
+                        setTimeout(() => {{
+                            window.location.reload();
+                        }}, 3000);
+                        break;
+                        
+                    case "pending":
+                        showSuccess("⏳ Pagamento pendente. Aguarde a confirmação bancária.");
+                        
+                        if (window.parent) {{
+                            window.parent.postMessage({{
+                                type: "payment_pending",
+                                payment_id: result.payment_id
+                            }}, "*");
+                        }}
+                        break;
+                        
+                    case "rejected":
+                    case "cancelled":
+                        const rejectionReasons = {{
+                            'cc_rejected_insufficient_amount': 'Saldo insuficiente no cartão.',
+                            'cc_rejected_bad_filled_security_code': 'Código de segurança inválido.',
+                            'cc_rejected_bad_filled_date': 'Data de vencimento inválida.',
+                            'cc_rejected_bad_filled_card_number': 'Número do cartão inválido.',
+                            'cc_rejected_high_risk': 'Transação rejeitada por segurança.',
+                            'cc_rejected_max_attempts': 'Muitas tentativas. Tente mais tarde.',
+                            'cc_rejected_duplicated_payment': 'Pagamento duplicado.',
+                            'cc_rejected_card_disabled': 'Cartão desabilitado.',
+                            'cc_rejected_blacklist': 'Cartão em lista negra.'
+                        }};
+                        
+                        const errorMessage = rejectionReasons[result.status_detail] || 
+                                           'Pagamento rejeitado. Verifique os dados do cartão.';
+                        throw new Error(errorMessage);
+                        
+                    default:
+                        throw new Error(result.status_detail || "Status de pagamento desconhecido.");
+                }}
+                
+            }} catch (error) {{
+                console.error("Erro no pagamento:", error);
+                showError(error.message || "Erro inesperado. Tente novamente.");
+                
+                // Notificar erro para o Streamlit
+                if (window.parent) {{
+                    window.parent.postMessage({{
+                        type: "payment_error",
+                        message: error.message
+                    }}, "*");
+                }}
+            }} finally {{
+                showLoading(false);
+            }}
+        }}
+
+        // Event listeners adicionais
+        document.addEventListener('DOMContentLoaded', function() {{
+            console.log("Página de pagamento carregada");
+            
+            // Adicionar máscara para CPF/CNPJ
+            const identificationInput = document.getElementById('form-checkout__identificationNumber');
+            if (identificationInput) {{
+                identificationInput.addEventListener('input', function(e) {{
+                    let value = e.target.value.replace(/\D/g, '');
+                    
+                    if (value.length <= 11) {{
+                        // Máscara CPF
+                        value = value.replace(/(\d{{3}})(\d{{3}})(\d{{3}})(\d{{2}})/, '$1.$2.$3-$4');
+                    }} else {{
+                        // Máscara CNPJ  
+                        value = value.replace(/(\d{{2}})(\d{{3}})(\d{{3}})(\d{{4}})(\d{{2}})/, '$1.$2.$3/$4-$5');
+                    }}
+                    
+                    e.target.value = value;
+                }});
+            }}
+        }});
+
+        // Prevenir múltiplos submits
+        let isSubmitting = false;
+        document.getElementById('form-checkout').addEventListener('submit', function(e) {{
+            if (isSubmitting) {{
+                e.preventDefault();
+                return false;
+            }}
+            isSubmitting = true;
+            
+            setTimeout(() => {{
+                isSubmitting = false;
+            }}, 3000);
         }});
     </script>
 </body>
