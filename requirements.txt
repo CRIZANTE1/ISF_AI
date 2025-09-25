@@ -18,6 +18,7 @@ google-auth-httplib2
 google-auth-oauthlib
 google-generativeai
 authlib
+msal
 
 # Comunicação HTTP (para baixar imagens)
 # ========================
