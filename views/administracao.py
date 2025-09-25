@@ -169,23 +169,23 @@ def show_page():
                     st.error(f"🚨 {len(provisioning_issues)} usuário(s) com problemas de provisionamento!")
                     st.dataframe(provisioning_issues[['email', 'nome', 'data_cadastro']], use_container_width=True)
         
-        with col_health2:
-            st.write("**Últimos Erros Registrados na Auditoria**")
-            
-            audit_data = matrix_uploader.get_data_from_sheet(AUDIT_LOG_SHEET_NAME)
-            if not audit_data or len(audit_data) < 2:
-                st.info("Nenhum log de auditoria encontrado.")
-            else:
-                df_log = pd.DataFrame(audit_data[1:], columns=audit_data[0])
-                # Filtra logs que indicam falhas ou erros
-                error_logs = df_log[df_log['action'].str.contains("FALHA|ERRO", case=False, na=False)].copy()
+            with col_health2:
+                st.write("**Últimos Erros Registrados na Auditoria**")
                 
-                if error_logs.empty:
-                    st.success("✅ Nenhum erro recente registrado.")
+                audit_data = matrix_uploader.get_data_from_sheet(AUDIT_LOG_SHEET_NAME)
+                if not audit_data or len(audit_data) < 2:
+                    st.info("Nenhum log de auditoria encontrado.")
                 else:
-                    error_logs = error_logs.sort_values(by='timestamp', ascending=False)
-                    st.warning(f"Encontrados {len(error_logs)} logs de erro.")
-                    st.dataframe(error_logs.head(5)[['timestamp', 'user_email', 'action', 'details']], use_container_width=True)
+                    df_log = pd.DataFrame(audit_data[1:], columns=audit_data[0])
+                    # Filtra logs que indicam falhas ou erros
+                    error_logs = df_log[df_log['action'].str.contains("FALHA|ERRO", case=False, na=False)].copy()
+                    
+                    if error_logs.empty:
+                        st.success("✅ Nenhum erro recente registrado.")
+                    else:
+                        error_logs = error_logs.sort_values(by='timestamp', ascending=False)
+                        st.warning(f"Encontrados {len(error_logs)} logs de erro.")
+                        st.dataframe(error_logs.head(5)[['timestamp', 'user_email', 'action', 'details']], use_container_width=True)
 
 
     with tab_requests:
