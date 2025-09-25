@@ -64,6 +64,8 @@ def normalize_dataframe_columns(df, expected_columns):
                 df[col] = date.today().isoformat()
             elif col == 'trial_end_date':
                 df[col] = None
+            elif col in ['telefone', 'empresa', 'cargo']:
+                df[col] = ''
             else:
                 df[col] = ''
     
@@ -80,7 +82,8 @@ def get_users_data():
     # Estrutura esperada da planilha de usuários
     expected_columns = [
         'email', 'nome', 'role', 'plano', 'status', 
-        'spreadsheet_id', 'folder_id', 'data_cadastro', 'trial_end_date'
+    'spreadsheet_id', 'folder_id', 'data_cadastro', 'trial_end_date',
+    'telefone', 'empresa', 'cargo'
     ]
     
     try:
