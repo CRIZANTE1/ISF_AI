@@ -4,44 +4,48 @@ from .azure_auth import get_login_button, handle_redirect
 
 def show_login_page():
     """
-    Mostra a página de login com opções para Google e Azure, e processa
-    o redirecionamento de volta do Azure.
+    Mostra a página de login e lida com o redirecionamento do Azure de forma robusta.
     """
+    
+    # Verifica se há um código na URL, indicando um retorno do Azure
+    auth_code = st.query_params.get("code")
+    
+    if auth_code and not st.session_state.get('is_logged_in', False):
+        # Somente tenta o login se houver um código E o usuário ainda não estiver logado.
+        # Isso evita loops se a página for recarregada com o código ainda na URL.
+        login_success = handle_redirect()
+        
+        if login_success:
+            # Se o handle_redirect foi bem-sucedido, ele já definiu o session_state
+            # e limpou os query_params. Agora, apenas fazemos o rerun.
+            st.success("Autenticação bem-sucedida! Carregando aplicativo...")
+            st.rerun() # O rerun fará a verificação `is_user_logged_in()` retornar True na próxima execução
+        else:
+            # Se o handle_redirect falhou, mostre um erro e pare.
+            st.error("Falha ao validar a autenticação com o Azure. Tente novamente.")
+            # Não exibe os botões de login para evitar confusão.
+            return False
 
-    if handle_redirect():
-        # Se o login com Azure foi concluído com sucesso, recarrega a página
-        # para que o app reconheça o novo estado de login.
-        st.success("Login com Azure realizado com sucesso! Redirecionando...")
-        st.rerun()
-
-    # --- ETAPA 2: EXIBIR A TELA DE LOGIN ---
+    # Se não houver código de autenticação, exibe a página de login normalmente
     st.title("Login do Sistema de Inspeções")
     st.info("Por favor, escolha um método de login para acessar o sistema.")
     
-    # Container para organizar os botões
     with st.container(border=True):
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("Login Pessoal / Google")
-            # Verifica se o login OIDC (Google) está disponível antes de mostrar o botão
             if is_oidc_available():
                 if st.button("Fazer Login com Google", type="primary", use_container_width=True):
-                    try:
-                        st.login()
-                    except Exception as e:
-                        st.error(f"O login com Google não está disponível no momento. Erro: {e}")
+                    st.login()
             else:
-                st.warning("O login com Google não está configurado neste ambiente.")
+                st.warning("O login com Google não está configurado.")
 
         with col2:
             st.subheader("Login Corporativo / Microsoft")
-            # Esta função gera o botão de login do Azure com o link correto.
             get_login_button()
-    
-    # Retorna False para indicar que o usuário ainda não está logado
-    # e que a execução do app principal (Pagina Inicial.py) deve parar.
-    return False
+            
+    return False # Indica que o login ainda não foi concluído.
 
 def show_user_header():
     """
