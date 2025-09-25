@@ -145,7 +145,7 @@ class MercadoPagoPayment:
             st.info("Por favor, verifique se o diretório 'templates' existe na pasta 'views'")
 
 def update_user_profile(user_email: str, updated_data: dict):
-    """Atualiza os dados do perfil do usuário"""
+    """Atualiza os dados do perfil do usuário de forma dinâmica."""
     try:
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
         users_data = matrix_uploader.get_data_from_sheet(USERS_SHEET_NAME)
@@ -153,8 +153,9 @@ def update_user_profile(user_email: str, updated_data: dict):
         if not users_data or len(users_data) < 2:
             st.error("Erro ao carregar dados dos usuários.")
             return False
-            
-        df_users = pd.DataFrame(users_data[1:], columns=users_data[0])
+        
+        headers = users_data[0]
+        df_users = pd.DataFrame(users_data[1:], columns=headers)
         user_row = df_users[df_users['email'] == user_email]
         
         if user_row.empty:
@@ -163,11 +164,30 @@ def update_user_profile(user_email: str, updated_data: dict):
             
         row_index = user_row.index[0] + 2  # +2 para compensar cabeçalho e base 0
         
-        # Atualizar nome (coluna B)
-        if 'nome' in updated_data:
-            matrix_uploader.update_cells(USERS_SHEET_NAME, f"B{row_index}", [[updated_data['nome']]])
+        # Mapeia os dados a serem atualizados para os nomes das colunas
+        column_map = {
+            'nome': 'nome',
+            'telefone': 'telefone',
+            'empresa': 'empresa',
+            'cargo': 'cargo'
+        }
         
-        log_action("ATUALIZOU_PERFIL", f"Email: {user_email}")
+        # Encontra o índice de cada coluna pelo nome do cabeçalho
+        updates_to_perform = {}
+        for data_key, col_name in column_map.items():
+            if col_name in headers:
+                col_index = headers.index(col_name)
+                # Converte índice numérico para letra de coluna (A, B, C...)
+                col_letter = chr(ord('A') + col_index)
+                updates_to_perform[data_key] = col_letter
+
+        # Executa as atualizações
+        for data_key, col_letter in updates_to_perform.items():
+            if data_key in updated_data:
+                value_to_update = updated_data[data_key]
+                matrix_uploader.update_cells(USERS_SHEET_NAME, f"{col_letter}{row_index}", [[value_to_update]])
+        
+        log_action("ATUALIZOU_PERFIL", f"Email: {user_email}, Dados: {list(updated_data.keys())}")
         return True
         
     except Exception as e:
@@ -288,11 +308,22 @@ def show_page():
             )
             
             # Campos futuros
-            with st.expander("📋 Campos Adicionais (Em Desenvolvimento)"):
-                st.text_input("Telefone", placeholder="(11) 99999-9999", disabled=True)
-                st.text_input("Empresa", placeholder="Nome da sua empresa", disabled=True)
-                st.text_input("Cargo", placeholder="Seu cargo na empresa", disabled=True)
-                st.info("💡 Estes campos estarão disponíveis em futuras atualizações.")
+            with st.expander("📋 Campos Adicionais"):
+                new_phone = st.text_input(
+                    "Telefone", 
+                    value=user_info.get('telefone', ''),
+                    placeholder="(11) 99999-9999"
+                )
+                new_company = st.text_input(
+                    "Empresa", 
+                    value=user_info.get('empresa', ''),
+                    placeholder="Nome da sua empresa"
+                )
+                new_position = st.text_input(
+                    "Cargo", 
+                    value=user_info.get('cargo', ''),
+                    placeholder="Seu cargo na empresa"
+                )
             
             submitted = st.form_submit_button(
                 "💾 Salvar Alterações", 
@@ -304,7 +335,13 @@ def show_page():
                 if not new_name.strip():
                     st.error("❌ O nome não pode estar vazio.")
                 else:
-                    updated_data = {'nome': new_name.strip()}
+                    # AGORA passamos todos os dados para a função
+                    updated_data = {
+                        'nome': new_name.strip(),
+                        'telefone': new_phone.strip(),
+                        'empresa': new_company.strip(),
+                        'cargo': new_position.strip()
+                    }
                     
                     with st.spinner("Salvando alterações..."):
                         if update_user_profile(user_email, updated_data):
