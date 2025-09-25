@@ -41,6 +41,8 @@ plotly>=5.18.0
 streamlit-js-eval 
 weasyprint
 PyYAML
+streamlit-lottie
+
 
 mercadopago==2.2.1
 fastapi==0.104.1
