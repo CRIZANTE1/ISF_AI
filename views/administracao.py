@@ -63,18 +63,21 @@ def provision_user_environment(user_email, user_name):
         return False, None, None
 
 def show_page():
+    # A indentação começa aqui
     st.title("👑 Painel de Controle do Super Administrador")
 
     tab_dashboard, tab_requests, tab_users, tab_audit = st.tabs([
         "📊 Dashboard Global", "📬 Solicitações", "👤 Usuários e Planos", "🛡️ Auditoria"
     ])
 
-     try:
-         matrix_uploader = GoogleDriveUploader(is_matrix=True)
-     except Exception as e:
-         st.error(f"Falha ao conectar com os serviços do Google. Verifique as credenciais. Erro: {e}")
-         st.stop()
+    # O bloco try...except está corretamente indentado dentro da função
+    try:
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+    except Exception as e:
+        st.error(f"Falha ao conectar com os serviços do Google. Verifique as credenciais. Erro: {e}")
+        st.stop()
         
+    # O bloco with tab_dashboard... também está corretamente indentado
     with tab_dashboard:
         st.header("Visão Geral do Status de Todos os Usuários Ativos")
         
@@ -88,34 +91,30 @@ def show_page():
         requests_data = matrix_uploader.get_data_from_sheet(ACCESS_REQUESTS_SHEET_NAME)
         df_requests = pd.DataFrame(requests_data[1:], columns=requests_data[0]) if requests_data and len(requests_data) > 1 else pd.DataFrame()
         
-        # --- CORREÇÃO: Toda a lógica do dashboard agora está dentro deste if/else ---
+        # A lógica do dashboard está dentro deste if/else
         if users_df.empty:
             st.warning("Nenhum usuário cadastrado para exibir métricas.")
         else:
-            # --- 1. MÉTRICAS CHAVE (KPIs) ---
+            # --- Seção 1: Métricas Principais (KPIs) ---
             st.subheader("📊 Métricas Principais")
             
-            # Filtra usuários ativos
             active_users_df = users_df[users_df['status'] == 'ativo']
             
-            # Calcula novos usuários nos últimos 30 dias
             users_df['data_cadastro'] = pd.to_datetime(users_df['data_cadastro'], errors='coerce')
             thirty_days_ago = datetime.now() - timedelta(days=30)
             new_users_last_30_days = users_df[users_df['data_cadastro'] >= thirty_days_ago].shape[0]
             
-            # Calcula solicitações pendentes
             pending_requests_count = df_requests[df_requests['status'] == 'Pendente'].shape[0] if not df_requests.empty else 0
             
-            # Exibe as métricas em colunas
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Usuários Ativos Totais", f"{active_users_df.shape[0]}")
             col2.metric("Novos Usuários (30d)", f"+{new_users_last_30_days}")
-            col3.metric("Conversão de Trial (Em breve)", "N/A") # Placeholder
+            col3.metric("Conversão de Trial (Em breve)", "N/A")
             col4.metric("Solicitações Pendentes", f"{pending_requests_count}", delta_color="inverse")
             
             st.markdown("---")
             
-            # --- 2. GRÁFICOS DE DISTRIBUIÇÃO ---
+            # --- Seção 2: Gráficos de Distribuição ---
             st.subheader("📈 Distribuição de Usuários")
             
             col_chart1, col_chart2 = st.columns(2)
@@ -155,7 +154,7 @@ def show_page():
     
             st.markdown("---")
             
-            # --- 3. SAÚDE DA PLATAFORMA ---
+            # --- Seção 3: Saúde da Plataforma ---
             st.subheader("🩺 Saúde da Plataforma")
             
             col_health1, col_health2 = st.columns(2)
@@ -163,7 +162,6 @@ def show_page():
             with col_health1:
                 st.write("**Usuários com Provisionamento Incompleto**")
                 
-                # Filtra usuários ativos com IDs de planilha ou pasta faltando
                 provisioning_issues = active_users_df[
                     (active_users_df['spreadsheet_id'].isnull()) | (active_users_df['spreadsheet_id'] == '') |
                     (active_users_df['folder_id'].isnull()) | (active_users_df['folder_id'] == '')
@@ -183,7 +181,6 @@ def show_page():
                     st.info("Nenhum log de auditoria encontrado.")
                 else:
                     df_log = pd.DataFrame(audit_data[1:], columns=audit_data[0])
-                    # Filtra logs que indicam falhas ou erros
                     error_logs = df_log[df_log['action'].str.contains("FALHA|ERRO", case=False, na=False)].copy()
                     
                     if error_logs.empty:
@@ -192,7 +189,6 @@ def show_page():
                         error_logs = error_logs.sort_values(by='timestamp', ascending=False)
                         st.warning(f"Encontrados {len(error_logs)} logs de erro.")
                         st.dataframe(error_logs.head(5)[['timestamp', 'user_email', 'action', 'details']], use_container_width=True)
-
 
     with tab_requests:
         st.header("Gerenciar Solicitações de Acesso Pendentes")
