@@ -1,4 +1,3 @@
-# FILE: utils/auditoria.py
 
 import streamlit as st
 from datetime import datetime
@@ -26,7 +25,7 @@ def log_action(action: str, details: str = "", target_uo: str = None):
         # Pega os dados do usuário e da sessão
         user_email = get_user_email() or "não logado"
         user_role = get_user_role()
-        timestamp = _get_sao_paulo_time_str()
+        timestamp = get_sao_paulo_time_str() 
         
         # Se a UO não for passada como argumento, tenta pegá-la da sessão
         if target_uo is None:
@@ -50,3 +49,6 @@ def log_action(action: str, details: str = "", target_uo: str = None):
         # Em caso de falha no log, apenas exibe um aviso no console/log do Streamlit
         # para não quebrar a aplicação principal.
         print(f"ALERTA: Falha ao registrar a ação de auditoria. Erro: {e}")
+        # Opcionalmente, pode também mostrar na interface do Streamlit em debug
+        if st.secrets.get("debug_mode", False):
+            st.error(f"⚠️ Erro no log de auditoria: {e}")
