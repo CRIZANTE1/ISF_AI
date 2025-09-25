@@ -5,6 +5,9 @@ import pandas as pd
 import yaml
 from datetime import date, timedelta
 from functools import reduce
+from datetime import datetime, timedelta
+import altair as alt
+
 
 # Adiciona o diretório raiz ao path para encontrar os outros módulos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -68,15 +71,111 @@ def show_page():
 
     with tab_dashboard:
         st.header("Visão Geral do Status de Todos os Usuários Ativos")
-        if st.button("Recarregar Dados de Todos os Usuários"):
-            st.cache_data.clear()
-            st.rerun()
-
+        
         users_df = get_users_data()
-        st.info(f"Analisando dados de **{len(users_df[users_df['status'] == 'ativo'])}** usuários ativos.")
-        # Lógica do dashboard aqui (pode ser pesada, mantenha-a opcional ou otimizada)
-        # Exemplo simplificado:
-        st.write("Funcionalidade de Dashboard Global em desenvolvimento.")
+        requests_data = matrix_uploader.get_data_from_sheet(ACCESS_REQUESTS_SHEET_NAME)
+        df_requests = pd.DataFrame(requests_data[1:], columns=requests_data[0]) if requests_data and len(requests_data) > 1 else pd.DataFrame()
+        
+        if users_df.empty:
+            st.warning("Nenhum usuário cadastrado para exibir métricas.")
+        else:
+            # --- 1. MÉTRICAS CHAVE (KPIs) ---
+            st.subheader("📊 Métricas Principais")
+            
+            # Filtra usuários ativos
+            active_users_df = users_df[users_df['status'] == 'ativo']
+            
+            # Calcula novos usuários nos últimos 30 dias
+            users_df['data_cadastro'] = pd.to_datetime(users_df['data_cadastro'], errors='coerce')
+            thirty_days_ago = datetime.now() - timedelta(days=30)
+            new_users_last_30_days = users_df[users_df['data_cadastro'] >= thirty_days_ago].shape[0]
+            
+            # Calcula solicitações pendentes
+            pending_requests_count = df_requests[df_requests['status'] == 'Pendente'].shape[0] if not df_requests.empty else 0
+            
+            # Exibe as métricas em colunas
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Usuários Ativos Totais", f"{active_users_df.shape[0]}")
+            col2.metric("Novos Usuários (30d)", f"+{new_users_last_30_days}")
+            col3.metric("Conversão de Trial (Em breve)", "N/A") # Placeholder
+            col4.metric("Solicitações Pendentes", f"{pending_requests_count}", delta_color="inverse")
+            
+            st.markdown("---")
+            
+            # --- 2. GRÁFICOS DE DISTRIBUIÇÃO ---
+            st.subheader("📈 Distribuição de Usuários")
+            
+            col_chart1, col_chart2 = st.columns(2)
+            
+            with col_chart1:
+                st.write("**Distribuição por Plano**")
+                plan_counts = active_users_df['plano'].value_counts().reset_index()
+                plan_counts.columns = ['plano', 'contagem']
+                
+                chart = alt.Chart(plan_counts).mark_arc(innerRadius=50).encode(
+                    theta=alt.Theta(field="contagem", type="quantitative"),
+                    color=alt.Color(field="plano", type="nominal", title="Plano"),
+                    tooltip=['plano', 'contagem']
+                ).properties(
+                    title='Planos dos Usuários Ativos'
+                )
+                st.altair_chart(chart, use_container_width=True)
+                
+            with col_chart2:
+                st.write("**Atividade Recente (Novos Cadastros)**")
+                
+                # Agrupa novos usuários por semana
+                new_users_df = users_df.dropna(subset=['data_cadastro']).copy()
+                new_users_df['semana_cadastro'] = new_users_df['data_cadastro'].dt.to_period('W').apply(lambda r: r.start_time).dt.date
+                weekly_signups = new_users_df.groupby('semana_cadastro').size().reset_index(name='novos_cadastros')
+                
+                line_chart = alt.Chart(weekly_signups).mark_line(point=True).encode(
+                    x=alt.X('semana_cadastro:T', title='Semana'),
+                    y=alt.Y('novos_cadastros:Q', title='Novos Usuários'),
+                    tooltip=['semana_cadastro', 'novos_cadastros']
+                ).properties(
+                    title='Novos Cadastros por Semana'
+                )
+                st.altair_chart(line_chart, use_container_width=True)
+
+        
+    st.markdown("---")
+        st.subheader("🩺 Saúde da Plataforma")
+        
+        col_health1, col_health2 = st.columns(2)
+        
+        with col_health1:
+            st.write("**Usuários com Provisionamento Incompleto**")
+            
+            # Filtra usuários ativos com IDs faltando
+            provisioning_issues = active_users_df[
+                (active_users_df['spreadsheet_id'].isnull()) | (active_users_df['spreadsheet_id'] == '') |
+                (active_users_df['folder_id'].isnull()) | (active_users_df['folder_id'] == '')
+            ]
+            
+            if provisioning_issues.empty:
+                st.success("✅ Todos os usuários ativos estão com o ambiente provisionado.")
+            else:
+                st.error(f"🚨 {len(provisioning_issues)} usuário(s) com problemas de provisionamento!")
+                st.dataframe(provisioning_issues[['email', 'nome', 'data_cadastro']], use_container_width=True)
+        
+        with col_health2:
+            st.write("**Últimos Erros Registrados na Auditoria**")
+            
+            audit_data = matrix_uploader.get_data_from_sheet(AUDIT_LOG_SHEET_NAME)
+            if not audit_data or len(audit_data) < 2:
+                st.info("Nenhum log de auditoria encontrado.")
+            else:
+                df_log = pd.DataFrame(audit_data[1:], columns=audit_data[0])
+                # Filtra logs que indicam falhas
+                error_logs = df_log[df_log['action'].str.contains("FALHA|ERRO", case=False, na=False)].copy()
+                
+                if error_logs.empty:
+                    st.success("✅ Nenhum erro recente registrado.")
+                else:
+                    error_logs = error_logs.sort_values(by='timestamp', ascending=False)
+                    st.warning(f"Encontrados {len(error_logs)} logs de erro.")
+                    st.dataframe(error_logs.head(5)[['timestamp', 'user_email', 'action', 'details']], use_container_width=True)
 
 
     with tab_requests:
