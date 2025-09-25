@@ -1,45 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-g">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>Formulário de Pagamento</title>
     <script src="https://sdk.mercadopago.com/js/v2"></script>
     <style>
-        /* Estilos básicos para o formulário */
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; background-color: #f0f2f6; }}
-        #form-checkout {{ display: flex; flex-direction: column; max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-        .container {{ height: 48px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; }}
-        button {{ background-color: #009ee3; color: white; border: none; padding: 15px; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }}
-        button:hover {{ background-color: #007bb5; }}
-        button:disabled {{ background-color: #ccc; cursor: not-allowed; }}
-        #loading-spinner {{ text-align: center; display: none; }}
+        /* Estilos básicos para o formulário (pode personalizar) */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; background-color: transparent; }
+        #form-checkout { display: flex; flex-direction: column; max-width: 500px; margin: auto; }
+        .container { height: 48px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; padding: 0 10px; }
+        .input-text { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 26px; font-size: 16px; }
+        .select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 48px; font-size: 16px; }
+        .doc-container { display: flex; gap: 10px; }
+        .doc-container .select { flex: 1; }
+        .doc-container .input-text { flex: 2; }
+        button { background-color: #009ee3; color: white; border: none; padding: 15px; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; font-weight: bold; }
+        button:hover { background-color: #007bb5; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #spinner { text-align: center; display: none; margin-top: 10px; }
     </style>
 </head>
 <body>
     <form id="form-checkout">
+        <!-- CAMPOS DO CARTÃO (RENDERIZADOS PELO SDK) -->
         <div id="form-checkout__cardNumber" class="container"></div>
         <div id="form-checkout__expirationDate" class="container"></div>
         <div id="form-checkout__securityCode" class="container"></div>
-        <input type="text" id="form-checkout__cardholderName" placeholder="Titular do cartão" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 26px;"/>
-        <select id="form-checkout__issuer" style="display: none; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 48px;"></select>
-        <select id="form-checkout__installments" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; height: 48px;"></select>
+
+        <!-- CAMPO NOME DO TITULAR (HTML) -->
+        <input type="text" id="form-checkout__cardholderName" class="input-text" placeholder="Nome do titular do cartão" />
+
+        <!-- NOVOS CAMPOS DE DOCUMENTO (CPF/CNPJ) -->
+        <div class="doc-container">
+            <select id="form-checkout__identificationType" class="select"></select>
+            <input type="text" id="form-checkout__identificationNumber" class="input-text" placeholder="CPF/CNPJ" />
+        </div>
+        
+        <!-- CAMPOS DE PARCELAS E BANCO (PREENCHIDOS PELO SDK) -->
+        <select id="form-checkout__issuer" class="select" style="display: none;"></select>
+        <select id="form-checkout__installments" class="select"></select>
+
+        <!-- BOTÃO DE PAGAMENTO -->
         <button type="submit" id="form-checkout__submit">Pagar R$ {price}</button>
-        <div id="loading-spinner"><p>Processando pagamento...</p></div>
+        <div id="spinner"><p>Processando...</p></div>
     </form>
 
     <script>
-        // Variáveis injetadas pelo Python
         const publicKey = "{public_key}";
         const userEmail = "{user_email}";
         const userName = "{user_name}";
         const planType = "{plan_type}";
         const apiUrl = "{api_url}";
+        const amount = "{price}";
 
         const mp = new MercadoPago(publicKey);
 
+        // --- 2. INICIALIZAÇÃO DO CARD FORM COM OS NOVOS CAMPOS ---
         const cardForm = mp.cardForm({{
-            amount: "{price}",
+            amount: amount,
             iframe: true,
             form: {{
                 id: "form-checkout",
@@ -48,41 +67,37 @@
                 expirationDate: {{ id: "form-checkout__expirationDate", placeholder: "MM/YY" }},
                 securityCode: {{ id: "form-checkout__securityCode", placeholder: "CVC" }},
                 installments: {{ id: "form-checkout__installments", placeholder: "Parcelas" }},
-                issuer: {{ id: "form-checkout__issuer", placeholder: "Banco emissor" }},
+                issuer: {{ id: "form-checkout__issuer" }},
+                // Adiciona os novos campos de identificação
+                identificationType: {{ id: "form-checkout__identificationType" }},
+                identificationNumber: {{ id: "form-checkout__identificationNumber" }},
             }},
             callbacks: {{
                 onFormMounted: error => {{
                     if (error) return console.warn("Form Mounted Handling error: ", error);
                 }},
-                onInstallmentsReceived: (error, installments) => {{
-                    if (error) return console.warn('Installments handling error: ', error);
-                    const installmentsSelect = document.getElementById('form-checkout__installments');
-                    installmentsSelect.innerHTML = '';
-                    installments.forEach(installment => {{
+                onIdentificationTypesReceived: (error, identificationTypes) => {{
+                    if (error) return console.warn('identificationTypes handling error: ', error)
+                    const docTypeSelect = document.getElementById('form-checkout__identificationType');
+                    identificationTypes.forEach( type => {{
                         let opt = document.createElement('option');
-                        opt.value = installment.installments;
-                        opt.text = installment.recommended_message;
-                        installmentsSelect.appendChild(opt);
+                        opt.value = type.id;
+                        opt.text = type.name;
+                        docTypeSelect.appendChild(opt);
                     }});
                 }},
-                onCardTokenized: error => {{
-                    if (error) return console.warn("Tokenizing handling error: ", error);
-                }},
-                onSubmit: (event) => {{
+                onSubmit: event => {{
                     event.preventDefault();
-                    const submitButton = document.getElementById("form-checkout__submit");
-                    const spinner = document.getElementById("loading-spinner");
-
-                    submitButton.disabled = true;
-                    spinner.style.display = "block";
+                    document.getElementById("form-checkout__submit").disabled = true;
+                    document.getElementById("spinner").style.display = "block";
 
                     const {{
-                        paymentMethodId: payment_method_id,
-                        issuerId: issuer_id,
-                        cardholderEmail: email,
-                        amount,
                         token,
+                        issuerId,
+                        paymentMethodId,
                         installments,
+                        identificationType,
+                        identificationNumber,
                     }} = cardForm.getCardFormData();
 
                     fetch(apiUrl + "/create-payment", {{
@@ -90,9 +105,17 @@
                         headers: {{ "Content-Type": "application/json" }},
                         body: JSON.stringify({{
                             card_token: token,
-                            issuer_id: issuer_id,
-                            payment_method_id: payment_method_id,
+                            issuer_id: issuerId,
+                            payment_method_id: paymentMethodId,
                             installments: parseInt(installments),
+                            // Adiciona os dados do pagador no corpo da requisição
+                            payer: {{
+                                email: userEmail,
+                                identification: {{
+                                    type: identificationType,
+                                    number: identificationNumber,
+                                }}
+                            }},
                             user_email: userEmail,
                             user_name: userName,
                             plan_type: planType,
@@ -101,20 +124,20 @@
                     .then(response => response.json())
                     .then(result => {{
                         if (result.status === "approved") {{
-                            alert("Pagamento aprovado com sucesso!");
-                            // Notifica o app Streamlit pai para recarregar
-                            window.parent.postMessage({{ type: "payment_success", payment_id: result.payment_id }}, "*");
+                            alert("Pagamento aprovado!");
+                            window.parent.postMessage({{ type: "payment_success" }}, "*");
                         }} else {{
-                            alert("Pagamento rejeitado: " + (result.detail || result.status_detail || "Verifique os dados do cartão."));
+                            const errorMessage = result.detail || result.status_detail || "Pagamento rejeitado. Verifique os dados.";
+                            alert(errorMessage);
                         }}
                     }})
                     .catch(error => {{
                         console.error("Fetch error:", error);
-                        alert("Erro de comunicação ao processar o pagamento. Verifique sua conexão e tente novamente.");
+                        alert("Erro de comunicação. Tente novamente.");
                     }})
                     .finally(() => {{
-                        submitButton.disabled = false;
-                        spinner.style.display = "none";
+                        document.getElementById("form-checkout__submit").disabled = false;
+                        document.getElementById("spinner").style.display = "none";
                     }});
                 }},
             }},
