@@ -2,6 +2,7 @@ import streamlit as st
 from datetime import date
 from .extinguisher_operations import save_inspection, calculate_next_dates, generate_action_plan
 from gdrive.gdrive_upload import GoogleDriveUploader
+from utils.auditoria import log_action 
 
 
 def save_corrective_action(original_record, substitute_last_record, action_details, user_name):
@@ -16,6 +17,7 @@ def save_corrective_action(original_record, substitute_last_record, action_detai
     """
     try:
         id_substituto = action_details.get('id_substituto')
+        equipamento_original = original_record.get('numero_identificacao')
 
         # --- Cenário 1: Substituição de Equipamento ---
         if id_substituto:
@@ -74,6 +76,12 @@ def save_corrective_action(original_record, substitute_last_record, action_detai
             # --- FIM DA CORREÇÃO ---
             
             save_inspection(new_equip_record)
+            
+            # ✅ NOVO: Log da substituição
+            log_action(
+                "SUBSTITUIU_EXTINTOR", 
+                f"Original: {equipamento_original} → Substituto: {id_substituto}, Responsável: {action_details['responsavel_acao']}"
+            )
 
         # --- Cenário 2: Ação Corretiva Simples (sem substituição) ---
         else:
@@ -107,6 +115,11 @@ def save_corrective_action(original_record, substitute_last_record, action_detai
 
             resolved_inspection['plano_de_acao'] = generate_action_plan(resolved_inspection)
             save_inspection(resolved_inspection)
+            
+            log_action(
+                "APLICOU_ACAO_CORRETIVA", 
+                f"ID: {equipamento_original}, Ação: {action_details['acao_realizada'][:100]}..., Responsável: {action_details['responsavel_acao']}"
+            )
 
         # Registra a ação no log para ambos os cenários
         log_row = [
@@ -122,8 +135,18 @@ def save_corrective_action(original_record, substitute_last_record, action_detai
         uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet("log_acoes", log_row)
         
+        action_type = "substituição" if id_substituto else "correção simples"
+        log_action(
+            "SALVOU_ACAO_CORRETIVA", 
+            f"Tipo: {action_type}, ID: {equipamento_original}, Responsável: {action_details['responsavel_acao']}"
+        )
+        
         return True
 
     except Exception as e:
+        log_action(
+            "FALHA_ACAO_CORRETIVA", 
+            f"ID: {original_record.get('numero_identificacao', 'N/A')}, Erro: {str(e)[:200]}"
+        )
         st.error(f"Erro ao salvar a ação corretiva: {e}")
         return False
