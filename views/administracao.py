@@ -69,6 +69,12 @@ def show_page():
         "📊 Dashboard Global", "📬 Solicitações", "👤 Usuários e Planos", "🛡️ Auditoria"
     ])
 
+     try:
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+    except Exception as e:
+        st.error(f"Falha ao conectar com os serviços do Google. Verifique as credenciais. Erro: {e}")
+        st.stop()
+        
     with tab_dashboard:
         st.header("Visão Geral do Status de Todos os Usuários Ativos")
         
