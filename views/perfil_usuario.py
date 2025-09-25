@@ -5,6 +5,8 @@ import os
 import pandas as pd
 from datetime import date, timedelta
 import re
+import requests 
+
 
 # Adiciona o diretório raiz ao path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -184,36 +186,59 @@ def show_page():
                             st.success("✅ Perfil atualizado!"); st.cache_data.clear(); st.rerun()
 
     with tab_plan_and_payment:
+        # Estado inicial: O usuário ainda não selecionou um plano para pagar
         if 'selected_plan_to_pay' not in st.session_state:
             st.header("💎 Nossos Planos")
             
             if is_trial:
                 st.info("Você está em um período de teste Premium. Contrate um plano abaixo para garantir seu acesso após o término do trial.")
             
+            # Determina quais planos exibir com base no status do usuário
             plans_to_show = []
             if is_trial or real_plan == 'basico':
                 plans_to_show = ['pro', 'premium_ia']
             elif real_plan == 'pro':
                 plans_to_show = ['premium_ia']
-
+    
             if not plans_to_show and not is_trial:
                 st.success("🎉 Você já possui nosso plano mais completo!")
             else:
-                cols = st.columns(len(plans_to_show))
-                for i, plan_key in enumerate(plans_to_show):
-                    with cols[i]:
-                        plan_info = PLANOS_CONFIG[plan_key]
-                        with st.container(border=True, height=450): # Altura fixa para alinhar botões
-                            st.subheader(plan_info['nome'])
-                            st.markdown(f"## R$ {plan_info['preco']:.2f} /mês")
-                            st.caption(plan_info['descricao'])
-                            st.markdown("---")
-                            for feature in plan_info['recursos']:
-                                st.markdown(f"<span>{feature}</span>", unsafe_allow_html=True)
-                        
-                        if st.button(f"Contratar {plan_info['nome']}", key=f"btn_{plan_key}", type="primary", use_container_width=True):
-                            st.session_state.selected_plan_to_pay = plan_key
-                            st.rerun()
+                # Garante que as colunas sejam criadas mesmo se a lista estiver vazia para evitar erros
+                if not plans_to_show:
+                    st.write("") # Renderiza um espaço vazio
+                else:
+                    cols = st.columns(len(plans_to_show))
+                    for i, plan_key in enumerate(plans_to_show):
+                        with cols[i]:
+                            plan_info = PLANOS_CONFIG[plan_key]
+                            with st.container(border=True, height=450):
+                                st.subheader(plan_info['nome'])
+                                st.markdown(f"## R$ {plan_info['preco']:.2f} /mês")
+                                st.caption(plan_info['descricao'])
+                                st.markdown("---")
+                                for feature in plan_info['recursos']:
+                                    st.markdown(f"<span>{feature}</span>", unsafe_allow_html=True)
+                            
+                            if st.button(f"Contratar {plan_info['nome']}", key=f"btn_{plan_key}", type="primary", use_container_width=True):
+                                
+                                # --- INÍCIO DA LÓGICA "WAKE-UP CALL" ---
+                                try:
+                                    api_url = st.secrets.get("payment", {}).get("api_url")
+                                    if api_url:
+                                        st.toast("Preparando o formulário de pagamento...", icon="💳")
+                                        # Faz a chamada "ping" para acordar o servidor.
+                                        # Usamos um timeout baixo para não bloquear a experiência do usuário.
+                                        requests.get(f"{api_url}/ping", timeout=3)
+                                        logger.info(f"Ping de 'wake-up' enviado para {api_url}")
+                                except requests.exceptions.RequestException as e:
+                                    # A falha do ping não deve impedir o usuário de prosseguir.
+                                    logger.warning(f"Ping de 'wake-up' para o backend falhou, mas o processo continua. Erro: {e}")
+                                # --- FIM DA LÓGICA "WAKE-UP CALL" ---
+    
+                                st.session_state.selected_plan_to_pay = plan_key
+                                st.rerun()
+    
+        # Estado 2: O usuário CLICOU em um botão "Contratar"
         else:
             selected_plan = st.session_state.selected_plan_to_pay
             plan_info = PLANOS_CONFIG[selected_plan]
@@ -223,13 +248,16 @@ def show_page():
             with st.expander("📋 Resumo do Pedido", expanded=True):
                 st.markdown(f"Você está contratando o **{plan_info['nome']}** por **R$ {plan_info['preco']:.2f} por mês**.")
             
+            # Renderiza o formulário de pagamento
             payment_integration = MercadoPagoPayment()
             payment_integration.render_payment_form(plan_type=selected_plan, user_email=user_email, user_name=user_name)
-
+    
+            # Botão para voltar à seleção de planos
             if st.button("⬅️ Escolher outro plano"):
                 del st.session_state.selected_plan_to_pay
                 st.rerun()
             
+            # Simulação para desenvolvimento
             if st.secrets.get("debug_mode", False):
                 st.markdown("---")
                 if st.button("🧪 Simular Pagamento Aprovado (Debug)"):
