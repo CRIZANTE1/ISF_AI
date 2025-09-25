@@ -1,11 +1,8 @@
-# views/perfil_usuario.py - Versão atualizada com pagamentos
 import streamlit as st
 import streamlit.components.v1 as components
 import sys
 import os
 import pandas as pd
-import httpx
-import asyncio
 from datetime import date, timedelta
 
 # Adiciona o diretório raiz ao path
@@ -19,6 +16,10 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import USERS_SHEET_NAME
 from utils.auditoria import log_action
 from config.page_config import set_page_config
+from utils.webhook_handler import (
+    simulate_payment_webhook, set_payment_success_message, 
+    get_payment_success_message, clear_payment_success_message
+)
 
 set_page_config()
 
@@ -99,389 +100,49 @@ class MercadoPagoPayment:
                     st.markdown(f"### R$ {plan_info['preco']:.2f}")
                     st.markdown("*por mês*")
 
-        # HTML do formulário de pagamento integrado
-        payment_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <script src="https://sdk.mercadopago.com/js/v2"></script>
-            <style>
-                .payment-container {{
-                    max-width: 500px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                    background: #fff;
-                    border-radius: 12px;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                }}
-                
-                .form-group {{
-                    margin-bottom: 16px;
-                }}
-                
-                .form-control {{
-                    width: 100%;
-                    padding: 12px 16px;
-                    border: 2px solid #e1e5e9;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    transition: border-color 0.3s ease;
-                    box-sizing: border-box;
-                }}
-                
-                .form-control:focus {{
-                    outline: none;
-                    border-color: #009ee3;
-                    box-shadow: 0 0 0 3px rgba(0, 158, 227, 0.1);
-                }}
-                
-                .btn-pay {{
-                    width: 100%;
-                    background: linear-gradient(135deg, #009ee3 0%, #0080b8 100%);
-                    color: white;
-                    border: none;
-                    padding: 16px 24px;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    margin-top: 20px;
-                }}
-                
-                .btn-pay:hover {{
-                    background: linear-gradient(135deg, #0080b8 0%, #006a9a 100%);
-                    transform: translateY(-1px);
-                }}
-                
-                .btn-pay:disabled {{
-                    background: #ccc;
-                    cursor: not-allowed;
-                    transform: none;
-                }}
-                
-                .form-row {{
-                    display: flex;
-                    gap: 12px;
-                }}
-                
-                .form-row .form-group {{
-                    flex: 1;
-                }}
-                
-                .alert {{
-                    padding: 12px;
-                    border-radius: 6px;
-                    margin: 10px 0;
-                    font-size: 14px;
-                }}
-                
-                .alert-error {{
-                    background-color: #fee;
-                    color: #d63384;
-                    border: 1px solid #f5c2c7;
-                }}
-                
-                .alert-success {{
-                    background-color: #d1e7dd;
-                    color: #0a3622;
-                    border: 1px solid #a3cfbb;
-                }}
-                
-                .loading {{
-                    text-align: center;
-                    color: #666;
-                    font-style: italic;
-                }}
-                
-                .security-badge {{
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-top: 16px;
-                    font-size: 12px;
-                    color: #666;
-                }}
-                
-                .security-badge::before {{
-                    content: "🔒";
-                    margin-right: 4px;
-                }}
-                
-                label {{
-                    display: block;
-                    margin-bottom: 6px;
-                    font-weight: 500;
-                    color: #333;
-                    font-size: 14px;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="payment-container">
-                <form id="form-checkout">
-                    <div class="form-group">
-                        <label for="cardNumber">Número do Cartão</label>
-                        <input type="text" id="form-checkout__cardNumber" class="form-control" placeholder="1234 1234 1234 1234">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="expirationDate">Validade</label>
-                            <input type="text" id="form-checkout__expirationDate" class="form-control" placeholder="MM/AA">
-                        </div>
-                        <div class="form-group">
-                            <label for="securityCode">CVV</label>
-                            <input type="text" id="form-checkout__securityCode" class="form-control" placeholder="123">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cardholderName">Nome no Cartão</label>
-                        <input type="text" id="form-checkout__cardholderName" class="form-control" placeholder="Como aparece no cartão" value="{user_name}">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="identificationType">Tipo de Documento</label>
-                            <select id="form-checkout__identificationType" class="form-control">
-                                <option value="">Selecione</option>
-                                <option value="CPF">CPF</option>
-                                <option value="CNPJ">CNPJ</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="identificationNumber">Número do Documento</label>
-                            <input type="text" id="form-checkout__identificationNumber" class="form-control" placeholder="000.000.000-00">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="installments">Parcelas</label>
-                        <select id="form-checkout__installments" class="form-control">
-                            <option value="">Carregando parcelas...</option>
-                        </select>
-                    </div>
-                    
-                    <button type="submit" id="form-checkout__submit" class="btn-pay">
-                        💳 Pagar R$ {plan_info['preco']:.2f}
-                    </button>
-                    
-                    <div class="security-badge">
-                        Pagamento 100% seguro e criptografado
-                    </div>
-                    
-                    <div id="form-checkout__error" class="alert alert-error" style="display: none;"></div>
-                    <div id="form-checkout__success" class="alert alert-success" style="display: none;"></div>
-                    <div id="form-checkout__loading" class="loading" style="display: none;">
-                        Processando seu pagamento...
-                    </div>
-                </form>
-            </div>
-
+        # Carrega o código HTML do arquivo separado
+        html_template_path = os.path.join(os.path.dirname(__file__), 'templates', 'payment_form.html')
+        try:
+            with open(html_template_path, 'r', encoding='utf-8') as f:
+                payment_html_template = f.read()
+            
+            # Substitui as variáveis no template
+            payment_html = payment_html_template.format(
+                public_key=self.public_key,
+                user_name=user_name,
+                plan_type=plan_type,
+                user_email=user_email,
+                api_url=self.api_url,
+                price=f"{plan_info['preco']:.2f}"
+            )
+            
+            # Renderiza o formulário
+            components.html(payment_html, height=700)
+            
+            # JavaScript para capturar mensagens do iframe
+            message_handler = """
             <script>
-                const mp = new MercadoPago('{self.public_key}', {{
-                    locale: 'pt-BR'
-                }});
-                
-                const cardForm = mp.cardForm({{
-                    form: {{
-                        id: "form-checkout",
-                        cardNumber: {{
-                            id: "form-checkout__cardNumber",
-                            placeholder: "Número do cartão",
-                        }},
-                        expirationDate: {{
-                            id: "form-checkout__expirationDate", 
-                            placeholder: "MM/AA",
-                        }},
-                        securityCode: {{
-                            id: "form-checkout__securityCode",
-                            placeholder: "Código de segurança",
-                        }},
-                        cardholderName: {{
-                            id: "form-checkout__cardholderName",
-                            placeholder: "Titular do cartão",
-                        }},
-                        issuer: {{
-                            id: "form-checkout__issuer",
-                            placeholder: "Banco emissor",
-                        }},
-                        installments: {{
-                            id: "form-checkout__installments",
-                            placeholder: "Parcelas",
-                        }},
-                        identificationType: {{
-                            id: "form-checkout__identificationType",
-                            placeholder: "Tipo de documento",
-                        }},
-                        identificationNumber: {{
-                            id: "form-checkout__identificationNumber", 
-                            placeholder: "Número do documento",
-                        }},
-                    }},
-                    callbacks: {{
-                        onFormMounted: error => {{
-                            if (error) {{
-                                console.warn("Callback onFormMounted: ", error);
-                                showError("Erro ao carregar o formulário. Recarregue a página.");
-                            }}
-                        }},
-                        onSubmit: event => {{
-                            event.preventDefault();
-                            processPayment();
-                        }},
-                        onFetching: (resource) => {{
-                            console.log("Fetching resource: ", resource);
-                        }}
-                    }}
-                }});
-                
-                function showError(message) {{
-                    const errorDiv = document.getElementById("form-checkout__error");
-                    errorDiv.innerHTML = "❌ " + message;
-                    errorDiv.style.display = "block";
+                window.addEventListener("message", function(event) {
+                    console.log("Received message:", event.data);
                     
-                    // Ocultar após 5 segundos
-                    setTimeout(() => {{
-                        errorDiv.style.display = "none";
-                    }}, 5000);
-                }}
-                
-                function showSuccess(message) {{
-                    const successDiv = document.getElementById("form-checkout__success");
-                    successDiv.innerHTML = "✅ " + message;
-                    successDiv.style.display = "block";
-                }}
-                
-                function showLoading(show) {{
-                    const loadingDiv = document.getElementById("form-checkout__loading");
-                    const submitBtn = document.getElementById("form-checkout__submit");
-                    
-                    loadingDiv.style.display = show ? "block" : "none";
-                    submitBtn.disabled = show;
-                    
-                    if (!show) {{
-                        submitBtn.innerHTML = "💳 Pagar R$ {plan_info['preco']:.2f}";
-                    }} else {{
-                        submitBtn.innerHTML = "Processando...";
-                    }}
-                }}
-                
-                async function processPayment() {{
-                    try {{
-                        showLoading(true);
-                        hideMessages();
-                        
-                        const cardData = cardForm.getCardFormData();
-                        
-                        if (!cardData.token) {{
-                            throw new Error("Token do cartão não foi gerado corretamente.");
-                        }}
-                        
-                        // Preparar dados do pagamento
-                        const paymentData = {{
-                            plan_type: "{plan_type}",
-                            user_email: "{user_email}",
-                            user_name: "{user_name}",
-                            card_token: cardData.token,
-                            installments: parseInt(cardData.installments),
-                            payment_method_id: cardData.payment_method_id,
-                            issuer_id: cardData.issuer_id
-                        }};
-                        
-                        console.log("Enviando pagamento:", {{...paymentData, card_token: "***"}});
-                        
-                        // Enviar para o backend
-                        const response = await fetch("{self.api_url}/create-payment", {{
-                            method: "POST",
-                            headers: {{
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            }},
-                            body: JSON.stringify(paymentData)
-                        }});
-                        
-                        const result = await response.json();
-                        
-                        if (!response.ok) {{
-                            throw new Error(result.detail || "Erro ao processar pagamento");
-                        }}
-                        
-                        // Processar resultado
-                        switch (result.status) {{
-                            case "approved":
-                                showSuccess("Pagamento aprovado! Redirecionando...");
-                                setTimeout(() => {{
-                                    window.parent.postMessage({{
-                                        type: "payment_success",
-                                        payment_id: result.payment_id,
-                                        plan_type: result.plan_type
-                                    }}, "*");
-                                }}, 2000);
-                                break;
-                                
-                            case "pending":
-                                showSuccess("Pagamento em análise. Você será notificado por email quando for aprovado.");
-                                setTimeout(() => {{
-                                    window.parent.postMessage({{
-                                        type: "payment_pending", 
-                                        payment_id: result.payment_id
-                                    }}, "*");
-                                }}, 3000);
-                                break;
-                                
-                            case "in_process":
-                                showSuccess("Pagamento em processamento. Aguarde a confirmação.");
-                                break;
-                                
-                            default:
-                                throw new Error(result.status_detail || "Pagamento não foi aprovado");
-                        }}
-                        
-                    }} catch (error) {{
-                        console.error("Erro no pagamento:", error);
-                        showError(error.message || "Erro inesperado. Tente novamente.");
-                    }} finally {{
-                        showLoading(false);
-                    }}
-                }}
-                
-                function hideMessages() {{
-                    document.getElementById("form-checkout__error").style.display = "none";
-                    document.getElementById("form-checkout__success").style.display = "none";
-                }}
+                    if (event.data.type === "payment_success") {
+                        // Pagamento aprovado - recarregar página
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 3000);
+                    } else if (event.data.type === "payment_pending") {
+                        // Pagamento pendente - mostrar mensagem
+                        console.log("Payment pending:", event.data.payment_id);
+                    }
+                });
             </script>
-        </body>
-        </html>
-        """
-        
-        # Renderizar o formulário
-        components.html(payment_html, height=700)
-        
-        # JavaScript para capturar mensagens do iframe
-        message_handler = """
-        <script>
-            window.addEventListener("message", function(event) {
-                console.log("Received message:", event.data);
-                
-                if (event.data.type === "payment_success") {
-                    // Pagamento aprovado - recarregar página
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 3000);
-                } else if (event.data.type === "payment_pending") {
-                    // Pagamento pendente - mostrar mensagem
-                    console.log("Payment pending:", event.data.payment_id);
-                }
-            });
-        </script>
-        """
-        
-        components.html(message_handler, height=0)
+            """
+            
+            components.html(message_handler, height=0)
+            
+        except FileNotFoundError:
+            st.error(f"Template de pagamento não encontrado em: {html_template_path}")
+            st.info("Por favor, verifique se o diretório 'templates' existe na pasta 'views'")
 
 def update_user_profile(user_email: str, updated_data: dict):
     """Atualiza os dados do perfil do usuário"""
@@ -511,52 +172,6 @@ def update_user_profile(user_email: str, updated_data: dict):
         
     except Exception as e:
         st.error(f"Erro ao atualizar perfil: {e}")
-        return False
-
-def handle_payment_webhook_in_streamlit(payment_data: dict):
-    """Processa webhooks de pagamento no contexto do Streamlit"""
-    try:
-        if payment_data.get("status") == "approved":
-            user_email = payment_data.get("user_email")
-            plan_type = payment_data.get("plan_type")
-            
-            if user_email and plan_type:
-                # Atualizar plano do usuário
-                success = update_user_plan_after_payment(user_email, plan_type)
-                if success:
-                    log_action("PAGAMENTO_APROVADO", f"Email: {user_email}, Plano: {plan_type}, ID: {payment_data.get('payment_id')}")
-                    return True
-                    
-    except Exception as e:
-        st.error(f"Erro ao processar pagamento: {e}")
-        
-    return False
-
-def update_user_plan_after_payment(user_email: str, new_plan: str):
-    """Atualiza o plano do usuário após pagamento aprovado"""
-    try:
-        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-        users_data = matrix_uploader.get_data_from_sheet(USERS_SHEET_NAME)
-        
-        if not users_data or len(users_data) < 2:
-            return False
-            
-        df_users = pd.DataFrame(users_data[1:], columns=users_data[0])
-        user_row = df_users[df_users['email'] == user_email]
-        
-        if user_row.empty:
-            return False
-            
-        row_index = user_row.index[0] + 2
-        
-        # Atualizar plano (coluna D), status (coluna E) e limpar trial (coluna I)
-        matrix_uploader.update_cells(USERS_SHEET_NAME, f"D{row_index}:E{row_index}", [[new_plan, "ativo"]])
-        matrix_uploader.update_cells(USERS_SHEET_NAME, f"I{row_index}", [[""]])  # Limpar trial
-        
-        return True
-        
-    except Exception as e:
-        print(f"Erro ao atualizar plano após pagamento: {e}")
         return False
 
 def show_contact_info():
@@ -604,12 +219,12 @@ def show_page():
     is_trial = is_on_trial()
     
     # Verificar se há mensagem de sucesso de pagamento
-    if 'payment_success' in st.session_state:
-        st.success("🎉 **Pagamento realizado com sucesso!** Seu plano foi atualizado.")
+    payment_success_info = get_payment_success_message()
+    if payment_success_info:
+        st.success(f"🎉 **Pagamento realizado com sucesso!** Seu plano {payment_success_info['plan_type']} foi ativado.")
         st.balloons()
-        del st.session_state['payment_success']
+        clear_payment_success_message()
         st.cache_data.clear()  # Limpar cache para recarregar dados
-        st.rerun()
     
     # Abas principais
     tab_profile, tab_plan, tab_payment, tab_support = st.tabs([
@@ -804,14 +419,24 @@ def show_page():
                     st.metric("**Total**", f"**R$ {plan_info['preco']:.2f}**")
             
             # Formulário de pagamento
-            st.markdown("---")
-            
             payment_integration = MercadoPagoPayment()
             payment_integration.render_payment_form(
                 plan_type=selected_plan,
                 user_email=user_email,
                 user_name=user_name
             )
+            
+            # Modo de desenvolvimento/teste
+            if "debug_mode" in st.secrets and st.secrets["debug_mode"]:
+                st.markdown("---")
+                st.subheader("🧪 Modo de Teste")
+                if st.button("💲 Simular Pagamento Aprovado", key="simulate_payment"):
+                    with st.spinner("Simulando pagamento..."):
+                        success = simulate_payment_webhook(user_email, selected_plan)
+                        if success:
+                            set_payment_success_message(selected_plan)
+                            st.success("Simulação de pagamento concluída com sucesso!")
+                            st.rerun()
             
             # Botão para cancelar
             col1, col2, col3 = st.columns([1, 1, 1])
