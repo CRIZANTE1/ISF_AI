@@ -71,7 +71,7 @@ def show_page():
 
      try:
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
-    except Exception as e:
+     except Exception as e:
         st.error(f"Falha ao conectar com os serviços do Google. Verifique as credenciais. Erro: {e}")
         st.stop()
         
