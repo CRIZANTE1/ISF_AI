@@ -230,7 +230,7 @@ def show_contact_info():
     
     **Entre em contato conosco:**
     - 📧 **Email:** cristian.ferreira.carlos@gmail.com  
-    - 💼 **LinkedIn:** [Cristian Ferreira Carlos](https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/)
+    - 💼 **LinkedIn:** [Cristian Ferreira Carlos](https://www.linkedin.com/in/cristian-carlos-256b19161/)
     - 📱 **WhatsApp:** Em breve disponível
     - 🌐 **Documentação:** [Acesse nosso guia](https://github.com/seu-usuario/isf_ia)
     
