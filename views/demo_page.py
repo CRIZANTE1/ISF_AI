@@ -5,21 +5,49 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from auth.auth_utils import get_user_display_name, save_access_request
+from auth.login_page import show_logout_button 
 
 def show_page():
     """
-    Exibe uma página de acesso negado com um formulário simplificado para solicitar
-    o início de um período de teste (trial).
+    Exibe uma página de acesso negado com um formulário para solicitar
+    o início de um período de teste (trial) E UM BOTÃO DE LOGOUT.
     """
     st.title("Sistema de Gestão de Inspeções de Incêndio")
     st.header("Acesso Restrito")
     
     user_name = get_user_display_name()
     user_email = "não identificado"
-    if hasattr(st.user, 'email'):
-        user_email = st.user.email
+    # A função get_user_email() de auth_utils já faz isso de forma segura
+    from auth.auth_utils import get_user_email
+    user_email = get_user_email()
 
     st.warning(f"🔒 Olá, **{user_name}**. Você está autenticado, mas seu e-mail (`{user_email}`) ainda não está cadastrado em nosso sistema.")
+    
+    # --- BOTÃO DE LOGOUT ADICIONADO AQUI ---
+    # Adicionamos o botão de logout em uma coluna para destacá-lo
+    # sem ocupar a largura total da página.
+    col1, col2, col3 = st.columns([1.5, 1, 1.5])
+    with col2:
+        # Reutilizamos a função de logout para manter a consistência.
+        # Ela já sabe como limpar as sessões do Google e do Azure.
+        if st.button("🚪 Sair / Trocar de Conta", use_container_width=True):
+            # A lógica de logout já está encapsulada na função
+            # show_logout_button() fará o st.rerun() necessário
+            
+            # Limpa sessões manualmente como uma garantia extra antes de chamar a função
+            keys_to_clear = ['is_logged_in', 'user_info_custom']
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
+            
+            try:
+                # Chama a função de logout que lida com OIDC
+                st.logout()
+            except Exception:
+                # Se não houver sessão OIDC, apenas recarrega
+                st.rerun()
+
+    # --- FIM DA ADIÇÃO DO BOTÃO ---
     
     st.session_state.setdefault('request_submitted', False)
 
