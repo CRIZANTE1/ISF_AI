@@ -38,22 +38,22 @@ def get_login_button():
     )
     st.link_button("Fazer Login com Microsoft Azure", auth_url, use_container_width=True)
 
+from streamlit_js_eval import streamlit_js_eval # <-- NOVO IMPORT
+
 def handle_redirect():
     """
-    Processa o redirecionamento de volta do Azure. Se o login for bem-sucedido,
-    armazena as informações do usuário no session_state e retorna True.
+    Processa o redirecionamento, armazena as informações do usuário e, em caso de
+    sucesso, força um redirecionamento via JavaScript para limpar a URL.
     """
     msal_app = get_msal_app()
     if not msal_app:
-        return False
-        
-    try:
-        # Pega o código de autorização da URL
-        auth_code = st.query_params.get("code")
-        if not auth_code:
-            return False
+        return # Não faz nada se o app MSAL não estiver configurado
 
-        # Troca o código por um token
+    auth_code = st.query_params.get("code")
+    if not auth_code or st.session_state.get('login_processed', False):
+        return # Sai se não houver código ou se o login já foi processado
+
+    try:
         result = msal_app.acquire_token_by_authorization_code(
             code=auth_code,
             scopes=SCOPE,
@@ -61,34 +61,35 @@ def handle_redirect():
         )
 
         if "error" in result:
-            logger.error(f"Erro ao adquirir token do Azure: {result.get('error_description')}")
+            logger.error(f"Erro ao adquirir token: {result.get('error_description')}")
             st.error(f"Erro de autenticação: {result.get('error_description')}")
-            return False
+            st.session_state.login_processed = True # Marca como processado para não tentar de novo
+            return
 
-        # Decodifica o ID token para obter as informações do usuário
         id_token_claims = result.get('id_token_claims', {})
         user_email = id_token_claims.get('preferred_username')
         user_name = id_token_claims.get('name')
 
         if not user_email:
-            logger.error("Não foi possível obter o e-mail do usuário do token do Azure.")
             st.error("Erro: E-mail não encontrado no perfil do Azure.")
-            return False
+            st.session_state.login_processed = True
+            return
 
-        # Salva as informações do usuário na sessão (nosso próprio sistema de login)
+        # Salva as informações do usuário na sessão
         st.session_state.is_logged_in = True
         st.session_state.user_info_custom = {
             "email": user_email.lower().strip(),
             "name": user_name or user_email.split('@')[0]
         }
-        
-        # Limpa os parâmetros da URL para evitar loops de login
-        st.query_params.clear()
-        
-        logger.info(f"Usuário '{user_email}' autenticado com sucesso via Azure AD.")
-        return True
+        st.session_state.login_processed = True # Marca como processado
+
+        logger.info(f"Usuário '{user_email}' autenticado. Redirecionando para limpar URL.")
+
+        st.success("Autenticação bem-sucedida! Redirecionando...")
+        streamlit_js_eval(js_expressions="window.location.href = window.location.pathname;")
+        st.stop() # Interrompe a execução do script aqui para aguardar o JS
 
     except Exception as e:
-        logger.error(f"Erro inesperado durante o handle_redirect do Azure: {e}")
+        logger.error(f"Erro inesperado durante handle_redirect: {e}")
         st.error("Ocorreu um erro inesperado durante a autenticação.")
-        return False
+        st.session_state.login_processed = True
