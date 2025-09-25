@@ -51,7 +51,6 @@ def find_last_record(df, search_value, column_name):
     if df.empty or column_name not in df.columns:
         return None
 
-    # ✅ VERIFICAÇÃO 2: Filtra registros que correspondem ao valor buscado
     records = df[df[column_name].astype(str) == str(search_value)].copy()
     if records.empty:
         return None
@@ -85,7 +84,7 @@ def find_last_record(df, search_value, column_name):
     latest_record_dict['data_proxima_manutencao_3_nivel'] = last_valid_n3_date
     latest_record_dict['data_ultimo_ensaio_hidrostatico'] = last_valid_hydro_date
 
-    # ✅ CORREÇÃO ADICIONAL: Garante que todas as datas no dicionário de retorno sejam strings
+    # ✅ GARANTIA FINAL: Converte todas as datas para string ou None
     for key, value in latest_record_dict.items():
         if isinstance(value, pd.Timestamp):
             # Formata o Timestamp para string 'YYYY-MM-DD'
@@ -238,3 +237,4 @@ def get_equipment_status_summary(df, equipment_id_column='numero_identificacao')
     except Exception as e:
         st.error(f"Erro ao gerar resumo de equipamentos: {e}")
         return pd.DataFrame()
+
