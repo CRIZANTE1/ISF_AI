@@ -25,13 +25,14 @@ try:
         inspecao_camaras_espuma, inspecao_multigas, historico, inspecao_alarmes,
         utilitarios, demo_page, trial_expired_page
     )
+    
     # Import condicional do perfil_usuario
     try:
         from views import perfil_usuario
         PERFIL_DISPONIVEL = True
-    except ImportError:
+    except ImportError as e:
         PERFIL_DISPONIVEL = False
-        st.error("Módulo perfil_usuario não encontrado. Algumas funcionalidades podem não estar disponíveis.")
+        st.error(f"Módulo perfil_usuario não encontrado: {e}. Algumas funcionalidades podem não estar disponíveis.")
         
 except ImportError as e:
     st.error(f"Erro ao importar módulos: {e}")
@@ -60,120 +61,174 @@ if PERFIL_DISPONIVEL:
     PAGES["Meu Perfil"] = perfil_usuario.show_page
 
 def main():
-    if not is_user_logged_in():
-        show_login_page(); st.stop()
+    """Função principal do aplicativo"""
+    try:
+        # Verifica se o usuário está logado
+        if not is_user_logged_in():
+            show_login_page()
+            st.stop()
 
-    if 'user_logged_in' not in st.session_state:
-        log_action("LOGIN_SUCCESS", f"Email: {get_user_email()}")
-        if is_superuser():
-            log_action("SUPERUSER_LOGIN_SUCCESS", f"Email: {get_user_email()}")
-        st.session_state['user_logged_in'] = True
-
-    users_df = get_users_data()
-    user_email = get_user_email()
-    
-
-    is_authorized = user_email is not None and (user_email in users_df['email'].values or is_superuser())
-
-    if not is_authorized:
-        log_action("ACCESS_DENIED_UNAUTHORIZED", f"Tentativa de acesso pelo email: {user_email}")
-        show_user_header()
-        demo_page.show_page()
-        st.stop()
-
-    effective_status = get_effective_user_status()
-
-    if effective_status == 'trial_expirado':
-        log_action("ACCESS_DENIED_TRIAL_EXPIRED", f"Usuário: {user_email}")
-        show_user_header()
-        trial_expired_page.show_page()
-        st.stop()
-
-    if effective_status == 'inativo' and not is_admin(): # is_admin() já cobre o superuser
-        log_action("ACCESS_DENIED_INACTIVE_ACCOUNT", f"Usuário: {user_email}")
-        show_user_header()
-        st.warning("🔒 Sua conta está atualmente inativa. Por favor, entre em contato com o suporte para reativá-la.")
-        show_logout_button()
-        st.stop()
-    
-    show_user_header()
-    is_user_environment_loaded = setup_sidebar()
-
-    with st.sidebar:
-        st.markdown("---")
-        user_role = get_user_role()
-        user_plan = get_effective_user_plan()
-        page_options = []
-
-        if user_plan == 'basico':
-            page_options.extend(["Resumo Gerencial"])
-        elif user_plan in ['pro', 'premium_ia']:
-            if user_role == 'viewer': 
-                page_options.extend(["Resumo Gerencial", "Histórico e Logs"])
-            else: 
-                page_options.extend([
-                    "Dashboard", "Histórico e Logs", "Inspeção de Extintores", "Inspeção de Mangueiras", 
-                    "Inspeção de SCBA", "Inspeção de Chuveiros/LO", "Inspeção de Câmaras de Espuma", 
-                    "Inspeção Multigás", "Inspeção de Alarmes", "Utilitários"
-                ])
-        
-        # Adiciona "Meu Perfil" apenas se o módulo estiver disponível
-        if PERFIL_DISPONIVEL and "Meu Perfil" not in page_options:
-            page_options.append("Meu Perfil")
+        # Log de login (apenas uma vez por sessão)
+        if 'user_logged_in' not in st.session_state:
+            user_email = get_user_email()
+            log_action("LOGIN_SUCCESS", f"Email: {user_email}")
             
-        if is_admin() and "Super Admin" not in page_options:
-            page_options.append("Super Admin")
+            if is_superuser():
+                log_action("SUPERUSER_LOGIN_SUCCESS", f"Email: {user_email}")
+            
+            st.session_state['user_logged_in'] = True
+
+        # Carrega dados do usuário
+        try:
+            users_df = get_users_data()
+            user_email = get_user_email()
+        except Exception as e:
+            st.error(f"Erro ao carregar dados do usuário: {e}")
+            show_logout_button()
+            st.stop()
+
+        # Verifica autorização do usuário
+        is_authorized = False
+        if user_email is not None:
+            # Superuser sempre tem acesso
+            if is_superuser():
+                is_authorized = True
+            # Usuário comum deve estar na lista de usuários autorizados
+            elif not users_df.empty and user_email in users_df['email'].values:
+                is_authorized = True
+
+        if not is_authorized:
+            log_action("ACCESS_DENIED_UNAUTHORIZED", f"Tentativa de acesso pelo email: {user_email}")
+            show_user_header()
+            demo_page.show_page()
+            st.stop()
+
+        # Verifica status do usuário
+        effective_status = get_effective_user_status()
+
+        # Usuário com trial expirado
+        if effective_status == 'trial_expirado':
+            log_action("ACCESS_DENIED_TRIAL_EXPIRED", f"Usuário: {user_email}")
+            show_user_header()
+            trial_expired_page.show_page()
+            st.stop()
+
+        # Usuário inativo (exceto admins)
+        if effective_status == 'inativo' and not is_admin():
+            log_action("ACCESS_DENIED_INACTIVE_ACCOUNT", f"Usuário: {user_email}")
+            show_user_header()
+            st.warning("🔒 Sua conta está atualmente inativa. Por favor, entre em contato com o suporte para reativá-la.")
+            show_logout_button()
+            st.stop()
         
-        icon_map = {
-            "Dashboard": "speedometer2", 
-            "Resumo Gerencial": "clipboard-data", 
-            "Histórico e Logs": "clock-history",
-            "Inspeção de Extintores": "fire", 
-            "Inspeção de Mangueiras": "droplet", 
-            "Inspeção de SCBA": "lungs",
-            "Inspeção de Chuveiros/LO": "droplet-half", 
-            "Inspeção de Câmaras de Espuma": "cloud-rain-heavy",
-            "Inspeção Multigás": "wind",
-            "Inspeção de Alarmes": "bell",
-            "Utilitários": "tools", 
-            "Super Admin": "person-badge",
-            "Meu Perfil": "person-circle"
-        }
-        icons = [icon_map.get(page, "question-circle") for page in page_options]
+        # Mostra cabeçalho do usuário
+        show_user_header()
+        
+        # Configura sidebar e verifica se o ambiente foi carregado
+        is_user_environment_loaded = setup_sidebar()
 
-        selected_page = option_menu(
-            menu_title="Navegação", 
-            options=page_options, 
-            icons=icons, 
-            menu_icon="compass-fill", 
-            default_index=0,
-            styles={
-                "container": {"padding": "0 !important", "background-color": "transparent"},
-                "icon": {"color": "inherit", "font-size": "15px"},
-                "nav-link": {"font-size": "12px", "text-align": "left", "margin": "0px", "--hover-color": "#262730"},
-                "nav-link-selected": {"background-color": st.get_option("theme.primaryColor")},
+        # Configura navegação lateral
+        with st.sidebar:
+            st.markdown("---")
+            
+            # Obtém informações do usuário
+            user_role = get_user_role()
+            user_plan = get_effective_user_plan()
+            page_options = []
+
+            # Define opções de página baseadas no plano e role
+            if user_plan == 'basico':
+                page_options.extend(["Resumo Gerencial"])
+            elif user_plan in ['pro', 'premium_ia']:
+                if user_role == 'viewer': 
+                    page_options.extend(["Resumo Gerencial", "Histórico e Logs"])
+                else: 
+                    page_options.extend([
+                        "Dashboard", "Histórico e Logs", "Inspeção de Extintores", "Inspeção de Mangueiras", 
+                        "Inspeção de SCBA", "Inspeção de Chuveiros/LO", "Inspeção de Câmaras de Espuma", 
+                        "Inspeção Multigás", "Inspeção de Alarmes", "Utilitários"
+                    ])
+            
+            # Adiciona "Meu Perfil" apenas se o módulo estiver disponível
+            if PERFIL_DISPONIVEL and "Meu Perfil" not in page_options:
+                page_options.append("Meu Perfil")
+                
+            # Adiciona "Super Admin" para administradores
+            if is_admin() and "Super Admin" not in page_options:
+                page_options.append("Super Admin")
+            
+            # Mapeia ícones para cada página
+            icon_map = {
+                "Dashboard": "speedometer2", 
+                "Resumo Gerencial": "clipboard-data", 
+                "Histórico e Logs": "clock-history",
+                "Inspeção de Extintores": "fire", 
+                "Inspeção de Mangueiras": "droplet", 
+                "Inspeção de SCBA": "lungs",
+                "Inspeção de Chuveiros/LO": "droplet-half", 
+                "Inspeção de Câmaras de Espuma": "cloud-rain-heavy",
+                "Inspeção Multigás": "wind",
+                "Inspeção de Alarmes": "bell",
+                "Utilitários": "tools", 
+                "Super Admin": "person-badge",
+                "Meu Perfil": "person-circle"
             }
-        )
-        st.markdown("---")
-        show_logout_button()
+            
+            # Gera lista de ícones correspondentes
+            icons = [icon_map.get(page, "question-circle") for page in page_options]
 
-    # Lógica especial para "Meu Perfil" - sempre permite acesso se disponível
-    if selected_page == "Meu Perfil" and PERFIL_DISPONIVEL:
-        PAGES[selected_page]()
-    elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
-        if selected_page in PAGES:
-            PAGES[selected_page]()
-        else:
-            if page_options: 
-                # Seleciona a primeira página disponível
-                first_available_page = page_options[0]
-                if first_available_page in PAGES:
-                    PAGES[first_available_page]()
-    else:
-        if is_admin(): 
-            st.info("👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
-        else: 
-            st.warning("👈 Seu ambiente de dados não pôde ser carregado. Verifique o status da sua conta ou contate o administrador.")
+            # Menu de navegação
+            selected_page = option_menu(
+                menu_title="Navegação", 
+                options=page_options, 
+                icons=icons, 
+                menu_icon="compass-fill", 
+                default_index=0,
+                styles={
+                    "container": {"padding": "0 !important", "background-color": "transparent"},
+                    "icon": {"color": "inherit", "font-size": "15px"},
+                    "nav-link": {"font-size": "12px", "text-align": "left", "margin": "0px", "--hover-color": "#262730"},
+                    "nav-link-selected": {"background-color": st.get_option("theme.primaryColor")},
+                }
+            )
+            
+            st.markdown("---")
+            show_logout_button()
+
+        # Lógica de renderização de páginas
+        try:
+            # Lógica especial para "Meu Perfil" - sempre permite acesso se disponível
+            if selected_page == "Meu Perfil" and PERFIL_DISPONIVEL:
+                PAGES[selected_page]()
+            # Verifica se ambiente está carregado ou se é admin acessando Super Admin
+            elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
+                if selected_page in PAGES:
+                    PAGES[selected_page]()
+                else:
+                    # Fallback para primeira página disponível
+                    if page_options: 
+                        first_available_page = page_options[0]
+                        if first_available_page in PAGES:
+                            PAGES[first_available_page]()
+                        else:
+                            st.error(f"Página '{first_available_page}' não encontrada.")
+                    else:
+                        st.error("Nenhuma página disponível para seu perfil.")
+            else:
+                # Mensagens para ambiente não carregado
+                if is_admin(): 
+                    st.info("👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
+                else: 
+                    st.warning("👈 Seu ambiente de dados não pôde ser carregado. Verifique o status da sua conta ou contate o administrador.")
+                    
+        except Exception as e:
+            st.error(f"Erro ao carregar a página '{selected_page}': {e}")
+            st.error("Tente recarregar a página ou entre em contato com o suporte.")
+            
+    except Exception as e:
+        st.error(f"Erro crítico na aplicação: {e}")
+        st.error("Entre em contato com o suporte técnico.")
+        st.stop()
 
 if __name__ == "__main__":
     main()
