@@ -202,3 +202,25 @@ inspecoes_multigas:
   - numero_certificado
   - link_certificado
   - observacoes 
+alarmes_inventario:
+  - id_sistema
+  - localizacao
+  - marca
+  - modelo
+  - data_cadastro
+alarmes_inspecoes:
+  - data_inspecao
+  - id_sistema
+  - status_geral
+  - plano_de_acao
+  - resultados_json
+  - link_foto_nao_conformidade
+  - inspetor
+  - data_proxima_inspecao
+log_alarmes:
+  - data_acao
+  - id_sistema
+  - problema_original
+  - acao_realizada
+  - responsavel
+  - link_foto_evidencia
