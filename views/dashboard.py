@@ -16,7 +16,7 @@ from auth.login_page import show_login_page, show_user_header, show_logout_butto
 from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
 from config.page_config import set_page_config
 from operations.extinguisher_operations import batch_regularize_monthly_inspections
-from operations.alarm_operations import CHECKLIST_QUESTIONS as ALARM_CHECKLIST
+from operations.eyewash_operations import CHECKLIST_QUESTIONS
 from gdrive.config import (
     HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME,
     LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
@@ -41,7 +41,10 @@ from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
 from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
-from operations.alarm_operations import save_alarm_action_log, get_alarm_status_df, save_alarm_inspection, CHECKLIST_QUESTIONS
+from operations.alarm_operations import (
+    save_alarm_action_log, get_alarm_status_df, save_alarm_inspection,
+    CHECKLIST_QUESTIONS as ALARM_CHECKLIST
+)
 from operations.dashboard_operations import load_all_dashboard_data, get_dashboard_summary_stats
 
 
@@ -429,7 +432,7 @@ def action_dialog_alarm(item_row):
 
             # Simulação de inspeção com todos os itens conformes para regularização
             mock_results = {}
-            for category, questions in ALARM_CHECKLIST_QUESTIONS.items():
+            for category, questions in ALARM_CHECKLIST.items():
                 for question in questions:
                     mock_results[question] = "Conforme"
             
@@ -516,7 +519,7 @@ def action_dialog_eyewash(item_row):
                 st.error("Falha ao salvar o log da ação. O status não foi atualizado.")
                 return
 
-            mock_results = {q: "Conforme" for q_list in CHECKLIST_QUESTIONS.values() for q in q_list}
+            mock_results = {q: "Conforme" for q_list in EYEWASH_CHECKLIST.values() for q in q_list}
             
             inspection_saved = save_eyewash_inspection(
                 equipment_id=equipment_id,
