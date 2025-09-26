@@ -429,7 +429,7 @@ def action_dialog_alarm(item_row):
 
             # Simulação de inspeção com todos os itens conformes para regularização
             mock_results = {}
-            for category, questions in CHECKLIST_QUESTIONS.items():
+            for category, questions in ALARM_CHECKLIST_QUESTIONS.items():
                 for question in questions:
                     mock_results[question] = "Conforme"
             
@@ -448,7 +448,8 @@ def action_dialog_alarm(item_row):
                 st.rerun()
             else:
                 st.error("Log salvo, mas falha ao registrar a nova inspeção de regularização. O status pode continuar pendente.")
-                
+
+
 @st.dialog("Registrar Ação Corretiva para Câmara de Espuma")
 def action_dialog_foam_chamber(item_row):
     chamber_id = item_row['id_camara']
