@@ -41,7 +41,8 @@ from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
 from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
-from operations.alarm_operations import save_alarm_action_log, get_alarm_status_df
+from operations.alarm_operations import save_alarm_action_log, get_alarm_status_df, save_alarm_inspection, CHECKLIST_QUESTIONS
+from operations.dashboard_operations import load_all_dashboard_data, get_dashboard_summary_stats
 
 
 
@@ -1220,58 +1221,75 @@ def show_page():
 
     with tab_alarms:
             st.header("Dashboard de Sistemas de Alarme")
-        
-            df_alarm_inspections = load_sheet_data(ALARM_INSPECTIONS_SHEET_NAME)
-        
-            if df_alarm_inspections.empty:
-                st.warning("Nenhuma inspeção de sistema de alarme registrada.")
-            else:
-                dashboard_df = get_alarm_status_df(df_alarm_inspections)
-        
-                status_counts = dashboard_df['status_dashboard'].value_counts()
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("✅ Total de Sistemas", len(dashboard_df))
-                col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
-                col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
-                col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
-                st.markdown("---")
-        
-                st.subheader("Lista de Sistemas e Status")
-                for _, row in dashboard_df.iterrows():
-                    status = row['status_dashboard']
-                    prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_proxima_inspecao']) else "N/A"
-                    expander_title = f"{status} | **ID:** {row['id_sistema']} | **Próx. Inspeção:** {prox_inspecao}"
-        
-                    with st.expander(expander_title):
-                        ultima_inspecao = pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_inspecao']) else "N/A"
-                        st.write(f"**Última inspeção:** {ultima_inspecao} por **{row['inspetor']}**")
-                        st.write(f"**Plano de Ação Sugerido:** {row.get('plano_de_acao', 'N/A')}")
-        
-                        if status == "🟠 COM PENDÊNCIAS":
-                            if st.button("✍️ Registrar Ação Corretiva", key=f"action_alarm_{row['id_sistema']}"):
-                                action_dialog_alarm(row.to_dict())
-        
-                        st.markdown("---")
-                        st.write("**Detalhes da Última Inspeção:**")
-                        try:
-                            results_json = row.get('resultados_json')
-                            if results_json and pd.notna(results_json):
-                                results = json.loads(results_json)
-        
-                                # Filtra apenas os itens que não estão conformes para destacar o problema
-                                non_conformities = {q: status for q, status in results.items() if str(status).upper() == "NÃO CONFORME"}
-        
-                                if non_conformities:
-                                    st.write("Itens não conformes encontrados:")
-                                    st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+            
+            try:
+                all_data = load_all_dashboard_data()
+                df_alarm_inspections = all_data['alarm_inspections']
+                df_alarm_inventory = all_data['alarm_inventory']
+                
+                if df_alarm_inspections.empty:
+                    st.warning("Nenhuma inspeção de sistema de alarme registrada.")
+                else:
+                    dashboard_df = get_alarm_status_df(df_alarm_inspections)
+                    
+                    # Se tiver dados de inventário, faz merge para obter localização e modelo
+                    if not df_alarm_inventory.empty:
+                        dashboard_df = pd.merge(
+                            dashboard_df, 
+                            df_alarm_inventory[['id_sistema', 'localizacao', 'modelo', 'marca']], 
+                            on='id_sistema', 
+                            how='left'
+                        )
+                    
+                    status_counts = dashboard_df['status_dashboard'].value_counts()
+                    col1, col2, col3, col4 = st.columns(4)
+                    col1.metric("✅ Total de Sistemas", len(dashboard_df))
+                    col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+                    col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
+                    col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+                    st.markdown("---")
+            
+                    st.subheader("Lista de Sistemas e Status")
+                    for _, row in dashboard_df.iterrows():
+                        status = row['status_dashboard']
+                        prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_proxima_inspecao']) else "N/A"
+                        localizacao = row.get('localizacao', 'Local não definido')
+                        
+                        expander_title = f"{status} | **ID:** {row['id_sistema']} | **Local:** {localizacao} | **Próx. Inspeção:** {prox_inspecao}"
+                        
+                        with st.expander(expander_title):
+                            ultima_inspecao = pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_inspecao']) else "N/A"
+                            st.write(f"**Última inspeção:** {ultima_inspecao} por **{row['inspetor']}**")
+                            st.write(f"**Plano de Ação Sugerido:** {row.get('plano_de_acao', 'N/A')}")
+                            
+                            if status in ["🟠 COM PENDÊNCIAS", "🔴 VENCIDO"]:
+                                if st.button("✍️ Registrar Ação Corretiva", key=f"action_alarm_{row['id_sistema']}"):
+                                    action_dialog_alarm(row.to_dict())
+            
+                            st.markdown("---")
+                            st.write("**Detalhes da Última Inspeção:**")
+                            try:
+                                results_json = row.get('resultados_json')
+                                if results_json and pd.notna(results_json):
+                                    results = json.loads(results_json)
+                                    
+                                    # Filtra apenas os itens que não estão conformes para destacar o problema
+                                    non_conformities = {q: status for q, status in results.items() if status == "Não Conforme"}
+                                    
+                                    if non_conformities:
+                                        st.write("Itens não conformes encontrados:")
+                                        st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+                                    else:
+                                        st.success("Todos os itens estavam conformes na última inspeção.")
                                 else:
-                                    st.success("Todos os itens estavam conformes na última inspeção.")
-                            else:
-                                st.info("Nenhum detalhe de inspeção disponível.")
-        
-                            # Exibe a foto da não conformidade, se houver
-                            photo_link = row.get('link_foto_nao_conformidade')
-                            display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
-        
-                        except (json.JSONDecodeError, TypeError):
-                            st.error("Não foi possível carregar os detalhes da inspeção (formato de dados inválido).")
+                                    st.info("Nenhum detalhe de inspeção disponível.")
+                                
+                                # Exibe a foto da não conformidade, se houver
+                                photo_link = row.get('link_foto_nao_conformidade')
+                                display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
+            
+                            except (json.JSONDecodeError, TypeError):
+                                st.error("Não foi possível carregar os detalhes da inspeção (formato de dados inválido).")
+                                
+            except Exception as e:
+                st.error(f"Erro ao carregar os dados dos sistemas de alarme: {e}")
