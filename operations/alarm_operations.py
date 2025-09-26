@@ -229,3 +229,41 @@ def save_alarm_action_log(system_id, problem, action_taken, responsible, photo_f
     except Exception as e:
         st.error(f"Erro ao salvar log de ação para o sistema {system_id}: {e}")
         return False
+
+def get_alarm_status_df(df_inspections):
+    """
+    Gera DataFrame de status para sistemas de alarme.
+    
+    Args:
+        df_inspections: DataFrame das inspeções realizadas
+        
+    Returns:
+        pd.DataFrame: Status dos sistemas de alarme
+    """
+    if df_inspections.empty:
+        return pd.DataFrame()
+
+    # Converte a coluna de data para o formato datetime
+    df_inspections['data_inspecao'] = pd.to_datetime(df_inspections['data_inspecao'], errors='coerce')
+    
+    # Obtém a inspeção mais recente para cada sistema
+    latest_inspections = df_inspections.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_sistema', keep='first').copy()
+    
+    today = pd.Timestamp(date.today())
+    latest_inspections['data_proxima_inspecao'] = pd.to_datetime(latest_inspections['data_proxima_inspecao'], errors='coerce')
+    
+    # Define as condições para determinação do status
+    conditions = [
+        (latest_inspections['data_proxima_inspecao'] < today),
+        (latest_inspections['status_geral'] == 'Reprovado com Pendências')
+    ]
+    
+    # Define os valores correspondentes para cada condição
+    choices = ['🔴 VENCIDO', '🟠 COM PENDÊNCIAS']
+    
+    # Aplica as condições para criar a coluna de status
+    latest_inspections['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
+    
+    return latest_inspections
+
+
