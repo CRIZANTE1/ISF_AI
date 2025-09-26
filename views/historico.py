@@ -16,7 +16,7 @@ from gdrive.config import (
     EYEWASH_INVENTORY_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME,
     FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
     LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME, LOG_EYEWASH_SHEET_NAME,
-    LOG_FOAM_CHAMBER_SHEET_NAME
+    LOG_FOAM_CHAMBER_SHEET_NAME, ALARM_INVENTORY_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME, LOG_ALARM_SHEET_NAME
 )
 
 # O dicionário ALL_COLUMNS foi movido para fora da função, tornando-se uma constante do módulo.
@@ -29,8 +29,7 @@ ALL_COLUMNS = {
     'link_certificado_pdf': 'Certificado (PDF)', 'data_teste': 'Data Teste', 'numero_serie_equipamento': 'S/N Equip.',
     'resultado_final': 'Resultado', 'id_abrigo': 'ID Abrigo', 'cliente': 'Cliente', 'local': 'Local',
     'itens_json': 'Inventário (JSON)', 'id_equipamento': 'ID Equipamento', 'localizacao': 'Localização',
-    # Logs
-    'data_acao': 'Data Ação', 'problema_original': 'Problema', 'acao_realizada': 'Ação Realizada',
+    'id_sistema': 'ID Sistema', 'marca': 'Marca', 'modelo': 'Modelo', 'data_acao': 'Data Ação', 'problema_original': 'Problema', 'acao_realizada': 'Ação Realizada',
     'responsavel': 'Responsável', 'responsavel_acao': 'Responsável'
 }
 # -----------------------------
@@ -61,6 +60,9 @@ def format_dataframe_for_display(df, sheet_name):
         LOG_SHELTER_SHEET_NAME: ['data_acao', 'id_abrigo', 'problema_original', 'acao_realizada', 'responsavel'],
         LOG_SCBA_SHEET_NAME: ['data_acao', 'numero_serie_equipamento', 'problema_original', 'acao_realizada', 'responsavel'],
         LOG_EYEWASH_SHEET_NAME: ['data_acao', 'id_equipamento', 'problema_original', 'acao_realizada', 'responsavel']
+        ALARM_INVENTORY_SHEET_NAME: ['id_sistema', 'localizacao', 'marca', 'modelo', 'data_cadastro'],
+        ALARM_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_sistema', 'status_geral', 'plano_de_acao', 'data_proxima_inspecao', 'inspetor'],
+        LOG_ALARM_SHEET_NAME: ['data_acao', 'id_sistema', 'problema_original', 'acao_realizada', 'responsavel']
     }
 
     cols_to_show = SHEET_VIEW_COLUMNS.get(sheet_name, df.columns.tolist())
@@ -113,9 +115,10 @@ def show_page():
     with tab_registros:
         st.header("Histórico de Registros por Tipo de Equipamento")
         subtabs = st.tabs([
-            "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos (Cadastro)", "📋 Abrigos (Inspeções)",
-            "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)", 
-            "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)"])
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos (Cadastro)", "📋 Abrigos (Inspeções)",
+        "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)", 
+        "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)", "🔔 Alarmes (Cadastro)", "🔔 Alarmes (Inspeções)"
+    ])
 
         with subtabs[0]: display_formatted_dataframe(EXTINGUISHER_SHEET_NAME)
         with subtabs[1]: display_formatted_dataframe(HOSE_SHEET_NAME)
@@ -126,15 +129,18 @@ def show_page():
         with subtabs[6]: display_formatted_dataframe(EYEWASH_INVENTORY_SHEET_NAME)
         with subtabs[7]: display_formatted_dataframe(EYEWASH_INSPECTIONS_SHEET_NAME)
         with subtabs[8]: display_formatted_dataframe(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
-        with subtabs[9]: display_formatted_dataframe(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)    
+        with subtabs[9]: display_formatted_dataframe(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
+        with subtabs[10]: display_formatted_dataframe(ALARM_INVENTORY_SHEET_NAME)
+        with subtabs[11]: display_formatted_dataframe(ALARM_INSPECTIONS_SHEET_NAME)    
 
     with tab_logs:
         st.header("Logs de Ações Corretivas")
-        subtabs = st.tabs(["🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma"])
+        subtabs = st.tabs(["🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "🔔 Alarmes"])
 
         with subtabs[0]: display_formatted_dataframe(LOG_ACTIONS)
         with subtabs[1]: display_formatted_dataframe(LOG_SHELTER_SHEET_NAME)
         with subtabs[2]: display_formatted_dataframe(LOG_SCBA_SHEET_NAME)
         with subtabs[3]: display_formatted_dataframe(LOG_EYEWASH_SHEET_NAME)
         with subtabs[4]: display_formatted_dataframe(LOG_FOAM_CHAMBER_SHEET_NAME)
+        with subtabs[5]: display_formatted_dataframe(LOG_ALARM_SHEET_NAME)    
 
