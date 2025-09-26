@@ -43,6 +43,9 @@ LOG_FOAM_CHAMBER_SHEET_NAME = "log_acoes_camaras_espuma"
 HOSE_DISPOSAL_LOG_SHEET_NAME = "log_baixas_mangueiras"
 EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME = "log_remessas_extintores"
 TH_SHIPMENT_LOG_SHEET_NAME = "log_remessas_th"
+ALARM_INVENTORY_SHEET_NAME = "alarmes_inventario"
+ALARM_INSPECTIONS_SHEET_NAME = "alarmes_inspecoes"
+LOG_ALARM_SHEET_NAME = "log_alarmes"
 
 def get_credentials_dict():
     """
