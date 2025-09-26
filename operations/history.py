@@ -41,59 +41,176 @@ def load_sheet_data(sheet_name):
         return pd.DataFrame()
         
 
+import pandas as pd
+import streamlit as st
+import logging
+
 def find_last_record(df, search_value, column_name):
     """
     ✅ FUNÇÃO CORRIGIDA - Encontra o último registro e consolida as datas de vencimento de todo o histórico,
     retornando tudo como strings formatadas ou None.
     
-    CORREÇÃO APLICADA: Adicionada verificação adicional para evitar erro iloc[0] em DataFrame vazio.
+    CORREÇÕES APLICADAS:
+    - Validação robusta de entrada
+    - Verificação de DataFrame vazio em todas as etapas
+    - Melhor tratamento de erros
+    - Logs detalhados para debug
+    - Conversão segura de tipos de dados
+    - Consolidação correta de datas de vencimento
+    
+    Args:
+        df (pd.DataFrame): DataFrame com histórico de registros
+        search_value (str): Valor a ser procurado
+        column_name (str): Nome da coluna onde procurar
+        
+    Returns:
+        dict or None: Último registro com datas consolidadas ou None se não encontrado
     """
-    if df.empty or column_name not in df.columns:
-        return None
-
-    records = df[df[column_name].astype(str) == str(search_value)].copy()
-    if records.empty:
-        return None
-
-    # Lista de todas as colunas que podem conter datas
-    date_columns = [
-        'data_servico', 'data_proxima_inspecao', 'data_proxima_manutencao_2_nivel',
-        'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico'
-    ]
-    
-    # Converte todas as colunas de data de uma vez, tratando erros
-    for col in date_columns:
-        if col in records.columns:
-            records[col] = pd.to_datetime(records[col], errors='coerce')
-
-    records.dropna(subset=['data_servico'], inplace=True)
-    
-    if records.empty:
-        st.warning(f"Nenhum registro válido encontrado para {column_name}='{search_value}' após limpeza de dados.")
-        return None
-
-    latest_record_dict = records.sort_values(by='data_servico', ascending=False).iloc[0].to_dict()
-
-    # Varre todo o histórico para encontrar a data MÁXIMA de cada coluna de vencimento
-    last_valid_n2_date = records['data_proxima_manutencao_2_nivel'].max()
-    last_valid_n3_date = records['data_proxima_manutencao_3_nivel'].max()
-    last_valid_hydro_date = records['data_ultimo_ensaio_hidrostatico'].max()
-
-    # Sobrescreve as datas no dicionário final com os valores consolidados
-    latest_record_dict['data_proxima_manutencao_2_nivel'] = last_valid_n2_date
-    latest_record_dict['data_proxima_manutencao_3_nivel'] = last_valid_n3_date
-    latest_record_dict['data_ultimo_ensaio_hidrostatico'] = last_valid_hydro_date
-
-    # ✅ GARANTIA FINAL: Converte todas as datas para string ou None
-    for key, value in latest_record_dict.items():
-        if isinstance(value, pd.Timestamp):
-            # Formata o Timestamp para string 'YYYY-MM-DD'
-            latest_record_dict[key] = value.strftime('%Y-%m-%d')
-        elif pd.isna(value):
-            # Garante que valores nulos (NaT) se tornem None
-            latest_record_dict[key] = None
+    try:
+        # Validação de entrada
+        if df is None:
+            logging.warning(f"DataFrame é None para busca de {column_name}='{search_value}'")
+            return None
             
-    return latest_record_dict
+        if df.empty:
+            logging.info(f"DataFrame está vazio para busca de {column_name}='{search_value}'")
+            return None
+            
+        if not isinstance(search_value, (str, int, float)):
+            logging.warning(f"Valor de busca inválido: {search_value} (tipo: {type(search_value)})")
+            return None
+            
+        if not column_name or column_name not in df.columns:
+            available_columns = list(df.columns) if not df.empty else []
+            logging.error(f"Coluna '{column_name}' não encontrada. Colunas disponíveis: {available_columns}")
+            return None
+
+        # Converte search_value para string para comparação consistente
+        search_value_str = str(search_value).strip()
+        if not search_value_str:
+            logging.warning("Valor de busca está vazio após conversão para string")
+            return None
+
+        # Filtra registros correspondentes
+        try:
+            # Converte coluna para string e remove espaços para comparação
+            df_copy = df.copy()
+            df_copy[column_name] = df_copy[column_name].astype(str).str.strip()
+            records = df_copy[df_copy[column_name] == search_value_str].copy()
+        except Exception as e:
+            logging.error(f"Erro ao filtrar registros: {e}")
+            return None
+        
+        if records.empty:
+            logging.info(f"Nenhum registro encontrado para {column_name}='{search_value_str}'")
+            return None
+
+        # Lista de todas as colunas que podem conter datas
+        date_columns = [
+            'data_servico', 'data_inspecao', 'data_teste', 'data_proxima_inspecao', 
+            'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel', 
+            'data_ultimo_ensaio_hidrostatico', 'data_validade', 'data_proximo_teste',
+            'proxima_calibracao', 'data_proxima_inspecao'
+        ]
+        
+        # Converte todas as colunas de data encontradas
+        converted_columns = []
+        for col in date_columns:
+            if col in records.columns:
+                try:
+                    records[col] = pd.to_datetime(records[col], errors='coerce')
+                    converted_columns.append(col)
+                except Exception as e:
+                    logging.warning(f"Erro ao converter coluna de data '{col}': {e}")
+
+        # Identifica a coluna principal de data para ordenação
+        primary_date_col = None
+        for col in ['data_servico', 'data_inspecao', 'data_teste']:
+            if col in records.columns:
+                primary_date_col = col
+                break
+        
+        if not primary_date_col:
+            logging.error(f"Nenhuma coluna de data principal encontrada para {search_value_str}")
+            return None
+
+        # Remove registros com data principal nula
+        records_before_dropna = len(records)
+        records = records.dropna(subset=[primary_date_col])
+        records_after_dropna = len(records)
+        
+        if records_before_dropna > records_after_dropna:
+            logging.info(f"Removidos {records_before_dropna - records_after_dropna} registros com {primary_date_col} nula")
+        
+        # ✅ VERIFICAÇÃO CRÍTICA: DataFrame vazio após dropna
+        if records.empty:
+            logging.warning(f"Todos os registros para {column_name}='{search_value_str}' possuem {primary_date_col} inválida/nula")
+            return None
+
+        # Ordena por data principal e pega o último registro
+        try:
+            records_sorted = records.sort_values(by=primary_date_col, ascending=False)
+            latest_record_dict = records_sorted.iloc[0].to_dict()
+        except Exception as e:
+            logging.error(f"Erro ao ordenar registros ou obter último registro: {e}")
+            return None
+
+        # ✅ CONSOLIDAÇÃO DE DATAS: Varre todo o histórico para encontrar a data MÁXIMA de cada coluna de vencimento
+        consolidation_columns = {
+            'data_proxima_manutencao_2_nivel': 'Manutenção Nível 2',
+            'data_proxima_manutencao_3_nivel': 'Manutenção Nível 3', 
+            'data_ultimo_ensaio_hidrostatico': 'Teste Hidrostático',
+            'data_proxima_inspecao': 'Próxima Inspeção',
+            'data_validade': 'Validade',
+            'data_proximo_teste': 'Próximo Teste',
+            'proxima_calibracao': 'Próxima Calibração'
+        }
+        
+        consolidated_dates = {}
+        for col, description in consolidation_columns.items():
+            if col in records.columns:
+                try:
+                    # Encontra a data máxima (mais distante no futuro) para esta coluna
+                    max_date = records[col].max()
+                    if pd.notna(max_date):
+                        consolidated_dates[col] = max_date
+                        logging.debug(f"Data consolidada para {description}: {max_date}")
+                    else:
+                        consolidated_dates[col] = None
+                except Exception as e:
+                    logging.warning(f"Erro ao consolidar {col}: {e}")
+                    consolidated_dates[col] = None
+
+        # Sobrescreve as datas no dicionário final com os valores consolidados
+        latest_record_dict.update(consolidated_dates)
+
+        # ✅ CONVERSÃO FINAL: Converte todas as datas para string ou None
+        for key, value in latest_record_dict.items():
+            if isinstance(value, pd.Timestamp):
+                try:
+                    # Formata o Timestamp para string 'YYYY-MM-DD'
+                    latest_record_dict[key] = value.strftime('%Y-%m-%d')
+                except Exception as e:
+                    logging.warning(f"Erro ao formatar data {key}: {e}")
+                    latest_record_dict[key] = None
+            elif pd.isna(value):
+                # Garante que valores nulos (NaT, NaN) se tornem None
+                latest_record_dict[key] = None
+            elif isinstance(value, str) and key in date_columns:
+                # Tenta normalizar strings de data já existentes
+                try:
+                    parsed_date = pd.to_datetime(value)
+                    latest_record_dict[key] = parsed_date.strftime('%Y-%m-%d')
+                except:
+                    # Se não conseguir converter, mantém a string original
+                    pass
+                    
+        logging.info(f"Último registro encontrado para {column_name}='{search_value_str}' com {len(consolidated_dates)} datas consolidadas")
+        return latest_record_dict
+        
+    except Exception as e:
+        logging.error(f"Erro crítico em find_last_record para {column_name}='{search_value}': {e}", exc_info=True)
+        return None
 
 
 def find_last_record_safe(df, search_value, column_name):
@@ -102,76 +219,115 @@ def find_last_record_safe(df, search_value, column_name):
     
     Esta versão adiciona logs detalhados para facilitar o diagnóstico de problemas.
     Use esta versão se ainda houver problemas com a função principal.
+    
+    Args:
+        df (pd.DataFrame): DataFrame com histórico de registros
+        search_value (str): Valor a ser procurado
+        column_name (str): Nome da coluna onde procurar
+        
+    Returns:
+        dict or None: Último registro com datas consolidadas ou None se não encontrado
     """
     try:
-        # Log inicial
-        print(f"[DEBUG] find_last_record_safe: Buscando {column_name}='{search_value}' em DataFrame com {len(df)} linhas")
+        # Log inicial detalhado
+        logging.info(f"[DEBUG] find_last_record_safe: Buscando {column_name}='{search_value}' em DataFrame com {len(df) if df is not None else 0} linhas")
         
         # Verificação 1: DataFrame vazio ou coluna inexistente
-        if df.empty:
-            print("[DEBUG] DataFrame está vazio")
+        if df is None or df.empty:
+            logging.warning("[DEBUG] DataFrame está vazio ou é None")
             return None
             
         if column_name not in df.columns:
-            print(f"[DEBUG] Coluna '{column_name}' não encontrada. Colunas disponíveis: {list(df.columns)}")
+            logging.error(f"[DEBUG] Coluna '{column_name}' não encontrada. Colunas disponíveis: {list(df.columns)}")
             return None
 
-        # Verificação 2: Filtra registros
-        records = df[df[column_name].astype(str) == str(search_value)].copy()
-        print(f"[DEBUG] Encontrados {len(records)} registros correspondentes")
+        # Verificação 2: Filtra registros com logging detalhado
+        search_str = str(search_value).strip()
+        df_work = df.copy()
+        df_work[column_name] = df_work[column_name].astype(str).str.strip()
+        records = df_work[df_work[column_name] == search_str].copy()
+        
+        logging.info(f"[DEBUG] Encontrados {len(records)} registros correspondentes")
         
         if records.empty:
-            print("[DEBUG] Nenhum registro correspondente encontrado")
+            logging.warning("[DEBUG] Nenhum registro correspondente encontrado")
             return None
 
-        # Lista de colunas de data
+        # Lista de colunas de data com logging
         date_columns = [
-            'data_servico', 'data_proxima_inspecao', 'data_proxima_manutencao_2_nivel',
-            'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico'
+            'data_servico', 'data_inspecao', 'data_teste', 'data_proxima_inspecao', 
+            'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel',
+            'data_ultimo_ensaio_hidrostatico', 'data_validade', 'data_proximo_teste'
         ]
         
-        # Converte colunas de data
+        # Converte colunas de data com logging detalhado
+        primary_date_col = None
+        for col in ['data_servico', 'data_inspecao', 'data_teste']:
+            if col in records.columns:
+                primary_date_col = col
+                break
+                
+        if not primary_date_col:
+            logging.error("[DEBUG] Nenhuma coluna de data principal encontrada")
+            return None
+            
+        before_count = len(records)
+        
+        # Converte datas
         for col in date_columns:
             if col in records.columns:
-                before_count = len(records)
-                records[col] = pd.to_datetime(records[col], errors='coerce')
-                after_count = len(records)
-                print(f"[DEBUG] Coluna '{col}': {before_count} -> {after_count} registros")
+                try:
+                    records[col] = pd.to_datetime(records[col], errors='coerce')
+                    logging.debug(f"[DEBUG] Coluna '{col}' convertida para datetime")
+                except Exception as e:
+                    logging.warning(f"[DEBUG] Erro ao converter '{col}': {e}")
 
-        # Limpa registros com data_servico nula
-        before_dropna = len(records)
-        records.dropna(subset=['data_servico'], inplace=True)
-        after_dropna = len(records)
-        print(f"[DEBUG] Após dropna(data_servico): {before_dropna} -> {after_dropna} registros")
+        # Limpa registros com data principal nula
+        records = records.dropna(subset=[primary_date_col])
+        after_count = len(records)
         
-        # Verificação crítica após dropna
+        logging.info(f"[DEBUG] Após dropna({primary_date_col}): {before_count} -> {after_count} registros")
+        
+        # ✅ VERIFICAÇÃO CRÍTICA: DataFrame vazio após dropna
         if records.empty:
-            print("[DEBUG] ATENÇÃO: DataFrame ficou vazio após dropna!")
-            st.warning(f"Registros para {column_name}='{search_value}' não possuem data_servico válida.")
+            logging.error("[DEBUG] ATENÇÃO: DataFrame ficou vazio após dropna!")
             return None
 
-        # Agora é seguro usar iloc[0]
-        print("[DEBUG] Processando último registro...")
-        latest_record_dict = records.sort_values(by='data_servico', ascending=False).iloc[0].to_dict()
+        # Processamento seguro do último registro
+        logging.debug("[DEBUG] Processando último registro...")
+        try:
+            latest_record_dict = records.sort_values(by=primary_date_col, ascending=False).iloc[0].to_dict()
+        except Exception as e:
+            logging.error(f"[DEBUG] Erro ao obter último registro: {e}")
+            return None
         
-        # Consolida datas máximas
-        latest_record_dict['data_proxima_manutencao_2_nivel'] = records['data_proxima_manutencao_2_nivel'].max()
-        latest_record_dict['data_proxima_manutencao_3_nivel'] = records['data_proxima_manutencao_3_nivel'].max()
-        latest_record_dict['data_ultimo_ensaio_hidrostatico'] = records['data_ultimo_ensaio_hidrostatico'].max()
+        # Consolida datas máximas com logging
+        consolidation_map = {
+            'data_proxima_manutencao_2_nivel': 'N2',
+            'data_proxima_manutencao_3_nivel': 'N3', 
+            'data_ultimo_ensaio_hidrostatico': 'TH'
+        }
+        
+        for col, short_name in consolidation_map.items():
+            if col in records.columns:
+                max_date = records[col].max()
+                latest_record_dict[col] = max_date
+                logging.debug(f"[DEBUG] {short_name} consolidado: {max_date}")
 
-        # Converte datas para strings
+        # Converte datas para strings com logging
+        converted_count = 0
         for key, value in latest_record_dict.items():
             if isinstance(value, pd.Timestamp):
                 latest_record_dict[key] = value.strftime('%Y-%m-%d')
+                converted_count += 1
             elif pd.isna(value):
                 latest_record_dict[key] = None
                 
-        print(f"[DEBUG] Último registro processado com sucesso para {search_value}")
+        logging.info(f"[DEBUG] Último registro processado com sucesso. {converted_count} datas convertidas para string")
         return latest_record_dict
         
     except Exception as e:
-        print(f"[ERROR] Erro em find_last_record_safe: {e}")
-        st.error(f"Erro ao processar último registro para {search_value}: {e}")
+        logging.error(f"[ERROR] Erro em find_last_record_safe: {e}", exc_info=True)
         return None
 
 
@@ -180,25 +336,51 @@ def find_all_records_for_equipment(df, search_value, column_name):
     ✅ FUNÇÃO ADICIONAL - Retorna TODOS os registros de um equipamento, ordenados cronologicamente.
     
     Útil para análise completa do histórico de um equipamento específico.
+    
+    Args:
+        df (pd.DataFrame): DataFrame com histórico
+        search_value (str): Valor a ser procurado
+        column_name (str): Nome da coluna onde procurar
+        
+    Returns:
+        pd.DataFrame: Todos os registros do equipamento ordenados por data
     """
-    if df.empty or column_name not in df.columns:
-        return pd.DataFrame()
+    try:
+        if df is None or df.empty or column_name not in df.columns:
+            return pd.DataFrame()
+            
+        # Filtra e limpa dados
+        search_str = str(search_value).strip()
+        df_work = df.copy()
+        df_work[column_name] = df_work[column_name].astype(str).str.strip()
+        records = df_work[df_work[column_name] == search_str].copy()
         
-    # Filtra e limpa dados
-    records = df[df[column_name].astype(str) == str(search_value)].copy()
-    
-    if records.empty:
-        return pd.DataFrame()
-    
-    # Converte data_servico para ordenação
-    records['data_servico'] = pd.to_datetime(records['data_servico'], errors='coerce')
-    records = records.dropna(subset=['data_servico'])
-    
-    if records.empty:
-        return pd.DataFrame()
+        if records.empty:
+            return pd.DataFrame()
         
-    # Ordena por data de serviço (mais recente primeiro)
-    return records.sort_values(by='data_servico', ascending=False)
+        # Identifica coluna de data principal
+        primary_date_col = None
+        for col in ['data_servico', 'data_inspecao', 'data_teste']:
+            if col in records.columns:
+                primary_date_col = col
+                break
+                
+        if not primary_date_col:
+            return records  # Retorna sem ordenação se não há coluna de data
+            
+        # Converte e ordena por data
+        records[primary_date_col] = pd.to_datetime(records[primary_date_col], errors='coerce')
+        records = records.dropna(subset=[primary_date_col])
+        
+        if records.empty:
+            return pd.DataFrame()
+            
+        # Ordena por data de serviço (mais recente primeiro)
+        return records.sort_values(by=primary_date_col, ascending=False)
+        
+    except Exception as e:
+        logging.error(f"Erro em find_all_records_for_equipment: {e}")
+        return pd.DataFrame()
 
 
 def get_equipment_status_summary(df, equipment_id_column='numero_identificacao'):
@@ -206,13 +388,20 @@ def get_equipment_status_summary(df, equipment_id_column='numero_identificacao')
     ✅ FUNÇÃO ADICIONAL - Gera um resumo do status de todos os equipamentos.
     
     Retorna um DataFrame com o status atual de cada equipamento baseado no último registro.
-    """
-    if df.empty:
-        return pd.DataFrame()
+    
+    Args:
+        df (pd.DataFrame): DataFrame com histórico completo
+        equipment_id_column (str): Nome da coluna com ID do equipamento
         
+    Returns:
+        pd.DataFrame: Resumo do status de todos os equipamentos
+    """
     try:
+        if df is None or df.empty or equipment_id_column not in df.columns:
+            return pd.DataFrame()
+            
         # Pega equipamentos únicos
-        unique_equipment = df[equipment_id_column].unique()
+        unique_equipment = df[equipment_id_column].dropna().unique()
         summary_data = []
         
         for equipment_id in unique_equipment:
@@ -235,6 +424,41 @@ def get_equipment_status_summary(df, equipment_id_column='numero_identificacao')
         return pd.DataFrame(summary_data)
         
     except Exception as e:
-        st.error(f"Erro ao gerar resumo de equipamentos: {e}")
+        logging.error(f"Erro ao gerar resumo de equipamentos: {e}")
         return pd.DataFrame()
+
+
+def validate_dataframe_for_search(df, column_name, search_value):
+    """
+    ✅ FUNÇÃO AUXILIAR - Valida se DataFrame e parâmetros estão adequados para busca
+    
+    Args:
+        df (pd.DataFrame): DataFrame a ser validado
+        column_name (str): Nome da coluna
+        search_value: Valor a ser buscado
+        
+    Returns:
+        tuple: (is_valid: bool, error_message: str)
+    """
+    try:
+        if df is None:
+            return False, "DataFrame é None"
+            
+        if df.empty:
+            return False, "DataFrame está vazio"
+            
+        if not column_name:
+            return False, "Nome da coluna não pode estar vazio"
+            
+        if column_name not in df.columns:
+            return False, f"Coluna '{column_name}' não existe. Colunas disponíveis: {list(df.columns)}"
+            
+        if search_value is None or str(search_value).strip() == '':
+            return False, "Valor de busca não pode estar vazio"
+            
+        return True, ""
+        
+    except Exception as e:
+        return False, f"Erro na validação: {str(e)}"
+
 
