@@ -26,7 +26,11 @@ from gdrive.config import (
     HOSE_DISPOSAL_LOG_SHEET_NAME,
     LOG_FOAM_CHAMBER_SHEET_NAME,
     MULTIGAS_INVENTORY_SHEET_NAME, 
-    MULTIGAS_INSPECTIONS_SHEET_NAME
+    MULTIGAS_INSPECTIONS_SHEET_NAME,
+    ALARM_INVENTORY_SHEET_NAME,
+    ALARM_INSPECTIONS_SHEET_NAME,
+    LOG_ALARM_SHEET_NAME
+
 )
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
@@ -37,6 +41,7 @@ from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
 from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
+from operations.alarm_operations import save_alarm_action_log
 
 
 
