@@ -16,7 +16,7 @@ from auth.login_page import show_login_page, show_user_header, show_logout_butto
 from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_user_display_name
 from config.page_config import set_page_config
 from operations.extinguisher_operations import batch_regularize_monthly_inspections
-from operations.eyewash_operations import CHECKLIST_QUESTIONS
+from operations.alarm_operations import CHECKLIST_QUESTIONS as ALARM_CHECKLIST
 from gdrive.config import (
     HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME,
     LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
