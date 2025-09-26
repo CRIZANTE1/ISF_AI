@@ -135,43 +135,255 @@ def update_cylinder_values(detector_id, new_cylinder_values):
     """
     ✅ FUNÇÃO CORRIGIDA - Atualiza os valores de referência do cilindro para um detector específico no inventário.
     
-    CORREÇÃO APLICADA: Uso de .get() em vez de acesso direto para evitar KeyError.
+    CORREÇÕES APLICADAS:
+    - Validação robusta de entrada
+    - Uso de .get() para acessar valores do dicionário
+    - Melhor tratamento de erros
+    - Validação de tipos de dados
+    - Logs detalhados para debug
+    
+    Args:
+        detector_id (str): ID único do detector no inventário
+        new_cylinder_values (dict): Dicionário com novos valores de referência
+                                   Formato esperado: {'LEL': float, 'O2': float, 'H2S': int, 'CO': int}
+    
+    Returns:
+        bool: True se a atualização foi bem-sucedida, False caso contrário
+    """
+    try:
+        # Validação de entrada
+        if not detector_id or not isinstance(detector_id, str):
+            st.error("Erro: ID do detector deve ser uma string não vazia.")
+            return False
+        
+        if not isinstance(new_cylinder_values, dict):
+            st.error("Erro: Valores do cilindro devem ser fornecidos como um dicionário.")
+            return False
+        
+        if not new_cylinder_values:
+            st.error("Erro: Dicionário de valores do cilindro não pode estar vazio.")
+            return False
+        
+        # Valida se todos os gases necessários estão presentes
+        required_gases = ['LEL', 'O2', 'H2S', 'CO']
+        missing_gases = [gas for gas in required_gases if gas not in new_cylinder_values]
+        
+        if missing_gases:
+            st.error(f"Erro: Valores ausentes para os gases: {', '.join(missing_gases)}")
+            return False
+        
+        # Validação dos valores (devem ser numéricos e positivos)
+        for gas, value in new_cylinder_values.items():
+            if gas in required_gases:
+                try:
+                    float_value = float(value)
+                    if float_value < 0:
+                        st.error(f"Erro: Valor para {gas} deve ser positivo. Valor fornecido: {value}")
+                        return False
+                except (ValueError, TypeError):
+                    st.error(f"Erro: Valor inválido para {gas}: '{value}'. Deve ser um número.")
+                    return False
+        
+        # Inicializa o uploader
+        uploader = GoogleDriveUploader()
+        
+        # Carrega dados do inventário
+        inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
+        
+        if not inventory_data or len(inventory_data) < 2:
+            st.error("Erro: Inventário de detectores não encontrado ou vazio. Não foi possível atualizar.")
+            return False
+
+        # Cria DataFrame do inventário
+        headers = inventory_data[0]
+        rows = inventory_data[1:]
+        
+        # Verifica se há pelo menos uma linha de dados
+        if not rows:
+            st.error("Erro: Inventário não contém dados de detectores.")
+            return False
+        
+        # Limpa linhas vazias
+        clean_rows = []
+        for row in rows:
+            # Verifica se a linha tem conteúdo válido
+            if row and any(cell and str(cell).strip() for cell in row):
+                # Garante que a linha tenha o mesmo número de colunas que o cabeçalho
+                while len(row) < len(headers):
+                    row.append('')
+                clean_rows.append(row[:len(headers)])
+        
+        if not clean_rows:
+            st.error("Erro: Nenhuma linha válida encontrada no inventário.")
+            return False
+        
+        try:
+            df_inventory = pd.DataFrame(clean_rows, columns=headers)
+        except Exception as e:
+            st.error(f"Erro ao criar DataFrame do inventário: {e}")
+            return False
+        
+        # Verifica se a coluna id_equipamento existe
+        if 'id_equipamento' not in df_inventory.columns:
+            st.error("Erro: Coluna 'id_equipamento' não encontrada no inventário.")
+            st.info(f"Colunas disponíveis: {list(df_inventory.columns)}")
+            return False
+        
+        # Encontra o detector no inventário
+        detector_mask = df_inventory['id_equipamento'] == detector_id
+        target_indices = df_inventory.index[detector_mask].tolist()
+        
+        if not target_indices:
+            st.error(f"Erro: Detector com ID '{detector_id}' não encontrado no inventário.")
+            
+            # Lista detectores disponíveis para ajudar no debug
+            available_detectors = df_inventory['id_equipamento'].dropna().unique()
+            if len(available_detectors) > 0:
+                st.info(f"Detectores disponíveis: {', '.join(map(str, available_detectors[:10]))}")
+                if len(available_detectors) > 10:
+                    st.info(f"... e mais {len(available_detectors) - 10} detectores")
+            
+            return False
+        
+        # Usa o primeiro índice encontrado (deveria ser único)
+        row_index = target_indices[0]
+        
+        # Converte para índice da planilha (base 1 + cabeçalho)
+        sheet_row_index = row_index + 2
+        
+        # Define o range de atualização (colunas F a I conforme especificação original)
+        range_to_update = f"F{sheet_row_index}:I{sheet_row_index}"
+        
+        # ✅ CORREÇÃO CRÍTICA: Uso de .get() com valores padrão para evitar KeyError
+        # Converte valores para tipos apropriados e aplica to_safe_cell
+        try:
+            lel_value = float(new_cylinder_values.get('LEL', 0))
+            o2_value = float(new_cylinder_values.get('O2', 0))
+            h2s_value = int(float(new_cylinder_values.get('H2S', 0)))  # Converte para int via float primeiro
+            co_value = int(float(new_cylinder_values.get('CO', 0)))    # Converte para int via float primeiro
+        except (ValueError, TypeError) as e:
+            st.error(f"Erro na conversão de valores: {e}")
+            return False
+        
+        values_to_update = [[
+            to_safe_cell(lel_value),
+            to_safe_cell(o2_value),
+            to_safe_cell(h2s_value),
+            to_safe_cell(co_value)
+        ]]
+
+        # Executa a atualização
+        try:
+            uploader.update_cells(MULTIGAS_INVENTORY_SHEET_NAME, range_to_update, values_to_update)
+            
+            # Log da ação bem-sucedida
+            log_action("ATUALIZOU_CILINDRO_MULTIGAS", 
+                      f"ID: {detector_id}, LEL: {lel_value}, O2: {o2_value}, H2S: {h2s_value}, CO: {co_value}")
+            
+            # Log de debug detalhado
+            import logging
+            logging.info(f"Valores do cilindro atualizados para detector {detector_id}: "
+                        f"LEL={lel_value}, O2={o2_value}, H2S={h2s_value}, CO={co_value}")
+            
+            return True
+            
+        except Exception as update_error:
+            st.error(f"Erro ao executar atualização na planilha: {update_error}")
+            return False
+        
+    except Exception as e:
+        # Log detalhado do erro para debug
+        import logging
+        logging.error(f"Erro crítico em update_cylinder_values: {e}", exc_info=True)
+        
+        st.error(f"Ocorreu um erro inesperado ao atualizar os valores do cilindro: {e}")
+        st.error("Entre em contato com o suporte se o problema persistir.")
+        return False
+
+
+def validate_cylinder_values_input(cylinder_values):
+    """
+    ✅ FUNÇÃO AUXILIAR - Valida e sanitiza valores de entrada do cilindro
+    
+    Args:
+        cylinder_values (dict): Valores brutos de entrada
+        
+    Returns:
+        tuple: (is_valid: bool, sanitized_values: dict, error_message: str)
+    """
+    try:
+        if not isinstance(cylinder_values, dict):
+            return False, {}, "Valores devem ser fornecidos como dicionário"
+        
+        required_gases = ['LEL', 'O2', 'H2S', 'CO']
+        sanitized = {}
+        
+        for gas in required_gases:
+            raw_value = cylinder_values.get(gas)
+            
+            if raw_value is None or raw_value == '':
+                return False, {}, f"Valor ausente para {gas}"
+            
+            try:
+                # Tenta converter para float primeiro
+                float_value = float(raw_value)
+                
+                # Validações específicas por gás
+                if gas in ['LEL', 'O2']:
+                    # LEL e O2 são percentuais (float)
+                    if float_value < 0 or float_value > 100:
+                        return False, {}, f"Valor para {gas} deve estar entre 0 e 100%"
+                    sanitized[gas] = float_value
+                else:
+                    # H2S e CO são ppm (inteiros)
+                    if float_value < 0 or float_value > 10000:
+                        return False, {}, f"Valor para {gas} deve estar entre 0 e 10000 ppm"
+                    sanitized[gas] = int(float_value)
+                    
+            except (ValueError, TypeError):
+                return False, {}, f"Valor inválido para {gas}: '{raw_value}'"
+        
+        return True, sanitized, ""
+        
+    except Exception as e:
+        return False, {}, f"Erro na validação: {str(e)}"
+
+
+def get_detector_cylinder_values(detector_id):
+    """
+    ✅ FUNÇÃO AUXILIAR - Recupera os valores atuais do cilindro para um detector
+    
+    Args:
+        detector_id (str): ID do detector
+        
+    Returns:
+        dict or None: Valores atuais do cilindro ou None se não encontrado
     """
     try:
         uploader = GoogleDriveUploader()
         inventory_data = uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
         
         if not inventory_data or len(inventory_data) < 2:
-            st.error("Inventário de detectores não encontrado ou vazio. Não foi possível atualizar.")
-            return False
-
+            return None
+        
         df_inventory = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
+        detector_row = df_inventory[df_inventory['id_equipamento'] == detector_id]
         
-        target_indices = df_inventory.index[df_inventory['id_equipamento'] == detector_id].tolist()
+        if detector_row.empty:
+            return None
         
-        if not target_indices:
-            st.error(f"Detector com ID '{detector_id}' não encontrado no inventário.")
-            return False
-            
-        row_index = target_indices[0]
-        sheet_row_index = row_index + 2
-        range_to_update = f"F{sheet_row_index}:I{sheet_row_index}"
+        row_data = detector_row.iloc[0]
         
-        # ✅ CORREÇÃO CRÍTICA: Uso de .get() com valores padrão para evitar KeyError
-        values_to_update = [[
-            to_safe_cell(new_cylinder_values.get('LEL', 0)),    # ✅ .get() em vez de acesso direto
-            to_safe_cell(new_cylinder_values.get('O2', 0)),     # ✅ .get() em vez de acesso direto  
-            to_safe_cell(new_cylinder_values.get('H2S', 0)),    # ✅ .get() em vez de acesso direto
-            to_safe_cell(new_cylinder_values.get('CO', 0))      # ✅ .get() em vez de acesso direto
-        ]]
-
-        uploader.update_cells(MULTIGAS_INVENTORY_SHEET_NAME, range_to_update, values_to_update)
-        log_action("ATUALIZOU_CILINDRO_MULTIGAS", f"ID: {detector_id}")
-        return True
+        return {
+            'LEL': row_data.get('LEL_cilindro', 0),
+            'O2': row_data.get('O2_cilindro', 0), 
+            'H2S': row_data.get('H2S_cilindro', 0),
+            'CO': row_data.get('CO_cilindro', 0)
+        }
         
     except Exception as e:
-        st.error(f"Ocorreu um erro ao atualizar os valores do cilindro: {e}")
-        return False
+        st.error(f"Erro ao recuperar valores do cilindro: {e}")
+        return None
 
 def verify_bump_test(reference_values, found_values, tolerance_percent=20):
     """
