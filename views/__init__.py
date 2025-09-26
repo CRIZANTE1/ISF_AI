@@ -11,6 +11,7 @@ from . import (
     utilitarios,
     resumo_gerencial,
     inspecao_multigas,
+    inspecao_alarmes,
     demo_page,
     trial_expired_page
 )
@@ -35,6 +36,7 @@ __all__ = [
     "utilitarios",
     "resumo_gerencial",
     "inspecao_multigas",
+    "inspecao_alarmes",
     "demo_page",
     "trial_expired_page"
 ]
@@ -46,5 +48,6 @@ if _PERFIL_DISPONIVEL:
 # Função utilitária para verificar se o perfil está disponível
 def is_perfil_available():
     return _PERFIL_DISPONIVEL
+
 
 
