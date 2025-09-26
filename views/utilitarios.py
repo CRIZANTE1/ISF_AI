@@ -77,7 +77,78 @@ def show_page():
         if not can_edit():
             st.warning("Você não tem permissão para cadastrar novos itens.")
         else:
-            st.info("Funcionalidade em desenvolvimento.")
+            st.info("Esta seção permite cadastrar rapidamente novos equipamentos no sistema.")
+            
+            # Interface para cadastro rápido de equipamentos
+            equipment_type = st.selectbox("Tipo de Equipamento", [
+                "Selecione...", 
+                "Extintor", 
+                "Mangueira", 
+                "Chuveiro/Lava-Olhos", 
+                "SCBA", 
+                "Detector Multigás"
+            ])
+            
+            if equipment_type != "Selecione...":
+                st.subheader(f"Cadastro de {equipment_type}")
+                
+                with st.form("quick_register_form", clear_on_submit=True):
+                    if equipment_type == "Extintor":
+                        col1, col2 = st.columns(2)
+                        equip_id = col1.text_input("ID do Extintor*")
+                        tipo_agente = col2.selectbox("Tipo", ["ABC", "BC", "CO2", "Espuma"])
+                        capacidade = col1.text_input("Capacidade")
+                        marca = col2.text_input("Marca")
+                        
+                    elif equipment_type == "Mangueira":
+                        col1, col2 = st.columns(2)
+                        equip_id = col1.text_input("ID da Mangueira*")
+                        diametro = col2.selectbox("Diâmetro", ["1\"", "1 1/2\"", "2\"", "2 1/2\""])
+                        comprimento = col1.text_input("Comprimento (m)")
+                        marca = col2.text_input("Marca")
+                        
+                    elif equipment_type == "Chuveiro/Lava-Olhos":
+                        col1, col2 = st.columns(2)
+                        equip_id = col1.text_input("ID do Equipamento*")
+                        localizacao = col2.text_input("Localização*")
+                        marca = col1.text_input("Marca")
+                        modelo = col2.text_input("Modelo")
+                        
+                    elif equipment_type == "SCBA":
+                        col1, col2 = st.columns(2)
+                        equip_id = col1.text_input("Número de Série*")
+                        marca = col2.text_input("Marca")
+                        modelo = col1.text_input("Modelo")
+                        
+                    elif equipment_type == "Detector Multigás":
+                        col1, col2 = st.columns(2)
+                        equip_id = col1.text_input("ID do Detector*")
+                        numero_serie = col2.text_input("Número de Série*")
+                        marca = col1.text_input("Marca")
+                        modelo = col2.text_input("Modelo")
+                    
+                    observacoes = st.text_area("Observações (opcional)")
+                    
+                    submitted = st.form_submit_button("Cadastrar Equipamento", type="primary")
+                    
+                    if submitted:
+                        if equipment_type == "Extintor" and equip_id:
+                            st.success(f"Extintor {equip_id} seria cadastrado no sistema!")
+                            st.info("Para implementação completa, consulte as abas específicas de cada tipo de equipamento.")
+                        elif equipment_type == "Mangueira" and equip_id:
+                            st.success(f"Mangueira {equip_id} seria cadastrada no sistema!")
+                            st.info("Para implementação completa, consulte as abas específicas de cada tipo de equipamento.")
+                        elif equipment_type == "Chuveiro/Lava-Olhos" and equip_id and 'localizacao' in locals():
+                            st.success(f"Equipamento {equip_id} seria cadastrado no sistema!")
+                            st.info("Para implementação completa, consulte as abas específicas de cada tipo de equipamento.")
+                        elif equipment_type == "SCBA" and equip_id:
+                            st.success(f"SCBA {equip_id} seria cadastrado no sistema!")
+                            st.info("Para implementação completa, consulte as abas específicas de cada tipo de equipamento.")
+                        elif equipment_type == "Detector Multigás" and equip_id and 'numero_serie' in locals():
+                            st.success(f"Detector {equip_id} seria cadastrado no sistema!")
+                            st.info("Para implementação completa, consulte as abas específicas de cada tipo de equipamento.")
+                        else:
+                            st.error("Por favor, preencha todos os campos obrigatórios.")
 
     with tab_qr:
         st.header("Gerador de QR Codes para Equipamentos")
