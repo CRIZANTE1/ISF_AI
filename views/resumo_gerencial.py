@@ -15,7 +15,7 @@ from gdrive.config import (
     SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME,
     SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME,
     FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
-    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
+    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME
 )
 
 # Importa as funções de status do dashboard.py (reutilização de código)
@@ -26,7 +26,8 @@ from .dashboard import (
     get_scba_status_df,
     get_eyewash_status_df,
     get_foam_chamber_status_df,
-    get_multigas_status_df
+    get_multigas_status_df,
+    get_alarm_status_df
 )
 
 set_page_config()
@@ -45,8 +46,9 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas = st.tabs([
-        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás"
+    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms = st.tabs([
+    "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
+    "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás", "🔔 Alarmes"
     ])
 
     with tab_extinguishers:
@@ -254,5 +256,30 @@ def show_page():
                         "status_bump_test": "Status Bump Test",
                         "proxima_calibracao": "Venc. Calibração"
                     },
+                    width='stretch', hide_index=True
+                )
+    with tab_alarms:
+        st.header("Situação dos Sistemas de Alarme")
+        df_alarm_inspections = load_sheet_data(ALARM_INSPECTIONS_SHEET_NAME)
+        
+        if df_alarm_inspections.empty:
+            st.warning("Nenhuma inspeção de sistema de alarme registrada.")
+        else:
+            dashboard_df = get_alarm_status_df(df_alarm_inspections)
+            status_counts = dashboard_df['status_dashboard'].value_counts()
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("✅ Total", len(dashboard_df))
+            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+            col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
+            col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+            st.markdown("---")
+            st.subheader("Sistemas com Pendências")
+            pending_alarms = dashboard_df[dashboard_df['status_dashboard'] != '🟢 OK']
+            if pending_alarms.empty:
+                st.success("✅ Todos os sistemas de alarme estão em conformidade!")
+            else:
+                st.dataframe(
+                    pending_alarms[['id_sistema', 'status_dashboard', 'plano_de_acao', 'data_proxima_inspecao']],
+                    column_config={"id_sistema": "ID", "status_dashboard": "Status", "plano_de_acao": "Ação Recomendada", "data_proxima_inspecao": "Vencimento"},
                     width='stretch', hide_index=True
                 )
