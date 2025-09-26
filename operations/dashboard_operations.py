@@ -21,6 +21,57 @@ from gdrive.config import (
 )
 
 
+
+def safe_percentage(numerator, denominator):
+    """
+    Calcula porcentagem de forma segura, evitando divisão por zero.
+    
+    Args:
+        numerator: Valor numerador
+        denominator: Valor denominador
+        
+    Returns:
+        float: Porcentagem ou 0 se denominador for zero
+    """
+    if denominator == 0:
+        return 0.0
+    return (numerator / denominator) * 100
+
+def calculate_equipment_metrics(status_series):
+    """
+    Calcula métricas de status de equipamentos.
+    
+    Args:
+        status_series: Série pandas com os status dos equipamentos
+        
+    Returns:
+        dict: Dicionário com métricas calculadas
+    """
+    if status_series.empty:
+        return {
+            'total': 0,
+            'ok_count': 0,
+            'expired_count': 0,
+            'pending_count': 0,
+            'compliance_rate': 0.0
+        }
+    
+    total = len(status_series)
+    ok_count = sum(1 for status in status_series if '🟢' in str(status))
+    expired_count = sum(1 for status in status_series if '🔴' in str(status))
+    pending_count = sum(1 for status in status_series if '🟠' in str(status) or '🔵' in str(status))
+    
+    compliance_rate = safe_percentage(ok_count, total)
+    
+    return {
+        'total': total,
+        'ok_count': ok_count,
+        'expired_count': expired_count,
+        'pending_count': pending_count,
+        'compliance_rate': compliance_rate
+    }
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def load_all_dashboard_data():
     """
