@@ -311,7 +311,7 @@ def show_page():
     payment_success = get_payment_success_message()
     if payment_success:
         st.success("🎉 **Pagamento realizado com sucesso!** Seu plano foi ativado.")
-        st.balloons()
+        #st.balloons()
         clear_payment_success_message()
         st.cache_data.clear()
 
