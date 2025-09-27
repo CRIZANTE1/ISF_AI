@@ -33,7 +33,7 @@ def show_login_page():
     login_col, lottie_col = st.columns([1, 1.5])
 
     with login_col:
-        st.title("Sistema de Gestão de Inspeções")
+        st.title("Sistema de Gestão de Inspeções De Segurança e Emergência")
         st.markdown("---")
         st.subheader("Por favor, faça login para continuar")
         st.write("") # Espaçamento
