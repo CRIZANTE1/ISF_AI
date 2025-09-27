@@ -8,7 +8,7 @@ from gdrive.config import (
     ALARM_INSPECTIONS_SHEET_NAME, 
     LOG_ALARM_SHEET_NAME
 )
-from datetime import date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from operations.photo_operations import upload_evidence_photo
 from utils.auditoria import log_action
@@ -140,6 +140,7 @@ def save_new_alarm_system(alarm_id, location, brand=None, model=None):
 def save_alarm_inspection(system_id, overall_status, results_dict, photo_file, inspector_name):
     """
     Salva uma nova inspeção de sistema de alarme no inventário.
+    MODIFICADO: Agora usa periodicidade SEMANAL (7 dias)
     
     Args:
         system_id (str): ID único do sistema de alarme
@@ -178,8 +179,8 @@ def save_alarm_inspection(system_id, overall_status, results_dict, photo_file, i
         
         # Define datas
         today = date.today()
-        # Próxima inspeção em 3 meses (sistemas de alarme - periodicidade trimestral)
-        next_inspection_date = (today + relativedelta(months=3)).isoformat()
+        # MODIFICADO: Próxima inspeção em 7 dias (periodicidade semanal)
+        next_inspection_date = (today + timedelta(days=7)).isoformat()
         
         # Processa upload da foto (se fornecida)
         photo_link = None
@@ -310,6 +311,7 @@ def save_alarm_action_log(system_id, problem, action_taken, responsible, photo_f
 def get_alarm_status_df(df_inspections):
     """
     Gera DataFrame de status para sistemas de alarme.
+    MODIFICADO: Atualizado para periodicidade semanal
     
     Args:
         df_inspections: DataFrame das inspeções realizadas
