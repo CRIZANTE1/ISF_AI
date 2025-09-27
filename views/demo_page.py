@@ -23,16 +23,11 @@ def show_page():
 
     st.warning(f"🔒 Olá, **{user_name}**. Você está autenticado, mas seu e-mail (`{user_email}`) ainda não está cadastrado em nosso sistema.")
     
-    # --- BOTÃO DE LOGOUT ADICIONADO AQUI ---
-    # Adicionamos o botão de logout em uma coluna para destacá-lo
-    # sem ocupar a largura total da página.
+
     col1, col2, col3 = st.columns([1.5, 1, 1.5])
     with col2:
-        # Reutilizamos a função de logout para manter a consistência.
-        # Ela já sabe como limpar as sessões do Google e do Azure.
+
         if st.button("🚪 Sair / Trocar de Conta", use_container_width=True):
-            # A lógica de logout já está encapsulada na função
-            # show_logout_button() fará o st.rerun() necessário
             
             # Limpa sessões manualmente como uma garantia extra antes de chamar a função
             keys_to_clear = ['is_logged_in', 'user_info_custom']
