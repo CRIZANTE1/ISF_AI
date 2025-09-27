@@ -72,6 +72,56 @@ PLANOS_CONFIG = {
     }
 }
 
+def ensure_support_sheet_exists():
+    """Garante que a aba de solicitações de suporte existe"""
+    try:
+        from gdrive.config import SUPPORT_REQUESTS_SHEET_NAME
+        
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+        
+        # Tenta ler a aba
+        try:
+            matrix_uploader.get_data_from_sheet(SUPPORT_REQUESTS_SHEET_NAME)
+            return True  # Aba já existe
+        except:
+            # Aba não existe, vamos criá-la
+            pass
+        
+        # Cabeçalhos da aba de suporte
+        support_headers = [
+            "data_solicitacao", "email_usuario", "nome_usuario", 
+            "tipo_solicitacao", "assunto", "mensagem", 
+            "prioridade", "status", "data_resposta", "resposta_suporte"
+        ]
+        
+        # Cria a nova aba
+        spreadsheet_id = matrix_uploader.spreadsheet_id
+        request_body = {
+            'requests': [{
+                'addSheet': {
+                    'properties': {
+                        'title': SUPPORT_REQUESTS_SHEET_NAME
+                    }
+                }
+            }]
+        }
+        
+        matrix_uploader.sheets_service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body=request_body
+        ).execute()
+        
+        # Adiciona os cabeçalhos
+        matrix_uploader.append_data_to_sheet(SUPPORT_REQUESTS_SHEET_NAME, [support_headers])
+        
+        st.success(f"✅ Aba '{SUPPORT_REQUESTS_SHEET_NAME}' criada com sucesso!")
+        return True
+        
+    except Exception as e:
+        st.error(f"❌ Erro ao criar aba de suporte: {e}")
+        return False
+
+
 class MercadoPagoPayment:
     """Classe para integração com pagamentos do Mercado Pago"""
     
@@ -519,6 +569,12 @@ def show_page():
                         from datetime import datetime
                         from gdrive.config import SUPPORT_REQUESTS_SHEET_NAME
                         
+                        # Garante que a aba existe
+                        if not ensure_support_sheet_exists():
+                            st.error("❌ Não foi possível criar a aba de suporte.")
+                            st.info("📧 Por favor, envie sua solicitação diretamente para: cristian.ferreira.carlos@gmail.com")
+                            return
+                        
                         # Prepara dados para salvar na planilha
                         support_data = [
                             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # data_solicitacao
@@ -541,9 +597,12 @@ def show_page():
                         support_details = f"Tipo: {support_type}, Assunto: {subject[:50]}..."
                         log_action("SOLICITACAO_SUPORTE", support_details)
                         
+                        # Gera número do ticket
+                        ticket_number = datetime.now().strftime("%Y%m%d%H%M%S")
+                        
                         st.success("✅ **Solicitação enviada com sucesso!**")
                         st.info(f"⏱️ Tempo estimado de resposta: **{support_info['response']}**")
-                        st.info("📋 **Número do ticket:** #" + datetime.now().strftime("%Y%m%d%H%M%S"))
+                        st.info(f"🎫 **Número do ticket:** #{ticket_number}")
                         
                         # Mostra informações adicionais baseadas no tipo
                         if support_type == "Problema Técnico":
@@ -551,7 +610,10 @@ def show_page():
                             
                     except Exception as e:
                         st.error(f"❌ Erro ao enviar solicitação: {e}")
-                        st.warning("Tente novamente ou entre em contato diretamente por email.")
+                        st.warning("📧 Tente novamente ou envie diretamente para: cristian.ferreira.carlos@gmail.com")
+                        
+                        # Log do erro para debug
+                        log_action("ERRO_SOLICITACAO_SUPORTE", f"Erro: {str(e)}")
         
         st.markdown("---")
         
