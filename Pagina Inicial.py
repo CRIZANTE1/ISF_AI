@@ -413,10 +413,10 @@ def setup_enhanced_sidebar():
                 },
                 "icon": {
                     "color": "inherit", 
-                    "font-size": "18px"
+                    "font-size": "14px"
                 },
                 "nav-link": {
-                    "font-size": "14px",
+                    "font-size": "10px",
                     "text-align": "left",
                     "margin": "4px 0",
                     "padding": "12px 16px",
