@@ -224,3 +224,15 @@ log_alarmes:
   - acao_realizada
   - responsavel
   - link_foto_evidencia
+  
+solicitacoes_suporte:
+  - data_solicitacao
+  - email_usuario
+  - nome_usuario
+  - tipo_solicitacao
+  - assunto
+  - mensagem
+  - prioridade
+  - status
+  - data_resposta
+  - resposta_suporte
