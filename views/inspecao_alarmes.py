@@ -20,6 +20,9 @@ from auth.auth_utils import (
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
 from gdrive.config import ALARM_INVENTORY_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME
+from reports.alarm_report import generate_alarm_inspection_html
+from streamlit_js_eval import streamlit_js_eval
+import json
 
 set_page_config()
 
@@ -41,6 +44,75 @@ def show_page():
     # Aba de Inspeção
     with tab_inspection:
         st.header("Realizar Inspeção Periódica")
+
+        with st.expander("📄 Gerar Relatório Mensal de Inspeções"):
+            df_inspections_full = load_sheet_data(ALARM_INSPECTIONS_SHEET_NAME)
+            df_inventory_full = load_sheet_data(ALARM_INVENTORY_SHEET_NAME)
+            
+            if df_inspections_full.empty:
+                st.info("Nenhuma inspeção de sistema de alarme registrada para gerar relatórios.")
+            else:
+                # Converte a coluna de data para o formato datetime
+                df_inspections_full['data_inspecao_dt'] = pd.to_datetime(df_inspections_full['data_inspecao'], errors='coerce')
+
+                # Filtros para mês e ano
+                today = datetime.now()
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    years_with_data = sorted(df_inspections_full['data_inspecao_dt'].dt.year.unique(), reverse=True)
+                    if not years_with_data:
+                        years_with_data = [today.year]
+                    selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="alarm_report_year")
+                
+                with col2:
+                    months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
+                             "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+                    default_month_index = today.month - 1
+                    selected_month_name = st.selectbox("Selecione o Mês:", months, 
+                                                     index=default_month_index, key="alarm_report_month")
+                
+                selected_month_number = months.index(selected_month_name) + 1
+
+                # Filtra os dados pelo mês e ano selecionados
+                inspections_selected_month = df_inspections_full[
+                    (df_inspections_full['data_inspecao_dt'].dt.year == selected_year) &
+                    (df_inspections_full['data_inspecao_dt'].dt.month == selected_month_number)
+                ].sort_values(by='data_inspecao_dt')
+
+                if inspections_selected_month.empty:
+                    st.info(f"Nenhuma inspeção foi registrada em {selected_month_name} de {selected_year}.")
+                else:
+                    st.write(f"Encontradas {len(inspections_selected_month)} inspeções em {selected_month_name}/{selected_year}.")
+                    
+                    if st.button("📄 Gerar e Imprimir Relatório", type="primary", key="generate_alarm_report"):
+                        unit_name = st.session_state.get('current_unit_name', 'N/A')
+                        report_html = generate_alarm_inspection_html(
+                            inspections_selected_month, 
+                            df_inventory_full, 
+                            unit_name
+                        )
+                        
+                        js_code = f"""
+                            const reportHtml = {json.dumps(report_html)};
+                            const printWindow = window.open('', '_blank');
+                            if (printWindow) {{
+                                printWindow.document.write(reportHtml);
+                                printWindow.document.close();
+                                printWindow.focus();
+                                setTimeout(() => {{ 
+                                    printWindow.print(); 
+                                    printWindow.close(); 
+                                }}, 500);
+                            }} else {{
+                                alert('Por favor, desabilite o bloqueador de pop-ups para este site.');
+                            }}
+                        """
+                        
+                        streamlit_js_eval(js_expressions=js_code, key="print_alarm_report_js")
+                        st.success("Relatório enviado para impressão!")
+        
+        st.markdown("---")
         
         # Verifica permissões de edição
         if not can_edit():
