@@ -46,6 +46,8 @@ TH_SHIPMENT_LOG_SHEET_NAME = "log_remessas_th"
 ALARM_INVENTORY_SHEET_NAME = "alarmes_inventario"
 ALARM_INSPECTIONS_SHEET_NAME = "alarmes_inspecoes"
 LOG_ALARM_SHEET_NAME = "log_alarmes"
+SUPPORT_REQUESTS_SHEET_NAME = "solicitacoes_suporte"
+
 
 def get_credentials_dict():
     """
