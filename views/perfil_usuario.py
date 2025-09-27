@@ -510,20 +510,48 @@ def show_page():
             else:
                 priority = "Normal"
                 
+            # Substituir o bloco de envio da solicitação:
             if st.form_submit_button("📤 Enviar Solicitação", type="primary", use_container_width=True):
                 if not subject.strip() or not message.strip():
                     st.error("❌ Por favor, preencha o assunto e a mensagem.")
                 else:
-                    # Log da solicitação de suporte
-                    support_details = f"Tipo: {support_type}, Assunto: {subject[:50]}..."
-                    log_action("SOLICITACAO_SUPORTE", support_details)
-                    
-                    st.success("✅ **Solicitação enviada com sucesso!**")
-                    st.info(f"⏱️ Tempo estimado de resposta: **{support_info['response']}**")
-                    
-                    # Mostra informações adicionais baseadas no tipo
-                    if support_type == "Problema Técnico":
-                        st.warning("💡 **Dica:** Para problemas técnicos, inclua sempre capturas de tela quando possível.")
+                    try:
+                        from datetime import datetime
+                        from gdrive.config import SUPPORT_REQUESTS_SHEET_NAME
+                        
+                        # Prepara dados para salvar na planilha
+                        support_data = [
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # data_solicitacao
+                            user_email,                                     # email_usuario
+                            user_name,                                      # nome_usuario
+                            support_type,                                   # tipo_solicitacao
+                            subject.strip(),                               # assunto
+                            message.strip(),                               # mensagem
+                            priority,                                      # prioridade
+                            "Pendente",                                    # status
+                            "",                                            # data_resposta
+                            ""                                             # resposta_suporte
+                        ]
+                        
+                        # Salva na planilha matriz (administração)
+                        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                        matrix_uploader.append_data_to_sheet(SUPPORT_REQUESTS_SHEET_NAME, support_data)
+                        
+                        # Log da solicitação
+                        support_details = f"Tipo: {support_type}, Assunto: {subject[:50]}..."
+                        log_action("SOLICITACAO_SUPORTE", support_details)
+                        
+                        st.success("✅ **Solicitação enviada com sucesso!**")
+                        st.info(f"⏱️ Tempo estimado de resposta: **{support_info['response']}**")
+                        st.info("📋 **Número do ticket:** #" + datetime.now().strftime("%Y%m%d%H%M%S"))
+                        
+                        # Mostra informações adicionais baseadas no tipo
+                        if support_type == "Problema Técnico":
+                            st.warning("💡 **Dica:** Para problemas técnicos, inclua sempre capturas de tela quando possível.")
+                            
+                    except Exception as e:
+                        st.error(f"❌ Erro ao enviar solicitação: {e}")
+                        st.warning("Tente novamente ou entre em contato diretamente por email.")
         
         st.markdown("---")
         
