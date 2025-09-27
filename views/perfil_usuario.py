@@ -44,7 +44,7 @@ PLANOS_CONFIG = {
     },
     "pro": {
         "nome": "Plano Pro", 
-        "preco": 89.90,
+        "preco": 39.90,
         "descricao": "Gestão completa com todas as funcionalidades operacionais.",
         "recursos": [
             "✅ Todas as funcionalidades do Básico",
@@ -58,7 +58,7 @@ PLANOS_CONFIG = {
     },
     "premium_ia": {
         "nome": "Plano Premium IA", 
-        "preco": 149.90,
+        "preco": 69.90,
         "descricao": "Automação completa com Inteligência Artificial avançada.",
         "recursos": [
             "✅ Todas as funcionalidades do Pro",
