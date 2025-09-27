@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
+import logging
 
 # Garante que o app encontre a pasta gdrive
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -19,7 +20,7 @@ def load_sheet_data(sheet_name):
         data = uploader.get_data_from_sheet(sheet_name)
         
         if not data or len(data) < 2:
-            st.warning(f"A planilha '{sheet_name}' está vazia ou não contém cabeçalhos.")
+            st.info(f"Os dados ainda não foram adicionados")
             return pd.DataFrame()
             
         headers = data[0]
@@ -41,9 +42,6 @@ def load_sheet_data(sheet_name):
         return pd.DataFrame()
         
 
-import pandas as pd
-import streamlit as st
-import logging
 
 def find_last_record(df, search_value, column_name):
     """
@@ -460,5 +458,6 @@ def validate_dataframe_for_search(df, column_name, search_value):
         
     except Exception as e:
         return False, f"Erro na validação: {str(e)}"
+
 
 
