@@ -16,7 +16,7 @@ from auth.auth_utils import get_users_data
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
     USERS_SHEET_NAME, get_central_drive_folder_id, ACCESS_REQUESTS_SHEET_NAME,
-    AUDIT_LOG_SHEET_NAME, EXTINGUISHER_SHEET_NAME # Adicione outros sheets para o dashboard
+    AUDIT_LOG_SHEET_NAME, EXTINGUISHER_SHEET_NAME, SUPPORT_REQUESTS_SHEET_NAME 
 )
 from config.page_config import set_page_config
 from utils.auditoria import log_action
@@ -66,18 +66,16 @@ def show_page():
     # A indentação começa aqui
     st.title("👑 Painel de Controle do Super Administrador")
 
-    tab_dashboard, tab_requests, tab_users, tab_audit = st.tabs([
-        "📊 Dashboard Global", "📬 Solicitações", "👤 Usuários e Planos", "🛡️ Auditoria"
+    tab_dashboard, tab_requests, tab_users, tab_audit, tab_support_admin = st.tabs([
+        "📊 Dashboard Global", "📬 Solicitações", "👤 Usuários e Planos", "🛡️ Auditoria", "🎫 Gerenciar Solicitações de Suporte"
     ])
 
-    # O bloco try...except está corretamente indentado dentro da função
     try:
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
     except Exception as e:
         st.error(f"Falha ao conectar com os serviços do Google. Verifique as credenciais. Erro: {e}")
         st.stop()
         
-    # O bloco with tab_dashboard... também está corretamente indentado
     with tab_dashboard:
         st.header("Visão Geral do Status de Todos os Usuários Ativos")
         
@@ -288,4 +286,74 @@ def show_page():
         else:
             df_log = pd.DataFrame(log_data[1:], columns=log_data[0]).sort_values(by='timestamp', ascending=False)
             st.dataframe(df_log, use_container_width=True, hide_index=True)
+
+
+    with tab_support_admin:  
+        st.header("🎫 Gerenciar Solicitações de Suporte")
+        
+        try:
+            support_data = matrix_uploader.get_data_from_sheet(SUPPORT_REQUESTS_SHEET_NAME)
+            if not support_data or len(support_data) < 2:
+                st.info("📭 Nenhuma solicitação de suporte encontrada.")
+            else:
+                df_support = pd.DataFrame(support_data[1:], columns=support_data[0])
+                
+                # Filtros
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    status_filter = st.selectbox("Status:", ["Todos", "Pendente", "Em Andamento", "Resolvido"])
+                with col2:
+                    type_filter = st.selectbox("Tipo:", ["Todos"] + df_support['tipo_solicitacao'].unique().tolist())
+                with col3:
+                    priority_filter = st.selectbox("Prioridade:", ["Todos", "Normal", "Alta", "Crítica"])
+                
+                # Aplica filtros
+                filtered_df = df_support.copy()
+                if status_filter != "Todos":
+                    filtered_df = filtered_df[filtered_df['status'] == status_filter]
+                if type_filter != "Todos":
+                    filtered_df = filtered_df[filtered_df['tipo_solicitacao'] == type_filter]
+                if priority_filter != "Todos":
+                    filtered_df = filtered_df[filtered_df['prioridade'] == priority_filter]
+                
+                # Exibe solicitações
+                st.dataframe(
+                    filtered_df[['data_solicitacao', 'email_usuario', 'tipo_solicitacao', 'assunto', 'prioridade', 'status']], 
+                    use_container_width=True
+                )
+                
+                # Responder solicitação
+                if not filtered_df.empty:
+                    st.markdown("---")
+                    selected_ticket = st.selectbox(
+                        "Selecionar ticket para responder:", 
+                        options=[""] + filtered_df.index.tolist(),
+                        format_func=lambda x: f"#{x} - {filtered_df.loc[x, 'assunto']}" if x != "" else "Selecione um ticket"
+                    )
+                    
+                    if selected_ticket != "":
+                        ticket_data = filtered_df.loc[selected_ticket]
+                        
+                        with st.form("response_form"):
+                            st.write(f"**Respondendo:** {ticket_data['assunto']}")
+                            st.write(f"**De:** {ticket_data['nome_usuario']} ({ticket_data['email_usuario']})")
+                            
+                            new_status = st.selectbox("Status:", ["Pendente", "Em Andamento", "Resolvido"])
+                            response_text = st.text_area("Resposta:", height=150)
+                            
+                            if st.form_submit_button("Enviar Resposta"):
+                                if response_text.strip():
+                                    # Atualiza na planilha
+                                    row_index = selected_ticket + 2  # +2 para cabeçalho
+                                    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                    
+                                    matrix_uploader.update_cells(SUPPORT_REQUESTS_SHEET_NAME, f"H{row_index}", [[new_status]])
+                                    matrix_uploader.update_cells(SUPPORT_REQUESTS_SHEET_NAME, f"I{row_index}", [[current_time]])
+                                    matrix_uploader.update_cells(SUPPORT_REQUESTS_SHEET_NAME, f"J{row_index}", [[response_text]])
+                                    
+                                    st.success("✅ Resposta enviada!")
+                                    st.cache_data.clear()
+                                    st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao carregar solicitações: {e}")
 
