@@ -1,32 +1,8 @@
-
 import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-import logging
-
-try:
-    import streamlit as st
-    STREAMLIT_AVAILABLE = True
-except ImportError:
-    STREAMLIT_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-
-    class MockSessionState(dict):
-        def get(self, key, default=None):
-            return super().get(key, default)
-
-    class MockSt:
-        def __init__(self):
-            self.session_state = MockSessionState()
-        
-        def error(self, message):
-            logger.error(f"STREAMLIT_MOCK: {message}")
-        
-        def info(self, message):
-            logger.info(f"STREAMLIT_MOCK: {message}")
-            
-    st = MockSt()
+import streamlit as st
 import tempfile
 from gdrive.config import get_credentials_dict, get_matrix_sheets_id
 
@@ -215,4 +191,3 @@ class GoogleDriveUploader:
             return f"https://drive.google.com/uc?export=view&id={file_id}"
         finally:
             os.remove(tmp_path)
-
