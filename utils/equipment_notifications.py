@@ -290,11 +290,75 @@ def get_users_data():
             logger.warning("Planilha de usuários vazia ou sem dados")
             return pd.DataFrame()
 
-        df = pd.DataFrame(users_data[1:], columns=users_data[0])
-        logger.info(f"Carregados {len(df)} usuários da planilha matriz")
+        # Log dos dados brutos para debug
+        headers = users_data[0]
+        logger.info(f"Cabeçalhos brutos encontrados ({len(headers)}): {headers}")
+        
+        # Limpa cabeçalhos vazios e normaliza
+        clean_headers = []
+        for i, header in enumerate(headers):
+            if header and str(header).strip():
+                clean_headers.append(str(header).strip())
+            else:
+                clean_headers.append(f"coluna_vazia_{i}")
+        
+        logger.info(f"Cabeçalhos limpos ({len(clean_headers)}): {clean_headers}")
+        
+        # Verifica se há dados
+        data_rows = users_data[1:]
+        if not data_rows:
+            logger.warning("Nenhuma linha de dados encontrada")
+            return pd.DataFrame()
+        
+        # Log do primeiro registro para debug
+        first_row = data_rows[0] if data_rows else []
+        logger.info(f"Primeira linha de dados ({len(first_row)}): {first_row}")
+        
+        # Normaliza os dados - garante que todas as linhas tenham o mesmo número de colunas
+        normalized_data = []
+        num_columns = len(clean_headers)
+        
+        for i, row in enumerate(data_rows):
+            # Garante que a linha seja uma lista
+            if not isinstance(row, list):
+                row = list(row) if row else []
+            
+            # Completa com strings vazias se a linha tiver menos colunas
+            if len(row) < num_columns:
+                row = row + [''] * (num_columns - len(row))
+            # Trunca se a linha tiver mais colunas
+            elif len(row) > num_columns:
+                row = row[:num_columns]
+            
+            # Converte todos os valores para string para evitar problemas de tipo
+            normalized_row = [str(cell).strip() if cell is not None else '' for cell in row]
+            normalized_data.append(normalized_row)
+        
+        logger.info(f"Dados normalizados: {len(normalized_data)} linhas com {num_columns} colunas cada")
+        
+        # Cria o DataFrame
+        df = pd.DataFrame(normalized_data, columns=clean_headers)
+        logger.info(f"DataFrame criado com sucesso: {len(df)} usuários carregados")
         
         # Log das colunas disponíveis para debug
         logger.info(f"Colunas da planilha de usuários: {list(df.columns)}")
+        
+        # Remove linhas completamente vazias
+        df = df.dropna(how='all')
+        df = df[df.astype(str).apply(lambda x: x.str.strip().str.len().sum(), axis=1) > 0]
+        
+        logger.info(f"Após limpeza: {len(df)} usuários válidos")
+        
+        # Log de alguns dados para verificação (apenas colunas importantes)
+        if not df.empty:
+            important_cols = []
+            for col in ['email', 'nome', 'status', 'spreadsheet_id']:
+                if col in df.columns:
+                    important_cols.append(col)
+            
+            if important_cols:
+                sample_data = df[important_cols].head(2).to_dict('records')
+                logger.info(f"Amostra de dados importantes: {sample_data}")
         
         return df
         
@@ -574,11 +638,54 @@ class EquipmentNotificationSystem:
             logger.info(f"Total de usuários carregados: {len(users_df)}")
             
             # Filtra usuários ativos com planilhas
-            active_users = users_df[
-                (users_df['status'].str.lower() == 'ativo') & 
-                (users_df['spreadsheet_id'].notna()) & 
-                (users_df['spreadsheet_id'].str.strip() != '')
-            ]
+            # Verifica se as colunas necessárias existem (busca por nomes similares)
+            available_columns = [col.lower() for col in users_df.columns]
+            logger.info(f"Colunas disponíveis (lowercase): {available_columns}")
+            
+            # Mapeia colunas por busca flexível
+            status_col = None
+            spreadsheet_col = None
+            email_col = None
+            nome_col = None
+            
+            for col in users_df.columns:
+                col_lower = col.lower()
+                if 'status' in col_lower:
+                    status_col = col
+                elif 'spreadsheet' in col_lower or 'planilha' in col_lower:
+                    spreadsheet_col = col
+                elif 'email' in col_lower or 'e-mail' in col_lower:
+                    email_col = col
+                elif 'nome' in col_lower or 'name' in col_lower:
+                    nome_col = col
+            
+            logger.info(f"Colunas mapeadas - Status: {status_col}, Spreadsheet: {spreadsheet_col}, Email: {email_col}, Nome: {nome_col}")
+            
+            if not status_col or not spreadsheet_col or not email_col:
+                logger.error(f"Colunas obrigatórias não encontradas:")
+                logger.error(f"  - Status: {'✓' if status_col else '✗'}")
+                logger.error(f"  - Spreadsheet: {'✓' if spreadsheet_col else '✗'}")
+                logger.error(f"  - Email: {'✓' if email_col else '✗'}")
+                logger.info(f"Colunas disponíveis: {list(users_df.columns)}")
+                return
+            
+            # Filtra usuários ativos usando as colunas encontradas
+            try:
+                active_users = users_df[
+                    (users_df[status_col].astype(str).str.lower().str.strip() == 'ativo') & 
+                    (users_df[spreadsheet_col].notna()) & 
+                    (users_df[spreadsheet_col].astype(str).str.strip() != '') &
+                    (users_df[email_col].notna()) & 
+                    (users_df[email_col].astype(str).str.strip() != '')
+                ]
+            except Exception as e:
+                logger.error(f"Erro ao filtrar usuários ativos: {e}")
+                logger.info("Tentando filtro mais simples...")
+                # Fallback para filtro mais simples
+                active_users = users_df[
+                    (users_df[email_col].notna()) & 
+                    (users_df[spreadsheet_col].notna())
+                ]
             
             logger.info(f"Usuários ativos com planilhas: {len(active_users)}")
             
@@ -590,9 +697,18 @@ class EquipmentNotificationSystem:
             
             for idx, user in active_users.iterrows():
                 try:
-                    user_email = user['email']
-                    user_name = user.get('nome', user_email)
-                    spreadsheet_id = user['spreadsheet_id']
+                    user_email = str(user.get(email_col, '')).strip()
+                    user_name = str(user.get(nome_col, user_email)).strip()
+                    spreadsheet_id = str(user.get(spreadsheet_col, '')).strip()
+                    
+                    # Validações básicas
+                    if not user_email or '@' not in user_email:
+                        logger.warning(f"Email inválido para usuário na linha {idx}: '{user_email}'")
+                        continue
+                    
+                    if not spreadsheet_id:
+                        logger.warning(f"spreadsheet_id vazio para usuário {user_email}")
+                        continue
                     
                     logger.info(f"Processando notificações para {user_email} (planilha: {spreadsheet_id})")
                     
