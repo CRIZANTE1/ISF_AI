@@ -10,7 +10,6 @@ class GitHubNotificationHandler:
     """Classe para gerenciar planilha de notificações (processadas automaticamente pelo GitHub Actions)"""
     
     def __init__(self):
-        # Não precisa de configuração GitHub - o workflow roda automaticamente via cron
         pass
     
     def queue_notification(self, notification_type: str, recipient_email: str, 
@@ -26,7 +25,7 @@ class GitHubNotificationHandler:
             **kwargs: Dados adicionais específicos do tipo de notificação
         """
         try:
-            from gdrive.config import get_sao_paulo_time_str
+            from utils.auditoria import get_sao_paulo_time_str
             import json
             
             # Prepara dados JSON para a coluna de dados
