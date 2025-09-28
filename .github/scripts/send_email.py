@@ -276,7 +276,7 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
     template_vars = {
         'recipient_name': recipient_name,
         'recipient_email': recipient_email,
-        'login_url': data_dict.get('login_url', 'https://sua-app.streamlit.app'),
+        'login_url': data_dict.get('login_url', 'https://isnpecoessmaia.streamlit.app'),
         'trial_days': data_dict.get('trial_days', '14'),
         'reason': data_dict.get('reason', ''),
         'days_left': data_dict.get('days_left', '3'),
@@ -286,7 +286,7 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
         'requesting_user_name': data_dict.get('requesting_user_name', ''),
         'requesting_user_email': data_dict.get('requesting_user_email', ''),
         'justification': data_dict.get('justification', 'Nenhuma justificativa fornecida'),
-        'admin_panel_url': data_dict.get('admin_panel_url', 'https://sua-app.streamlit.app')
+        'admin_panel_url': data_dict.get('admin_panel_url', 'https://isnpecoessmaia.streamlit.app')
     }
     
     # Renderiza template
