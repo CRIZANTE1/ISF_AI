@@ -247,6 +247,95 @@ def get_hose_status_df(df_hoses, df_disposals):
     
     return latest_hoses[existing_display_columns]
 
+@st.dialog("Registrar Baixa Definitiva de Extintor")
+def disposal_dialog_extinguisher(item_row):
+    equipment_id = item_row['numero_identificacao']
+    problem = item_row['plano_de_acao']
+    
+    st.warning(f"⚠️ **ATENÇÃO:** Você está registrando a **BAIXA DEFINITIVA** do extintor **{equipment_id}**")
+    st.error("Esta ação é **IRREVERSÍVEL** e remove o equipamento permanentemente do inventário ativo.")
+    
+    st.write(f"**Equipamento ID:** `{equipment_id}`")
+    st.write(f"**Problema Atual:** `{problem}`")
+    
+    st.markdown("---")
+    
+    # Motivos de condenação predefinidos
+    condemnation_options = [
+        "Casco danificado irreparavelmente",
+        "Falha no teste hidrostático",
+        "Corrosão severa",
+        "Equipamento obsoleto/descontinuado",
+        "Danos por impacto",
+        "Vazamento não reparável",
+        "Fim da vida útil",
+        "Outro motivo"
+    ]
+    
+    condemnation_reason = st.selectbox("Motivo da Condenação:", condemnation_options)
+    
+    if condemnation_reason == "Outro motivo":
+        custom_reason = st.text_input("Especifique o motivo:")
+        final_reason = custom_reason if custom_reason else "Não especificado"
+    else:
+        final_reason = condemnation_reason
+    
+    # Campo obrigatório para substituto
+    st.markdown("### Extintor Substituto (OBRIGATÓRIO)")
+    st.info("Para manter a proteção, é obrigatório informar o extintor que substituirá este equipamento.")
+    substitute_id = st.text_input("ID do Extintor Substituto:", help="Digite o ID do novo extintor que será instalado no local")
+    
+    # Observações adicionais
+    observations = st.text_area("Observações Adicionais (opcional):", help="Detalhes técnicos, recomendações, etc.")
+    
+    # Foto de evidência
+    st.markdown("### Evidência Fotográfica")
+    st.write("Anexe uma foto do equipamento condenado como evidência:")
+    
+    photo_option = st.radio("Método de captura:", ["📷 Tirar foto agora", "📁 Upload de arquivo"], horizontal=True)
+    
+    photo_evidence = None
+    if photo_option == "📷 Tirar foto agora":
+        photo_evidence = st.camera_input("Foto do equipamento condenado")
+    else:
+        photo_evidence = st.file_uploader("Selecione a foto", type=["jpg", "jpeg", "png"])
+    
+    st.markdown("---")
+    
+    # Confirmação final
+    st.markdown("### Confirmação Final")
+    confirm_disposal = st.checkbox("✅ Confirmo que este equipamento deve ser BAIXADO DEFINITIVAMENTE do sistema")
+    confirm_substitute = st.checkbox("✅ Confirmo que o equipamento substituto será instalado imediatamente")
+    
+    if st.button("🗑️ CONFIRMAR BAIXA DEFINITIVA", type="primary", disabled=not (confirm_disposal and confirm_substitute and substitute_id and photo_evidence)):
+        if not substitute_id:
+            st.error("É obrigatório informar o ID do extintor substituto.")
+            return
+            
+        if not photo_evidence:
+            st.error("É obrigatório anexar uma foto como evidência.")
+            return
+        
+        with st.spinner("Registrando baixa definitiva..."):
+            from operations.extinguisher_disposal_operations import register_extinguisher_disposal
+            
+            success = register_extinguisher_disposal(
+                equipment_id=equipment_id,
+                condemnation_reason=final_reason,
+                substitute_id=substitute_id,
+                observations=observations,
+                photo_evidence=photo_evidence
+            )
+            
+            if success:
+                st.success(f"✅ Extintor {equipment_id} baixado definitivamente!")
+                st.success(f"🔄 Lembre-se de instalar o substituto {substitute_id} no local.")
+                st.balloons()
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("❌ Falha ao registrar a baixa. Tente novamente.")
+                
 @st.dialog("Registrar Baixa e Substituição de Mangueira")
 def dispose_hose_dialog(hose_id):
     st.warning(f"Você está registrando a baixa da mangueira **ID: {hose_id}**.")
@@ -629,73 +718,186 @@ def action_form(item, df_full_history, location):
     st.write(f"**Equipamento ID:** `{item['numero_identificacao']}`")
     st.write(f"**Problema Identificado:** `{item['plano_de_acao']}`")
     
-    acao_realizada = st.text_area("Descreva a ação corretiva realizada:")
-    responsavel_acao = st.text_input("Responsável pela ação:", value=get_user_display_name())
+    # Seletor de tipo de ação
+    st.markdown("### Tipo de Ação")
+    action_type = st.radio(
+        "Selecione o tipo de ação:",
+        ["🔧 Ação Corretiva", "🔄 Substituição", "🗑️ Baixa Definitiva"],
+        help="Escolha a ação apropriada para resolver o problema"
+    )
     
     st.markdown("---")
-    id_substituto = st.text_input("ID do Equipamento Substituto (Opcional)")
-
-    st.markdown("---")
-    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
-    photo_evidence = None
-    if st.toggle("📷 Anexar foto de evidência da correção", key=f"toggle_photo_{item['numero_identificacao']}"):
-        st.write("**Opção 1: Tirar Foto Agora (Qualidade Menor)**")
-        camera_photo = st.camera_input("Câmera", label_visibility="collapsed", key=f"ac_camera_{item['numero_identificacao']}")
+    
+    if action_type == "🗑️ Baixa Definitiva":
+        # === SEÇÃO DE BAIXA DEFINITIVA ===
+        st.warning("⚠️ **ATENÇÃO:** Você está registrando a **BAIXA DEFINITIVA** deste extintor")
+        st.error("Esta ação é **IRREVERSÍVEL** e remove o equipamento permanentemente do inventário ativo.")
+        
+        # Motivos de condenação predefinidos
+        condemnation_options = [
+            "Casco danificado irreparavelmente",
+            "Falha no teste hidrostático",
+            "Corrosão severa",
+            "Equipamento obsoleto/descontinuado",
+            "Danos por impacto",
+            "Vazamento não reparável",
+            "Fim da vida útil",
+            "Outro motivo"
+        ]
+        
+        condemnation_reason = st.selectbox("Motivo da Condenação:", condemnation_options)
+        
+        if condemnation_reason == "Outro motivo":
+            custom_reason = st.text_input("Especifique o motivo:")
+            final_reason = custom_reason if custom_reason else "Não especificado"
+        else:
+            final_reason = condemnation_reason
+        
+        # Campo obrigatório para substituto
+        st.markdown("#### Extintor Substituto (OBRIGATÓRIO)")
+        st.info("Para manter a proteção, é obrigatório informar o extintor que substituirá este equipamento.")
+        substitute_id = st.text_input("ID do Extintor Substituto:", help="Digite o ID do novo extintor que será instalado no local")
+        
+        # Observações adicionais
+        observations = st.text_area("Observações Adicionais (opcional):", help="Detalhes técnicos, recomendações, etc.")
+        
+        # Foto de evidência obrigatória
+        st.markdown("#### Evidência Fotográfica (OBRIGATÓRIA)")
+        st.write("Anexe uma foto do equipamento condenado como evidência:")
+        
+        photo_option = st.radio("Método de captura:", ["📷 Tirar foto agora", "📁 Upload de arquivo"], horizontal=True)
+        
+        photo_evidence = None
+        if photo_option == "📷 Tirar foto agora":
+            photo_evidence = st.camera_input("Foto do equipamento condenado", key=f"disposal_camera_{item['numero_identificacao']}")
+        else:
+            photo_evidence = st.file_uploader("Selecione a foto", type=["jpg", "jpeg", "png"], key=f"disposal_upload_{item['numero_identificacao']}")
+        
+        # Confirmação final
+        st.markdown("#### Confirmação Final")
+        confirm_disposal = st.checkbox("✅ Confirmo que este equipamento deve ser BAIXADO DEFINITIVAMENTE do sistema")
+        confirm_substitute = st.checkbox("✅ Confirmo que o equipamento substituto será instalado imediatamente")
+        
+        # Botão de baixa
+        disposal_disabled = not (confirm_disposal and confirm_substitute and substitute_id and photo_evidence)
+        
+        if st.button("🗑️ CONFIRMAR BAIXA DEFINITIVA", type="primary", disabled=disposal_disabled):
+            if not substitute_id:
+                st.error("É obrigatório informar o ID do extintor substituto.")
+                return
+                
+            if not photo_evidence:
+                st.error("É obrigatório anexar uma foto como evidência.")
+                return
+            
+            with st.spinner("Registrando baixa definitiva..."):
+                from operations.extinguisher_disposal_operations import register_extinguisher_disposal
+                
+                success = register_extinguisher_disposal(
+                    equipment_id=item['numero_identificacao'],
+                    condemnation_reason=final_reason,
+                    substitute_id=substitute_id,
+                    observations=observations,
+                    photo_evidence=photo_evidence
+                )
+                
+                if success:
+                    st.success(f"✅ Extintor {item['numero_identificacao']} baixado definitivamente!")
+                    st.success(f"🔄 Lembre-se de instalar o substituto {substitute_id} no local.")
+                    st.balloons()
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.error("❌ Falha ao registrar a baixa. Tente novamente.")
+    
+    else:
+        # === SEÇÃO DE AÇÃO CORRETIVA/SUBSTITUIÇÃO (CÓDIGO ORIGINAL) ===
+        acao_realizada = st.text_area("Descreva a ação corretiva realizada:")
+        responsavel_acao = st.text_input("Responsável pela ação:", value=get_user_display_name())
+        
+        # Campo de substituto aparece baseado no tipo de ação
+        id_substituto = None
+        if action_type == "🔄 Substituição":
+            st.markdown("#### Equipamento Substituto (OBRIGATÓRIO)")
+            st.info("Informe o ID do extintor que substituirá este equipamento.")
+            id_substituto = st.text_input("ID do Equipamento Substituto:", help="Digite o ID do novo extintor")
+        else:
+            st.markdown("#### Equipamento Substituto (Opcional)")
+            id_substituto = st.text_input("ID do Equipamento Substituto (Opcional)")
         
         st.markdown("---")
-        st.write("**Opção 2: Enviar da Galeria (Qualidade Alta)**")
-        gallery_photo = st.file_uploader("Galeria", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=f"ac_uploader_{item['numero_identificacao']}")
-        
-        if gallery_photo:
-            photo_evidence = gallery_photo
-        else:
-            photo_evidence = camera_photo
-       
-    if st.button("Salvar Ação", type="primary"):
-        if not acao_realizada:
-            st.error("Por favor, descreva a ação realizada.")
-            return
-
-        original_record = find_last_record(df_full_history, item['numero_identificacao'], 'numero_identificacao')
-        if id_substituto:
-            df_locais = load_sheet_data("locais")
-            if not df_locais.empty:
-                df_locais['id'] = df_locais['id'].astype(str)
-                original_location_info = df_locais[df_locais['id'] == original_record['numero_identificacao']]
-                if original_location_info.empty or pd.isna(original_location_info.iloc[0]['local']):
-                     st.error("Erro: O equipamento original não tem um local definido na aba 'locais', portanto a substituição não pode ser concluída.")
-                     return
-            else:
-                st.error("Erro: A aba 'locais' não foi encontrada ou está vazia.")
-                return
-
-        with st.spinner("Processando ação..."):
-            photo_link_evidence = upload_evidence_photo(
-                photo_evidence, 
-                item['numero_identificacao'],
-                "acao_corretiva"
-            )
-
-            substitute_last_record = {}
-            if id_substituto:
-                substitute_last_record = find_last_record(df_full_history, id_substituto, 'numero_identificacao') or {}
-                if not substitute_last_record:
-                    st.info(f"Aviso: Equipamento substituto com ID '{id_substituto}' não tem histórico. Será criado um novo registro.")
-
-            action_details = {
-                'acao_realizada': acao_realizada,
-                'responsavel_acao': responsavel_acao,
-                'id_substituto': id_substituto if id_substituto else None,
-                'location': location,
-                'photo_link': photo_link_evidence
-            }
+        st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
+        photo_evidence = None
+        if st.toggle("📷 Anexar foto de evidência da correção", key=f"toggle_photo_{item['numero_identificacao']}"):
+            st.write("**Opção 1: Tirar Foto Agora (Qualidade Menor)**")
+            camera_photo = st.camera_input("Câmera", label_visibility="collapsed", key=f"ac_camera_{item['numero_identificacao']}")
             
-            if save_corrective_action(original_record, substitute_last_record, action_details, get_user_display_name()):
-                st.success("Ação corretiva registrada com sucesso!")
-                st.cache_data.clear() 
-                st.rerun()
+            st.markdown("---")
+            st.write("**Opção 2: Enviar da Galeria (Qualidade Alta)**")
+            gallery_photo = st.file_uploader("Galeria", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key=f"ac_uploader_{item['numero_identificacao']}")
+            
+            if gallery_photo:
+                photo_evidence = gallery_photo
             else:
-                st.error("Falha ao registrar a ação.")
+                photo_evidence = camera_photo
+        
+        # Validação específica para substituição
+        action_disabled = False
+        if action_type == "🔄 Substituição" and not id_substituto:
+            st.error("Para substituição, é obrigatório informar o ID do equipamento substituto.")
+            action_disabled = True
+        elif not acao_realizada:
+            action_disabled = True
+        
+        if st.button("💾 Salvar Ação", type="primary", disabled=action_disabled):
+            if not acao_realizada:
+                st.error("Por favor, descreva a ação realizada.")
+                return
+                
+            # Validação de local para substituições
+            original_record = find_last_record(df_full_history, item['numero_identificacao'], 'numero_identificacao')
+            if id_substituto:
+                df_locais = load_sheet_data("locais")
+                if not df_locais.empty:
+                    df_locais['id'] = df_locais['id'].astype(str)
+                    original_location_info = df_locais[df_locais['id'] == original_record['numero_identificacao']]
+                    if original_location_info.empty or pd.isna(original_location_info.iloc[0]['local']):
+                         st.error("Erro: O equipamento original não tem um local definido na aba 'locais', portanto a substituição não pode ser concluída.")
+                         return
+                else:
+                    st.error("Erro: A aba 'locais' não foi encontrada ou está vazia.")
+                    return
+            
+            with st.spinner("Processando ação..."):
+                photo_link_evidence = upload_evidence_photo(
+                    photo_evidence, 
+                    item['numero_identificacao'],
+                    "acao_corretiva"
+                )
+                
+                substitute_last_record = {}
+                if id_substituto:
+                    substitute_last_record = find_last_record(df_full_history, id_substituto, 'numero_identificacao') or {}
+                    if not substitute_last_record:
+                        st.info(f"Aviso: Equipamento substituto com ID '{id_substituto}' não tem histórico. Será criado um novo registro.")
+                
+                action_details = {
+                    'acao_realizada': acao_realizada,
+                    'responsavel_acao': responsavel_acao,
+                    'id_substituto': id_substituto if id_substituto else None,
+                    'location': location,
+                    'photo_link': photo_link_evidence
+                }
+                
+                if save_corrective_action(original_record, substitute_last_record, action_details, get_user_display_name()):
+                    if action_type == "🔄 Substituição":
+                        st.success("Substituição registrada com sucesso!")
+                    else:
+                        st.success("Ação corretiva registrada com sucesso!")
+                    st.cache_data.clear() 
+                    st.rerun()
+                else:
+                    st.error("Falha ao registrar a ação.")
 
 def show_page():
 
