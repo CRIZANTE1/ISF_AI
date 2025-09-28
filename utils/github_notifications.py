@@ -7,22 +7,17 @@ from gdrive.gdrive_upload import GoogleDriveUploader
 logger = logging.getLogger(__name__)
 
 class GitHubNotificationHandler:
-    """Classe para disparar notificações via GitHub Actions e gerenciar planilha de notificações"""
+    """Classe para gerenciar planilha de notificações (processadas automaticamente pelo GitHub Actions)"""
     
     def __init__(self):
-        try:
-            self.github_token = st.secrets["github"]["token"]
-            self.repo_owner = st.secrets["github"]["repo_owner"] 
-            self.repo_name = st.secrets["github"]["repo_name"]
-            self.workflow_id = st.secrets["github"]["workflow_id"] 
-        except KeyError as e:
-            logger.error(f"Configuração GitHub não encontrada: {e}")
-            self.github_token = None
+        # Não precisa de configuração GitHub - o workflow roda automaticamente via cron
+        pass
     
-    def add_notification_to_queue(self, notification_type: str, recipient_email: str, 
-                                recipient_name: str, **kwargs):
+    def queue_notification(self, notification_type: str, recipient_email: str, 
+                          recipient_name: str, **kwargs):
         """
         Adiciona uma notificação à planilha de notificações pendentes
+        O GitHub Actions processa automaticamente a cada 5 minutos
         
         Args:
             notification_type: Tipo da notificação (access_approved, access_denied, etc.)
@@ -68,8 +63,8 @@ class GitHubNotificationHandler:
     def trigger_notification_workflow(self, notification_type: str, recipient_email: str, 
                                     recipient_name: str, **kwargs):
         """
-        Dispara o workflow do GitHub Actions para enviar notificação por email
-        Primeiro adiciona à planilha, depois dispara o workflow
+        Adiciona notificação à fila de processamento
+        O GitHub Actions executa automaticamente a cada 5 minutos via cron
         
         Args:
             notification_type: Tipo da notificação (access_approved, access_denied, etc.)
@@ -78,55 +73,17 @@ class GitHubNotificationHandler:
             **kwargs: Dados adicionais específicos do tipo de notificação
         """
         
-        # Primeiro, adiciona à planilha de notificações pendentes
-        queue_success = self.add_notification_to_queue(
+        # Adiciona à planilha de notificações pendentes
+        success = self.queue_notification(
             notification_type, recipient_email, recipient_name, **kwargs
         )
         
-        if not queue_success:
-            logger.warning("Falha ao adicionar à fila, mas continuando com o workflow")
+        if success:
+            logger.info(f"Notificação '{notification_type}' adicionada à fila para processamento automático")
+        else:
+            logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
         
-        # Se não tem token GitHub, só adiciona à planilha (será processado depois)
-        if not self.github_token:
-            logger.warning("GitHub token não configurado, notificação adicionada à fila apenas")
-            return queue_success
-            
-        try:
-            # URL da API do GitHub para disparar workflow
-            url = f"https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/actions/workflows/{self.workflow_id}/dispatches"
-            
-            # Headers para autenticação
-            headers = {
-                "Authorization": f"Bearer {self.github_token}",
-                "Accept": "application/vnd.github.v3+json",
-                "Content-Type": "application/json"
-            }
-            
-            # Payload com os dados da notificação
-            payload = {
-                "ref": "main",  # Branch para executar o workflow
-                "inputs": {
-                    "notification_type": notification_type,
-                    "recipient_email": recipient_email,
-                    "recipient_name": recipient_name,
-                    "timestamp": datetime.now().isoformat(),
-                    **{k: str(v) for k, v in kwargs.items()}  # Converte todos os valores para string
-                }
-            }
-            
-            # Faz a requisição para o GitHub
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            
-            if response.status_code == 204:
-                logger.info(f"Workflow de notificação '{notification_type}' disparado para {recipient_email}")
-                return True
-            else:
-                logger.error(f"Falha ao disparar workflow: {response.status_code} - {response.text}")
-                return queue_success  # Pelo menos foi adicionado à fila
-                
-        except Exception as e:
-            logger.error(f"Erro ao disparar workflow GitHub: {e}")
-            return queue_success  # Pelo menos foi adicionado à fila
+        return success
 
 # Instância global
 _notification_handler = None
@@ -140,7 +97,7 @@ def get_notification_handler():
 
 # Funções de conveniência para diferentes tipos de notificação
 def notify_access_approved(user_email: str, user_name: str, trial_days: int = 14):
-    """Notifica usuário sobre aprovação de acesso com trial"""
+    """Adiciona notificação de aprovação de acesso à fila de processamento"""
     handler = get_notification_handler()
     return handler.trigger_notification_workflow(
         notification_type="access_approved",
@@ -151,7 +108,7 @@ def notify_access_approved(user_email: str, user_name: str, trial_days: int = 14
     )
 
 def notify_access_denied(user_email: str, user_name: str, reason: str = ""):
-    """Notifica usuário sobre negação de acesso"""
+    """Adiciona notificação de negação de acesso à fila de processamento"""
     handler = get_notification_handler()
     return handler.trigger_notification_workflow(
         notification_type="access_denied", 
@@ -161,7 +118,7 @@ def notify_access_denied(user_email: str, user_name: str, reason: str = ""):
     )
 
 def notify_trial_expiring(user_email: str, user_name: str, days_left: int):
-    """Notifica usuário sobre trial expirando"""
+    """Adiciona notificação de trial expirando à fila de processamento"""
     handler = get_notification_handler()
     return handler.trigger_notification_workflow(
         notification_type="trial_expiring",
@@ -172,7 +129,7 @@ def notify_trial_expiring(user_email: str, user_name: str, days_left: int):
     )
 
 def notify_payment_confirmed(user_email: str, user_name: str, plan_name: str):
-    """Notifica usuário sobre confirmação de pagamento"""
+    """Adiciona notificação de confirmação de pagamento à fila de processamento"""
     handler = get_notification_handler()
     return handler.trigger_notification_workflow(
         notification_type="payment_confirmed",
