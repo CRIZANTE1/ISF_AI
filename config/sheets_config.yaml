@@ -236,3 +236,11 @@ solicitacoes_suporte:
   - status
   - data_resposta
   - resposta_suporte
+
+notificacoes_pendentes:
+  - timestamp
+  - tipo_notificacao
+  - email_destinatario
+  - nome_destinatario
+  - dados_json
+  - status
