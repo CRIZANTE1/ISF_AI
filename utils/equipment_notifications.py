@@ -20,7 +20,7 @@ except ImportError:
         @staticmethod
         def get(key, default=None):
             if key == "app" and default is None:
-                return {"url": os.environ.get("APP_URL", "https://sua-app.streamlit.app")}
+                return {"url": os.environ.get("APP_URL", "https://isnpecoessmaia.streamlit.app")}
             return default or {}
     
     class MockSt:
