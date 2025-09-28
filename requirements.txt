@@ -1,104 +1,52 @@
-# ========================
-# STREAMLIT E INTERFACE
-# ========================
+streamlit-option-menu
+
 streamlit>=1.28.0
-streamlit-option-menu>=0.3.6
-streamlit-js-eval>=0.1.7
-streamlit-lottie>=0.0.5
 
 # ========================
-# MANIPULAÇÃO DE DADOS E DATAS
+# Manipulação de Dados e Datas
 # ========================
 pandas>=2.0.0
 numpy>=1.24.0
 openpyxl>=3.1.0
-python-dateutil>=2.8.2
-pytz>=2023.3
+python-dateutil
 
 # ========================
-# GOOGLE APIS & AUTENTICAÇÃO
+# Google APIs & Autenticação
 # ========================
-google-api-python-client>=2.100.0
-google-auth-httplib2>=0.1.0
-google-auth-oauthlib>=1.0.0
-google-auth>=2.22.0
-google-generativeai>=0.3.0
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+google-generativeai
+authlib
+msal
 
-# Autenticação adicional
-authlib>=1.2.1
-msal>=1.24.0
+# Comunicação HTTP (para baixar imagens)
+# ========================
+requests 
+# ========================
 
-# ========================
-# COMUNICAÇÃO HTTP
-# ========================
-requests>=2.31.0
-httpx>=0.25.0
 
+# Processamento de Imagem e QR Code
 # ========================
-# PROCESSAMENTO DE IMAGEM E QR CODE
-# ========================
-opencv-python-headless>=4.8.0
-qrcode[pil]>=7.4.2
-segno>=1.5.2
-Pillow>=10.0.0
+opencv-python-headless # Já inclui o detector de QR Code
+qrcode[pil] # Adiciona qrcode e sua dependência Pillow
+segno
+Pillow
 
 # ========================
-# VISUALIZAÇÃO E GRÁFICOS
+# Visualização (Opcional, mas bom ter)
 # ========================
 plotly>=5.18.0
-altair>=5.0.0
 
-# ========================
-# PROCESSAMENTO DE DOCUMENTOS
-# ========================
-PyYAML>=6.0.1
-jinja2>=3.1.2
+streamlit-js-eval 
+weasyprint
+PyYAML
+streamlit-lottie
 
-# ========================
-# GERAÇÃO DE PDF E RELATÓRIOS
-# ========================
-weasyprint>=60.0
-reportlab>=4.0.4
 
-# ========================
-# PAGAMENTOS (MERCADO PAGO)
-# ========================
-mercadopago>=2.2.1
-
-# ========================
-# API E SERVIDOR (PARA WEBHOOKS)
-# ========================
-fastapi>=0.104.1
-uvicorn>=0.24.0
-pydantic>=2.4.2
-
-# ========================
-# UTILITÁRIOS
-# ========================
-python-dotenv>=1.0.0
-
-# ========================
-# SMTP E EMAIL (PARA NOTIFICAÇÕES)
-# ========================
-smtplib-python
-email-validator>=2.0.0
-
-# ========================
-# DEPENDÊNCIAS ESPECÍFICAS DO SISTEMA
-# ========================
-# Para processamento de tempo e timezone
-tzdata>=2023.3
-
-# Para validação de dados
-validators>=0.22.0
-
-# Para manipulação de arquivos temporários
-tempfile-utils
-
-# ========================
-# DESENVOLVIMENTO E DEBUG (OPCIONAIS)
-# ========================
-# pytest>=7.4.0
-# black>=23.0.0
-# flake8>=6.0.0
-
+mercadopago==2.2.1
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.4.2
+python-dotenv==1.0.0
+httpx==0.25.0
