@@ -1,0 +1,138 @@
+name: Equipment Notifications System
+
+on:
+  schedule:
+    # Segunda-feira às 9h - Notificações semanais (30 dias)
+    - cron: '0 9 * * 1'
+    # Todos os dias às 8h - Notificações urgentes (7 dias)
+    - cron: '0 8 * * *'
+    # A cada 30 minutos - Processa emails pendentes de equipamentos
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    # Permite execução manual
+    inputs:
+      action:
+        description: 'Ação a executar'
+        required: true
+        default: 'process_pending'
+        type: choice
+        options:
+        - process_pending
+        - send_weekly
+        - send_urgent
+        - send_all
+
+jobs:
+  process-equipment-emails:
+    if: github.event.schedule == '*/30 * * * *' || github.event.inputs.action == 'process_pending'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client jinja2
+        
+    - name: Process Pending Equipment Notifications
+      env:
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        FROM_NAME: ${{ secrets.FROM_NAME }}
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
+      run: |
+        python .github/scripts/send_equipment_email.py
+
+  generate-weekly-notifications:
+    if: github.event.schedule == '0 9 * * 1' || github.event.inputs.action == 'send_weekly' || github.event.inputs.action == 'send_all'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client jinja2 pandas pytz
+        
+    - name: Generate Weekly Equipment Notifications
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
+      run: |
+        python -c "
+        import sys
+        import os
+        sys.path.append('.')
+        from utils.equipment_notifications import send_weekly_equipment_notifications
+        print('🔧 Gerando notificações semanais de equipamentos...')
+        send_weekly_equipment_notifications()
+        print('✅ Notificações semanais geradas com sucesso!')
+        "
+
+  generate-urgent-notifications:
+    if: github.event.schedule == '0 8 * * *' || github.event.inputs.action == 'send_urgent' || github.event.inputs.action == 'send_all'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client jinja2 pandas pytz
+        
+    - name: Generate Urgent Equipment Notifications
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
+      run: |
+        python -c "
+        import sys
+        import os
+        sys.path.append('.')
+        from utils.equipment_notifications import send_daily_urgent_notifications
+        print('🚨 Gerando notificações urgentes de equipamentos...')
+        send_daily_urgent_notifications()
+        print('✅ Notificações urgentes geradas com sucesso!')
+        "
+
+  health-check:
+    if: github.event.inputs.action == 'send_all'
+    runs-on: ubuntu-latest
+    needs: [generate-weekly-notifications, generate-urgent-notifications]
+    
+    steps:
+    - name: Equipment Notifications Health Check
+      run: |
+        echo "🔧 Sistema de Notificações de Equipamentos"
+        echo "✅ Notificações semanais: Concluído"
+        echo "✅ Notificações urgentes: Concluído"
+        echo "📊 Status: Sistema operacional"
+        echo "⏰ Próxima execução automática:"
+        echo "   - Processamento: A cada 30 minutos"
+        echo "   - Semanal: Segundas às 9h"
+        echo "   - Urgente: Todos os dias às 8h"
