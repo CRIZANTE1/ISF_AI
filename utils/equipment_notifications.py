@@ -28,12 +28,37 @@ except ImportError:
     
     st = MockSt()
 
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import (
-    EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SCBA_SHEET_NAME,
-    EYEWASH_INVENTORY_SHEET_NAME, MULTIGAS_INVENTORY_SHEET_NAME,
-    FOAM_CHAMBER_INVENTORY_SHEET_NAME
-)
+# Imports condicionais para compatibilidade com GitHub Actions
+try:
+    from gdrive.gdrive_upload import GoogleDriveUploader
+    from gdrive.config import (
+        EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SCBA_SHEET_NAME,
+        EYEWASH_INVENTORY_SHEET_NAME, MULTIGAS_INVENTORY_SHEET_NAME,
+        FOAM_CHAMBER_INVENTORY_SHEET_NAME
+    )
+    GDRIVE_AVAILABLE = True
+except ImportError:
+    GDRIVE_AVAILABLE = False
+    # Mock classes para GitHub Actions
+    class MockGoogleDriveUploader:
+        def __init__(self, is_matrix=False):
+            self.spreadsheet_id: str | None = None
+
+        def get_data_from_sheet(self, sheet_name):
+            return []
+
+        def append_data_to_sheet(self, sheet_name, data):
+            return True
+
+    GoogleDriveUploader = MockGoogleDriveUploader
+
+    # Mock constants
+    EXTINGUISHER_SHEET_NAME = "extintores"
+    HOSE_SHEET_NAME = "mangueiras"
+    SCBA_SHEET_NAME = "scba"
+    EYEWASH_INVENTORY_SHEET_NAME = "eyewash"
+    MULTIGAS_INVENTORY_SHEET_NAME = "multigas_inventario"
+    FOAM_CHAMBER_INVENTORY_SHEET_NAME = "foam_chamber"
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +78,18 @@ def get_users_data():
         from auth.auth_utils import get_users_data as _get_users
         return _get_users()
     except ImportError:
-        # Fallback para GitHub Actions - carrega diretamente da planilha
+        # Fallback para GitHub Actions
+        if not GDRIVE_AVAILABLE:
+            logger.warning("GoogleDrive não disponível em ambiente GitHub Actions")
+            return pd.DataFrame()
+
+        # carrega diretamente da planilha
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
         users_data = matrix_uploader.get_data_from_sheet("usuarios")
-        
+
         if not users_data or len(users_data) < 2:
             return pd.DataFrame()
-        
+
         df = pd.DataFrame(users_data[1:], columns=users_data[0])
         return df
 
@@ -96,7 +126,11 @@ class EquipmentNotificationSystem:
         """Busca equipamentos que vencem nos próximos X dias para um usuário específico"""
         expiring_equipment = []
         target_date = date.today() + timedelta(days=days_ahead)
-        
+
+        if not GDRIVE_AVAILABLE:
+            logger.warning("GoogleDrive não disponível - retornando lista vazia")
+            return expiring_equipment
+
         try:
             # Cria uploader para planilha do usuário
             user_uploader = GoogleDriveUploader(is_matrix=False)
@@ -188,7 +222,10 @@ class EquipmentNotificationSystem:
                     
                     # Busca calibrações na aba de inspeções
                     try:
-                        from gdrive.config import MULTIGAS_INSPECTIONS_SHEET_NAME
+                        if GDRIVE_AVAILABLE:
+                            from gdrive.config import MULTIGAS_INSPECTIONS_SHEET_NAME
+                        else:
+                            MULTIGAS_INSPECTIONS_SHEET_NAME = "multigas_inspecoes"
                         inspections_data = user_uploader.get_data_from_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME)
                         if inspections_data and len(inspections_data) > 1:
                             df_insp = pd.DataFrame(inspections_data[1:], columns=inspections_data[0])
@@ -225,7 +262,11 @@ class EquipmentNotificationSystem:
     def get_user_pending_issues(self, user_spreadsheet_id: str) -> List[Dict]:
         """Busca pendências não resolvidas para um usuário específico"""
         pending_issues = []
-        
+
+        if not GDRIVE_AVAILABLE:
+            logger.warning("GoogleDrive não disponível - retornando lista vazia")
+            return pending_issues
+
         try:
             user_uploader = GoogleDriveUploader(is_matrix=False)
             user_uploader.spreadsheet_id = user_spreadsheet_id
