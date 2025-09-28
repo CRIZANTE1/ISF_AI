@@ -6,75 +6,179 @@ Monitora vencimentos e pendências, enviando alertas automáticos para usuários
 import os
 import pandas as pd
 import logging
-from datetime import date, timedelta
+import json
+from datetime import date, timedelta, datetime
 from typing import List, Dict, Any
 
-# Imports condicionais para compatibilidade com GitHub Actions
+# Setup de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Imports condicionais mais robustos
+STREAMLIT_AVAILABLE = False
+GDRIVE_AVAILABLE = False
+
 try:
     import streamlit as st
     STREAMLIT_AVAILABLE = True
+    logger.info("Streamlit carregado com sucesso")
 except ImportError:
-    STREAMLIT_AVAILABLE = False
-    # Mock do st.secrets para GitHub Actions
+    logger.info("Streamlit não disponível - usando mock para GitHub Actions")
+    # Mock completo do streamlit para GitHub Actions
     class MockSecrets:
-        @staticmethod
-        def get(key, default=None):
-            if key == "app" and default is None:
-                return {"url": os.environ.get("APP_URL", "https://isnpecoessmaia.streamlit.app")}
-            return default or {}
+        def __init__(self):
+            self._data = {
+                "app": {"url": os.environ.get("APP_URL", "https://isnpecoessmaia.streamlit.app")},
+                "google_drive": {
+                    "matrix_sheets_id": os.environ.get("MATRIX_SHEETS_ID", ""),
+                    "central_drive_folder_id": os.environ.get("CENTRAL_DRIVE_FOLDER_ID", "")
+                }
+            }
+        
+        def get(self, key, default=None):
+            keys = key.split(".") if isinstance(key, str) else [key]
+            result = self._data
+            for k in keys:
+                result = result.get(k, {})
+            return result if result else default
+        
+        def __getitem__(self, key):
+            keys = key.split(".") if isinstance(key, str) else [key]
+            result = self._data
+            for k in keys:
+                result = result[k]
+            return result
     
     class MockSt:
-        secrets = MockSecrets()
+        def __init__(self):
+            self.secrets = MockSecrets()
     
     st = MockSt()
 
-# Imports condicionais para compatibilidade com GitHub Actions
 try:
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+    
+    # Imports específicos do projeto
     from gdrive.gdrive_upload import GoogleDriveUploader
     from gdrive.config import (
         EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SCBA_SHEET_NAME,
         EYEWASH_INVENTORY_SHEET_NAME, MULTIGAS_INVENTORY_SHEET_NAME,
-        FOAM_CHAMBER_INVENTORY_SHEET_NAME
+        FOAM_CHAMBER_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
     )
     GDRIVE_AVAILABLE = True
-except ImportError:
-    GDRIVE_AVAILABLE = False
-    # Mock classes para GitHub Actions
+    logger.info("Google Drive APIs carregadas com sucesso")
+    
+except ImportError as e:
+    logger.warning(f"Google Drive não disponível - usando fallback: {e}")
+    
+    # Implementação completa do fallback
     class MockGoogleDriveUploader:
         def __init__(self, is_matrix=False):
-            self.spreadsheet_id: str | None = None
+            self.is_matrix = is_matrix
+            self.spreadsheet_id = None
+            self.sheets_service = None
+            
+            if is_matrix:
+                self.spreadsheet_id = os.environ.get('MATRIX_SHEETS_ID')
+                logger.info(f"Usando planilha matriz: {self.spreadsheet_id}")
+            
+            # Inicializar serviço real se credenciais estiverem disponíveis
+            self._init_real_service()
+        
+        def _init_real_service(self):
+            """Tenta inicializar o serviço real do Google Sheets"""
+            try:
+                credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
+                if not credentials_json:
+                    logger.error("GOOGLE_CREDENTIALS não encontrado no ambiente")
+                    return
+                
+                credentials_dict = json.loads(credentials_json)
+                
+                from google.oauth2 import service_account
+                from googleapiclient.discovery import build
+                
+                credentials = service_account.Credentials.from_service_account_info(
+                    credentials_dict,
+                    scopes=['https://www.googleapis.com/auth/spreadsheets']
+                )
+                
+                self.sheets_service = build('sheets', 'v4', credentials=credentials)
+                logger.info("Serviço Google Sheets inicializado com sucesso no fallback")
+                
+            except Exception as e:
+                logger.error(f"Erro ao inicializar serviço Google Sheets: {e}")
+                self.sheets_service = None
 
         def get_data_from_sheet(self, sheet_name):
-            return []
+            """Busca dados da planilha usando o serviço real se disponível"""
+            if not self.sheets_service or not self.spreadsheet_id:
+                logger.warning(f"Serviço não disponível para buscar dados de {sheet_name}")
+                return []
+            
+            try:
+                range_name = f"{sheet_name}!A:Z"
+                result = self.sheets_service.spreadsheets().values().get(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=range_name
+                ).execute()
+                
+                data = result.get('values', [])
+                logger.info(f"Dados carregados de {sheet_name}: {len(data)} linhas")
+                return data
+                
+            except Exception as e:
+                logger.error(f"Erro ao buscar dados de {sheet_name}: {e}")
+                return []
 
         def append_data_to_sheet(self, sheet_name, data):
-            return True
+            """Adiciona dados à planilha usando o serviço real se disponível"""
+            if not self.sheets_service or not self.spreadsheet_id:
+                logger.warning(f"Serviço não disponível para adicionar dados em {sheet_name}")
+                return False
+            
+            try:
+                if not isinstance(data, list):
+                    data = []
+                if data and not isinstance(data[0], list):
+                    data = [data]
+                
+                body = {'values': data}
+                result = self.sheets_service.spreadsheets().values().append(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=f"{sheet_name}!A:A",
+                    valueInputOption='USER_ENTERED',
+                    insertDataOption='INSERT_ROWS',
+                    body=body
+                ).execute()
+                
+                logger.info(f"Dados adicionados a {sheet_name} com sucesso")
+                return True
+                
+            except Exception as e:
+                logger.error(f"Erro ao adicionar dados em {sheet_name}: {e}")
+                return False
 
     GoogleDriveUploader = MockGoogleDriveUploader
-
+    
     # Mock constants
     EXTINGUISHER_SHEET_NAME = "extintores"
     HOSE_SHEET_NAME = "mangueiras"
-    SCBA_SHEET_NAME = "scba"
-    EYEWASH_INVENTORY_SHEET_NAME = "eyewash"
+    SCBA_SHEET_NAME = "conjuntos_autonomos"
+    EYEWASH_INVENTORY_SHEET_NAME = "chuveiros_lava_olhos"
     MULTIGAS_INVENTORY_SHEET_NAME = "multigas_inventario"
-    FOAM_CHAMBER_INVENTORY_SHEET_NAME = "foam_chamber"
-
-logger = logging.getLogger(__name__)
+    FOAM_CHAMBER_INVENTORY_SHEET_NAME = "camaras_espuma_inventario"
+    MULTIGAS_INSPECTIONS_SHEET_NAME = "inspecoes_multigas"
 
 def get_notification_handler():
     """Carrega o handler de notificações com import dinâmico"""
-    try:
-        from utils.github_notifications import get_notification_handler as _get_handler
-        return _get_handler()
-    except (ImportError, ModuleNotFoundError):
-        # Fallback para GitHub Actions. A lógica do handler é replicada aqui
-        # para evitar o erro de import do Streamlit de github_notifications.py.
-        import json
-        from datetime import datetime
-
-        logger.info("Using fallback notification handler defined in equipment_notifications.py.")
-
+    logger.info("Inicializando handler de notificações...")
+    
+    # Para GitHub Actions, usa o FallbackGitHubNotificationHandler direto
+    if not STREAMLIT_AVAILABLE:
+        logger.info("Ambiente GitHub Actions detectado - usando handler fallback")
+        
         class FallbackGitHubNotificationHandler:
             def queue_notification(self, notification_type: str, recipient_email: str, 
                                   recipient_name: str, **kwargs):
@@ -94,26 +198,72 @@ def get_notification_handler():
                     
                     # Adiciona à planilha matriz
                     matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                    matrix_uploader.append_data_to_sheet('notificacoes_pendentes', [notification_row])
+                    success = matrix_uploader.append_data_to_sheet('notificacoes_pendentes', [notification_row])
                     
-                    logger.info(f"Notificação '{notification_type}' adicionada à fila para {recipient_email}")
-                    return True
+                    if success:
+                        logger.info(f"Notificação '{notification_type}' adicionada à fila para {recipient_email}")
+                    else:
+                        logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
+                        
+                    return success
                     
                 except Exception as e:
                     logger.error(f"Erro ao adicionar notificação à fila: {e}")
                     return False
-    
+        
             def trigger_notification_workflow(self, notification_type: str, recipient_email: str, 
                                             recipient_name: str, **kwargs):
                 success = self.queue_notification(
                     notification_type, recipient_email, recipient_name, **kwargs
                 )
-                
-                if success:
-                    logger.info(f"Notificação '{notification_type}' adicionada à fila para processamento automático")
-                else:
-                    logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
-                
+                return success
+
+        return FallbackGitHubNotificationHandler()
+    
+    # Para ambiente Streamlit, tenta importar o handler normal
+    try:
+        from utils.github_notifications import get_notification_handler as _get_handler
+        return _get_handler()
+    except (ImportError, ModuleNotFoundError):
+        logger.warning("Handler normal não disponível - usando fallback")
+        # Retorna o mesmo fallback se necessário
+        class FallbackGitHubNotificationHandler:
+            def queue_notification(self, notification_type: str, recipient_email: str, 
+                                  recipient_name: str, **kwargs):
+                try:
+                    # Prepara dados JSON para a coluna de dados
+                    notification_data = {**kwargs}
+                    
+                    # Linha para adicionar na planilha
+                    notification_row = [
+                        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # timestamp
+                        notification_type,                             # tipo_notificacao
+                        recipient_email,                               # email_destinatario
+                        recipient_name,                               # nome_destinatario
+                        json.dumps(notification_data, ensure_ascii=False, default=str),  # dados_json
+                        'pendente'                                    # status
+                    ]
+                    
+                    # Adiciona à planilha matriz
+                    matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                    success = matrix_uploader.append_data_to_sheet('notificacoes_pendentes', [notification_row])
+                    
+                    if success:
+                        logger.info(f"Notificação '{notification_type}' adicionada à fila para {recipient_email}")
+                    else:
+                        logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
+                        
+                    return success
+                    
+                except Exception as e:
+                    logger.error(f"Erro ao adicionar notificação à fila: {e}")
+                    return False
+            
+            def trigger_notification_workflow(self, notification_type: str, recipient_email: str, 
+                                            recipient_name: str, **kwargs):
+                success = self.queue_notification(
+                    notification_type, recipient_email, recipient_name, **kwargs
+                )
                 return success
 
         return FallbackGitHubNotificationHandler()
@@ -121,23 +271,38 @@ def get_notification_handler():
 def get_users_data():
     """Carrega dados de usuários com import dinâmico"""
     try:
-        from auth.auth_utils import get_users_data as _get_users
-        return _get_users()
+        if STREAMLIT_AVAILABLE:
+            from auth.auth_utils import get_users_data as _get_users
+            result = _get_users()
+            logger.info(f"Usuários carregados via auth_utils: {len(result) if not result.empty else 0}")
+            return result
     except ImportError:
-        # Fallback para GitHub Actions
-        if not GDRIVE_AVAILABLE:
-            logger.warning("GoogleDrive não disponível em ambiente GitHub Actions")
-            return pd.DataFrame()
-
-        # carrega diretamente da planilha
+        pass
+    
+    # Fallback para GitHub Actions
+    logger.info("Carregando usuários diretamente da planilha matriz")
+    
+    try:
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
         users_data = matrix_uploader.get_data_from_sheet("usuarios")
 
         if not users_data or len(users_data) < 2:
+            logger.warning("Planilha de usuários vazia ou sem dados")
             return pd.DataFrame()
 
         df = pd.DataFrame(users_data[1:], columns=users_data[0])
+        logger.info(f"Carregados {len(df)} usuários da planilha matriz")
+        
+        # Log das colunas disponíveis para debug
+        logger.info(f"Colunas da planilha de usuários: {list(df.columns)}")
+        
         return df
+        
+    except Exception as e:
+        logger.error(f"Erro ao carregar usuários: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return pd.DataFrame()
 
 class EquipmentNotificationSystem:
     """Sistema de notificações para equipamentos vencendo e pendências"""
@@ -154,7 +319,7 @@ class EquipmentNotificationSystem:
             expiring_equipment=expiring_equipment,
             days_notice=days_notice,
             total_items=len(expiring_equipment),
-            login_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+            login_url=st.secrets.get("app", {}).get("url", "https://isnpecoessmaia.streamlit.app")
         )
     
     def notify_pending_issues(self, user_email: str, user_name: str, pending_issues: List[Dict]):
@@ -165,7 +330,7 @@ class EquipmentNotificationSystem:
             recipient_name=user_name,
             pending_issues=pending_issues,
             total_pending=len(pending_issues),
-            login_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+            login_url=st.secrets.get("app", {}).get("url", "https://isnpecoessmaia.streamlit.app")
         )
     
     def get_user_expiring_equipment(self, user_spreadsheet_id: str, days_ahead: int = 30) -> List[Dict]:
@@ -173,11 +338,9 @@ class EquipmentNotificationSystem:
         expiring_equipment = []
         target_date = date.today() + timedelta(days=days_ahead)
 
-        if not GDRIVE_AVAILABLE:
-            logger.warning("GoogleDrive não disponível - retornando lista vazia")
-            return expiring_equipment
-
         try:
+            logger.info(f"Verificando equipamentos vencendo para planilha {user_spreadsheet_id}")
+            
             # Cria uploader para planilha do usuário
             user_uploader = GoogleDriveUploader(is_matrix=False)
             user_uploader.spreadsheet_id = user_spreadsheet_id
@@ -207,6 +370,8 @@ class EquipmentNotificationSystem:
                                     'data_vencimento': row[col].strftime('%d/%m/%Y'),
                                     'dias_restantes': (row[col] - date.today()).days
                                 })
+                    
+                    logger.info(f"Extintores vencendo encontrados: {len([e for e in expiring_equipment if e['tipo'] == 'Extintor'])}")
             except Exception as e:
                 logger.warning(f"Erro ao verificar extintores: {e}")
             
@@ -232,6 +397,8 @@ class EquipmentNotificationSystem:
                                 'data_vencimento': row['data_proximo_teste'].strftime('%d/%m/%Y'),
                                 'dias_restantes': (row['data_proximo_teste'] - date.today()).days
                             })
+                    
+                    logger.info(f"Mangueiras vencendo encontradas: {len([e for e in expiring_equipment if e['tipo'] == 'Mangueira'])}")
             except Exception as e:
                 logger.warning(f"Erro ao verificar mangueiras: {e}")
             
@@ -257,6 +424,8 @@ class EquipmentNotificationSystem:
                                 'data_vencimento': row['data_validade'].strftime('%d/%m/%Y'),
                                 'dias_restantes': (row['data_validade'] - date.today()).days
                             })
+                    
+                    logger.info(f"SCBAs vencendo encontrados: {len([e for e in expiring_equipment if e['tipo'] == 'SCBA'])}")
             except Exception as e:
                 logger.warning(f"Erro ao verificar SCBAs: {e}")
             
@@ -268,10 +437,6 @@ class EquipmentNotificationSystem:
                     
                     # Busca calibrações na aba de inspeções
                     try:
-                        if GDRIVE_AVAILABLE:
-                            from gdrive.config import MULTIGAS_INSPECTIONS_SHEET_NAME
-                        else:
-                            MULTIGAS_INSPECTIONS_SHEET_NAME = "multigas_inspecoes"
                         inspections_data = user_uploader.get_data_from_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME)
                         if inspections_data and len(inspections_data) > 1:
                             df_insp = pd.DataFrame(inspections_data[1:], columns=inspections_data[0])
@@ -292,6 +457,8 @@ class EquipmentNotificationSystem:
                                         'data_vencimento': row['proxima_calibracao'].strftime('%d/%m/%Y'),
                                         'dias_restantes': (row['proxima_calibracao'] - date.today()).days
                                     })
+                        
+                        logger.info(f"Calibrações multigás vencendo encontradas: {len([e for e in expiring_equipment if e['tipo'] == 'Detector Multigás'])}")
                     except Exception as e:
                         logger.warning(f"Erro ao verificar calibrações multigás: {e}")
             except Exception as e:
@@ -303,17 +470,16 @@ class EquipmentNotificationSystem:
         # Ordena por dias restantes (mais urgente primeiro)
         expiring_equipment.sort(key=lambda x: x['dias_restantes'])
         
+        logger.info(f"Total de equipamentos vencendo encontrados: {len(expiring_equipment)}")
         return expiring_equipment
     
     def get_user_pending_issues(self, user_spreadsheet_id: str) -> List[Dict]:
         """Busca pendências não resolvidas para um usuário específico"""
         pending_issues = []
 
-        if not GDRIVE_AVAILABLE:
-            logger.warning("GoogleDrive não disponível - retornando lista vazia")
-            return pending_issues
-
         try:
+            logger.info(f"Verificando pendências para planilha {user_spreadsheet_id}")
+            
             user_uploader = GoogleDriveUploader(is_matrix=False)
             user_uploader.spreadsheet_id = user_spreadsheet_id
             
@@ -337,6 +503,8 @@ class EquipmentNotificationSystem:
                                 'data_identificacao': row.get('data_servico', 'N/A'),
                                 'prioridade': 'Alta'
                             })
+                
+                logger.info(f"Extintores reprovados encontrados: {len([p for p in pending_issues if 'Extintor' in p['tipo']])}")
             except Exception as e:
                 logger.warning(f"Erro ao verificar pendências de extintores: {e}")
             
@@ -360,6 +528,8 @@ class EquipmentNotificationSystem:
                                 'data_identificacao': row.get('data_inspecao', 'N/A'),
                                 'prioridade': 'Crítica' if status == 'Condenada' else 'Alta'
                             })
+                
+                logger.info(f"Mangueiras reprovadas/condenadas encontradas: {len([p for p in pending_issues if 'Mangueira' in p['tipo']])}")
             except Exception as e:
                 logger.warning(f"Erro ao verificar pendências de mangueiras: {e}")
             
@@ -375,6 +545,8 @@ class EquipmentNotificationSystem:
                     'data_identificacao': eq['data_vencimento'],
                     'prioridade': 'Crítica'
                 })
+            
+            logger.info(f"Equipamentos vencidos encontrados: {len(expired_equipment)}")
                 
         except Exception as e:
             logger.error(f"Erro geral ao buscar pendências: {e}")
@@ -383,70 +555,95 @@ class EquipmentNotificationSystem:
         priority_order = {'Crítica': 0, 'Alta': 1, 'Média': 2}
         pending_issues.sort(key=lambda x: priority_order.get(x['prioridade'], 3))
         
+        logger.info(f"Total de pendências encontradas: {len(pending_issues)}")
         return pending_issues
     
     def send_periodic_notifications(self, days_notice: int = 30):
         """Função principal para enviar notificações periódicas para todos os usuários ativos"""
         try:
-            logger.info("Iniciando envio de notificações periódicas de equipamentos")
+            logger.info(f"Iniciando envio de notificações periódicas de equipamentos (dias de antecedência: {days_notice})")
+            logger.info(f"GDRIVE_AVAILABLE: {GDRIVE_AVAILABLE}")
+            logger.info(f"STREAMLIT_AVAILABLE: {STREAMLIT_AVAILABLE}")
             
             # Carrega usuários ativos
             users_df = get_users_data()
             if users_df.empty:
-                logger.info("Nenhum usuário encontrado")
+                logger.info("Nenhum usuário encontrado na planilha")
                 return
             
+            logger.info(f"Total de usuários carregados: {len(users_df)}")
+            
+            # Filtra usuários ativos com planilhas
             active_users = users_df[
-                (users_df['status'] == 'ativo') & 
+                (users_df['status'].str.lower() == 'ativo') & 
                 (users_df['spreadsheet_id'].notna()) & 
-                (users_df['spreadsheet_id'] != '')
+                (users_df['spreadsheet_id'].str.strip() != '')
             ]
+            
+            logger.info(f"Usuários ativos com planilhas: {len(active_users)}")
+            
+            if active_users.empty:
+                logger.info("Nenhum usuário ativo com planilha encontrado")
+                return
             
             notifications_sent = 0
             
-            for _, user in active_users.iterrows():
+            for idx, user in active_users.iterrows():
                 try:
                     user_email = user['email']
-                    user_name = user['nome']
+                    user_name = user.get('nome', user_email)
                     spreadsheet_id = user['spreadsheet_id']
                     
-                    logger.info(f"Processando notificações para {user_email}")
+                    logger.info(f"Processando notificações para {user_email} (planilha: {spreadsheet_id})")
                     
                     # Busca equipamentos vencendo
                     expiring_equipment = self.get_user_expiring_equipment(spreadsheet_id, days_notice)
+                    logger.info(f"Equipamentos vencendo para {user_email}: {len(expiring_equipment)}")
                     
                     # Busca pendências
                     pending_issues = self.get_user_pending_issues(spreadsheet_id)
+                    logger.info(f"Pendências para {user_email}: {len(pending_issues)}")
                     
                     # Envia notificação se houver vencimentos
                     if expiring_equipment:
-                        self.notify_equipment_expiring(
+                        success = self.notify_equipment_expiring(
                             user_email=user_email,
                             user_name=user_name,
                             expiring_equipment=expiring_equipment,
                             days_notice=days_notice
                         )
-                        notifications_sent += 1
-                        logger.info(f"Notificação de vencimentos enviada para {user_email} ({len(expiring_equipment)} itens)")
+                        if success:
+                            notifications_sent += 1
+                            logger.info(f"Notificação de vencimentos enviada para {user_email} ({len(expiring_equipment)} itens)")
+                        else:
+                            logger.error(f"Falha ao enviar notificação de vencimentos para {user_email}")
                     
                     # Envia notificação se houver pendências
                     if pending_issues:
-                        self.notify_pending_issues(
+                        success = self.notify_pending_issues(
                             user_email=user_email,
                             user_name=user_name,
                             pending_issues=pending_issues
                         )
-                        notifications_sent += 1
-                        logger.info(f"Notificação de pendências enviada para {user_email} ({len(pending_issues)} itens)")
-                        
+                        if success:
+                            notifications_sent += 1
+                            logger.info(f"Notificação de pendências enviada para {user_email} ({len(pending_issues)} itens)")
+                        else:
+                            logger.error(f"Falha ao enviar notificação de pendências para {user_email}")
+                            
                 except Exception as e:
                     logger.error(f"Erro ao processar usuário {user.get('email', 'N/A')}: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
                     continue
             
-            logger.info(f"Notificações periódicas concluídas: {notifications_sent} enviadas")
+            logger.info(f"Notificações periódicas concluídas: {notifications_sent} enviadas de {len(active_users)} usuários processados")
             
         except Exception as e:
-            logger.error(f"Erro no envio de notificações periódicas: {e}")
+            logger.error(f"Erro crítico no envio de notificações periódicas: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
 
 
 # Instância global
@@ -454,8 +651,10 @@ equipment_notification_system = EquipmentNotificationSystem()
 
 def send_weekly_equipment_notifications():
     """Função para ser chamada semanalmente pelo GitHub Actions"""
+    logger.info("Executando notificações semanais de equipamentos (30 dias)")
     equipment_notification_system.send_periodic_notifications(days_notice=30)
 
 def send_daily_urgent_notifications():
     """Função para ser chamada diariamente pelo GitHub Actions para alertas urgentes"""
+    logger.info("Executando notificações urgentes de equipamentos (7 dias)")
     equipment_notification_system.send_periodic_notifications(days_notice=7)
