@@ -118,24 +118,46 @@ Obrigado por confiar em nosso sistema!
 Atenciosamente,
 Equipe ISF IA
 '''
+    },
+    
+    'new_access_request': {
+        'subject': '🔔 Nova solicitação de acesso - ISF IA',
+        'template': '''
+Olá Administrador,
+
+📬 **Nova solicitação de acesso recebida!**
+
+👤 **Dados do solicitante:**
+• Nome: {{requesting_user_name}}
+• Email: {{requesting_user_email}}
+• Data da solicitação: {{timestamp}}
+
+💭 **Justificativa:**
+{{justification}}
+
+🎯 **Ação necessária:**
+Acesse o painel administrativo para aprovar ou rejeitar a solicitação:
+{{admin_panel_url}}
+
+➡️ Vá em: Super Admin → Solicitações
+
+Atenciosamente,
+Sistema ISF IA
+'''
     }
 }
 
 def get_google_sheets_service():
     """Inicializa serviço do Google Sheets"""
-    try:
-        credentials_json = os.environ['GOOGLE_CREDENTIALS']
-        credentials_dict = json.loads(credentials_json)
-        
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=['https://www.googleapis.com/auth/spreadsheets']
-        )
-        
-        return build('sheets', 'v4', credentials=credentials)
-    except Exception as e:
-        print(f"❌ Erro ao inicializar Google Sheets: {e}")
-        raise
+    credentials_json = os.environ['GOOGLE_CREDENTIALS']
+    credentials_dict = json.loads(credentials_json)
+    
+    credentials = service_account.Credentials.from_service_account_info(
+        credentials_dict,
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
+    )
+    
+    return build('sheets', 'v4', credentials=credentials)
 
 def get_pending_notifications(sheets_service, spreadsheet_id):
     """Busca notificações pendentes na planilha"""
@@ -155,12 +177,8 @@ def get_pending_notifications(sheets_service, spreadsheet_id):
         notifications = []
         
         for i, row in enumerate(values[1:], 2):  # i=2 para linha da planilha
-            # Preenche células vazias para evitar IndexError
-            while len(row) < 6:
-                row.append('')
-                
-            if row[5] == 'pendente':
-                notifications.append({
+            if len(row) >= 6 and row[5] == 'pendente':
+                notification_data = {
                     'row_index': i,
                     'timestamp': row[0],
                     'type': row[1], 
@@ -168,7 +186,8 @@ def get_pending_notifications(sheets_service, spreadsheet_id):
                     'name': row[3],
                     'data': row[4],
                     'status': row[5]
-                })
+                }
+                notifications.append(notification_data)
         
         return notifications
         
@@ -229,14 +248,14 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
     
     # Parse dos dados da notificação
     try:
-        # Converte string para dict
+        # Tenta fazer parse do JSON
         data_str = notification['data']
-        if data_str.strip() and data_str.startswith('{'):
+        if data_str.startswith('{'):
             data_dict = json.loads(data_str)
         else:
-            data_dict = {}
-    except (json.JSONDecodeError, ValueError):
-        print(f"⚠️ Erro ao fazer parse dos dados JSON para {recipient_email}")
+            # Se não for JSON válido, tenta eval (compatibilidade com versão antiga)
+            data_dict = ast.literal_eval(data_str) if data_str else {}
+    except:
         data_dict = {}
     
     # Busca template
@@ -255,7 +274,12 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
         'reason': data_dict.get('reason', ''),
         'days_left': data_dict.get('days_left', '3'),
         'plan_name': data_dict.get('plan_name', ''),
-        'timestamp': notification['timestamp']
+        'timestamp': notification['timestamp'],
+        # Novos campos para solicitação de acesso
+        'requesting_user_name': data_dict.get('requesting_user_name', ''),
+        'requesting_user_email': data_dict.get('requesting_user_email', ''),
+        'justification': data_dict.get('justification', 'Nenhuma justificativa fornecida'),
+        'admin_panel_url': data_dict.get('admin_panel_url', 'https://sua-app.streamlit.app')
     }
     
     # Renderiza template
@@ -267,15 +291,7 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
     
     # Converte para HTML
     body_html = body_text.replace('\n', '<br>\n')
-    body_html = f"""
-    <html>
-    <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
-            <pre style='font-family: Arial, sans-serif; white-space: pre-wrap; margin: 0;'>{body_html}</pre>
-        </div>
-    </body>
-    </html>
-    """
+    body_html = f"<html><body><pre style='font-family: Arial, sans-serif; white-space: pre-wrap;'>{body_html}</pre></body></html>"
     
     # Envia email
     success = send_email(smtp_config, recipient_email, subject, body_html)
@@ -291,71 +307,43 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
     
     return success
 
-def validate_environment():
-    """Valida se todas as variáveis de ambiente necessárias estão presentes"""
-    required_vars = [
-        'SMTP_SERVER', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD',
-        'FROM_EMAIL', 'FROM_NAME', 'GOOGLE_CREDENTIALS', 'MATRIX_SHEETS_ID'
-    ]
-    
-    missing_vars = []
-    for var in required_vars:
-        if not os.environ.get(var):
-            missing_vars.append(var)
-    
-    if missing_vars:
-        print(f"❌ Variáveis de ambiente ausentes: {', '.join(missing_vars)}")
-        return False
-    
-    return True
-
 def main():
     """Função principal"""
     print("🔄 Iniciando processamento de notificações...")
     
-    # Validar variáveis de ambiente
-    if not validate_environment():
-        print("❌ Abortando devido a variáveis de ambiente ausentes")
+    # Configuração SMTP
+    smtp_config = {
+        'server': os.environ['SMTP_SERVER'],
+        'port': int(os.environ['SMTP_PORT']),
+        'username': os.environ['SMTP_USERNAME'],
+        'password': os.environ['SMTP_PASSWORD'],
+        'from_email': os.environ['FROM_EMAIL'],
+        'from_name': os.environ['FROM_NAME']
+    }
+    
+    # Serviços Google
+    sheets_service = get_google_sheets_service()
+    spreadsheet_id = os.environ['MATRIX_SHEETS_ID']
+    
+    # Busca notificações pendentes
+    notifications = get_pending_notifications(sheets_service, spreadsheet_id)
+    
+    if not notifications:
+        print("✅ Nenhuma notificação pendente encontrada.")
         return
     
-    try:
-        # Configuração SMTP
-        smtp_config = {
-            'server': os.environ['SMTP_SERVER'],
-            'port': int(os.environ['SMTP_PORT']),
-            'username': os.environ['SMTP_USERNAME'],
-            'password': os.environ['SMTP_PASSWORD'],
-            'from_email': os.environ['FROM_EMAIL'],
-            'from_name': os.environ['FROM_NAME']
-        }
-        
-        # Serviços Google
-        sheets_service = get_google_sheets_service()
-        spreadsheet_id = os.environ['MATRIX_SHEETS_ID']
-        
-        # Busca notificações pendentes
-        notifications = get_pending_notifications(sheets_service, spreadsheet_id)
-        
-        if not notifications:
-            print("✅ Nenhuma notificação pendente encontrada.")
-            return
-        
-        print(f"📧 Encontradas {len(notifications)} notificações pendentes.")
-        
-        # Processa cada notificação
-        processed = 0
-        for notification in notifications:
-            try:
-                if process_notification(notification, smtp_config, sheets_service, spreadsheet_id):
-                    processed += 1
-            except Exception as e:
-                print(f"❌ Erro ao processar notificação: {e}")
-        
-        print(f"✅ Processamento concluído: {processed}/{len(notifications)} enviadas com sucesso.")
-        
-    except Exception as e:
-        print(f"❌ Erro crítico no processamento: {e}")
-        raise
+    print(f"📧 Encontradas {len(notifications)} notificações pendentes.")
+    
+    # Processa cada notificação
+    processed = 0
+    for notification in notifications:
+        try:
+            if process_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+                processed += 1
+        except Exception as e:
+            print(f"❌ Erro ao processar notificação: {e}")
+    
+    print(f"✅ Processamento concluído: {processed}/{len(notifications)} enviadas com sucesso.")
 
 if __name__ == "__main__":
     main()
