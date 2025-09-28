@@ -63,7 +63,6 @@ def provision_user_environment(user_email, user_name):
         return False, None, None
 
 def show_page():
-    # A indentação começa aqui
     st.title("👑 Painel de Controle do Super Administrador")
 
     tab_dashboard, tab_requests, tab_users, tab_audit, tab_support_admin = st.tabs([
@@ -238,7 +237,8 @@ def show_page():
                                         st.success(f"✅ Usuário {request['nome_usuario']} aprovado!")
                                         st.warning(f"⚠️ Erro na notificação: {e}")
                                     
-                                    st.cache_data.clear(); st.rerun()
+                                    st.cache_data.clear()
+                                    st.rerun()
                         
                         if cols[2].button("Rejeitar", key=f"reject_{index}"):
                             # Adiciona campo para motivo da rejeição
@@ -259,7 +259,10 @@ def show_page():
                             except:
                                 st.warning(f"Solicitação de {request['nome_usuario']} rejeitada.")
                             
-                            st.cache_data.clear(); st.rerun()
+                            st.cache_data.clear()
+                            st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao carregar solicitações: {e}")
 
     with tab_users:
         st.header("Gerenciar Usuários e Planos")
@@ -305,7 +308,8 @@ def show_page():
                     
                     log_action("ALTEROU_USUARIO", f"Email: {selected_email}, Plano: {new_plan}, Status: {new_status}, Perfil: {new_role}")
                     st.success("Usuário atualizado com sucesso!")
-                    st.cache_data.clear(); st.rerun()
+                    st.cache_data.clear()
+                    st.rerun()
 
     with tab_audit:
         st.header("Log de Auditoria do Sistema")
@@ -316,7 +320,6 @@ def show_page():
         else:
             df_log = pd.DataFrame(log_data[1:], columns=log_data[0]).sort_values(by='timestamp', ascending=False)
             st.dataframe(df_log, use_container_width=True, hide_index=True)
-
 
     with tab_support_admin:  
         st.header("🎫 Gerenciar Solicitações de Suporte")
@@ -386,4 +389,3 @@ def show_page():
                                     st.rerun()
         except Exception as e:
             st.error(f"Erro ao carregar solicitações: {e}")
-
