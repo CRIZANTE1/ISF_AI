@@ -1,0 +1,84 @@
+name: Send Email Notifications
+
+on:
+  workflow_dispatch:
+    inputs:
+      notification_type:
+        description: 'Tipo da notificação'
+        required: true
+        type: string
+      recipient_email:
+        description: 'Email do destinatário'
+        required: true
+        type: string
+      recipient_name:
+        description: 'Nome do destinatário'
+        required: true
+        type: string
+      timestamp:
+        description: 'Timestamp da notificação'
+        required: true
+        type: string
+      trial_days:
+        description: 'Dias de trial (se aplicável)'
+        required: false
+        type: string
+        default: '14'
+      login_url:
+        description: 'URL para login'
+        required: false
+        type: string
+        default: 'https://sua-app.streamlit.app'
+      reason:
+        description: 'Motivo (para negações)'
+        required: false
+        type: string
+        default: ''
+      days_left:
+        description: 'Dias restantes (para avisos)'
+        required: false
+        type: string
+        default: '3'
+      plan_name:
+        description: 'Nome do plano (para confirmações)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install jinja2 smtplib-ssl
+        
+    - name: Send Email Notification
+      env:
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        FROM_NAME: ${{ secrets.FROM_NAME }}
+      run: |
+        python .github/scripts/send_email.py \
+          --type "${{ github.event.inputs.notification_type }}" \
+          --email "${{ github.event.inputs.recipient_email }}" \
+          --name "${{ github.event.inputs.recipient_name }}" \
+          --timestamp "${{ github.event.inputs.timestamp }}" \
+          --trial-days "${{ github.event.inputs.trial_days }}" \
+          --login-url "${{ github.event.inputs.login_url }}" \
+          --reason "${{ github.event.inputs.reason }}" \
+          --days-left "${{ github.event.inputs.days_left }}" \
+          --plan-name "${{ github.event.inputs.plan_name }}"
