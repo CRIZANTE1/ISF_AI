@@ -1,12 +1,19 @@
-import argparse
+"""
+Script para processar notificações pendentes e enviar emails
+Executa via GitHub Actions periodicamente
+"""
+
+import json
 import smtplib
 import os
+import ast
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from jinja2 import Template
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
-# Templates de email
 EMAIL_TEMPLATES = {
     'access_approved': {
         'subject': '🎉 Seu acesso foi aprovado! - ISF IA',
@@ -114,21 +121,64 @@ Equipe ISF IA
     }
 }
 
+def get_google_sheets_service():
+    """Inicializa serviço do Google Sheets"""
+    credentials_json = os.environ['GOOGLE_CREDENTIALS']
+    credentials_dict = json.loads(credentials_json)
+    
+    credentials = service_account.Credentials.from_service_account_info(
+        credentials_dict,
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
+    )
+    
+    return build('sheets', 'v4', credentials=credentials)
+
+def get_pending_notifications(sheets_service, spreadsheet_id):
+    """Busca notificações pendentes na planilha"""
+    try:
+        range_name = "notificacoes_pendentes!A:F"
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name
+        ).execute()
+        
+        values = result.get('values', [])
+        if not values or len(values) < 2:
+            return []
+        
+        # Converte para lista de dicionários
+        headers = values[0]
+        notifications = []
+        
+        for i, row in enumerate(values[1:], 2):  # i=2 para linha da planilha
+            if len(row) >= 6 and row[5] == 'pendente':
+                notifications.append({
+                    'row_index': i,
+                    'timestamp': row[0],
+                    'type': row[1], 
+                    'email': row[2],
+                    'name': row[3],
+                    'data': row[4],
+                    'status': row[5]
+                })
+        
+        return notifications
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar notificações: {e}")
+        return []
+
 def send_email(smtp_config, recipient_email, subject, body_html):
     """Envia email usando configuração SMTP"""
-    
     try:
-        # Cria mensagem
         msg = MIMEMultipart('alternative')
         msg['From'] = f"{smtp_config['from_name']} <{smtp_config['from_email']}>"
         msg['To'] = recipient_email
         msg['Subject'] = subject
         
-        # Adiciona corpo HTML
         html_part = MIMEText(body_html, 'html', 'utf-8')
         msg.attach(html_part)
         
-        # Conecta e envia
         server = smtplib.SMTP(smtp_config['server'], smtp_config['port'])
         server.starttls()
         server.login(smtp_config['username'], smtp_config['password'])
@@ -137,54 +187,63 @@ def send_email(smtp_config, recipient_email, subject, body_html):
         server.sendmail(smtp_config['from_email'], recipient_email, text)
         server.quit()
         
-        print(f"✅ Email enviado com sucesso para {recipient_email}")
+        print(f"✅ Email enviado para {recipient_email}")
         return True
         
     except Exception as e:
-        print(f"❌ Erro ao enviar email: {e}")
+        print(f"❌ Erro ao enviar email para {recipient_email}: {e}")
         return False
 
-def main():
-    parser = argparse.ArgumentParser(description='Enviar notificações por email')
-    parser.add_argument('--type', required=True, help='Tipo da notificação')
-    parser.add_argument('--email', required=True, help='Email do destinatário')
-    parser.add_argument('--name', required=True, help='Nome do destinatário')
-    parser.add_argument('--timestamp', required=True, help='Timestamp')
-    parser.add_argument('--trial-days', default='14', help='Dias de trial')
-    parser.add_argument('--login-url', required=True, help='URL de login')
-    parser.add_argument('--reason', default='', help='Motivo (negações)')
-    parser.add_argument('--days-left', default='3', help='Dias restantes')
-    parser.add_argument('--plan-name', default='', help='Nome do plano')
+def update_notification_status(sheets_service, spreadsheet_id, row_index, status):
+    """Atualiza status da notificação na planilha"""
+    try:
+        range_name = f"notificacoes_pendentes!F{row_index}"
+        body = {'values': [[status]]}
+        
+        sheets_service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+        
+        return True
+    except Exception as e:
+        print(f"❌ Erro ao atualizar status: {e}")
+        return False
+
+def process_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+    """Processa uma notificação individual"""
     
-    args = parser.parse_args()
+    notification_type = notification['type']
+    recipient_email = notification['email']
+    recipient_name = notification['name']
     
-    # Configuração SMTP dos secrets
-    smtp_config = {
-        'server': os.environ['SMTP_SERVER'],
-        'port': int(os.environ['SMTP_PORT']),
-        'username': os.environ['SMTP_USERNAME'], 
-        'password': os.environ['SMTP_PASSWORD'],
-        'from_email': os.environ['FROM_EMAIL'],
-        'from_name': os.environ['FROM_NAME']
-    }
+    # Parse dos dados da notificação
+    try:
+        # Converte string para dict
+        data_str = notification['data']
+        data_dict = ast.literal_eval(data_str) if data_str.startswith('{') else {}
+    except:
+        data_dict = {}
     
     # Busca template
-    if args.type not in EMAIL_TEMPLATES:
-        print(f"❌ Tipo de notificação desconhecido: {args.type}")
+    if notification_type not in EMAIL_TEMPLATES:
+        print(f"❌ Template não encontrado para: {notification_type}")
         return False
     
-    template_data = EMAIL_TEMPLATES[args.type]
+    template_data = EMAIL_TEMPLATES[notification_type]
     
-    # Prepara dados para o template
+    # Dados padrão para template
     template_vars = {
-        'recipient_name': args.name,
-        'recipient_email': args.email,
-        'trial_days': args.trial_days,
-        'login_url': args.login_url,
-        'reason': args.reason,
-        'days_left': args.days_left,
-        'plan_name': args.plan_name,
-        'timestamp': args.timestamp
+        'recipient_name': recipient_name,
+        'recipient_email': recipient_email,
+        'login_url': data_dict.get('login_url', 'https://sua-app.streamlit.app'),
+        'trial_days': data_dict.get('trial_days', '14'),
+        'reason': data_dict.get('reason', ''),
+        'days_left': data_dict.get('days_left', '3'),
+        'plan_name': data_dict.get('plan_name', ''),
+        'timestamp': notification['timestamp']
     }
     
     # Renderiza template
@@ -194,19 +253,61 @@ def main():
     subject = subject_template.render(**template_vars)
     body_text = body_template.render(**template_vars)
     
-    # Converte texto para HTML básico
+    # Converte para HTML
     body_html = body_text.replace('\n', '<br>\n')
     body_html = f"<html><body><pre style='font-family: Arial, sans-serif; white-space: pre-wrap;'>{body_html}</pre></body></html>"
     
     # Envia email
-    success = send_email(smtp_config, args.email, subject, body_html)
+    success = send_email(smtp_config, recipient_email, subject, body_html)
     
     if success:
-        print(f"✅ Notificação '{args.type}' enviada para {args.email}")
+        # Marca como enviado na planilha
+        update_notification_status(sheets_service, spreadsheet_id, notification['row_index'], 'enviado')
+        print(f"✅ Notificação {notification_type} processada para {recipient_email}")
     else:
-        print(f"❌ Falha ao enviar notificação '{args.type}' para {args.email}")
+        # Marca como erro
+        update_notification_status(sheets_service, spreadsheet_id, notification['row_index'], 'erro')
+        print(f"❌ Falha ao processar notificação {notification_type} para {recipient_email}")
     
     return success
+
+def main():
+    """Função principal"""
+    print("🔄 Iniciando processamento de notificações...")
+    
+    # Configuração SMTP
+    smtp_config = {
+        'server': os.environ['SMTP_SERVER'],
+        'port': int(os.environ['SMTP_PORT']),
+        'username': os.environ['SMTP_USERNAME'],
+        'password': os.environ['SMTP_PASSWORD'],
+        'from_email': os.environ['FROM_EMAIL'],
+        'from_name': os.environ['FROM_NAME']
+    }
+    
+    # Serviços Google
+    sheets_service = get_google_sheets_service()
+    spreadsheet_id = os.environ['MATRIX_SHEETS_ID']
+    
+    # Busca notificações pendentes
+    notifications = get_pending_notifications(sheets_service, spreadsheet_id)
+    
+    if not notifications:
+        print("✅ Nenhuma notificação pendente encontrada.")
+        return
+    
+    print(f"📧 Encontradas {len(notifications)} notificações pendentes.")
+    
+    # Processa cada notificação
+    processed = 0
+    for notification in notifications:
+        try:
+            if process_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+                processed += 1
+        except Exception as e:
+            print(f"❌ Erro ao processar notificação: {e}")
+    
+    print(f"✅ Processamento concluído: {processed}/{len(notifications)} enviadas com sucesso.")
 
 if __name__ == "__main__":
     main()
