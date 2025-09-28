@@ -338,19 +338,28 @@ def get_consolidated_status_df(df_full, df_locais):
     if df_full.empty: 
         return pd.DataFrame()
     
+    from operations.extinguisher_disposal_operations import get_disposed_extinguishers
+    
     consolidated_data = []
     df_copy = df_full.copy()
     df_copy['data_servico'] = pd.to_datetime(df_copy['data_servico'], errors='coerce')
     df_copy = df_copy.dropna(subset=['data_servico'])
     
+    df_disposed = get_disposed_extinguishers()
+    disposed_ids = df_disposed['numero_identificacao'].tolist() if not df_disposed.empty else []
+    
     unique_ids = df_copy['numero_identificacao'].unique()
 
     for ext_id in unique_ids:
+        if ext_id in disposed_ids:
+            continue
+            
         ext_df = df_copy[df_copy['numero_identificacao'] == ext_id].sort_values(by='data_servico')
         if ext_df.empty: 
             continue
         
         latest_record_info = ext_df.iloc[-1]
+        
         
         last_insp_date = ext_df['data_servico'].max()
         last_maint2_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 2']['data_servico'].max()
