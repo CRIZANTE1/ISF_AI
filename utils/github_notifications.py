@@ -1,6 +1,7 @@
 import requests
 import streamlit as st
 import logging
+import json
 from datetime import datetime
 from gdrive.gdrive_upload import GoogleDriveUploader
 
@@ -26,9 +27,6 @@ class GitHubNotificationHandler:
             **kwargs: Dados adicionais específicos do tipo de notificação
         """
         try:
-            from gdrive.config import get_sao_paulo_time_str
-            import json
-            
             # Prepara dados JSON para a coluna de dados
             notification_data = {
                 'login_url': kwargs.get('login_url', 'https://sua-app.streamlit.app'),
