@@ -30,7 +30,7 @@ class GitHubNotificationHandler:
             
             # Prepara dados JSON para a coluna de dados
             notification_data = {
-                'login_url': kwargs.get('login_url', 'https://sua-app.streamlit.app'),
+                'login_url': kwargs.get('login_url', 'https://isnpecoessmaia.streamlit.app'),
                 'trial_days': str(kwargs.get('trial_days', '14')),
                 'reason': kwargs.get('reason', ''),
                 'days_left': str(kwargs.get('days_left', '3')),
@@ -103,7 +103,7 @@ def notify_access_approved(user_email: str, user_name: str, trial_days: int = 14
         recipient_email=user_email,
         recipient_name=user_name,
         trial_days=trial_days,
-        login_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+        login_url=st.secrets.get("app", {}).get("url", "https://isnpecoessmaia.streamlit.app")
     )
 
 def notify_access_denied(user_email: str, user_name: str, reason: str = ""):
@@ -124,7 +124,7 @@ def notify_trial_expiring(user_email: str, user_name: str, days_left: int):
         recipient_email=user_email,
         recipient_name=user_name,
         days_left=days_left,
-        login_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+        login_url=st.secrets.get("app", {}).get("url", "https://isnpecoessmaia.streamlit.app")
     )
 
 def notify_payment_confirmed(user_email: str, user_name: str, plan_name: str):
@@ -135,7 +135,7 @@ def notify_payment_confirmed(user_email: str, user_name: str, plan_name: str):
         recipient_email=user_email,
         recipient_name=user_name,
         plan_name=plan_name,
-        login_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+        login_url=st.secrets.get("app", {}).get("url", "https://isnpecoessmaia.streamlit.app")
     )
 
 def notify_new_access_request(admin_email: str, user_email: str, user_name: str, justification: str = ""):
@@ -148,7 +148,7 @@ def notify_new_access_request(admin_email: str, user_email: str, user_name: str,
         requesting_user_email=user_email,
         requesting_user_name=user_name,
         justification=justification,
-        admin_panel_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+        admin_panel_url=st.secrets.get("app", {}).get("url", "https://isnpecoessmaia.streamlit.app")
     )
 
 def send_trial_expiration_notifications():
