@@ -1,7 +1,6 @@
 import requests
 import streamlit as st
 import logging
-import json
 from datetime import datetime
 from gdrive.gdrive_upload import GoogleDriveUploader
 
@@ -27,6 +26,9 @@ class GitHubNotificationHandler:
             **kwargs: Dados adicionais específicos do tipo de notificação
         """
         try:
+            from gdrive.config import get_sao_paulo_time_str
+            import json
+            
             # Prepara dados JSON para a coluna de dados
             notification_data = {
                 'login_url': kwargs.get('login_url', 'https://sua-app.streamlit.app'),
@@ -135,6 +137,19 @@ def notify_payment_confirmed(user_email: str, user_name: str, plan_name: str):
         recipient_name=user_name,
         plan_name=plan_name,
         login_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
+    )
+
+def notify_new_access_request(admin_email: str, user_email: str, user_name: str, justification: str = ""):
+    """Notifica admin sobre nova solicitação de acesso"""
+    handler = get_notification_handler()
+    return handler.trigger_notification_workflow(
+        notification_type="new_access_request",
+        recipient_email=admin_email,
+        recipient_name="Administrador",
+        requesting_user_email=user_email,
+        requesting_user_name=user_name,
+        justification=justification,
+        admin_panel_url=st.secrets.get("app", {}).get("url", "https://sua-app.streamlit.app")
     )
 
 def send_trial_expiration_notifications():
