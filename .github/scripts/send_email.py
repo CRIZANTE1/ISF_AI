@@ -199,7 +199,14 @@ def send_email(smtp_config, recipient_email, subject, body_html):
     """Envia email usando configuração SMTP"""
     try:
         msg = MIMEMultipart('alternative')
-        msg['From'] = f"{smtp_config['from_name']} <{smtp_config['from_email']}>"
+        
+        # Limpa e valida os campos do cabeçalho
+        from_name = smtp_config['from_name'].strip().replace('\n', '').replace('\r', '')
+        from_email = smtp_config['from_email'].strip().replace('\n', '').replace('\r', '')
+        recipient_email = recipient_email.strip().replace('\n', '').replace('\r', '')
+        subject = subject.strip().replace('\n', ' ').replace('\r', ' ')
+        
+        msg['From'] = f"{from_name} <{from_email}>"
         msg['To'] = recipient_email
         msg['Subject'] = subject
         
