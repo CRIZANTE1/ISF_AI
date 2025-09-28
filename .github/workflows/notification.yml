@@ -36,4 +36,4 @@ jobs:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
       run: |
-        python .github/scripts/process_notifications.py
+        python .github/scripts/send_email.py
