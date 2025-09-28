@@ -244,3 +244,12 @@ notificacoes_pendentes:
   - nome_destinatario
   - dados_json
   - status
+
+log_baixas_extintores:
+  - data_baixa
+  - numero_identificacao
+  - motivo_condenacao
+  - responsavel_baixa
+  - numero_identificacao_substituto
+  - observacoes
+  - link_foto_evidencia
