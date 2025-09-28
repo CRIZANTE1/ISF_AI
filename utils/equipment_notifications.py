@@ -67,10 +67,56 @@ def get_notification_handler():
     try:
         from utils.github_notifications import get_notification_handler as _get_handler
         return _get_handler()
-    except ImportError:
-        # Fallback para GitHub Actions - implementação simplificada
-        from utils.github_notifications import GitHubNotificationHandler
-        return GitHubNotificationHandler()
+    except (ImportError, ModuleNotFoundError):
+        # Fallback para GitHub Actions. A lógica do handler é replicada aqui
+        # para evitar o erro de import do Streamlit de github_notifications.py.
+        import json
+        from datetime import datetime
+
+        logger.info("Using fallback notification handler defined in equipment_notifications.py.")
+
+        class FallbackGitHubNotificationHandler:
+            def queue_notification(self, notification_type: str, recipient_email: str, 
+                                  recipient_name: str, **kwargs):
+                try:
+                    # Prepara dados JSON para a coluna de dados
+                    notification_data = {**kwargs}
+                    
+                    # Linha para adicionar na planilha
+                    notification_row = [
+                        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # timestamp
+                        notification_type,                             # tipo_notificacao
+                        recipient_email,                               # email_destinatario
+                        recipient_name,                               # nome_destinatario
+                        json.dumps(notification_data, ensure_ascii=False, default=str),  # dados_json
+                        'pendente'                                    # status
+                    ]
+                    
+                    # Adiciona à planilha matriz
+                    matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                    matrix_uploader.append_data_to_sheet('notificacoes_pendentes', [notification_row])
+                    
+                    logger.info(f"Notificação '{notification_type}' adicionada à fila para {recipient_email}")
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Erro ao adicionar notificação à fila: {e}")
+                    return False
+    
+            def trigger_notification_workflow(self, notification_type: str, recipient_email: str, 
+                                            recipient_name: str, **kwargs):
+                success = self.queue_notification(
+                    notification_type, recipient_email, recipient_name, **kwargs
+                )
+                
+                if success:
+                    logger.info(f"Notificação '{notification_type}' adicionada à fila para processamento automático")
+                else:
+                    logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
+                
+                return success
+
+        return FallbackGitHubNotificationHandler()
 
 def get_users_data():
     """Carrega dados de usuários com import dinâmico"""
