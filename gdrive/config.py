@@ -47,6 +47,8 @@ ALARM_INVENTORY_SHEET_NAME = "alarmes_inventario"
 ALARM_INSPECTIONS_SHEET_NAME = "alarmes_inspecoes"
 LOG_ALARM_SHEET_NAME = "log_alarmes"
 SUPPORT_REQUESTS_SHEET_NAME = "solicitacoes_suporte"
+EXTINGUISHER_DISPOSAL_LOG_SHEET_NAME = "log_baixas_extintores"
+
 
 
 def get_credentials_dict():
