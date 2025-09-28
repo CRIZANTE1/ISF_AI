@@ -220,16 +220,46 @@ def show_page():
                                     matrix_uploader.append_data_to_sheet(USERS_SHEET_NAME, [new_user_row])
                                     matrix_uploader.update_cells(ACCESS_REQUESTS_SHEET_NAME, f"F{index + 2}", [['Aprovado']])
                                     log_action("APROVOU_ACESSO_COM_TRIAL", f"Email: {request['email_usuario']}")
-                                    st.success(f"Usuário {request['nome_usuario']} aprovado com 14 dias de teste Premium!")
+                                    
+                                    # NOVA FUNCIONALIDADE: Enviar notificação por email
+                                    try:
+                                        from utils.github_notifications import notify_access_approved
+                                        notification_sent = notify_access_approved(
+                                            user_email=request['email_usuario'],
+                                            user_name=request['nome_usuario'],
+                                            trial_days=14
+                                        )
+                                        if notification_sent:
+                                            st.success(f"✅ Usuário {request['nome_usuario']} aprovado e notificado por email!")
+                                        else:
+                                            st.success(f"✅ Usuário {request['nome_usuario']} aprovado!")
+                                            st.warning("⚠️ Notificação por email falhou, mas o acesso foi liberado.")
+                                    except Exception as e:
+                                        st.success(f"✅ Usuário {request['nome_usuario']} aprovado!")
+                                        st.warning(f"⚠️ Erro na notificação: {e}")
+                                    
                                     st.cache_data.clear(); st.rerun()
-
+                        
                         if cols[2].button("Rejeitar", key=f"reject_{index}"):
+                            # Adiciona campo para motivo da rejeição
+                            rejection_reason = st.text_input(f"Motivo da rejeição (opcional):", key=f"reason_{index}")
+                            
                             matrix_uploader.update_cells(ACCESS_REQUESTS_SHEET_NAME, f"F{index + 2}", [['Rejeitado']])
                             log_action("REJEITOU_ACESSO", f"Email: {request['email_usuario']}")
-                            st.warning(f"Solicitação de {request['nome_usuario']} rejeitada.")
+                            
+                            # Enviar notificação de rejeição
+                            try:
+                                from utils.github_notifications import notify_access_denied
+                                notify_access_denied(
+                                    user_email=request['email_usuario'],
+                                    user_name=request['nome_usuario'],
+                                    reason=rejection_reason
+                                )
+                                st.warning(f"Solicitação de {request['nome_usuario']} rejeitada e usuário notificado.")
+                            except:
+                                st.warning(f"Solicitação de {request['nome_usuario']} rejeitada.")
+                            
                             st.cache_data.clear(); st.rerun()
-        except Exception as e:
-            st.error(f"Não foi possível carregar as solicitações de acesso: {e}")
 
     with tab_users:
         st.header("Gerenciar Usuários e Planos")
