@@ -3,13 +3,31 @@ Sistema de Notificações Periódicas de Equipamentos
 Monitora vencimentos e pendências, enviando alertas automáticos para usuários
 """
 
-import streamlit as st
+import os
 import pandas as pd
 import logging
 from datetime import date, timedelta
 from typing import List, Dict, Any
-from utils.github_notifications import get_notification_handler
-from auth.auth_utils import get_users_data
+
+# Imports condicionais para compatibilidade com GitHub Actions
+try:
+    import streamlit as st
+    STREAMLIT_AVAILABLE = True
+except ImportError:
+    STREAMLIT_AVAILABLE = False
+    # Mock do st.secrets para GitHub Actions
+    class MockSecrets:
+        @staticmethod
+        def get(key, default=None):
+            if key == "app" and default is None:
+                return {"url": os.environ.get("APP_URL", "https://sua-app.streamlit.app")}
+            return default or {}
+    
+    class MockSt:
+        secrets = MockSecrets()
+    
+    st = MockSt()
+
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import (
     EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SCBA_SHEET_NAME,
@@ -18,6 +36,32 @@ from gdrive.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+def get_notification_handler():
+    """Carrega o handler de notificações com import dinâmico"""
+    try:
+        from utils.github_notifications import get_notification_handler as _get_handler
+        return _get_handler()
+    except ImportError:
+        # Fallback para GitHub Actions - implementação simplificada
+        from utils.github_notifications import GitHubNotificationHandler
+        return GitHubNotificationHandler()
+
+def get_users_data():
+    """Carrega dados de usuários com import dinâmico"""
+    try:
+        from auth.auth_utils import get_users_data as _get_users
+        return _get_users()
+    except ImportError:
+        # Fallback para GitHub Actions - carrega diretamente da planilha
+        matrix_uploader = GoogleDriveUploader(is_matrix=True)
+        users_data = matrix_uploader.get_data_from_sheet("usuarios")
+        
+        if not users_data or len(users_data) < 2:
+            return pd.DataFrame()
+        
+        df = pd.DataFrame(users_data[1:], columns=users_data[0])
+        return df
 
 class EquipmentNotificationSystem:
     """Sistema de notificações para equipamentos vencendo e pendências"""
