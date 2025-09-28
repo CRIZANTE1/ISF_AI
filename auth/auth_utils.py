@@ -274,18 +274,45 @@ def setup_sidebar():
 def save_access_request(user_name, user_email, justification):
     try:
         sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
-        timestamp = datetime.now(sao_paulo_tz).strftime('%Y-m-%d %H:%M:%S')
+        timestamp = datetime.now(sao_paulo_tz).strftime('%Y-%m-%d %H:%M:%S')
         request_row = [timestamp, user_name, user_email, "Solicitação de Trial", justification, "Pendente"]
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
+        
+        # Verifica se já existe solicitação pendente
         requests_data = matrix_uploader.get_data_from_sheet(ACCESS_REQUESTS_SHEET_NAME)
         if requests_data and len(requests_data) > 1:
             df_requests = pd.DataFrame(requests_data[1:], columns=requests_data[0])
             if not df_requests[(df_requests['email_usuario'] == user_email) & (df_requests['status'] == 'Pendente')].empty:
-                st.warning("Você já possui uma solicitação de acesso pendente."); return False
+                st.warning("Você já possui uma solicitação de acesso pendente.")
+                return False
+        
+        # Salva a solicitação
         matrix_uploader.append_data_to_sheet(ACCESS_REQUESTS_SHEET_NAME, [request_row])
+        
+        try:
+            from utils.github_notifications import notify_new_access_request
+            
+            # Busca email do admin dos secrets
+            admin_email = st.secrets.get("superuser", {}).get("admin_email")
+            
+            if admin_email:
+                notify_new_access_request(
+                    admin_email=admin_email,
+                    user_email=user_email,
+                    user_name=user_name,
+                    justification=justification or "Nenhuma justificativa fornecida"
+                )
+                st.info("📧 O administrador foi notificado sobre sua solicitação.")
+            
+        except Exception as notification_error:
+            # Se a notificação falhar, não impede o salvamento da solicitação
+            print(f"Aviso: Falha ao enviar notificação para admin: {notification_error}")
+        
         return True
+        
     except Exception as e:
-        st.error(f"Ocorreu um erro ao enviar sua solicitação: {e}"); return False
+        st.error(f"Ocorreu um erro ao enviar sua solicitação: {e}")
+        return False
 
 # Função de diagnóstico para ajudar a identificar problemas
 def diagnose_users_sheet():
