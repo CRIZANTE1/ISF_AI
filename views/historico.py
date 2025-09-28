@@ -109,11 +109,19 @@ def display_disposal_summary():
     """Exibe um resumo das baixas por tipo de equipamento."""
     try:
         # Carrega dados de baixas de extintores
-        from operations.extinguisher_disposal_operations import get_disposed_extinguishers
-        df_ext_disposed = get_disposed_extinguishers()
+        try:
+            from operations.extinguisher_disposal_operations import get_disposed_extinguishers
+            df_ext_disposed = get_disposed_extinguishers()
+        except Exception as e:
+            st.warning(f"Não foi possível carregar dados de baixas de extintores: {e}")
+            df_ext_disposed = pd.DataFrame()
         
         # Carrega dados de baixas de mangueiras
-        df_hose_disposed = load_sheet_data(HOSE_DISPOSAL_LOG_SHEET_NAME)
+        try:
+            df_hose_disposed = load_sheet_data(HOSE_DISPOSAL_LOG_SHEET_NAME)
+        except Exception as e:
+            st.warning(f"Não foi possível carregar dados de baixas de mangueiras: {e}")
+            df_hose_disposed = pd.DataFrame()
         
         # Calcula estatísticas
         total_ext_disposed = len(df_ext_disposed) if not df_ext_disposed.empty else 0
@@ -130,7 +138,7 @@ def display_disposal_summary():
         st.markdown("---")
         
         # Gráfico de motivos mais comuns (se houver dados)
-        if not df_ext_disposed.empty:
+        if not df_ext_disposed.empty and 'motivo_condenacao' in df_ext_disposed.columns:
             st.subheader("📈 Principais Motivos de Baixa - Extintores")
             motivos_count = df_ext_disposed['motivo_condenacao'].value_counts()
             if not motivos_count.empty:
@@ -138,7 +146,6 @@ def display_disposal_summary():
         
     except Exception as e:
         st.error(f"Erro ao carregar resumo de baixas: {e}")
-
 def show_page():
     st.title("Histórico e Logs do Sistema")
     
@@ -217,17 +224,18 @@ def show_page():
                 
                 if df_disposed.empty:
                     st.info("✅ Nenhum extintor foi baixado definitivamente.")
+                    st.info("💡 **Dica:** Quando realizar a primeira baixa, a aba será criada automaticamente.")
                 else:
                     # Formatação especial para extintores baixados
                     df_formatted = df_disposed.rename(columns=ALL_COLUMNS)
                     
                     # Configuração de colunas com links
-                    column_config = {
-                        "Evidência Fotográfica": st.column_config.LinkColumn(
+                    column_config = {}
+                    if "Evidência Fotográfica" in df_formatted.columns:
+                        column_config["Evidência Fotográfica"] = st.column_config.LinkColumn(
                             "Evidência Fotográfica", 
                             display_text="📷 Ver Foto"
                         )
-                    }
                     
                     st.dataframe(
                         df_formatted,
@@ -243,18 +251,25 @@ def show_page():
                     
                     with col1:
                         st.write("**Motivos de Baixa:**")
-                        motivos_count = df_disposed['motivo_condenacao'].value_counts()
-                        for motivo, count in motivos_count.items():
-                            st.write(f"• {motivo}: {count}")
+                        if 'motivo_condenacao' in df_disposed.columns:
+                            motivos_count = df_disposed['motivo_condenacao'].value_counts()
+                            for motivo, count in motivos_count.items():
+                                st.write(f"• {motivo}: {count}")
+                        else:
+                            st.write("• Dados não disponíveis")
                     
                     with col2:
                         st.write("**Responsáveis pelas Baixas:**")
-                        responsaveis_count = df_disposed['responsavel_baixa'].value_counts()
-                        for responsavel, count in responsaveis_count.items():
-                            st.write(f"• {responsavel}: {count}")
+                        if 'responsavel_baixa' in df_disposed.columns:
+                            responsaveis_count = df_disposed['responsavel_baixa'].value_counts()
+                            for responsavel, count in responsaveis_count.items():
+                                st.write(f"• {responsavel}: {count}")
+                        else:
+                            st.write("• Dados não disponíveis")
                             
             except Exception as e:
                 st.error(f"Erro ao carregar registros de baixa de extintores: {e}")
+                st.info("A aba de baixas será criada automaticamente quando a primeira baixa for realizada.")
         
         with disposal_subtabs[1]:
             st.subheader("Mangueiras com Baixa Definitiva")
