@@ -108,6 +108,8 @@ def display_formatted_dataframe(sheet_name):
 def display_disposal_summary():
     """Exibe um resumo das baixas por tipo de equipamento."""
     try:
+        from datetime import datetime
+        
         # Carrega dados de baixas de extintores
         try:
             from operations.extinguisher_disposal_operations import get_disposed_extinguishers
@@ -123,19 +125,79 @@ def display_disposal_summary():
             st.warning(f"Não foi possível carregar dados de baixas de mangueiras: {e}")
             df_hose_disposed = pd.DataFrame()
         
-        # Calcula estatísticas
+        # Calcula estatísticas gerais
         total_ext_disposed = len(df_ext_disposed) if not df_ext_disposed.empty else 0
         total_hose_disposed = len(df_hose_disposed) if not df_hose_disposed.empty else 0
         total_disposed = total_ext_disposed + total_hose_disposed
+        
+        # Calcula baixas do mês atual
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        
+        monthly_ext_disposed = 0
+        monthly_hose_disposed = 0
+        
+        # Conta extintores baixados este mês
+        if not df_ext_disposed.empty and 'data_baixa' in df_ext_disposed.columns:
+            df_ext_disposed['data_baixa_dt'] = pd.to_datetime(df_ext_disposed['data_baixa'], errors='coerce')
+            monthly_ext_disposed = len(df_ext_disposed[
+                (df_ext_disposed['data_baixa_dt'].dt.month == current_month) &
+                (df_ext_disposed['data_baixa_dt'].dt.year == current_year)
+            ])
+        
+        # Conta mangueiras baixadas este mês
+        if not df_hose_disposed.empty and 'data_baixa' in df_hose_disposed.columns:
+            df_hose_disposed['data_baixa_dt'] = pd.to_datetime(df_hose_disposed['data_baixa'], errors='coerce')
+            monthly_hose_disposed = len(df_hose_disposed[
+                (df_hose_disposed['data_baixa_dt'].dt.month == current_month) &
+                (df_hose_disposed['data_baixa_dt'].dt.year == current_year)
+            ])
+        
+        total_monthly_disposed = monthly_ext_disposed + monthly_hose_disposed
         
         # Exibe métricas
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("📊 Total de Baixas", total_disposed)
         col2.metric("🔥 Extintores Baixados", total_ext_disposed)
         col3.metric("💧 Mangueiras Baixadas", total_hose_disposed)
-        col4.metric("📅 Este Mês", "Em desenvolvimento")  # Pode ser implementado depois
+        col4.metric("📅 Este Mês", total_monthly_disposed, 
+                   delta=f"{monthly_ext_disposed} ext. + {monthly_hose_disposed} mang." if total_monthly_disposed > 0 else None)
         
         st.markdown("---")
+        
+        # Seção adicional com detalhes mensais
+        if total_monthly_disposed > 0:
+            st.subheader(f"📅 Detalhes do Mês Atual ({datetime.now().strftime('%B/%Y')})")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if monthly_ext_disposed > 0:
+                    st.write(f"**Extintores baixados este mês: {monthly_ext_disposed}**")
+                    # Mostra os IDs dos extintores baixados este mês
+                    monthly_ext_ids = df_ext_disposed[
+                        (df_ext_disposed['data_baixa_dt'].dt.month == current_month) &
+                        (df_ext_disposed['data_baixa_dt'].dt.year == current_year)
+                    ]['numero_identificacao'].tolist()
+                    for ext_id in monthly_ext_ids:
+                        st.write(f"• {ext_id}")
+                else:
+                    st.write("**Nenhum extintor baixado este mês**")
+            
+            with col2:
+                if monthly_hose_disposed > 0:
+                    st.write(f"**Mangueiras baixadas este mês: {monthly_hose_disposed}**")
+                    # Mostra os IDs das mangueiras baixadas este mês
+                    monthly_hose_ids = df_hose_disposed[
+                        (df_hose_disposed['data_baixa_dt'].dt.month == current_month) &
+                        (df_hose_disposed['data_baixa_dt'].dt.year == current_year)
+                    ]['id_mangueira'].tolist()
+                    for hose_id in monthly_hose_ids:
+                        st.write(f"• {hose_id}")
+                else:
+                    st.write("**Nenhuma mangueira baixada este mês**")
+            
+            st.markdown("---")
         
         # Gráfico de motivos mais comuns (se houver dados)
         if not df_ext_disposed.empty and 'motivo_condenacao' in df_ext_disposed.columns:
@@ -144,8 +206,28 @@ def display_disposal_summary():
             if not motivos_count.empty:
                 st.bar_chart(motivos_count)
         
+        # Gráfico de evolução mensal (se houver dados suficientes)
+        if not df_ext_disposed.empty and len(df_ext_disposed) > 0:
+            st.subheader("📈 Evolução de Baixas por Mês")
+            
+            # Prepara dados para o gráfico mensal
+            df_monthly = df_ext_disposed.copy()
+            df_monthly['data_baixa_dt'] = pd.to_datetime(df_monthly['data_baixa'], errors='coerce')
+            df_monthly = df_monthly.dropna(subset=['data_baixa_dt'])
+            
+            if not df_monthly.empty:
+                df_monthly['mes_ano'] = df_monthly['data_baixa_dt'].dt.to_period('M')
+                monthly_counts = df_monthly.groupby('mes_ano').size().reset_index(name='quantidade')
+                monthly_counts['mes_ano_str'] = monthly_counts['mes_ano'].astype(str)
+                
+                if len(monthly_counts) > 1:  # Só mostra gráfico se há mais de um mês
+                    st.bar_chart(monthly_counts.set_index('mes_ano_str')['quantidade'])
+                else:
+                    st.info("Dados insuficientes para gráfico de evolução mensal.")
+        
     except Exception as e:
         st.error(f"Erro ao carregar resumo de baixas: {e}")
+        
 def show_page():
     st.title("Histórico e Logs do Sistema")
     
