@@ -366,8 +366,150 @@ EMAIL_TEMPLATES = {
 </body>
 </html>
 '''
+    },
+    'invitation_email': {
+        'subject': '🚀 Convite Especial - ISF IA | Sistema de Gestão de Inspeções',
+        'template': '''
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convite Especial - ISF IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .highlight-box { background-color: #f0f4ff; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .feature-list { background-color: #f8f9fa; border-radius: 5px; padding: 20px; margin: 20px 0; }
+        .action-button { display: inline-block; background-color: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; font-size: 16px; }
+        .action-button:hover { background-color: #5568d3; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-box { background-color: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #667eea; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+        .urgent-box { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Você foi convidado!</h1>
+            <p style="font-size: 18px;">Descubra o futuro da gestão de segurança contra incêndio</p>
+        </div>
+        
+        <div class="content">
+            <p>Olá <strong>{{recipient_name}}</strong>,</p>
+            
+            <p>Notamos que você tentou acessar o <strong>ISF IA</strong> - Sistema Integrado de Segurança contra Incêndio com Inteligência Artificial.</p>
+            
+            <div class="highlight-box">
+                <h3>✨ Você está a um clique de revolucionar sua gestão de segurança!</h3>
+                <p>O ISF IA é a plataforma mais avançada do mercado para gestão, inspeção e manutenção de equipamentos de combate a incêndio.</p>
+            </div>
+
+            <h3>🎯 Por que escolher o ISF IA?</h3>
+            
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number">80%</div>
+                    <div>Redução de tempo</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">100%</div>
+                    <div>Conformidade</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">24/7</div>
+                    <div>Acesso aos dados</div>
+                </div>
+            </div>
+
+            <div class="feature-list">
+                <h4>💡 Principais Funcionalidades:</h4>
+                <ul>
+                    <li>🤖 <strong>IA Avançada:</strong> Extração automática de dados de PDFs e relatórios</li>
+                    <li>📱 <strong>Inspeção Digital:</strong> QR Code, geolocalização e fotos integradas</li>
+                    <li>📊 <strong>Dashboards Interativos:</strong> Visualize tudo em tempo real</li>
+                    <li>🔧 <strong>Gestão Completa:</strong> Extintores, mangueiras, SCBAs, chuveiros e muito mais</li>
+                    <li>📄 <strong>Relatórios Automáticos:</strong> Mensais, anuais e personalizados</li>
+                    <li>☁️ <strong>100% em Nuvem:</strong> Google Sheets e Drive para máxima segurança</li>
+                </ul>
+            </div>
+
+            <div class="urgent-box">
+                <h3>🎁 Oferta Especial para Novos Usuários</h3>
+                <p><strong>14 dias de Trial Premium IA GRATUITO!</strong></p>
+                <p>Teste todas as funcionalidades avançadas sem compromisso.</p>
+                <ul>
+                    <li>✅ Acesso completo ao plano Premium IA</li>
+                    <li>✅ Processamento ilimitado com IA</li>
+                    <li>✅ Suporte prioritário</li>
+                    <li>✅ Sem cartão de crédito necessário</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{request_access_url}}" class="action-button">🚀 Solicitar Acesso Gratuito Agora</a>
+            </div>
+
+            <h3>📋 Como Funciona?</h3>
+            <ol>
+                <li><strong>Solicite seu acesso:</strong> Clique no botão acima e faça login com sua conta Google</li>
+                <li><strong>Preencha o formulário:</strong> Breve justificativa sobre seu interesse</li>
+                <li><strong>Aprovação rápida:</strong> Nossa equipe analisa em até 24 horas</li>
+                <li><strong>Comece a usar:</strong> Receba notificação e ambiente configurado</li>
+                <li><strong>Teste por 14 dias:</strong> Explore todas as funcionalidades Premium IA</li>
+            </ol>
+
+            <div class="highlight-box">
+                <h4>💬 Depoimentos de Clientes</h4>
+                <p><em>"O ISF IA reduziu em 70% o tempo gasto com inspeções. A IA é incrível!"</em></p>
+                <p style="text-align: right;"><strong>- João Silva, Gerente de Segurança</strong></p>
+                
+                <p><em>"Finalmente conseguimos centralizar todos os dados em um só lugar. Recomendo!"</em></p>
+                <p style="text-align: right;"><strong>- Maria Santos, Coordenadora HSE</strong></p>
+            </div>
+
+            <h3>🎓 Recursos Disponíveis</h3>
+            <ul>
+                <li>📚 <a href="{{documentation_url}}">Documentação Completa</a></li>
+                <li>🎥 <a href="{{video_demo_url}}">Vídeo Demonstrativo</a> (em breve)</li>
+                <li>💡 <a href="{{faq_url}}">Perguntas Frequentes</a></li>
+            </ul>
+
+            <div class="urgent-box">
+                <p><strong>⏰ Oferta Limitada!</strong></p>
+                <p>As vagas para o trial gratuito são limitadas. Garanta a sua agora!</p>
+            </div>
+            
+            <p><strong>Tem dúvidas? Nossa equipe está pronta para ajudar:</strong></p>
+            <ul>
+                <li>📧 Email: cristian.ferreira.carlos@gmail.com</li>
+                <li>💼 LinkedIn: <a href="https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/">Cristian Ferreira Carlos</a></li>
+            </ul>
+            
+            <p>Não perca esta oportunidade de transformar sua gestão de segurança!</p>
+            
+            <p>Atenciosamente,<br>
+            <strong>Equipe ISF IA</strong><br>
+            <em>Inovação e Segurança</em></p>
+        </div>
+        
+        <div class="footer">
+            <p>Este é um convite automático do sistema ISF IA.</p>
+            <p>Você recebeu este email porque tentou acessar nossa plataforma em <strong>{{recipient_email}}</strong>.</p>
+            <p>Se não foi você, por favor ignore este email.</p>
+        </div>
+    </div>
+</body>
+</html>
+'''
     }
+
 }
+
 def get_google_sheets_service():
     """Inicializa serviço do Google Sheets"""
     credentials_json = os.environ['GOOGLE_CREDENTIALS']
