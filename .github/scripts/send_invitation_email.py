@@ -41,6 +41,7 @@ def get_google_sheets_service():
 
 
 
+
 def get_pending_invitations(sheets_service, spreadsheet_id):
     """
     Busca emails que já têm convites pendentes ou enviados NAS ÚLTIMAS 7 DIAS
@@ -107,6 +108,59 @@ def get_pending_invitations(sheets_service, spreadsheet_id):
         logger.error(traceback.format_exc())
         return set()
 
+# Alteração na função get_unauthorized_access_attempts (linha ~85)
+
+def get_existing_users(sheets_service, spreadsheet_id):
+    """
+    Busca emails que já estão cadastrados na planilha de usuários
+    """
+    try:
+        range_name = "usuarios!A:L"  # Ajuste conforme necessário
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name
+        ).execute()
+        
+        values = result.get('values', [])
+        if not values or len(values) < 2:
+            logger.info("Nenhum usuário encontrado na planilha de usuários")
+            return set()
+        
+        # Log da estrutura para debug
+        logger.info(f"Estrutura da planilha de usuários:")
+        logger.info(f"  Cabeçalho: {values[0]}")
+        logger.info(f"  Total de usuários: {len(values) - 1}")
+        
+        # Encontra a coluna de email
+        email_col_index = None
+        for i, header in enumerate(values[0]):
+            if 'email' in header.lower():
+                email_col_index = i
+                break
+        
+        if email_col_index is None:
+            logger.error("Coluna de email não encontrada na planilha de usuários!")
+            return set()
+        
+        # Coleta todos os emails cadastrados
+        existing_emails = set()
+        for row in values[1:]:
+            if len(row) > email_col_index:
+                email = row[email_col_index].strip().lower()
+                if email and '@' in email:
+                    existing_emails.add(email)
+        
+        logger.info(f"Total de emails cadastrados na planilha: {len(existing_emails)}")
+        if existing_emails and len(existing_emails) <= 10:
+            logger.info(f"  Lista: {list(existing_emails)}")
+        
+        return existing_emails
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar usuários existentes: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return set()
 
 def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
     """
@@ -145,7 +199,10 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
         # Busca emails que já receberam convite recentemente (últimos 7 dias)
         invited_emails = get_pending_invitations(sheets_service, spreadsheet_id)
         
-        # ✅ ALTERADO: Processa tentativas de acesso não autorizadas NOS ÚLTIMOS 7 DIAS
+        # ✅ NOVO: Busca emails que já estão cadastrados como usuários
+        existing_users = get_existing_users(sheets_service, spreadsheet_id)
+        
+        # Processa tentativas de acesso não autorizadas NOS ÚLTIMOS 7 DIAS
         cutoff_time = datetime.now() - timedelta(days=7)
         logger.info(f"Cutoff time (7 dias atrás): {cutoff_time.strftime('%Y-%m-%d %H:%M:%S')}")
         
@@ -153,11 +210,12 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
         seen_emails = set()
         email_attempt_count = {}
         
-        # ✅ CONTADORES DE DEBUG
+        # CONTADORES DE DEBUG
         total_rows = 0
         access_denied_rows = 0
         within_time_window = 0
         already_invited = 0
+        already_user = 0  # ✅ NOVO: Contador para usuários já cadastrados
         email_parse_errors = 0
         
         for i, row in enumerate(values[1:], 2):
@@ -216,6 +274,13 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
                             email_attempt_count[email] = 0
                         email_attempt_count[email] += 1
                         
+                        # ✅ NOVO: Verifica se já é usuário cadastrado
+                        if email in existing_users:
+                            already_user += 1
+                            if already_user <= 3:  # Mostra apenas os 3 primeiros
+                                logger.info(f"Email {email} já é usuário cadastrado - não será convidado")
+                            continue
+                        
                         # Verifica se já tem convite RECENTE
                         if email in invited_emails:
                             already_invited += 1
@@ -237,12 +302,13 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
                         unauthorized_attempts.append(attempt)
                         logger.info(f"✉️ Novo convite será criado para: {email} ({email_attempt_count[email]} tentativas)")
         
-        # ✅ RELATÓRIO FINAL
+        # RELATÓRIO FINAL
         logger.info("=" * 60)
         logger.info("RELATÓRIO DE PROCESSAMENTO:")
         logger.info(f"  Total de linhas processadas: {total_rows}")
         logger.info(f"  ACCESS_DENIED_UNAUTHORIZED encontrados: {access_denied_rows}")
         logger.info(f"  Dentro da janela de tempo (7 dias): {within_time_window}")
+        logger.info(f"  Já são usuários cadastrados: {already_user}")
         logger.info(f"  Já convidados recentemente: {already_invited}")
         logger.info(f"  Erros ao extrair email: {email_parse_errors}")
         logger.info(f"  TOTAL DE NOVOS CONVITES: {len(unauthorized_attempts)}")
@@ -255,7 +321,7 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
         import traceback
         logger.error(traceback.format_exc())
         return []
-
+        
 def create_invitation_notification(sheets_service, spreadsheet_id, email, app_url):
     """Cria uma notificação de convite na aba notificacoes_pendentes"""
     try:
