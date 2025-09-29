@@ -39,7 +39,6 @@ def get_google_sheets_service():
         logger.error(f"Erro ao inicializar serviço Google Sheets: {e}")
         raise
 
-# Alteração na função get_pending_invitations (linha ~32)
 
 def get_pending_invitations(sheets_service, spreadsheet_id):
     """
@@ -54,13 +53,21 @@ def get_pending_invitations(sheets_service, spreadsheet_id):
         
         values = result.get('values', [])
         if not values or len(values) < 2:
+            logger.info("Nenhuma notificação pendente encontrada na planilha")
             return set()
         
-        # ✅ ALTERADO: Apenas considera convites recentes (últimas 7 DIAS)
+        # Log da estrutura para debug
+        logger.info(f"Estrutura de notificacoes_pendentes:")
+        logger.info(f"  Cabeçalho: {values[0]}")
+        logger.info(f"  Total de linhas: {len(values) - 1}")
+        
+        # Apenas considera convites recentes (últimas 7 DIAS)
         cutoff_time = datetime.now() - timedelta(days=7)
         
         # Coleta emails que já têm convite recente
         invited_emails = set()
+        invitation_count = 0
+        
         for row in values[1:]:
             if len(row) >= 6:
                 timestamp_str = row[0]
@@ -70,24 +77,33 @@ def get_pending_invitations(sheets_service, spreadsheet_id):
                 
                 # Apenas invitation_email conta
                 if tipo_notificacao == 'invitation_email' and email:
+                    invitation_count += 1
                     try:
                         # Parse timestamp
                         timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
                         
-                        # ✅ Se o convite foi enviado nos últimos 7 dias, considera como "já convidado"
+                        # Se o convite foi enviado nos últimos 7 dias, considera como "já convidado"
                         if timestamp >= cutoff_time:
                             invited_emails.add(email.strip().lower())
-                            logger.info(f"Email {email} já tem convite recente (enviado em {timestamp_str})")
+                            logger.info(f"  ✓ Email {email} tem convite recente (enviado em {timestamp_str}, status: {status})")
+                        else:
+                            logger.info(f"  ✗ Email {email} tem convite antigo (enviado em {timestamp_str}) - ignorado")
                     except Exception as e:
-                        # Se não conseguir fazer parse da data, ignora
                         logger.warning(f"Erro ao fazer parse da data {timestamp_str}: {e}")
                         pass
         
-        logger.info(f"Encontrados {len(invited_emails)} emails com convites recentes (últimos 7 dias)")
+        logger.info(f"Resumo de convites:")
+        logger.info(f"  Total de invitation_email na planilha: {invitation_count}")
+        logger.info(f"  Emails com convites recentes (últimos 7 dias): {len(invited_emails)}")
+        if invited_emails:
+            logger.info(f"  Lista: {list(invited_emails)}")
+        
         return invited_emails
         
     except Exception as e:
         logger.error(f"Erro ao buscar convites pendentes: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return set()
 
 
@@ -114,9 +130,16 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
         logger.info(f"Estrutura do log de auditoria:")
         logger.info(f"  Cabeçalho: {values[0]}")
         logger.info(f"  Total de linhas: {len(values)}")
-        logger.info(f"  Primeiras 3 linhas de exemplo:")
-        for i, row in enumerate(values[1:4], 1):
-            logger.info(f"    Linha {i}: {row}")
+        
+        # Mostra exemplos de ACCESS_DENIED_UNAUTHORIZED
+        sample_count = 0
+        for i, row in enumerate(values[1:], 1):
+            if len(row) >= 4:
+                action = row[2] if len(row) > 2 else ""
+                if action == "ACCESS_DENIED_UNAUTHORIZED":
+                    sample_count += 1
+                    if sample_count <= 3:
+                        logger.info(f"  Exemplo {sample_count}: {row}")
         
         # Busca emails que já receberam convite recentemente (últimos 7 dias)
         invited_emails = get_pending_invitations(sheets_service, spreadsheet_id)
@@ -225,88 +248,6 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
         logger.error(f"Erro ao buscar tentativas de acesso: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return []
-
-
-def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
-    """
-    Busca tentativas de acesso não autorizadas que ainda não receberam convite RECENTEMENTE
-    """
-    try:
-        logger.info("Buscando tentativas de acesso não autorizadas...")
-        
-        # Busca no log de auditoria
-        range_name = "log_auditoria!A:E"
-        result = sheets_service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id,
-            range=range_name
-        ).execute()
-        
-        values = result.get('values', [])
-        if not values or len(values) < 2:
-            logger.info("Nenhum log de auditoria encontrado")
-            return []
-        
-        # Busca emails que já receberam convite recentemente (últimas 24h)
-        invited_emails = get_pending_invitations(sheets_service, spreadsheet_id)
-        
-        # Processa tentativas de acesso não autorizadas NAS ÚLTIMAS 48 HORAS
-        cutoff_time = datetime.now() - timedelta(hours=48)
-        unauthorized_attempts = []
-        seen_emails = set()  # Para evitar duplicatas na mesma execução
-        
-        for i, row in enumerate(values[1:], 2):
-            if len(row) >= 4:
-                timestamp_str = row[0]
-                action = row[2] if len(row) > 2 else ""
-                details = row[3] if len(row) > 3 else ""
-                
-                if action == "ACCESS_DENIED_UNAUTHORIZED" and "Email:" in details:
-                    try:
-                        # Parse timestamp
-                        log_timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                        
-                        # Apenas considera tentativas recentes (últimas 48h)
-                        if log_timestamp < cutoff_time:
-                            continue
-                        
-                    except:
-                        # Se não conseguir fazer parse da data, considera a tentativa
-                        pass
-                    
-                    # Extrai email
-                    try:
-                        email = details.split("Email:")[1].strip().lower()
-                    except:
-                        continue
-                    
-                    # Valida email
-                    if not email or '@' not in email:
-                        continue
-                    
-                    # Verifica se já tem convite RECENTE (últimas 24h)
-                    if email in invited_emails:
-                        logger.info(f"Email {email} já tem convite recente - não será convidado novamente")
-                        continue
-                    
-                    # Verifica se já adicionou nesta execução
-                    if email in seen_emails:
-                        continue
-                    
-                    # Adiciona à lista
-                    seen_emails.add(email)
-                    attempt = {
-                        'timestamp': timestamp_str,
-                        'email': email
-                    }
-                    unauthorized_attempts.append(attempt)
-                    logger.info(f"✉️ Novo convite será criado para: {email}")
-        
-        logger.info(f"Total de novos convites a criar: {len(unauthorized_attempts)}")
-        return unauthorized_attempts
-        
-    except Exception as e:
-        logger.error(f"Erro ao buscar tentativas de acesso: {e}")
         return []
 
 def create_invitation_notification(sheets_service, spreadsheet_id, email, app_url):
