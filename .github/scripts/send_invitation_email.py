@@ -40,6 +40,7 @@ def get_google_sheets_service():
         raise
 
 
+
 def get_pending_invitations(sheets_service, spreadsheet_id):
     """
     Busca emails que já têm convites pendentes ou enviados NAS ÚLTIMAS 7 DIAS
@@ -162,27 +163,27 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
         for i, row in enumerate(values[1:], 2):
             total_rows += 1
             
-            if len(row) >= 4:
+            if len(row) >= 5:  # ✅ CORREÇÃO: Precisa ter pelo menos 5 colunas
                 timestamp_str = row[0]
-                action = row[2] if len(row) > 2 else ""
-                details = row[3] if len(row) > 3 else ""
+                action = row[3] if len(row) > 3 else ""  # ✅ CORREÇÃO: Índice 3 (era 2)
+                details = row[4] if len(row) > 4 else ""  # ✅ CORREÇÃO: Índice 4 (era 3)
                 
                 if action == "ACCESS_DENIED_UNAUTHORIZED":
                     access_denied_rows += 1
                     
-                    # ✅ LOG DEBUG para primeira ocorrência
+                    # Log DEBUG para primeira ocorrência
                     if access_denied_rows == 1:
                         logger.info(f"Primeira ACCESS_DENIED_UNAUTHORIZED encontrada:")
                         logger.info(f"  Timestamp: {timestamp_str}")
                         logger.info(f"  Action: {action}")
                         logger.info(f"  Details: {details}")
                     
-                    if "Email:" in details:
+                    if "Email:" in details or "email:" in details.lower():
                         try:
                             # Parse timestamp do log
                             log_timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
                             
-                            # ✅ CORREÇÃO: Considera tentativas que aconteceram NOS últimos 7 dias
+                            # Considera tentativas que aconteceram NOS últimos 7 dias
                             if log_timestamp < cutoff_time:
                                 continue
                             
@@ -192,17 +193,22 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
                             logger.warning(f"Erro ao fazer parse da data {timestamp_str}: {e}")
                             continue
                         
-                        # Extrai email
+                        # Extrai email - tenta múltiplos formatos
+                        email = None
                         try:
-                            email = details.split("Email:")[1].strip().lower()
+                            if "Email:" in details:
+                                email = details.split("Email:")[1].strip().lower()
+                            elif "email:" in details.lower():
+                                email = details.lower().split("email:")[1].strip()
                         except Exception as e:
                             email_parse_errors += 1
-                            logger.warning(f"Erro ao extrair email de: {details}")
+                            logger.warning(f"Erro ao extrair email de: '{details}' - Erro: {e}")
                             continue
                         
                         # Valida email
                         if not email or '@' not in email:
                             email_parse_errors += 1
+                            logger.warning(f"Email inválido extraído: '{email}' de '{details}'")
                             continue
                         
                         # Conta tentativas por email
