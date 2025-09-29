@@ -39,9 +39,11 @@ def get_google_sheets_service():
         logger.error(f"Erro ao inicializar serviço Google Sheets: {e}")
         raise
 
+# Alteração na função get_pending_invitations (linha ~32)
+
 def get_pending_invitations(sheets_service, spreadsheet_id):
     """
-    Busca emails que já têm convites pendentes ou enviados NAS ÚLTIMAS 24 HORAS
+    Busca emails que já têm convites pendentes ou enviados NAS ÚLTIMAS 7 DIAS
     """
     try:
         range_name = "notificacoes_pendentes!A:F"
@@ -54,8 +56,8 @@ def get_pending_invitations(sheets_service, spreadsheet_id):
         if not values or len(values) < 2:
             return set()
         
-        # Apenas considera convites recentes (últimas 24 horas)
-        cutoff_time = datetime.now() - timedelta(hours=24)
+        # ✅ ALTERADO: Apenas considera convites recentes (últimas 7 DIAS)
+        cutoff_time = datetime.now() - timedelta(days=7)
         
         # Coleta emails que já têm convite recente
         invited_emails = set()
@@ -72,20 +74,159 @@ def get_pending_invitations(sheets_service, spreadsheet_id):
                         # Parse timestamp
                         timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
                         
-                        # Se o convite foi enviado nas últimas 24h, considera como "já convidado"
+                        # ✅ Se o convite foi enviado nos últimos 7 dias, considera como "já convidado"
                         if timestamp >= cutoff_time:
                             invited_emails.add(email.strip().lower())
                             logger.info(f"Email {email} já tem convite recente (enviado em {timestamp_str})")
-                    except:
+                    except Exception as e:
                         # Se não conseguir fazer parse da data, ignora
+                        logger.warning(f"Erro ao fazer parse da data {timestamp_str}: {e}")
                         pass
         
-        logger.info(f"Encontrados {len(invited_emails)} emails com convites recentes (últimas 24h)")
+        logger.info(f"Encontrados {len(invited_emails)} emails com convites recentes (últimos 7 dias)")
         return invited_emails
         
     except Exception as e:
         logger.error(f"Erro ao buscar convites pendentes: {e}")
         return set()
+
+
+def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
+    """
+    Busca tentativas de acesso não autorizadas que ainda não receberam convite RECENTEMENTE
+    """
+    try:
+        logger.info("Buscando tentativas de acesso não autorizadas...")
+        
+        # Busca no log de auditoria
+        range_name = "log_auditoria!A:E"
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name
+        ).execute()
+        
+        values = result.get('values', [])
+        if not values or len(values) < 2:
+            logger.info("Nenhum log de auditoria encontrado")
+            return []
+        
+        # ✅ LOG DEBUG: Mostra estrutura da planilha
+        logger.info(f"Estrutura do log de auditoria:")
+        logger.info(f"  Cabeçalho: {values[0]}")
+        logger.info(f"  Total de linhas: {len(values)}")
+        logger.info(f"  Primeiras 3 linhas de exemplo:")
+        for i, row in enumerate(values[1:4], 1):
+            logger.info(f"    Linha {i}: {row}")
+        
+        # Busca emails que já receberam convite recentemente (últimos 7 dias)
+        invited_emails = get_pending_invitations(sheets_service, spreadsheet_id)
+        
+        # ✅ ALTERADO: Processa tentativas de acesso não autorizadas NOS ÚLTIMOS 7 DIAS
+        cutoff_time = datetime.now() - timedelta(days=7)
+        logger.info(f"Cutoff time (7 dias atrás): {cutoff_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        unauthorized_attempts = []
+        seen_emails = set()
+        email_attempt_count = {}
+        
+        # ✅ CONTADORES DE DEBUG
+        total_rows = 0
+        access_denied_rows = 0
+        within_time_window = 0
+        already_invited = 0
+        email_parse_errors = 0
+        
+        for i, row in enumerate(values[1:], 2):
+            total_rows += 1
+            
+            if len(row) >= 4:
+                timestamp_str = row[0]
+                action = row[2] if len(row) > 2 else ""
+                details = row[3] if len(row) > 3 else ""
+                
+                if action == "ACCESS_DENIED_UNAUTHORIZED":
+                    access_denied_rows += 1
+                    
+                    # ✅ LOG DEBUG para primeira ocorrência
+                    if access_denied_rows == 1:
+                        logger.info(f"Primeira ACCESS_DENIED_UNAUTHORIZED encontrada:")
+                        logger.info(f"  Timestamp: {timestamp_str}")
+                        logger.info(f"  Action: {action}")
+                        logger.info(f"  Details: {details}")
+                    
+                    if "Email:" in details:
+                        try:
+                            # Parse timestamp do log
+                            log_timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                            
+                            # ✅ CORREÇÃO: Considera tentativas que aconteceram NOS últimos 7 dias
+                            if log_timestamp < cutoff_time:
+                                continue
+                            
+                            within_time_window += 1
+                            
+                        except Exception as e:
+                            logger.warning(f"Erro ao fazer parse da data {timestamp_str}: {e}")
+                            continue
+                        
+                        # Extrai email
+                        try:
+                            email = details.split("Email:")[1].strip().lower()
+                        except Exception as e:
+                            email_parse_errors += 1
+                            logger.warning(f"Erro ao extrair email de: {details}")
+                            continue
+                        
+                        # Valida email
+                        if not email or '@' not in email:
+                            email_parse_errors += 1
+                            continue
+                        
+                        # Conta tentativas por email
+                        if email not in email_attempt_count:
+                            email_attempt_count[email] = 0
+                        email_attempt_count[email] += 1
+                        
+                        # Verifica se já tem convite RECENTE
+                        if email in invited_emails:
+                            already_invited += 1
+                            if already_invited <= 3:  # Mostra apenas os 3 primeiros
+                                logger.info(f"Email {email} já tem convite recente - não será convidado novamente")
+                            continue
+                        
+                        # Verifica se já adicionou nesta execução
+                        if email in seen_emails:
+                            continue
+                        
+                        # Adiciona à lista
+                        seen_emails.add(email)
+                        attempt = {
+                            'timestamp': timestamp_str,
+                            'email': email,
+                            'attempt_count': email_attempt_count[email]
+                        }
+                        unauthorized_attempts.append(attempt)
+                        logger.info(f"✉️ Novo convite será criado para: {email} ({email_attempt_count[email]} tentativas)")
+        
+        # ✅ RELATÓRIO FINAL
+        logger.info("=" * 60)
+        logger.info("RELATÓRIO DE PROCESSAMENTO:")
+        logger.info(f"  Total de linhas processadas: {total_rows}")
+        logger.info(f"  ACCESS_DENIED_UNAUTHORIZED encontrados: {access_denied_rows}")
+        logger.info(f"  Dentro da janela de tempo (7 dias): {within_time_window}")
+        logger.info(f"  Já convidados recentemente: {already_invited}")
+        logger.info(f"  Erros ao extrair email: {email_parse_errors}")
+        logger.info(f"  TOTAL DE NOVOS CONVITES: {len(unauthorized_attempts)}")
+        logger.info("=" * 60)
+        
+        return unauthorized_attempts
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar tentativas de acesso: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return []
+
 
 def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
     """
