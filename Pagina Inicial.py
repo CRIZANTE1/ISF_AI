@@ -87,39 +87,64 @@ def main():
             show_logout_button()
             st.stop()
 
-        # Verifica autorização do usuário
         is_authorized = False
+        user_status = None
+        
         if user_email is not None:
             # Superuser sempre tem acesso
             if is_superuser():
                 is_authorized = True
+                user_status = "superuser"
             # Usuário comum deve estar na lista de usuários autorizados
             elif not users_df.empty and user_email in users_df['email'].values:
+                user_row = users_df[users_df['email'] == user_email].iloc[0]
+                user_status = user_row.get('status', 'inativo')
+                
+                # Considera autorizado se estiver na planilha (independente do status)
+                # O status será verificado depois para determinar o tipo de acesso
                 is_authorized = True
+            else:
+                # Usuário NÃO está na planilha - não autorizado
+                is_authorized = False
+                user_status = "not_in_database"
 
+        # Só registra ACCESS_DENIED_UNAUTHORIZED se realmente não autorizado
         if not is_authorized:
-            log_action("ACCESS_DENIED_UNAUTHORIZED", f"Tentativa de acesso pelo email: {user_email}")
+            # Registra apenas UMA VEZ por sessão
+            if 'unauthorized_logged' not in st.session_state:
+                log_action("ACCESS_DENIED_UNAUTHORIZED", f"Tentativa de acesso pelo email: {user_email}")
+                st.session_state['unauthorized_logged'] = True
+            
             show_user_header()
             demo_page.show_page()
             st.stop()
 
-        # Verifica status do usuário
+
+        
         effective_status = get_effective_user_status()
 
         # Usuário com trial expirado
         if effective_status == 'trial_expirado':
-            log_action("ACCESS_DENIED_TRIAL_EXPIRED", f"Usuário: {user_email}")
+            if 'trial_expired_logged' not in st.session_state:
+                log_action("ACCESS_DENIED_TRIAL_EXPIRED", f"Usuário: {user_email}")
+                st.session_state['trial_expired_logged'] = True
+            
             show_user_header()
             trial_expired_page.show_page()
             st.stop()
 
         # Usuário inativo (exceto admins)
         if effective_status == 'inativo' and not is_admin():
-            log_action("ACCESS_DENIED_INACTIVE_ACCOUNT", f"Usuário: {user_email}")
+            if 'inactive_logged' not in st.session_state:
+                log_action("ACCESS_DENIED_INACTIVE_ACCOUNT", f"Usuário: {user_email}")
+                st.session_state['inactive_logged'] = True
+            
             show_user_header()
             st.warning("🔒 Sua conta está atualmente inativa. Por favor, entre em contato com o suporte para reativá-la.")
             show_logout_button()
             st.stop()
+        
+
         
         # Mostra cabeçalho do usuário
         show_user_header()
