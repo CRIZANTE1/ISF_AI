@@ -1,4 +1,4 @@
-name: Invitation Notifications System
+name: Invitation Detection System
 
 on:
   schedule:
@@ -6,19 +6,9 @@ on:
     - cron: '0 */2 * * *'
   workflow_dispatch:
     # Permite execução manual
-    inputs:
-      action:
-        description: 'Ação a executar'
-        required: true
-        default: 'send_invitations'
-        type: choice
-        options:
-        - send_invitations
-        - test_single_invitation
 
 jobs:
-  send-invitations:
-    if: github.event_name == 'schedule' || github.event.inputs.action == 'send_invitations'
+  detect-and-create-invitations:
     runs-on: ubuntu-latest
     
     steps:
@@ -33,104 +23,38 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client jinja2
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
         
-    - name: Send Invitation Emails
+    - name: Detect Unauthorized Access and Create Invitations
       env:
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        FROM_NAME: ${{ secrets.FROM_NAME }}
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
         APP_URL: ${{ secrets.APP_URL }}
       run: |
         python .github/scripts/send_invitation_email.py
 
-  test-single-invitation:
-    if: github.event.inputs.action == 'test_single_invitation'
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client jinja2
-        
-    - name: Test Single Invitation
-      env:
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-        FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        FROM_NAME: ${{ secrets.FROM_NAME }}
-        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
-        APP_URL: ${{ secrets.APP_URL }}
-      run: |
-        python -c "
-        import os
-        import sys
-        sys.path.append('.')
-        
-        from github.scripts.send_invitation_email import send_invitation_email, get_google_sheets_service
-        
-        smtp_config = {
-            'server': os.environ['SMTP_SERVER'],
-            'port': int(os.environ['SMTP_PORT']),
-            'username': os.environ['SMTP_USERNAME'],
-            'password': os.environ['SMTP_PASSWORD'],
-            'from_email': os.environ['FROM_EMAIL'],
-            'from_name': os.environ['FROM_NAME']
-        }
-        
-        # Teste com um email de exemplo
-        test_email = 'teste@exemplo.com'
-        app_url = os.environ['APP_URL']
-        
-        print(f'Enviando convite de teste para: {test_email}')
-        success = send_invitation_email(smtp_config, test_email, app_url)
-        
-        if success:
-            print('✅ Convite de teste enviado com sucesso!')
-        else:
-            print('❌ Falha no envio do convite de teste')
-            sys.exit(1)
-        "
-
   health-check:
     runs-on: ubuntu-latest
-    needs: [send-invitations]
+    needs: [detect-and-create-invitations]
     if: always()
     
     steps:
-    - name: Invitation System Health Check
+    - name: Invitation Detection Health Check
       run: |
-        echo "📧 Sistema de Convites Automáticos"
+        echo "📧 Sistema de Detecção de Convites Automáticos"
         echo "✅ Status: Operacional"
         echo "⏰ Última execução: $(date)"
         echo ""
-        echo "📊 Configuração:"
-        echo "   - Frequência: A cada 2 horas"
-        echo "   - Detecção: Tentativas não autorizadas"
-        echo "   - Ação: Envio automático de convite"
+        echo "📊 Fluxo do Sistema:"
+        echo "   1. Detecta tentativas não autorizadas (a cada 2h)"
+        echo "   2. Cria notificações em 'notificacoes_pendentes'"
+        echo "   3. Sistema de emails processa e envia (a cada 5min)"
         echo ""
         echo "🔍 Variáveis configuradas:"
-        echo "   - SMTP: $([[ -n \"$SMTP_SERVER\" ]] && echo 'Configurado' || echo 'Faltando')"
-        echo "   - Credenciais Google: $([[ -n \"$GOOGLE_CREDENTIALS\" ]] && echo 'Configurado' || echo 'Faltando')"
-        echo "   - URL do App: $([[ -n \"$APP_URL\" ]] && echo 'Configurado' || echo 'Faltando')"
+        echo "   - Credenciais Google: $([[ -n \"$GOOGLE_CREDENTIALS\" ]] && echo '✅ OK' || echo '❌ Faltando')"
+        echo "   - Matrix Sheets ID: $([[ -n \"$MATRIX_SHEETS_ID\" ]] && echo '✅ OK' || echo '❌ Faltando')"
+        echo "   - URL do App: $([[ -n \"$APP_URL\" ]] && echo '✅ OK' || echo '❌ Faltando')"
       env:
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        MATRIX_SHEETS_ID: ${{ secrets.MATRIX_SHEETS_ID }}
         APP_URL: ${{ secrets.APP_URL }}
