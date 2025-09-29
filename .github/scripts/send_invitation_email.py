@@ -1,6 +1,6 @@
 """
-Script para processar e enviar emails de convite para usuários não autorizados
-Executa via GitHub Actions quando detecta tentativas de acesso
+Script para detectar tentativas de acesso não autorizadas e enviar emails de convite
+Executa via GitHub Actions periodicamente
 """
 
 import json
@@ -18,6 +18,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Template do email de convite
 INVITATION_EMAIL_TEMPLATE = {
     'subject': '🚀 Convite Especial - ISF IA | Sistema de Gestão de Inspeções',
     'template': '''
@@ -40,6 +41,7 @@ INVITATION_EMAIL_TEMPLATE = {
         .stat-box { background-color: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; }
         .stat-number { font-size: 24px; font-weight: bold; color: #667eea; }
         .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+        .urgent-box { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -50,7 +52,7 @@ INVITATION_EMAIL_TEMPLATE = {
         </div>
         
         <div class="content">
-            <p>Olá <strong>{{recipient_email}}</strong>,</p>
+            <p>Olá <strong>{{recipient_name}}</strong>,</p>
             
             <p>Notamos que você tentou acessar o <strong>ISF IA</strong> - Sistema Integrado de Segurança contra Incêndio com Inteligência Artificial.</p>
             
@@ -88,7 +90,7 @@ INVITATION_EMAIL_TEMPLATE = {
                 </ul>
             </div>
 
-            <div class="highlight-box">
+            <div class="urgent-box">
                 <h3>🎁 Oferta Especial para Novos Usuários</h3>
                 <p><strong>14 dias de Trial Premium IA GRATUITO!</strong></p>
                 <p>Teste todas as funcionalidades avançadas sem compromisso.</p>
@@ -106,9 +108,10 @@ INVITATION_EMAIL_TEMPLATE = {
 
             <h3>📋 Como Funciona?</h3>
             <ol>
-                <li><strong>Solicite seu acesso:</strong> Clique no botão acima e preencha um breve formulário</li>
+                <li><strong>Solicite seu acesso:</strong> Clique no botão acima e faça login com sua conta Google</li>
+                <li><strong>Preencha o formulário:</strong> Breve justificativa sobre seu interesse</li>
                 <li><strong>Aprovação rápida:</strong> Nossa equipe analisa em até 24 horas</li>
-                <li><strong>Comece a usar:</strong> Receba suas credenciais e ambiente configurado</li>
+                <li><strong>Comece a usar:</strong> Receba notificação e ambiente configurado</li>
                 <li><strong>Teste por 14 dias:</strong> Explore todas as funcionalidades Premium IA</li>
             </ol>
 
@@ -116,25 +119,30 @@ INVITATION_EMAIL_TEMPLATE = {
                 <h4>💬 Depoimentos de Clientes</h4>
                 <p><em>"O ISF IA reduziu em 70% o tempo gasto com inspeções. A IA é incrível!"</em></p>
                 <p style="text-align: right;"><strong>- João Silva, Gerente de Segurança</strong></p>
+                
+                <p><em>"Finalmente conseguimos centralizar todos os dados em um só lugar. Recomendo!"</em></p>
+                <p style="text-align: right;"><strong>- Maria Santos, Coordenadora HSE</strong></p>
             </div>
 
-            <h3>🎓 Recursos Adicionais</h3>
+            <h3>🎓 Recursos Disponíveis</h3>
             <ul>
                 <li>📚 <a href="{{documentation_url}}">Documentação Completa</a></li>
-                <li>🎥 <a href="{{video_demo_url}}">Vídeo Demonstrativo</a></li>
+                <li>🎥 <a href="{{video_demo_url}}">Vídeo Demonstrativo</a> (em breve)</li>
                 <li>💡 <a href="{{faq_url}}">Perguntas Frequentes</a></li>
             </ul>
 
-            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
+            <div class="urgent-box">
                 <p><strong>⏰ Oferta Limitada!</strong></p>
                 <p>As vagas para o trial gratuito são limitadas. Garanta a sua agora!</p>
             </div>
             
-            <p>Tem dúvidas? Nossa equipe está pronta para ajudar:</p>
+            <p><strong>Tem dúvidas? Nossa equipe está pronta para ajudar:</strong></p>
             <ul>
                 <li>📧 Email: cristian.ferreira.carlos@gmail.com</li>
                 <li>💼 LinkedIn: <a href="https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/">Cristian Ferreira Carlos</a></li>
             </ul>
+            
+            <p>Não perca esta oportunidade de transformar sua gestão de segurança!</p>
             
             <p>Atenciosamente,<br>
             <strong>Equipe ISF IA</strong><br>
@@ -143,7 +151,7 @@ INVITATION_EMAIL_TEMPLATE = {
         
         <div class="footer">
             <p>Este é um convite automático do sistema ISF IA.</p>
-            <p>Você recebeu este email porque tentou acessar nossa plataforma.</p>
+            <p>Você recebeu este email porque tentou acessar nossa plataforma em <strong>{{recipient_email}}</strong>.</p>
             <p>Se não foi você, por favor ignore este email.</p>
         </div>
     </div>
@@ -176,6 +184,36 @@ def get_google_sheets_service():
         logger.error(f"Erro ao inicializar serviço Google Sheets: {e}")
         raise
 
+def get_sent_invitations(sheets_service, spreadsheet_id):
+    """Busca emails que já receberam convite"""
+    try:
+        # Tenta ler a aba de convites enviados
+        range_name = "convites_enviados!A:B"
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name
+        ).execute()
+        
+        values = result.get('values', [])
+        if not values or len(values) < 2:
+            return set()
+        
+        # Coleta emails que já receberam convite
+        invited_emails = set()
+        for row in values[1:]:  # Pula cabeçalho
+            if row and len(row) > 0:
+                email = row[0].strip().lower()
+                if email:
+                    invited_emails.add(email)
+        
+        logger.info(f"Encontrados {len(invited_emails)} emails já convidados")
+        return invited_emails
+        
+    except Exception as e:
+        # Se a aba não existe, retorna set vazio
+        logger.info("Aba 'convites_enviados' não existe ainda, será criada")
+        return set()
+
 def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
     """Busca tentativas de acesso não autorizadas que ainda não receberam convite"""
     try:
@@ -194,35 +232,45 @@ def get_unauthorized_access_attempts(sheets_service, spreadsheet_id):
             return []
         
         # Busca emails que já receberam convite
-        try:
-            invitations_range = "convites_enviados!A:B"
-            invitations_result = sheets_service.spreadsheets().values().get(
-                spreadsheetId=spreadsheet_id,
-                range=invitations_range
-            ).execute()
-            invited_emails = [row[0] for row in invitations_result.get('values', [])[1:] if row]
-        except:
-            invited_emails = []
-            logger.info("Aba de convites não existe, será criada")
+        invited_emails = get_sent_invitations(sheets_service, spreadsheet_id)
         
         # Processa tentativas de acesso não autorizadas
         unauthorized_attempts = []
+        seen_emails = set()  # Para evitar duplicatas na mesma execução
+        
         for i, row in enumerate(values[1:], 2):
-            if len(row) >= 3:
+            if len(row) >= 4:
                 action = row[2] if len(row) > 2 else ""
                 details = row[3] if len(row) > 3 else ""
                 
                 if action == "ACCESS_DENIED_UNAUTHORIZED" and "Email:" in details:
-                    email = details.split("Email:")[1].strip()
+                    # Extrai email
+                    try:
+                        email = details.split("Email:")[1].strip().lower()
+                    except:
+                        continue
                     
-                    if email and email not in invited_emails:
-                        attempt = {
-                            'timestamp': row[0],
-                            'email': email,
-                            'row_index': i
-                        }
-                        unauthorized_attempts.append(attempt)
-                        logger.info(f"Encontrada tentativa não autorizada: {email}")
+                    # Valida email
+                    if not email or '@' not in email:
+                        continue
+                    
+                    # Verifica se já enviou convite
+                    if email in invited_emails:
+                        logger.info(f"Convite já enviado para: {email}")
+                        continue
+                    
+                    # Verifica se já adicionou nesta execução
+                    if email in seen_emails:
+                        continue
+                    
+                    # Adiciona à lista
+                    seen_emails.add(email)
+                    attempt = {
+                        'timestamp': row[0],
+                        'email': email
+                    }
+                    unauthorized_attempts.append(attempt)
+                    logger.info(f"✉️ Novo convite pendente para: {email}")
         
         logger.info(f"Total de convites pendentes: {len(unauthorized_attempts)}")
         return unauthorized_attempts
@@ -239,31 +287,33 @@ def send_invitation_email(smtp_config, recipient_email, app_url):
         msg = MIMEMultipart('alternative')
         
         # Limpa e valida os campos
-        from_name = smtp_config['from_name'].strip()
-        from_email = smtp_config['from_email'].strip()
-        recipient_email = recipient_email.strip()
+        from_name = smtp_config['from_name'].strip().replace('\n', '').replace('\r', '')
+        from_email = smtp_config['from_email'].strip().replace('\n', '').replace('\r', '')
+        recipient_email_clean = recipient_email.strip().replace('\n', '').replace('\r', '')
         
-        template_data = INVITATION_EMAIL_TEMPLATE
+        # Nome baseado no email
+        recipient_name = recipient_email.split('@')[0].title()
         
         # Dados para o template
         template_vars = {
+            'recipient_name': recipient_name,
             'recipient_email': recipient_email,
-            'request_access_url': f"{app_url}",
-            'documentation_url': "https://github.com/seu-usuario/isf_ia",
-            'video_demo_url': f"{app_url}",
-            'faq_url': f"{app_url}"
+            'request_access_url': app_url,
+            'documentation_url': 'https://github.com/seu-usuario/isf_ia',
+            'video_demo_url': app_url,
+            'faq_url': app_url
         }
         
         # Renderiza template
-        subject_template = Template(template_data['subject'])
-        body_template = Template(template_data['template'])
+        subject_template = Template(INVITATION_EMAIL_TEMPLATE['subject'])
+        body_template = Template(INVITATION_EMAIL_TEMPLATE['template'])
         
         subject = subject_template.render(**template_vars)
         body_html = body_template.render(**template_vars)
         
         msg['From'] = f"{from_name} <{from_email}>"
-        msg['To'] = recipient_email
-        msg['Subject'] = subject
+        msg['To'] = recipient_email_clean
+        msg['Subject'] = subject.strip().replace('\n', ' ').replace('\r', ' ')
         
         html_part = MIMEText(body_html, 'html', 'utf-8')
         msg.attach(html_part)
@@ -273,39 +323,32 @@ def send_invitation_email(smtp_config, recipient_email, app_url):
         server.login(smtp_config['username'], smtp_config['password'])
         
         text = msg.as_string()
-        server.sendmail(smtp_config['from_email'], recipient_email, text)
+        server.sendmail(smtp_config['from_email'], recipient_email_clean, text)
         server.quit()
         
-        logger.info(f"Convite enviado com sucesso para {recipient_email}")
+        logger.info(f"✅ Convite enviado com sucesso para {recipient_email}")
         return True
         
     except Exception as e:
-        logger.error(f"Erro ao enviar convite para {recipient_email}: {e}")
+        logger.error(f"❌ Erro ao enviar convite para {recipient_email}: {e}")
         return False
 
-def register_sent_invitation(sheets_service, spreadsheet_id, email):
-    """Registra que um convite foi enviado"""
+def ensure_invitations_sheet_exists(sheets_service, spreadsheet_id):
+    """Garante que a aba de convites enviados existe"""
     try:
-        logger.info(f"Registrando convite enviado para {email}")
+        # Tenta ler a aba
+        sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range='convites_enviados!A1:B1'
+        ).execute()
+        logger.info("Aba 'convites_enviados' já existe")
+        return True
+    except:
+        # Aba não existe, vamos criar
+        logger.info("Criando aba 'convites_enviados'...")
         
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Tenta adicionar na aba de convites enviados
         try:
-            range_name = "convites_enviados!A:B"
-            body = {'values': [[email, timestamp]]}
-            
-            sheets_service.spreadsheets().values().append(
-                spreadsheetId=spreadsheet_id,
-                range=range_name,
-                valueInputOption='RAW',
-                insertDataOption='INSERT_ROWS',
-                body=body
-            ).execute()
-        except:
-            # Se a aba não existe, cria ela
-            logger.info("Criando aba de convites enviados...")
-            
+            # Cria a aba
             request_body = {
                 'requests': [{
                     'addSheet': {
@@ -330,21 +373,44 @@ def register_sent_invitation(sheets_service, spreadsheet_id, email):
                 body={'values': headers}
             ).execute()
             
-            # Adiciona o registro
-            body = {'values': [[email, timestamp]]}
-            sheets_service.spreadsheets().values().append(
-                spreadsheetId=spreadsheet_id,
-                range='convites_enviados!A:B',
-                valueInputOption='RAW',
-                insertDataOption='INSERT_ROWS',
-                body=body
-            ).execute()
+            logger.info("✅ Aba 'convites_enviados' criada com sucesso")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Erro ao criar aba de convites: {e}")
+            return False
+
+def register_sent_invitation(sheets_service, spreadsheet_id, email):
+    """Registra que um convite foi enviado"""
+    try:
+        logger.info(f"📝 Registrando convite enviado para {email}")
         
-        logger.info(f"Convite registrado com sucesso para {email}")
+        # Garante que a aba existe
+        if not ensure_invitations_sheet_exists(sheets_service, spreadsheet_id):
+            logger.error("Não foi possível criar/acessar aba de convites")
+            return False
+        
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Adiciona o registro
+        range_name = "convites_enviados!A:B"
+        body = {'values': [[email.lower().strip(), timestamp]]}
+        
+        sheets_service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption='RAW',
+            insertDataOption='INSERT_ROWS',
+            body=body
+        ).execute()
+        
+        logger.info(f"✅ Convite registrado com sucesso para {email}")
         return True
         
     except Exception as e:
-        logger.error(f"Erro ao registrar convite: {e}")
+        logger.error(f"❌ Erro ao registrar convite: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 def main():
@@ -353,15 +419,17 @@ def main():
         logger.info("🔄 Iniciando processamento de convites...")
         
         # Verificar variáveis de ambiente
-        required_vars = ['SMTP_SERVER', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD', 
-                        'FROM_EMAIL', 'FROM_NAME', 'GOOGLE_CREDENTIALS', 'MATRIX_SHEETS_ID', 'APP_URL']
+        required_vars = [
+            'SMTP_SERVER', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD', 
+            'FROM_EMAIL', 'FROM_NAME', 'GOOGLE_CREDENTIALS', 'MATRIX_SHEETS_ID', 'APP_URL'
+        ]
         
         missing_vars = [var for var in required_vars if not os.environ.get(var)]
         if missing_vars:
             logger.error(f"Variáveis de ambiente faltando: {missing_vars}")
             return
         
-        logger.info("Todas as variáveis de ambiente estão configuradas")
+        logger.info("✅ Todas as variáveis de ambiente estão configuradas")
         
         # Configuração SMTP
         smtp_config = {
@@ -379,6 +447,8 @@ def main():
         sheets_service = get_google_sheets_service()
         spreadsheet_id = os.environ['MATRIX_SHEETS_ID']
         
+        logger.info(f"📊 Usando planilha matriz: {spreadsheet_id}")
+        
         # Busca tentativas de acesso não autorizadas
         attempts = get_unauthorized_access_attempts(sheets_service, spreadsheet_id)
         
@@ -392,16 +462,19 @@ def main():
         sent = 0
         for attempt in attempts:
             try:
+                # Envia o email
                 if send_invitation_email(smtp_config, attempt['email'], app_url):
+                    # Registra o envio
                     if register_sent_invitation(sheets_service, spreadsheet_id, attempt['email']):
                         sent += 1
+                        logger.info(f"✅ Convite {sent}/{len(attempts)}: {attempt['email']}")
             except Exception as e:
-                logger.error(f"Erro ao processar convite para {attempt['email']}: {e}")
+                logger.error(f"❌ Erro ao processar convite para {attempt['email']}: {e}")
         
         logger.info(f"✅ Processamento concluído: {sent}/{len(attempts)} convites enviados com sucesso.")
         
     except Exception as e:
-        logger.error(f"Erro crítico no processamento de convites: {e}")
+        logger.error(f"❌ Erro crítico no processamento de convites: {e}")
         import traceback
         logger.error(traceback.format_exc())
         raise
