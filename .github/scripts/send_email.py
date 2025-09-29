@@ -18,135 +18,356 @@ EMAIL_TEMPLATES = {
     'access_approved': {
         'subject': '🎉 Seu acesso foi aprovado! - ISF IA',
         'template': '''
-Olá {{recipient_name}},
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Aprovado - ISF IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; }
+        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px; padding: 15px; margin: 20px 0; }
+        .feature-list { background-color: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; }
+        .action-button { display: inline-block; background-color: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .action-button:hover { background-color: #218838; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Bem-vindo ao ISF IA!</h1>
+            <p>Seu acesso foi aprovado com sucesso</p>
+        </div>
+        
+        <div class="content">
+            <p>Olá <strong>{{recipient_name}}</strong>,</p>
+            
+            <div class="info-box">
+                <h3>✅ Detalhes da sua conta</h3>
+                <ul>
+                    <li><strong>Plano:</strong> Premium IA (Trial)</li>
+                    <li><strong>Duração do teste:</strong> {{trial_days}} dias</li>
+                    <li><strong>Acesso:</strong> Completo a todas as funcionalidades</li>
+                </ul>
+            </div>
 
-🎉 **Excelente notícia!** Seu acesso ao Sistema ISF IA foi aprovado!
+            <h3>🚀 Como começar</h3>
+            <ol>
+                <li>Acesse o sistema através do botão abaixo</li>
+                <li>Faça login com o mesmo email (<strong>{{recipient_email}}</strong>)</li>
+                <li>Explore todas as funcionalidades disponíveis</li>
+            </ol>
 
-✅ **Detalhes da sua conta:**
-• Plano: Premium IA (Trial)
-• Duração do teste: {{trial_days}} dias
-• Acesso completo a todas as funcionalidades
+            <div style="text-align: center;">
+                <a href="{{login_url}}" class="action-button">🚀 Acessar Sistema ISF IA</a>
+            </div>
 
-🚀 **Como começar:**
-1. Acesse: {{login_url}}
-2. Faça login com o mesmo email ({{recipient_email}})
-3. Explore todas as funcionalidades do sistema
+            <div class="feature-list">
+                <h4>💡 Durante o trial você terá acesso a:</h4>
+                <ul>
+                    <li>✨ Processamento automático com IA</li>
+                    <li>📄 Extração de dados de PDFs</li>
+                    <li>🔍 Análise inteligente de documentos</li>
+                    <li>📊 Relatórios com insights avançados</li>
+                    <li>🎯 Suporte prioritário</li>
+                </ul>
+            </div>
 
-💡 **Durante o trial você terá acesso a:**
-• Processamento automático com IA
-• Extração de dados de PDFs
-• Análise inteligente de documentos
-• Relatórios com insights avançados
-• Suporte prioritário
-
-⏰ **Importante:** Seu trial expira em {{trial_days}} dias. Para garantir continuidade, você pode contratar um plano através do seu perfil no sistema.
-
-Em caso de dúvidas, responda este email ou entre em contato conosco.
-
-Bem-vindo ao ISF IA!
-
-Atenciosamente,
-Equipe ISF IA
+            <div class="info-box">
+                <h4>⏰ Importante</h4>
+                <p>Seu trial expira em <strong>{{trial_days}} dias</strong>. Para garantir continuidade, você pode contratar um plano através do seu perfil no sistema.</p>
+            </div>
+            
+            <p>Em caso de dúvidas, responda este email ou entre em contato conosco.</p>
+            
+            <p>Atenciosamente,<br>
+            <strong>Equipe ISF IA</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Esta é uma notificação automática do sistema de gestão ISF IA.</p>
+        </div>
+    </div>
+</body>
+</html>
 '''
     },
     
     'access_denied': {
         'subject': '❌ Solicitação de acesso - ISF IA',
         'template': '''
-Olá {{recipient_name}},
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitação de Acesso - ISF IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #6c757d, #5a6268); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; }
+        .info-box { background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; margin: 20px 0; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Solicitação de Acesso</h1>
+            <p>Sistema ISF IA</p>
+        </div>
+        
+        <div class="content">
+            <p>Olá <strong>{{recipient_name}}</strong>,</p>
+            
+            <p>Obrigado por seu interesse no Sistema ISF IA.</p>
 
-Obrigado por seu interesse no Sistema ISF IA.
+            <div class="info-box">
+                <p>Infelizmente, não pudemos aprovar sua solicitação de acesso neste momento.</p>
+                {% if reason %}
+                <p><strong>Motivo:</strong> {{reason}}</p>
+                {% endif %}
+            </div>
 
-Infelizmente, não pudemos aprovar sua solicitação de acesso neste momento.
-
-{% if reason %}
-**Motivo:** {{reason}}
-{% endif %}
-
-Você pode solicitar acesso novamente a qualquer momento. Para mais informações, entre em contato conosco.
-
-Atenciosamente,
-Equipe ISF IA
+            <p>Você pode solicitar acesso novamente a qualquer momento. Para mais informações, entre em contato conosco.</p>
+            
+            <p>Atenciosamente,<br>
+            <strong>Equipe ISF IA</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Esta é uma notificação automática do sistema de gestão ISF IA.</p>
+        </div>
+    </div>
+</body>
+</html>
 '''
     },
     
     'trial_expiring': {
         'subject': '⏰ Seu trial expira em {{days_left}} dias - ISF IA',
         'template': '''
-Olá {{recipient_name}},
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trial Expirando - ISF IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #ffc107, #ff9800); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; }
+        .alert-box { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0; }
+        .plan-box { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 10px 0; }
+        .action-button { display: inline-block; background-color: #ffc107; color: #212529; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .action-button:hover { background-color: #e0a800; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏰ Seu Trial Está Acabando</h1>
+            <p>Não perca o acesso ao ISF IA</p>
+        </div>
+        
+        <div class="content">
+            <p>Olá <strong>{{recipient_name}}</strong>,</p>
+            
+            <p>Esperamos que esteja aproveitando o Sistema ISF IA!</p>
 
-Esperamos que esteja aproveitando o Sistema ISF IA!
+            <div class="alert-box">
+                <h3>⏰ Aviso importante</h3>
+                <p>Seu período de teste expira em <strong>{{days_left}} dias</strong>.</p>
+            </div>
 
-⏰ **Aviso importante:** Seu período de teste expira em {{days_left}} dias.
+            <h3>🔄 Para continuar usando o sistema:</h3>
+            <ol>
+                <li>Acesse seu perfil no sistema</li>
+                <li>Vá em "Planos e Pagamento"</li>
+                <li>Escolha o plano que melhor atende suas necessidades</li>
+            </ol>
 
-🔄 **Para continuar usando o sistema:**
-1. Acesse seu perfil: {{login_url}}
-2. Vá em "Planos e Pagamento"
-3. Escolha o plano que melhor atende suas necessidades
+            <div style="text-align: center;">
+                <a href="{{login_url}}" class="action-button">💎 Ver Planos Disponíveis</a>
+            </div>
 
-💎 **Nossos planos:**
-• **Pro** (R$ 39,90/mês): Funcionalidades completas
-• **Premium IA** (R$ 69,90/mês): Automação com Inteligência Artificial
+            <h3>💎 Nossos planos:</h3>
+            <div class="plan-box">
+                <strong>Pro</strong> (R$ 39,90/mês)<br>
+                Funcionalidades completas para gestão profissional
+            </div>
+            <div class="plan-box">
+                <strong>Premium IA</strong> (R$ 69,90/mês)<br>
+                Automação completa com Inteligência Artificial
+            </div>
 
-Não perca seus dados e configurações! Efetue a contratação antes do vencimento.
-
-Em caso de dúvidas, estamos aqui para ajudar.
-
-Atenciosamente,
-Equipe ISF IA
+            <div class="alert-box">
+                <p><strong>⚠️ Importante:</strong> Não perca seus dados e configurações! Efetue a contratação antes do vencimento.</p>
+            </div>
+            
+            <p>Em caso de dúvidas, estamos aqui para ajudar.</p>
+            
+            <p>Atenciosamente,<br>
+            <strong>Equipe ISF IA</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Esta é uma notificação automática do sistema de gestão ISF IA.</p>
+        </div>
+    </div>
+</body>
+</html>
 '''
     },
     
     'payment_confirmed': {
         'subject': '✅ Pagamento confirmado - {{plan_name}} - ISF IA',
         'template': '''
-Olá {{recipient_name}},
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Confirmado - ISF IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; }
+        .success-box { background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin: 20px 0; }
+        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px; padding: 15px; margin: 20px 0; }
+        .action-button { display: inline-block; background-color: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .action-button:hover { background-color: #218838; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Pagamento Confirmado!</h1>
+            <p>Obrigado por confiar no ISF IA</p>
+        </div>
+        
+        <div class="content">
+            <p>Olá <strong>{{recipient_name}}</strong>,</p>
+            
+            <div class="success-box">
+                <h3>🎉 Pagamento confirmado com sucesso!</h3>
+            </div>
 
-🎉 **Pagamento confirmado com sucesso!**
+            <div class="info-box">
+                <h3>✅ Detalhes da assinatura</h3>
+                <ul>
+                    <li><strong>Plano contratado:</strong> {{plan_name}}</li>
+                    <li><strong>Status:</strong> Ativo</li>
+                    <li><strong>Próxima cobrança:</strong> 30 dias</li>
+                </ul>
+            </div>
 
-✅ **Detalhes:**
-• Plano contratado: {{plan_name}}
-• Status: Ativo
-• Próxima cobrança: 30 dias
+            <p>Seu acesso completo já está liberado. Continue aproveitando todas as funcionalidades do ISF IA!</p>
 
-Seu acesso completo já está liberado. Continue aproveitando todas as funcionalidades do ISF IA!
-
-Acesse: {{login_url}}
-
-Obrigado por confiar em nosso sistema!
-
-Atenciosamente,
-Equipe ISF IA
+            <div style="text-align: center;">
+                <a href="{{login_url}}" class="action-button">🚀 Acessar Sistema</a>
+            </div>
+            
+            <p>Obrigado por confiar em nosso sistema!</p>
+            
+            <p>Atenciosamente,<br>
+            <strong>Equipe ISF IA</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Esta é uma notificação automática do sistema de gestão ISF IA.</p>
+        </div>
+    </div>
+</body>
+</html>
 '''
     },
     
     'new_access_request': {
         'subject': '🔔 Nova solicitação de acesso - ISF IA',
         'template': '''
-Olá Administrador,
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Solicitação - ISF IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; }
+        .info-box { background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px; padding: 15px; margin: 20px 0; }
+        .user-box { background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0; }
+        .action-button { display: inline-block; background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .action-button:hover { background-color: #0056b3; }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 Nova Solicitação de Acesso</h1>
+            <p>Sistema ISF IA</p>
+        </div>
+        
+        <div class="content">
+            <p>Olá <strong>Administrador</strong>,</p>
+            
+            <div class="info-box">
+                <h3>📬 Nova solicitação de acesso recebida!</h3>
+            </div>
 
-📬 **Nova solicitação de acesso recebida!**
+            <div class="user-box">
+                <h4>👤 Dados do solicitante</h4>
+                <ul>
+                    <li><strong>Nome:</strong> {{requesting_user_name}}</li>
+                    <li><strong>Email:</strong> {{requesting_user_email}}</li>
+                    <li><strong>Data da solicitação:</strong> {{timestamp}}</li>
+                </ul>
+            </div>
 
-👤 **Dados do solicitante:**
-• Nome: {{requesting_user_name}}
-• Email: {{requesting_user_email}}
-• Data da solicitação: {{timestamp}}
+            <div class="user-box">
+                <h4>💭 Justificativa</h4>
+                <p>{{justification}}</p>
+            </div>
 
-💭 **Justificativa:**
-{{justification}}
+            <div class="info-box">
+                <h4>🎯 Ação necessária</h4>
+                <p>Acesse o painel administrativo para aprovar ou rejeitar a solicitação:</p>
+                <ol>
+                    <li>Clique no botão abaixo para acessar o sistema</li>
+                    <li>Vá em: <strong>Super Admin → Solicitações</strong></li>
+                    <li>Analise e processe a solicitação</li>
+                </ol>
+            </div>
 
-🎯 **Ação necessária:**
-Acesse o painel administrativo para aprovar ou rejeitar a solicitação:
-{{admin_panel_url}}
-
-➡️ Vá em: Super Admin → Solicitações
-
-Atenciosamente,
-Sistema ISF IA
+            <div style="text-align: center;">
+                <a href="{{admin_panel_url}}" class="action-button">🔧 Acessar Painel Admin</a>
+            </div>
+            
+            <p>Atenciosamente,<br>
+            <strong>Sistema ISF IA</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Esta é uma notificação automática do sistema de gestão ISF IA.</p>
+        </div>
+    </div>
+</body>
+</html>
 '''
     }
 }
-
 def get_google_sheets_service():
     """Inicializa serviço do Google Sheets"""
     credentials_json = os.environ['GOOGLE_CREDENTIALS']
@@ -294,11 +515,9 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
     body_template = Template(template_data['template'])
     
     subject = subject_template.render(**template_vars)
-    body_text = body_template.render(**template_vars)
+    body_html = body_template.render(**template_vars)  # JÁ É HTML COMPLETO!
     
-    # Converte para HTML
-    body_html = body_text.replace('\n', '<br>\n')
-    body_html = f"<html><body><pre style='font-family: Arial, sans-serif; white-space: pre-wrap;'>{body_html}</pre></body></html>"
+    # NÃO precisa mais converter - o template já é HTML!
     
     # Envia email
     success = send_email(smtp_config, recipient_email, subject, body_html)
