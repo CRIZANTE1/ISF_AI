@@ -168,6 +168,7 @@ inspecoes_camaras_espuma:
   - status_geral
   - plano_de_acao
   - resultados_json
+  - link_foto_nao_conformidade
   - inspetor
   - data_proxima_inspecao
 log_acoes_camaras_espuma:
