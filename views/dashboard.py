@@ -1358,16 +1358,19 @@ def show_page():
                                 try:
                                     results = json.loads(row['resultados_json'])
                                     non_conformities = {q: status_item for q, status_item in results.items() if status_item == "Não Conforme"}
+                                    
                                     if non_conformities:
+                                        st.write("**Itens não conformes encontrados:**")
                                         st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
                                     else:
                                         st.success("Todos os itens estavam conformes na última inspeção.")
                                     
+                                    st.markdown("---")
                                     photo_link = row.get('link_foto_nao_conformidade')
                                     display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
-    
-                                except (json.JSONDecodeError, TypeError):
-                                    st.error("Não foi possível carregar os detalhes da inspeção.")
+                            
+                                except (json.JSONDecodeError, TypeError) as e:
+                                    st.error(f"Não foi possível carregar os detalhes da inspeção: {e}")
 
     with tab_multigas:
         st.header("Dashboard de Detectores Multigás")
