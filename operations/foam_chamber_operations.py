@@ -133,13 +133,6 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
     """
     ✅ FUNÇÃO CORRIGIDA - Salva uma nova inspeção de câmara de espuma, incluindo a foto de não conformidade.
     
-    Esta função executa as seguintes etapas em ordem:
-    1. Faz o upload da foto de não conformidade para o Google Drive, se uma for fornecida.
-    2. Gera um plano de ação padronizado com base nos resultados da inspeção.
-    3. Prepara a linha de dados completa para o registro.
-    4. Adiciona a linha de dados à planilha 'inspecoes_camaras_espuma'.
-    5. Retorna True se tudo for bem-sucedido, ou False se ocorrer um erro.
-
     Args:
         chamber_id (str): O ID da câmara inspecionada.
         inspection_type (str): O tipo da inspeção ("Visual Semestral" ou "Funcional Anual").
@@ -179,6 +172,7 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
         
         results_json = json.dumps(results_dict, ensure_ascii=False)
 
+        # ✅ CORRIGIDO: Agora inclui o link da foto na linha de dados
         data_row = [
             today.isoformat(),           # data_inspecao
             chamber_id,                  # id_camara
@@ -186,6 +180,7 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
             overall_status,              # status_geral
             action_plan,                 # plano_de_acao
             results_json,                # resultados_json
+            photo_link if photo_link else "",  # link_foto_nao_conformidade
             inspector_name,              # inspetor
             next_inspection_date         # data_proxima_inspecao
         ]
@@ -196,6 +191,10 @@ def save_foam_chamber_inspection(chamber_id, inspection_type, overall_status, re
         log_action("SALVOU_INSPECAO_CAMARA_ESPUMA", f"ID: {chamber_id}, Tipo: {inspection_type}, Status: {overall_status}")
         
         return True
+
+    except Exception as e:
+        st.error(f"Erro ao salvar a inspeção para a câmara {chamber_id}: {e}")
+        return False
 
     except Exception as e:
         st.error(f"Erro ao salvar a inspeção para a câmara {chamber_id}: {e}")
