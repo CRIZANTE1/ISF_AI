@@ -1312,7 +1312,7 @@ def show_page():
                 dashboard_df['modelo'] = 'N/A'
             
             dashboard_df['localizacao'] = dashboard_df['localizacao'].fillna('Localização não definida')
-
+    
             status_counts = dashboard_df['status_dashboard'].value_counts()
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("✅ Total de Câmaras", len(dashboard_df))
@@ -1320,17 +1320,17 @@ def show_page():
             col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
             col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
             st.markdown("---")
-
+    
             st.subheader("Status dos Equipamentos por Localização")
             
             grouped_by_location = dashboard_df.groupby('localizacao')
-
+    
             for location, group_df in grouped_by_location:
                 location_status_counts = group_df['status_dashboard'].value_counts()
                 ok_count = location_status_counts.get("🟢 OK", 0)
                 pending_count = location_status_counts.get("🟠 COM PENDÊNCIAS", 0)
                 expired_count = location_status_counts.get("🔴 VENCIDO", 0)
-
+    
                 expander_title = f"📍 **Local:** {location}  |  (🟢{ok_count} OK, 🟠{pending_count} Pendente, 🔴{expired_count} Vencido)"
                 
                 with st.expander(expander_title):
@@ -1344,8 +1344,8 @@ def show_page():
                             st.markdown(f"##### {status} | **ID:** {row['id_camara']} | **Modelo:** {modelo}")
                             
                             cols = st.columns(3)
-                            cols[0].metric("Última Inspeção", pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y'))
-                            cols[1].metric("Próxima Inspeção", prox_inspecao)
+                            cols[0].metric("Última Inspeção", ultima_inspecao_str)
+                            cols[1].metric("Próxima Inspeção", prox_inspecao_str)
                             cols[2].metric("Tipo da Última Insp.", row.get('tipo_inspecao', 'N/A'))
                             
                             st.write(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
@@ -1353,7 +1353,7 @@ def show_page():
                             if status == "🟠 COM PENDÊNCIAS":
                                 if st.button("✍️ Registrar Ação Corretiva", key=f"action_foam_{row['id_camara']}", use_container_width=True):
                                     action_dialog_foam_chamber(row.to_dict())
-
+    
                             with st.expander("Ver detalhes da última inspeção"):
                                 try:
                                     results = json.loads(row['resultados_json'])
@@ -1364,9 +1364,8 @@ def show_page():
                                         st.success("Todos os itens estavam conformes na última inspeção.")
                                     
                                     photo_link = row.get('link_foto_nao_conformidade')
-                                    if pd.notna(photo_link):
-                                        st.markdown(f"**[🔗 Ver Foto da Evidência]({photo_link})**", unsafe_allow_html=True)
-
+                                    display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
+    
                                 except (json.JSONDecodeError, TypeError):
                                     st.error("Não foi possível carregar os detalhes da inspeção.")
 
