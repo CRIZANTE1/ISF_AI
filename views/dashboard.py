@@ -1443,11 +1443,15 @@ def show_page():
         st.header("Dashboard de Sistemas de Alarme")
         
         try:
-            all_data = load_all_dashboard_data()
-            df_alarm_inspections = all_data['alarm_inspections']
-            df_alarm_inventory = all_data['alarm_inventory']
+            # Carrega os dados com cache individual (já tem cache do load_sheet_data)
+            df_alarm_inspections = load_sheet_data(ALARM_INSPECTIONS_SHEET_NAME)
+            df_alarm_inventory = load_sheet_data(ALARM_INVENTORY_SHEET_NAME)
             
-            if df_alarm_inspections.empty:
+            # Debug: mostra quantos registros foram encontrados
+            if df_alarm_inspections.empty and df_alarm_inventory.empty:
+                st.warning("Nenhum sistema de alarme ou inspeção cadastrada.")
+                st.info("Cadastre sistemas de alarme na aba 'Alarmes' do menu principal.")
+            elif df_alarm_inspections.empty:
                 st.warning("Nenhuma inspeção de sistema de alarme registrada.")
             else:
                 # --- SEÇÃO DE RELATÓRIO MENSAL ---
@@ -1514,7 +1518,7 @@ def show_page():
                 
                 st.markdown("---")
                 
-                # [resto do código do dashboard dos alarmes continua aqui...]
+                # Dashboard principal dos alarmes
                 dashboard_df = get_alarm_status_df(df_alarm_inspections)
                 
                 # Se tiver dados de inventário, faz merge para obter localização e modelo
@@ -1578,3 +1582,5 @@ def show_page():
                             
         except Exception as e:
             st.error(f"Erro ao carregar os dados dos sistemas de alarme: {e}")
+            import traceback
+            st.error(f"Detalhes do erro: {traceback.format_exc()}")
