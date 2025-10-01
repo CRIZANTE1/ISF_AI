@@ -369,3 +369,38 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
     except Exception as e:
         st.error(f"Ocorreu um erro durante a regularização em massa: {e}")
         return -1
+
+
+def format_coordinate(coord):
+    """
+    Formata coordenada preservando precisão decimal e tratando valores inválidos.
+    
+    Args:
+        coord: Coordenada (float, str ou None)
+        
+    Returns:
+        str: Coordenada formatada ou None
+    """
+    if coord is None or pd.isna(coord):
+        return None
+    
+    # Se for string vazia, retorna None
+    if isinstance(coord, str) and coord.strip() == '':
+        return None
+    
+    # Se for string 'None', 'nan', etc, retorna None
+    if isinstance(coord, str) and coord.lower() in ['none', 'nan', 'null']:
+        return None
+    
+    try:
+        # Converte para float e formata com 6 casas decimais
+        coord_float = float(coord) if not isinstance(coord, float) else coord
+        
+        # Se for zero, retorna None (coordenada não válida)
+        if coord_float == 0.0:
+            return None
+        
+        # Usa ponto decimal (padrão internacional)
+        return f"{coord_float:.6f}"
+    except (ValueError, TypeError):
+        return None
