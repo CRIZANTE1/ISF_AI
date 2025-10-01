@@ -215,9 +215,6 @@ def clean_and_prepare_ia_data(ia_item):
     return cleaned_item
 
 
-# ==============================================================================
-# FUNÇÕES DE SALVAMENTO E PERSISTÊNCIA
-# ==============================================================================
 
 def save_inspection(data):
     """
@@ -272,16 +269,21 @@ def save_inspection(data):
     ]
     
     try:
-        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, data_row)
+        # ✅ CORREÇÃO: Cria uploader dentro da função
+        uploader = GoogleDriveUploader()
+        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, [data_row])
+        
         log_action(
             "SALVOU_INSPECAO_EXTINTOR", 
             f"ID: {data.get('numero_identificacao')}, Status: {data.get('aprovado_inspecao')}, Tipo: {data.get('tipo_servico')}"
         )
         return True
+        
     except Exception as e:
         st.error(f"Erro ao salvar dados do equipamento {data.get('numero_identificacao')}: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return False
-
 
 def save_inspection_batch(inspections_list):
     """
@@ -332,6 +334,8 @@ def save_inspection_batch(inspections_list):
             
             rows.append(row)
         
+        # ✅ CORREÇÃO: Cria uploader dentro da função
+        uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, rows)
         
         log_action(
@@ -343,12 +347,11 @@ def save_inspection_batch(inspections_list):
         
     except Exception as e:
         st.error(f"Erro ao salvar lote de inspeções: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return False, 0
 
 
-# ==============================================================================
-# FUNÇÕES DE CADASTRO E ATUALIZAÇÃO
-# ==============================================================================
 
 def save_new_location(location_id, description):
     """
@@ -362,6 +365,9 @@ def save_new_location(location_id, description):
         bool: True se salvou com sucesso, False caso contrário
     """
     try:
+        # ✅ CORREÇÃO: Cria uploader dentro da função
+        uploader = GoogleDriveUploader()
+        
         # Verifica se o ID já existe
         locations_data = uploader.get_data_from_sheet(LOCATIONS_SHEET_NAME)
         if locations_data and len(locations_data) > 1:
@@ -376,9 +382,10 @@ def save_new_location(location_id, description):
         
     except Exception as e:
         st.error(f"Erro ao salvar novo local: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return False
-
-
+        
 def save_new_extinguisher(details_dict):
     """
     Salva um novo extintor na planilha 'extintores'.
@@ -391,6 +398,9 @@ def save_new_extinguisher(details_dict):
         bool: True se salvou com sucesso, False caso contrário
     """
     try:
+        # ✅ CORREÇÃO: Cria uploader dentro da função
+        uploader = GoogleDriveUploader()
+        
         ext_id = details_dict.get('numero_identificacao')
         
         # Verifica se o ID já existe
@@ -430,6 +440,8 @@ def save_new_extinguisher(details_dict):
         
     except Exception as e:
         st.error(f"Erro ao salvar novo extintor: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return False
 
 
@@ -446,6 +458,9 @@ def update_extinguisher_location(equip_id, location_desc):
         bool: True se atualizou com sucesso, False caso contrário
     """
     try:
+        # ✅ CORREÇÃO: Cria uploader dentro da função
+        uploader = GoogleDriveUploader()
+        
         df_locais = pd.DataFrame()
         
         # Carrega os dados existentes para verificação
@@ -477,12 +492,11 @@ def update_extinguisher_location(equip_id, location_desc):
                 
     except Exception as e:
         st.error(f"Erro ao salvar local para o equipamento '{equip_id}': {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return False
 
 
-# ==============================================================================
-# FUNÇÕES DE REGULARIZAÇÃO EM MASSA
-# ==============================================================================
 
 def batch_regularize_monthly_inspections(df_all_extinguishers):
     """
@@ -514,10 +528,7 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
     )
     today = pd.Timestamp(date.today())
 
-    # Filtra extintores que atendem aos critérios:
-    # 1. Inspeção vencida
-    # 2. Não está fora de operação
-    # 3. Estava aprovado na última inspeção
+    # Filtra extintores que atendem aos critérios
     vencidos_e_aprovados = latest_records[
         (latest_records['data_proxima_inspecao'] < today) &
         (latest_records['plano_de_acao'] != 'FORA DE OPERAÇÃO (SUBSTITUÍDO)') &
@@ -605,10 +616,10 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
             ])
 
     try:
-        # Salva todos os novos registros de inspeção de uma vez
+        # ✅ CORREÇÃO: Cria uploaders dentro da função
+        uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, new_inspection_rows)
         
-        # Salva logs de auditoria
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
         matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
 
