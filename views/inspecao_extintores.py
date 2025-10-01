@@ -113,7 +113,7 @@ def show_page():
 
     with tab_qr:
         st.header("Verificação Rápida de Equipamento")
-
+    
         # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para registrar inspeções.")
@@ -158,6 +158,133 @@ def show_page():
                     st.success(f"Equipamento Encontrado! ID: **{st.session_state.qr_id}**")
                     st.dataframe(pd.DataFrame([last_record]), use_container_width=True, hide_index=True)
                     
+                    # ====================================================================
+                    # NOVA SEÇÃO: ATUALIZAÇÃO DE LOCALIZAÇÃO (FORA DO FORMULÁRIO)
+                    # ====================================================================
+                    st.markdown("---")
+                    
+                    # Toggle para atualizar localização
+                    update_location = st.toggle(
+                        "📍 Atualizar localização deste equipamento", 
+                        value=False,
+                        key="toggle_update_location_qr",
+                        help="Ative para capturar nova localização e/ou definir um novo local"
+                    )
+                    
+                    # Variáveis para armazenar novos dados de localização
+                    new_location_id = None
+                    new_latitude = None
+                    new_longitude = None
+                    
+                    if update_location:
+                        st.info("💡 **Dica:** Você pode atualizar o local cadastrado e/ou as coordenadas GPS do equipamento.")
+                        
+                        # SUBSEÇÃO 1: Captura de GPS
+                        st.subheader("🌐 Capturar Nova Localização GPS")
+                        
+                        col_gps1, col_gps2 = st.columns([3, 1])
+                        
+                        with col_gps1:
+                            st.write("Capture as coordenadas GPS atuais do equipamento:")
+                        
+                        with col_gps2:
+                            capture_gps_qr = st.button(
+                                "📍 Capturar GPS", 
+                                use_container_width=True, 
+                                type="secondary",
+                                key="btn_capture_gps_qr"
+                            )
+                        
+                        # Inicializa session state para GPS do QR
+                        if 'qr_lat_captured' not in st.session_state:
+                            st.session_state['qr_lat_captured'] = last_record.get('latitude')
+                        if 'qr_lon_captured' not in st.session_state:
+                            st.session_state['qr_lon_captured'] = last_record.get('longitude')
+                        
+                        # Captura GPS quando botão clicado
+                        if capture_gps_qr:
+                            st.session_state['capture_geo_qr'] = True
+                        
+                        # Executa captura se flag ativo
+                        if st.session_state.get('capture_geo_qr', False):
+                            location_js = streamlit_js_eval(js_expressions="""
+                                new Promise(function(resolve, reject) {
+                                    navigator.geolocation.getCurrentPosition(
+                                        function(position) { 
+                                            resolve({ 
+                                                latitude: position.coords.latitude, 
+                                                longitude: position.coords.longitude 
+                                            }); 
+                                        },
+                                        function(error) { 
+                                            resolve({ error: error.message }); 
+                                        }
+                                    );
+                                });
+                            """, key="qr_geolocation_capture")
+                            
+                            if location_js:
+                                st.session_state['capture_geo_qr'] = False
+                                
+                                if 'error' in location_js:
+                                    st.error(f"❌ Erro: {location_js['error']}")
+                                else:
+                                    st.session_state['qr_lat_captured'] = location_js['latitude']
+                                    st.session_state['qr_lon_captured'] = location_js['longitude']
+                                    
+                                    st.success("✅ GPS capturado!")
+                                    
+                                    col_m1, col_m2 = st.columns(2)
+                                    col_m1.metric("Latitude", f"{location_js['latitude']:.6f}")
+                                    col_m2.metric("Longitude", f"{location_js['longitude']:.6f}")
+                                    
+                                    maps_url = f"https://www.google.com/maps?q={location_js['latitude']},{location_js['longitude']}"
+                                    st.markdown(f"🗺️ [Ver no Google Maps]({maps_url})")
+                        
+                        # Exibe coordenadas atuais (capturadas ou existentes)
+                        if st.session_state.get('qr_lat_captured') and st.session_state.get('qr_lon_captured'):
+                            st.caption("**Coordenadas atuais:**")
+                            col_coord1, col_coord2 = st.columns(2)
+                            col_coord1.code(f"Lat: {st.session_state['qr_lat_captured']:.6f}")
+                            col_coord2.code(f"Lon: {st.session_state['qr_lon_captured']:.6f}")
+                            
+                            new_latitude = st.session_state['qr_lat_captured']
+                            new_longitude = st.session_state['qr_lon_captured']
+                        
+                        st.markdown("---")
+                        
+                        # SUBSEÇÃO 2: Seleção de Local
+                        st.subheader("📍 Atualizar Local Cadastrado")
+                        
+                        from operations.location_operations import show_location_selector
+                        from operations.history import load_sheet_data as load_locations_data
+                        
+                        # Busca o local atual do equipamento
+                        df_locais = load_locations_data("locais")
+                        current_location_id = None
+                        
+                        if not df_locais.empty:
+                            df_locais['id'] = df_locais['id'].astype(str)
+                            location_row = df_locais[df_locais['id'] == str(st.session_state.qr_id)]
+                            if not location_row.empty:
+                                current_location_id = location_row.iloc[0]['id']
+                                st.info(f"📍 Local atual: **{location_row.iloc[0]['local']}**")
+                        
+                        # Seletor de local com valor atual
+                        new_location_id = show_location_selector(
+                            key_suffix="qr_inspection",
+                            required=False,
+                            current_value=current_location_id
+                        )
+                        
+                        if new_location_id and new_location_id != current_location_id:
+                            st.success(f"✅ Novo local selecionado: **{new_location_id}**")
+                        
+                        st.markdown("---")
+                    
+                    # ====================================================================
+                    # FORMULÁRIO DE INSPEÇÃO
+                    # ====================================================================
                     st.subheader("3. Registrar Nova Inspeção (Nível 1)")
                     with st.form("quick_inspection_form"):
                         status = st.radio("Status do Equipamento:", ["Conforme", "Não Conforme"], horizontal=True)
@@ -165,32 +292,93 @@ def show_page():
                         photo_non_compliance = st.camera_input("Anexar foto da não conformidade (Opcional)")
                         
                         submitted = st.form_submit_button("✅ Confirmar e Registrar Inspeção", type="primary")
+                        
                         if submitted:
-                            with st.spinner("Salvando..."):
-                                photo_link_nc = upload_evidence_photo(photo_non_compliance, st.session_state.qr_id, "nao_conformidade") if photo_non_compliance else None
-                                existing_dates = {k: last_record.get(k) for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']}
+                            with st.spinner("Salvando inspeção..."):
+                                photo_link_nc = upload_evidence_photo(
+                                    photo_non_compliance, 
+                                    st.session_state.qr_id, 
+                                    "nao_conformidade"
+                                ) if photo_non_compliance else None
+                                
+                                existing_dates = {
+                                    k: last_record.get(k) 
+                                    for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
+                                             'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                                }
                                 updated_dates = calculate_next_dates(date.today().isoformat(), "Inspeção", existing_dates)
                                 aprovado_str = "Sim" if status == "Conforme" else "Não"
                                 
+                                # Prepara novo registro
                                 new_record = last_record.copy()
                                 new_record.update({
-                                    'tipo_servico': "Inspeção", 'data_servico': date.today().isoformat(),
-                                    'inspetor_responsavel': get_user_display_name(), 'aprovado_inspecao': aprovado_str,
+                                    'tipo_servico': "Inspeção", 
+                                    'data_servico': date.today().isoformat(),
+                                    'inspetor_responsavel': get_user_display_name(), 
+                                    'aprovado_inspecao': aprovado_str,
                                     'observacoes_gerais': observacoes or ("Inspeção de rotina OK." if status == "Conforme" else ""),
-                                    'plano_de_acao': generate_action_plan({'aprovado_inspecao': aprovado_str, 'observacoes_gerais': observacoes}),
-                                    'link_relatorio_pdf': None, 'link_foto_nao_conformidade': photo_link_nc
+                                    'plano_de_acao': generate_action_plan({
+                                        'aprovado_inspecao': aprovado_str, 
+                                        'observacoes_gerais': observacoes
+                                    }),
+                                    'link_relatorio_pdf': None, 
+                                    'link_foto_nao_conformidade': photo_link_nc
                                 })
+                                
+                                # Atualiza coordenadas se foram capturadas
+                                if update_location:
+                                    if new_latitude and new_longitude:
+                                        new_record['latitude'] = new_latitude
+                                        new_record['longitude'] = new_longitude
+                                
                                 new_record.update(updated_dates)
                                 
+                                # Salva inspeção
                                 if save_inspection(new_record):
+                                    # Atualiza local se foi alterado
+                                    if update_location and new_location_id:
+                                        from operations.extinguisher_operations import update_extinguisher_location
+                                        
+                                        if not df_locais.empty:
+                                            location_row = df_locais[df_locais['id'] == new_location_id]
+                                            if not location_row.empty:
+                                                location_name = location_row.iloc[0]['local']
+                                                update_extinguisher_location(st.session_state.qr_id, location_name)
+                                    
                                     log_action("INSPECIONOU_EXTINTOR_QR", f"ID: {st.session_state.qr_id}, Status: {status}")
-                                    st.success("Inspeção registrada!"); st.balloons()
-                                    st.session_state.qr_step = 'start'; st.cache_data.clear(); st.rerun()
+                                    
+                                    st.success("✅ Inspeção registrada com sucesso!")
+                                    
+                                    if update_location:
+                                        if new_location_id:
+                                            st.success(f"📍 Local atualizado para: {new_location_id}")
+                                        if new_latitude and new_longitude:
+                                            st.success(f"🗺️ Coordenadas GPS atualizadas")
+                                    
+                                    st.balloons()
+                                    
+                                    # Limpa session state
+                                    st.session_state.qr_step = 'start'
+                                    if 'qr_lat_captured' in st.session_state:
+                                        del st.session_state['qr_lat_captured']
+                                    if 'qr_lon_captured' in st.session_state:
+                                        del st.session_state['qr_lon_captured']
+                                    
+                                    st.cache_data.clear()
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Erro ao salvar inspeção.")
                 else:
                     st.error(f"Nenhum registro encontrado para o ID '{st.session_state.qr_id}'. Verifique se o extintor está cadastrado na aba 'Cadastrar / Editar'.")
                 
                 if st.button("Inspecionar Outro Equipamento"):
-                    st.session_state.qr_step = 'start'; st.rerun()
+                    st.session_state.qr_step = 'start'
+                    # Limpa session state de GPS
+                    if 'qr_lat_captured' in st.session_state:
+                        del st.session_state['qr_lat_captured']
+                    if 'qr_lon_captured' in st.session_state:
+                        del st.session_state['qr_lon_captured']
+                    st.rerun()
 
     with tab_cadastro:
         if not can_edit():
