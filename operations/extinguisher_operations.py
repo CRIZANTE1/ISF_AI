@@ -616,10 +616,11 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
             ])
 
     try:
-        # ✅ CORREÇÃO: Cria uploaders dentro da função
-        uploader = GoogleDriveUploader()
-        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, new_inspection_rows)
+        # ✅ CORREÇÃO: Cria uploader dentro da função para extintores
+        extinguisher_uploader = GoogleDriveUploader()
+        extinguisher_uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, new_inspection_rows)
         
+        # ✅ CORREÇÃO: Cria uploader separado para a planilha matriz (auditoria)
         matrix_uploader = GoogleDriveUploader(is_matrix=True)
         matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
 
@@ -630,4 +631,20 @@ def batch_regularize_monthly_inspections(df_all_extinguishers):
         st.error(f"❌ Ocorreu um erro durante a regularização em massa: {e}")
         import traceback
         st.error(traceback.format_exc())
+        
+        # Log do erro para auditoria (tenta salvar mesmo se falhou a regularização)
+        try:
+            error_log_row = [
+                current_time_str,
+                user_email or "não logado",
+                user_role,
+                "FALHA_REGULARIZACAO_MASSA",
+                f"Erro: {str(e)[:200]}",
+                current_unit
+            ]
+            matrix_uploader = GoogleDriveUploader(is_matrix=True)
+            matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, [error_log_row])
+        except:
+            pass  
+            
         return -1
