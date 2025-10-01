@@ -143,24 +143,32 @@ def show_page():
                 new_model = col3.selectbox("**Modelo da Câmara (Obrigatório)**", options=model_options)
                 new_brand = col4.text_input("Marca")
                 
+                # ✅ NOVO CAMPO
+                col5, col6 = st.columns(2)
+                new_specific_size = col5.text_input(
+                    "**Tamanho Específico (Obrigatório)**", 
+                    placeholder="Ex: MCS-17, MCS-33, TF-22, MLS-45",
+                    help="Informe o tamanho/modelo completo da câmara para verificação de compatibilidade da placa de orifício"
+                )
+                
                 # Informações adicionais
                 st.markdown("---")
                 st.subheader("Informações Complementares (Opcional)")
                 
                 additional_info = st.text_area(
                     "Observações/Especificações Técnicas",
-                    placeholder="Ex: Capacidade de descarga, pressão de trabalho, especificações do tanque, etc."
+                    placeholder="Ex: Capacidade de descarga, pressão de trabalho, especificações do tanque, placa de orifício atual, etc."
                 )
                 
                 submit_register = st.form_submit_button("➕ Cadastrar Equipamento", type="primary", use_container_width=True)
                 
                 if submit_register:
-                    if not new_id or not new_location or not new_model:
-                        st.error("Os campos 'ID', 'Localização' e 'Modelo' são obrigatórios.")
+                    if not new_id or not new_location or not new_model or not new_specific_size:
+                        st.error("Os campos 'ID', 'Localização', 'Modelo' e 'Tamanho Específico' são obrigatórios.")
                     else:
                         with st.spinner("Cadastrando novo equipamento..."):
-                            if save_new_foam_chamber(new_id, new_location, new_brand, new_model):
-                                st.success(f"Câmara de espuma '{new_id}' cadastrada com sucesso!")
+                            if save_new_foam_chamber(new_id, new_location, new_brand, new_model, new_specific_size):
+                                st.success(f"Câmara de espuma '{new_id}' ({new_specific_size}) cadastrada com sucesso!")
                                 if additional_info:
                                     st.info(f"Observações registradas: {additional_info}")
                                 st.cache_data.clear()
