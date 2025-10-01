@@ -238,8 +238,7 @@ def show_page():
                                     log_action("ATUALIZOU_EXTINTOR", f"ID: {ext_id_to_edit}")
                                     st.success(f"Extintor '{ext_id_to_edit}' atualizado com sucesso!"); st.cache_data.clear(); st.rerun()
                                 except Exception as e: st.error(f"Erro ao atualizar: {e}")
-    
-    # Nova aba para cadastro manual de inspeções
+
     with tab_manual:
         st.header("Cadastro Manual de Inspeção")
         
@@ -278,7 +277,44 @@ def show_page():
                 
                 observacoes_gerais = st.text_area("Observações", help="Descreva problemas encontrados, se houver.")
                 
-                submitted = st.form_submit_button("Salvar Inspeção", type="primary", use_container_width=True)
+                # NOVO: Seção de Localização
+                st.markdown("---")
+                st.subheader("📍 Localização (Opcional)")
+                
+                from operations.location_operations import show_location_selector
+                
+                # Widget de seleção de local
+                selected_location = show_location_selector(
+                    key_suffix="manual_inspection",
+                    required=False,
+                    current_value=None
+                )
+                
+                # Campo de geolocalização
+                st.markdown("#### 🗺️ Coordenadas GPS (Opcional)")
+                st.info("💡 **Dica:** Use o botão abaixo do formulário para capturar automaticamente sua localização atual.")
+                
+                col_geo1, col_geo2 = st.columns(2)
+                
+                with col_geo1:
+                    manual_latitude = st.number_input(
+                        "Latitude", 
+                        value=None, 
+                        format="%.6f",
+                        help="Ex: -23.550520",
+                        key="manual_lat_input"
+                    )
+                
+                with col_geo2:
+                    manual_longitude = st.number_input(
+                        "Longitude", 
+                        value=None, 
+                        format="%.6f",
+                        help="Ex: -46.633308",
+                        key="manual_lon_input"
+                    )
+                
+                submitted = st.form_submit_button("💾 Salvar Inspeção", type="primary", use_container_width=True)
                 
                 if submitted:
                     if not numero_identificacao:
@@ -322,7 +358,9 @@ def show_page():
                             'observacoes_gerais': observacoes_gerais,
                             'plano_de_acao': plano_acao,
                             'link_relatorio_pdf': None,
-                            'link_foto_nao_conformidade': None
+                            'link_foto_nao_conformidade': None,
+                            'latitude': manual_latitude,  # NOVO
+                            'longitude': manual_longitude  # NOVO
                         }
                         
                         # Adiciona as datas calculadas
@@ -330,9 +368,97 @@ def show_page():
                         
                         try:
                             if save_inspection(new_record):
+                                # NOVO: Salva o local na aba 'locais' se foi informado
+                                if selected_location:
+                                    from operations.extinguisher_operations import update_extinguisher_location
+                                    from operations.history import load_sheet_data as load_locations_data
+                                    
+                                    df_locais = load_locations_data("locais")
+                                    
+                                    # Busca o nome do local selecionado
+                                    if not df_locais.empty:
+                                        location_row = df_locais[df_locais['id'] == selected_location]
+                                        if not location_row.empty:
+                                            location_name = location_row.iloc[0]['local']
+                                            update_extinguisher_location(numero_identificacao, location_name)
+                                
                                 log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", f"ID: {numero_identificacao}, Status: {aprovado}")
-                                st.success(f"Inspeção para o extintor '{numero_identificacao}' registrada com sucesso!")
+                                st.success(f"✅ Inspeção para o extintor '{numero_identificacao}' registrada com sucesso!")
+                                
+                                if selected_location:
+                                    st.success(f"📍 Local '{selected_location}' associado ao equipamento.")
+                                
+                                if manual_latitude and manual_longitude:
+                                    st.success(f"🗺️ Coordenadas GPS salvas: ({manual_latitude:.6f}, {manual_longitude:.6f})")
+                                
                                 st.balloons()
                                 st.cache_data.clear()
+                                st.rerun()
                         except Exception as e:
-                            st.error(f"Erro ao salvar a inspeção: {e}")
+                            st.error(f"❌ Erro ao salvar a inspeção: {e}")
+                            import traceback
+                            st.error(traceback.format_exc())
+            
+            # Botão de geolocalização FORA do formulário (para não resetar os campos)
+            st.markdown("---")
+            st.subheader("🌐 Capturar Localização Atual")
+            
+            col_btn1, col_btn2 = st.columns([3, 1])
+            
+            with col_btn1:
+                st.info("Clique no botão ao lado para capturar automaticamente as coordenadas GPS do seu dispositivo.")
+            
+            with col_btn2:
+                capture_location = st.button("📍 Capturar GPS", use_container_width=True, type="secondary")
+            
+            if capture_location:
+                # Armazena um flag para indicar que deve capturar localização
+                st.session_state['capture_geo_manual'] = True
+                st.rerun()
+            
+            # Captura a localização se o flag estiver ativo
+            if st.session_state.get('capture_geo_manual', False):
+                location_js = streamlit_js_eval(js_expressions="""
+                    new Promise(function(resolve, reject) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) { 
+                                resolve({ 
+                                    latitude: position.coords.latitude, 
+                                    longitude: position.coords.longitude 
+                                }); 
+                            },
+                            function(error) { 
+                                resolve({ error: error.message }); 
+                            }
+                        );
+                    });
+                """, key="manual_inspection_geolocation")
+                
+                if location_js:
+                    st.session_state['capture_geo_manual'] = False  # Reset flag
+                    
+                    if 'error' in location_js:
+                        st.error(f"❌ Erro ao capturar localização: {location_js['error']}")
+                        st.info("Verifique se você permitiu o acesso à localização no seu navegador.")
+                    else:
+                        lat = location_js['latitude']
+                        lon = location_js['longitude']
+                        
+                        st.success(f"✅ Localização capturada com sucesso!")
+                        
+                        # Exibe as coordenadas em formato copiável
+                        col_display1, col_display2 = st.columns(2)
+                        
+                        with col_display1:
+                            st.code(f"{lat:.6f}", language=None)
+                            st.caption("👆 Copie esta Latitude")
+                        
+                        with col_display2:
+                            st.code(f"{lon:.6f}", language=None)
+                            st.caption("👆 Copie esta Longitude")
+                        
+                        st.info("💡 Cole estes valores nos campos de coordenadas no formulário acima e clique em 'Salvar Inspeção'.")
+                        
+                        # Link para o Google Maps
+                        maps_url = f"https://www.google.com/maps?q={lat},{lon}"
+                        st.markdown(f"🗺️ [Ver localização no Google Maps]({maps_url})")
