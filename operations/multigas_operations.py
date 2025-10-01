@@ -271,10 +271,10 @@ def update_cylinder_values(detector_id, new_cylinder_values):
         # ✅ CORREÇÃO CRÍTICA: Uso de .get() com valores padrão para evitar KeyError
         # Converte valores para tipos apropriados e aplica to_safe_cell
         try:
-            lel_value = float(new_cylinder_values.get('LEL') or 0)
-            o2_value = float(new_cylinder_values.get('O2') or 0)
-            h2s_value = int(float(new_cylinder_values.get('H2S') or 0))
-            co_value = int(float(new_cylinder_values.get('CO') or 0))
+            lel_value = float(new_cylinder_values.get('LEL', 0))
+            o2_value = float(new_cylinder_values.get('O2', 0))
+            h2s_value = int(float(new_cylinder_values.get('H2S', 0)))
+            co_value = int(float(new_cylinder_values.get('CO', 0)))
         except (ValueError, TypeError) as e:
             st.error(f"Erro na conversão de valores: {e}")
             return False
