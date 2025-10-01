@@ -385,22 +385,27 @@ def format_coordinate(coord):
         return None
     
     # Se for string vazia, retorna None
-    if isinstance(coord, str) and coord.strip() == '':
-        return None
-    
-    # Se for string 'None', 'nan', etc, retorna None
-    if isinstance(coord, str) and coord.lower() in ['none', 'nan', 'null']:
-        return None
-    
-    try:
-        # Converte para float e formata com 6 casas decimais
-        coord_float = float(coord) if not isinstance(coord, float) else coord
-        
-        # Se for zero, retorna None (coordenada não válida)
-        if coord_float == 0.0:
+    if isinstance(coord, str):
+        coord_str = coord.strip()
+        if coord_str == '' or coord_str.lower() in ['none', 'nan', 'null']:
             return None
         
-        # Usa ponto decimal (padrão internacional)
-        return f"{coord_float:.6f}"
-    except (ValueError, TypeError):
+        # Remove vírgula se houver
+        coord_str = coord_str.replace(',', '.')
+        
+        try:
+            coord_float = float(coord_str)
+        except (ValueError, TypeError):
+            return None
+    else:
+        try:
+            coord_float = float(coord)
+        except (ValueError, TypeError):
+            return None
+    
+    # Se for zero, retorna None (coordenada não válida)
+    if coord_float == 0.0:
         return None
+    
+    # Usa ponto decimal (padrão internacional)
+    return f"{coord_float:.6f}"
