@@ -7,10 +7,15 @@ from streamlit_js_eval import streamlit_js_eval
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from operations.extinguisher_operations import process_extinguisher_pdf, calculate_next_dates, save_inspection, generate_action_plan, clean_and_prepare_ia_data, save_new_extinguisher
-from operations.history import find_last_record
+from operations.extinguisher_operations import (
+    process_extinguisher_pdf, calculate_next_dates, save_inspection, 
+    generate_action_plan, clean_and_prepare_ia_data, save_new_extinguisher,
+    update_extinguisher_location  
+)
+from operations.history import find_last_record, load_sheet_data
 from operations.qr_inspection_utils import decode_qr_from_image
 from operations.photo_operations import upload_evidence_photo
+from operations.location_operations import show_location_selector 
 from gdrive.gdrive_upload import GoogleDriveUploader
 from gdrive.config import EXTINGUISHER_SHEET_NAME
 from auth.auth_utils import (
@@ -18,7 +23,7 @@ from auth.auth_utils import (
     get_user_display_name
 )
 from utils.auditoria import log_action
-from config.page_config import set_page_config 
+from config.page_config import set_page_config
 
 set_page_config()
 
