@@ -16,6 +16,8 @@ from auth.auth_utils import (
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
 from gdrive.config import FOAM_CHAMBER_INVENTORY_SHEET_NAME
+from reports.foam_chamber_report import generate_foam_chamber_consolidated_report
+
 
 set_page_config()
 
@@ -27,10 +29,11 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    tab_inspection, tab_register, tab_manual_register = st.tabs([
-        "📋 Realizar Inspeção", 
-        "➕ Cadastrar Nova Câmara (Completo)", 
-        "✍️ Cadastro Rápido de Câmara"
+    tab_inspection, tab_register, tab_manual_register, tab_report = st.tabs([
+    "📋 Realizar Inspeção", 
+    "➕ Cadastrar Nova Câmara (Completo)", 
+    "✍️ Cadastro Rápido de Câmara",
+    "📊 Relatório Consolidado"  
     ])
 
     with tab_inspection:
@@ -179,7 +182,6 @@ def show_page():
                                     st.info(f"Observações registradas: {additional_info}")
                                 st.cache_data.clear()
 
-    # Nova aba para cadastro rápido
     with tab_manual_register:
         st.header("Cadastro Rápido de Câmara")
         
@@ -236,3 +238,83 @@ def show_page():
                                 st.cache_data.clear()
                             else:
                                 st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
+
+    with tab_report:
+    st.header("📊 Relatório Consolidado de Câmaras de Espuma")
+    
+    st.info("Este relatório gera um PDF completo com todas as câmaras inspecionadas, incluindo checklist, planos de ação e fotos de não conformidades.")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        st.markdown("""
+        **O relatório inclui:**
+        - ✅ Dados completos de cada câmara (ID, localização, modelo, tamanho)
+        - ✅ Checklist completo com todos os resultados
+        - ✅ Status geral (Aprovado/Reprovado)
+        - ✅ Plano de ação para não conformidades
+        - ✅ Links para fotos de evidências
+        - ✅ Assinatura do inspetor responsável
+        - ✅ Próxima data de inspeção
+        - ✅ Resumo estatístico geral
+        """)
+    
+    with col2:
+        if st.button("🔄 Atualizar Dados", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Carrega dados
+    from operations.history import load_sheet_data
+    from gdrive.config import FOAM_CHAMBER_INSPECTIONS_SHEET_NAME, FOAM_CHAMBER_INVENTORY_SHEET_NAME
+    
+    with st.spinner("Carregando dados das inspeções..."):
+        inspections_df = load_sheet_data(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
+        inventory_df = load_sheet_data(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
+    
+    if inspections_df.empty:
+        st.warning("⚠️ Nenhuma inspeção de câmara de espuma foi realizada ainda.")
+        st.info("Realize inspeções na aba 'Realizar Inspeção' para gerar o relatório.")
+    else:
+        # Estatísticas rápidas
+        total_chambers = len(inspections_df['id_camara'].unique())
+        total_inspections = len(inspections_df)
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total de Câmaras", total_chambers)
+        col2.metric("Total de Inspeções", total_inspections)
+        
+        # Última inspeção de cada câmara
+        inspections_df['data_inspecao'] = pd.to_datetime(inspections_df['data_inspecao'])
+        latest = inspections_df.sort_values('data_inspecao').groupby('id_camara').tail(1)
+        approved = len(latest[latest['status_geral'] == 'Aprovado'])
+        col3.metric("Aprovadas (última inspeção)", f"{approved}/{total_chambers}")
+        
+        st.markdown("---")
+        
+        # Botão para gerar PDF
+        col1, col2, col3 = st.columns([1, 2, 1])
+        
+        with col2:
+            if st.button("📄 Gerar Relatório PDF Consolidado", type="primary", use_container_width=True):
+                with st.spinner("Gerando relatório em PDF... Isso pode levar alguns segundos."):
+                    pdf_file = generate_foam_chamber_consolidated_report(inspections_df, inventory_df)
+                    
+                    if pdf_file:
+                        st.success("✅ Relatório gerado com sucesso!")
+                        
+                        # Botão de download
+                        current_date = datetime.now().strftime('%Y%m%d_%H%M')
+                        filename = f"Relatorio_Camaras_Espuma_{current_date}.pdf"
+                        
+                        st.download_button(
+                            label="⬇️ Baixar Relatório PDF",
+                            data=pdf_file,
+                            file_name=filename,
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                        
+     
