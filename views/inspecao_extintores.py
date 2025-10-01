@@ -19,6 +19,7 @@ from auth.auth_utils import (
 )
 from utils.auditoria import log_action
 from config.page_config import set_page_config 
+from utils.geolocation import show_geolocation_widget_optional
 
 set_page_config()
 
@@ -155,37 +156,228 @@ def show_page():
                     
                     st.subheader("3. Registrar Nova Inspeção (Nível 1)")
                     with st.form("quick_inspection_form"):
-                        status = st.radio("Status do Equipamento:", ["Conforme", "Não Conforme"], horizontal=True)
-                        observacoes = st.text_area("Observações (se 'Não Conforme', descreva os problemas)")
-                        photo_non_compliance = st.camera_input("Anexar foto da não conformidade (Opcional)")
+                        st.markdown("### 1️⃣ Status do Equipamento")
+                        col_status1, col_status2 = st.columns(2)
                         
-                        submitted = st.form_submit_button("✅ Confirmar e Registrar Inspeção", type="primary")
-                        if submitted:
-                            with st.spinner("Salvando..."):
-                                photo_link_nc = upload_evidence_photo(photo_non_compliance, st.session_state.qr_id, "nao_conformidade") if photo_non_compliance else None
-                                existing_dates = {k: last_record.get(k) for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']}
-                                updated_dates = calculate_next_dates(date.today().isoformat(), "Inspeção", existing_dates)
+                        with col_status1:
+                            conforme = st.checkbox("✅ CONFORME", key="btn_conforme")
+                        with col_status2:
+                            nao_conforme = st.checkbox("❌ NÃO CONFORME", key="btn_nao_conforme")
+                        
+                        # Validação de status
+                        status = None
+                        if conforme and not nao_conforme:
+                            status = "Conforme"
+                        elif nao_conforme and not conforme:
+                            status = "Não Conforme"
+                        elif conforme and nao_conforme:
+                            st.error("⚠️ Selecione apenas uma opção: Conforme OU Não Conforme")
+                        
+                        # Campos condicionais baseados no status
+                        observacoes = ""
+                        photo_non_compliance = None
+                        
+                        if status == "Não Conforme":
+                            st.divider()
+                            st.markdown("### 2️⃣ Problemas Identificados")
+                            
+                            # Checklist de problemas comuns
+                            problemas_comuns = {
+                                "Pintura descascada ou corrosão": "PINTURA",
+                                "Manômetro com defeito": "MANÔMETRO",
+                                "Gatilho com problema": "GATILHO",
+                                "Mangote danificado": "MANGOTE",
+                                "Lacre violado": "LACRE",
+                                "Pressão inadequada / Necessita recarga": "RECARGA",
+                                "Sinalização inadequada": "SINALIZAÇÃO",
+                                "Obstrução de acesso": "OBSTRUÇÃO",
+                                "Dano visível no casco": "DANO VISÍVEL",
+                                "Outro problema": "OUTRO"
+                            }
+                            
+                            problemas_selecionados = []
+                            col1, col2 = st.columns(2)
+                            
+                            items = list(problemas_comuns.items())
+                            mid = len(items) // 2
+                            
+                            with col1:
+                                for problema, codigo in items[:mid]:
+                                    if st.checkbox(problema, key=f"prob_{codigo}"):
+                                        problemas_selecionados.append(codigo)
+                            
+                            with col2:
+                                for problema, codigo in items[mid:]:
+                                    if st.checkbox(problema, key=f"prob_{codigo}"):
+                                        problemas_selecionados.append(codigo)
+                            
+                            # Campo para observações adicionais
+                            observacoes = st.text_area(
+                                "Detalhes adicionais dos problemas:",
+                                placeholder="Descreva detalhadamente os problemas encontrados...",
+                                height=100,
+                                key="obs_nao_conforme"
+                            )
+                            
+                            # Gera observações automaticamente baseado nos checkboxes se não houver texto
+                            if not observacoes and problemas_selecionados:
+                                problemas_texto = [k for k, v in problemas_comuns.items() 
+                                                 if v in problemas_selecionados]
+                                observacoes = "Problemas identificados: " + ", ".join(problemas_texto)
+                            
+                            st.markdown("### 3️⃣ Evidência Fotográfica")
+                            photo_non_compliance = st.camera_input(
+                                "Tire uma foto da não conformidade:",
+                                key="photo_nc",
+                                help="A foto ajuda na análise e planejamento de correção"
+                            )
+                        
+                        elif status == "Conforme":
+                            st.success("👍 Equipamento em conformidade! Prossiga com o local e geolocalização.")
+                        
+                        st.divider()
+                        
+                        # NOVO: Seleção de Local
+                        st.markdown("### 4️⃣ Local do Equipamento")
+                        
+                        # Import necessário para usar a função
+                        from operations.location_operations import show_location_selector
+                        
+                        location_id = show_location_selector(
+                            key_suffix=f"qr_inspection_{st.session_state.qr_id}",
+                            required=False,
+                            current_value=last_record.get('local_id') if last_record else None
+                        )
+                        
+                        st.divider()
+                        
+                        # Geolocalização Opcional
+                        st.markdown("### 5️⃣ Localização GPS (Opcional)")
+                        
+                        from utils.geolocation import show_geolocation_widget_optional
+                        
+                        latitude, longitude = show_geolocation_widget_optional(
+                            form_key=f"qr_inspection_{st.session_state.qr_id}"
+                        )
+                        
+                        st.divider()
+                        
+                        # Botão de confirmação destacado
+                        submitted = st.form_submit_button(
+                            "✅ CONFIRMAR E REGISTRAR" if status else "⚠️ Selecione o status primeiro",
+                            type="primary",
+                            disabled=(status is None),
+                            use_container_width=True
+                        )
+                        
+                        if submitted and status:
+                            with st.spinner("💾 Salvando inspeção..."):
+                                # Upload da foto se fornecida
+                                photo_link_nc = None
+                                if photo_non_compliance:
+                                    photo_link_nc = upload_evidence_photo(
+                                        photo_non_compliance, 
+                                        st.session_state.qr_id, 
+                                        "nao_conformidade"
+                                    )
+                                
+                                # Calcula próximas datas
+                                existing_dates = {
+                                    k: last_record.get(k) 
+                                    for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
+                                             'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                                }
+                                
+                                updated_dates = calculate_next_dates(
+                                    date.today().isoformat(), 
+                                    "Inspeção", 
+                                    existing_dates
+                                )
+                                
                                 aprovado_str = "Sim" if status == "Conforme" else "Não"
                                 
+                                # Prepara novo registro
                                 new_record = last_record.copy()
                                 new_record.update({
-                                    'tipo_servico': "Inspeção", 'data_servico': date.today().isoformat(),
-                                    'inspetor_responsavel': get_user_display_name(), 'aprovado_inspecao': aprovado_str,
-                                    'observacoes_gerais': observacoes or ("Inspeção de rotina OK." if status == "Conforme" else ""),
-                                    'plano_de_acao': generate_action_plan({'aprovado_inspecao': aprovado_str, 'observacoes_gerais': observacoes}),
-                                    'link_relatorio_pdf': None, 'link_foto_nao_conformidade': photo_link_nc
+                                    'tipo_servico': "Inspeção",
+                                    'data_servico': date.today().isoformat(),
+                                    'inspetor_responsavel': get_user_display_name(),
+                                    'aprovado_inspecao': aprovado_str,
+                                    'observacoes_gerais': observacoes or (
+                                        "Inspeção de rotina OK." if status == "Conforme" 
+                                        else "Não conformidade identificada."
+                                    ),
+                                    'plano_de_acao': generate_action_plan({
+                                        'aprovado_inspecao': aprovado_str, 
+                                        'observacoes_gerais': observacoes
+                                    }),
+                                    'link_relatorio_pdf': None,
+                                    'link_foto_nao_conformidade': photo_link_nc,
+                                    'local_id': location_id,  # NOVO: Salva o ID do local
+                                    'latitude': latitude,
+                                    'longitude': longitude
                                 })
                                 new_record.update(updated_dates)
                                 
+                                # Salva inspeção
                                 if save_inspection(new_record):
-                                    log_action("INSPECIONOU_EXTINTOR_QR", f"ID: {st.session_state.qr_id}, Status: {status}")
-                                    st.success("Inspeção registrada!"); st.balloons()
-                                    st.session_state.qr_step = 'start'; st.cache_data.clear(); st.rerun()
-                else:
-                    st.error(f"Nenhum registro encontrado para o ID '{st.session_state.qr_id}'. Verifique se o extintor está cadastrado na aba 'Cadastrar / Editar'.")
-                
-                if st.button("Inspecionar Outro Equipamento"):
-                    st.session_state.qr_step = 'start'; st.rerun()
+                                    # Atualiza também a tabela de locais se necessário
+                                    if location_id:
+                                        from operations.location_operations import get_location_name_by_id
+                                        location_name = get_location_name_by_id(location_id)
+                                        
+                                        # Atualiza a relação equipamento-local na planilha de locais
+                                        # (se você quiser manter um registro separado)
+                                        # update_extinguisher_location(st.session_state.qr_id, location_name)
+                                    
+                                    log_action(
+                                        "INSPECIONOU_EXTINTOR_QR", 
+                                        f"ID: {st.session_state.qr_id}, Status: {status}, "
+                                        f"Local: {location_id or 'N/A'}, GPS: {'Sim' if latitude else 'Não'}"
+                                    )
+                                    
+                                    # Feedback visual de sucesso
+                                    st.success("✅ Inspeção registrada com sucesso!")
+                                    st.balloons()
+                                    
+                                    # Mostra resumo da inspeção
+                                    with st.expander("📋 Resumo da Inspeção", expanded=True):
+                                        st.write(f"**Equipamento:** {st.session_state.qr_id}")
+                                        st.write(f"**Status:** {status}")
+                                        
+                                        if location_id:
+                                            from operations.location_operations import get_location_name_by_id
+                                            location_name = get_location_name_by_id(location_id)
+                                            st.write(f"**Local:** {location_name} ({location_id})")
+                                        
+                                        st.write(f"**Data:** {date.today().strftime('%d/%m/%Y')}")
+                                        st.write(f"**Inspetor:** {get_user_display_name()}")
+                                        
+                                        if observacoes:
+                                            st.write(f"**Observações:** {observacoes}")
+                                        
+                                        if latitude and longitude:
+                                            from utils.geolocation import format_coordinates
+                                            st.write(f"**GPS:** {format_coordinates(latitude, longitude)}")
+                                    
+                                    # Aguarda 2 segundos antes de resetar
+                                    import time
+                                    time.sleep(2)
+                                    
+                                    # Limpa session state e reseta
+                                    st.session_state.qr_step = 'start'
+                                    st.session_state.qr_id = None
+                                    st.session_state.last_record = None
+                                    
+                                    # Limpa também os estados de geolocalização e local
+                                    for key in list(st.session_state.keys()):
+                                        if 'geo_' in key or 'location_' in key:
+                                            del st.session_state[key]
+                                    
+                                    st.cache_data.clear()
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Erro ao salvar a inspeção. Tente novamente.")
 
     with tab_cadastro:
         if not can_edit():
