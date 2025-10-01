@@ -53,8 +53,14 @@ def show_page():
                     chamber_data = df_inventory[df_inventory['id_camara'] == selected_chamber_id].iloc[0]
                     location = chamber_data.get('localizacao', 'N/A')
                     model = chamber_data.get('modelo', 'N/A')
+                    specific_size = chamber_data.get('tamanho_especifico', 'Não informado')  # ✅ NOVO
                     
-                    st.info(f"**Localização:** {location} | **Modelo:** {model}")
+                    # ✅ MODIFICADO: Exibe o tamanho específico
+                    st.info(f"**Localização:** {location} | **Modelo:** {model} | **Tamanho:** {specific_size}")
+                    
+                    # Alerta visual se o tamanho não estiver cadastrado
+                    if not specific_size or specific_size == 'Não informado' or specific_size.strip() == '':
+                        st.warning("⚠️ **ATENÇÃO:** O tamanho específico desta câmara não foi cadastrado. Não será possível verificar a compatibilidade da placa de orifício durante a inspeção.")
                     
                     checklist_for_model = CHECKLIST_QUESTIONS.get(model)
                     if not checklist_for_model:
@@ -197,6 +203,13 @@ def show_page():
                     horizontal=False
                 )
                 
+                # ✅ NOVO: Campo de tamanho específico
+                quick_size = st.text_input(
+                    "Tamanho/Modelo Específico*", 
+                    placeholder="Ex: MCS-17, MCS-33, TF-22",
+                    help="Essencial para verificar compatibilidade da placa de orifício"
+                )
+                
                 # Marca comum pré-preenchida
                 quick_brand = st.selectbox(
                     "Marca (opcional)", 
@@ -213,13 +226,13 @@ def show_page():
                 quick_submit = st.form_submit_button("Cadastrar Rápido", type="primary", use_container_width=True)
                 
                 if quick_submit:
-                    if not quick_id or not quick_location:
-                        st.error("ID e Localização são obrigatórios.")
+                    if not quick_id or not quick_location or not quick_size:
+                        st.error("ID, Localização e Tamanho Específico são obrigatórios.")
                     else:
                         with st.spinner("Cadastrando..."):
-                            if save_new_foam_chamber(quick_id, quick_location, final_brand, chamber_type):
-                                st.success(f"Câmara '{quick_id}' cadastrada rapidamente!")
+                            if save_new_foam_chamber(quick_id, quick_location, final_brand, chamber_type, quick_size):
+                                st.success(f"Câmara '{quick_id}' ({quick_size}) cadastrada rapidamente!")
                                 st.balloons()
                                 st.cache_data.clear()
                             else:
-                                st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
+                    st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
