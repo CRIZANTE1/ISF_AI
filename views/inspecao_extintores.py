@@ -431,57 +431,202 @@ def show_page():
                                     st.success(f"Extintor '{ext_id_to_edit}' atualizado com sucesso!"); st.cache_data.clear(); st.rerun()
                                 except Exception as e: st.error(f"Erro ao atualizar: {e}")
     
-    # Nova aba para cadastro manual de inspeções
     with tab_manual:
-        st.header("Cadastro Manual de Inspeção")
+        st.header("📝 Cadastro Manual de Inspeção")
         
         if not can_edit():
             st.warning("Você precisa de permissões de edição para registrar inspeções.")
+            st.info("Somente usuários com nível 'editor' ou superior podem adicionar dados.")
         else:
-            st.info("Use este formulário para cadastrar manualmente uma inspeção de extintor, sem necessidade de processamento IA.")
+            st.info("💡 Use este formulário para cadastrar manualmente uma inspeção de extintor, sem necessidade de processamento IA.")
             
             with st.form("manual_inspection_form", clear_on_submit=True):
-                st.subheader("Dados da Inspeção")
+                st.subheader("📋 Dados Básicos do Equipamento")
                 
                 # Dados básicos do equipamento
                 col1, col2 = st.columns(2)
-                numero_identificacao = col1.text_input("Número de Identificação*", help="O ID único do extintor.")
-                numero_selo_inmetro = col2.text_input("Nº Selo INMETRO")
+                
+                with col1:
+                    numero_identificacao = st.text_input(
+                        "Número de Identificação*", 
+                        help="O ID único do extintor (obrigatório)"
+                    )
+                    tipo_agente = st.selectbox(
+                        "Tipo de Agente*",
+                        options=["AP", "BC", "ABC", "CO2", "Espuma Mecânica", "Pó Químico"],
+                        help="Tipo de agente extintor"
+                    )
+                    marca_fabricante = st.text_input(
+                        "Marca/Fabricante",
+                        help="Fabricante do equipamento"
+                    )
+                
+                with col2:
+                    numero_selo_inmetro = st.text_input(
+                        "Nº Selo INMETRO",
+                        help="Número do selo do INMETRO (se aplicável)"
+                    )
+                    capacidade = st.number_input(
+                        "Capacidade (Litros ou Kg)*",
+                        min_value=0.0,
+                        step=0.5,
+                        format="%.1f",
+                        help="Capacidade do extintor"
+                    )
+                    ano_fabricacao = st.number_input(
+                        "Ano de Fabricação",
+                        min_value=1980,
+                        max_value=date.today().year,
+                        value=date.today().year,
+                        step=1,
+                        help="Ano em que o extintor foi fabricado"
+                    )
+                
+                st.markdown("---")
+                st.subheader("🔍 Informações da Inspeção")
                 
                 col3, col4 = st.columns(2)
-                tipo_agente = col3.selectbox("Tipo de Agente", ["AP", "BC", "ABC", "CO2", "Espuma Mecânica"])
-                capacidade = col4.number_input("Capacidade", step=1.0, format="%.2f")
                 
-                col5, col6 = st.columns(2)
-                marca_fabricante = col5.text_input("Marca/Fabricante")
-                ano_fabricacao = col6.number_input("Ano de Fabricação", min_value=1980, max_value=date.today().year, step=1)
+                with col3:
+                    tipo_servico = st.selectbox(
+                        "Tipo de Serviço*",
+                        options=["Inspeção", "Manutenção Nível 2", "Manutenção Nível 3", "Substituição"],
+                        help="Tipo de serviço realizado"
+                    )
+                    
+                    aprovado = st.radio(
+                        "Status da Inspeção*",
+                        options=["Sim", "Não"],
+                        horizontal=True,
+                        help="O equipamento foi aprovado?"
+                    )
                 
-                # Dados da inspeção
+                with col4:
+                    data_servico = st.date_input(
+                        "Data do Serviço*",
+                        value=date.today(),
+                        max_value=date.today(),
+                        help="Data em que o serviço foi realizado"
+                    )
+                    
+                    empresa_executante = st.text_input(
+                        "Empresa Executante",
+                        help="Nome da empresa que executou o serviço (opcional)"
+                    )
+                
+                # Observações
+                st.markdown("### 📝 Observações e Problemas")
+                
+                if aprovado == "Não":
+                    st.warning("⚠️ Equipamento NÃO conforme - Descreva os problemas identificados")
+                    
+                    # Checklist de problemas comuns
+                    st.markdown("**Problemas Comuns (selecione todos que se aplicam):**")
+                    
+                    problemas_comuns = {
+                        "Pintura descascada ou corrosão": "PINTURA",
+                        "Manômetro com defeito": "MANÔMETRO",
+                        "Gatilho com problema": "GATILHO",
+                        "Mangote/Mangueira danificado": "MANGOTE",
+                        "Lacre violado": "LACRE",
+                        "Pressão inadequada / Necessita recarga": "RECARGA",
+                        "Sinalização inadequada": "SINALIZAÇÃO",
+                        "Obstrução de acesso": "OBSTRUÇÃO",
+                        "Dano visível no casco": "DANO VISÍVEL",
+                        "Equipamento vencido": "VENCIDO"
+                    }
+                    
+                    problemas_selecionados = []
+                    col_prob1, col_prob2 = st.columns(2)
+                    
+                    items = list(problemas_comuns.items())
+                    mid = len(items) // 2
+                    
+                    with col_prob1:
+                        for problema, codigo in items[:mid]:
+                            if st.checkbox(problema, key=f"manual_prob_{codigo}"):
+                                problemas_selecionados.append(codigo)
+                    
+                    with col_prob2:
+                        for problema, codigo in items[mid:]:
+                            if st.checkbox(problema, key=f"manual_prob_{codigo}"):
+                                problemas_selecionados.append(codigo)
+                    
+                    observacoes_gerais = st.text_area(
+                        "Detalhes Adicionais dos Problemas",
+                        placeholder="Descreva detalhadamente os problemas encontrados...",
+                        height=120,
+                        help="Quanto mais detalhes, melhor será o plano de ação"
+                    )
+                    
+                    # Gera observações automaticamente se não houver texto
+                    if not observacoes_gerais and problemas_selecionados:
+                        problemas_texto = [k for k, v in problemas_comuns.items() 
+                                         if v in problemas_selecionados]
+                        observacoes_gerais = "Problemas identificados: " + ", ".join(problemas_texto)
+                    
+                else:
+                    st.success("✅ Equipamento conforme")
+                    observacoes_gerais = st.text_area(
+                        "Observações (Opcional)",
+                        placeholder="Adicione observações relevantes sobre a inspeção...",
+                        height=100,
+                        help="Observações adicionais sobre o equipamento"
+                    )
+                    problemas_selecionados = []
+                
                 st.markdown("---")
-                st.subheader("Informações da Inspeção")
+                st.subheader("📍 Localização do Equipamento")
                 
-                col7, col8 = st.columns(2)
-                tipo_servico = col7.selectbox("Tipo de Serviço", ["Inspeção", "Manutenção Nível 2", "Manutenção Nível 3"])
-                data_servico = col8.date_input("Data do Serviço", value=date.today())
+                # Seletor de local
+                from operations.location_operations import show_location_selector
                 
-                col9, col10 = st.columns(2)
-                aprovado = col9.radio("Aprovado na Inspeção?", ["Sim", "Não"], horizontal=True)
-                empresa_executante = col10.text_input("Empresa Executante (opcional)")
+                location_id = show_location_selector(
+                    key_suffix="manual_inspection",
+                    required=False,
+                    current_value=None
+                )
                 
-                observacoes_gerais = st.text_area("Observações", help="Descreva problemas encontrados, se houver.")
+                st.markdown("---")
+                st.subheader("🗺️ Coordenadas GPS (Opcional)")
                 
-                submitted = st.form_submit_button("Salvar Inspeção", type="primary", use_container_width=True)
+                # Widget de geolocalização
+                from utils.geolocation import show_geolocation_widget_optional
+                
+                latitude, longitude = show_geolocation_widget_optional(
+                    form_key="manual_inspection"
+                )
+                
+                st.markdown("---")
+                
+                # Botão de submissão
+                col_submit, col_info = st.columns([2, 1])
+                
+                with col_submit:
+                    submitted = st.form_submit_button(
+                        "💾 SALVAR INSPEÇÃO",
+                        type="primary",
+                        use_container_width=True
+                    )
+                
+                with col_info:
+                    st.info("📌 Campos com * são obrigatórios")
                 
                 if submitted:
+                    # Validação dos campos obrigatórios
                     if not numero_identificacao:
-                        st.error("O campo 'Número de Identificação' é obrigatório.")
+                        st.error("❌ O campo 'Número de Identificação' é obrigatório.")
+                    elif not tipo_agente:
+                        st.error("❌ O campo 'Tipo de Agente' é obrigatório.")
+                    elif capacidade <= 0:
+                        st.error("❌ A capacidade deve ser maior que zero.")
                     else:
                         # Busca o último registro para preservar datas existentes
                         last_record = find_last_record(df_extintores, numero_identificacao, 'numero_identificacao')
                         
                         # Define datas existentes para preservar
                         existing_dates = {}
-                        if last_record:
+                        if last_record is not None:
                             existing_dates = {
                                 k: last_record.get(k) 
                                 for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
@@ -489,9 +634,13 @@ def show_page():
                             }
                         
                         # Calcula as novas datas com base no tipo de serviço
-                        updated_dates = calculate_next_dates(data_servico.isoformat(), tipo_servico, existing_dates)
+                        updated_dates = calculate_next_dates(
+                            data_servico.isoformat(), 
+                            tipo_servico, 
+                            existing_dates
+                        )
                         
-                        # Gera plano de ação
+                        # Gera plano de ação baseado no status e observações
                         inspection_data = {
                             'aprovado_inspecao': aprovado,
                             'observacoes_gerais': observacoes_gerais
@@ -501,30 +650,101 @@ def show_page():
                         # Dados completos da inspeção
                         new_record = {
                             'numero_identificacao': numero_identificacao,
-                            'numero_selo_inmetro': numero_selo_inmetro,
+                            'numero_selo_inmetro': numero_selo_inmetro if numero_selo_inmetro else None,
                             'tipo_agente': tipo_agente,
                             'capacidade': capacidade,
-                            'marca_fabricante': marca_fabricante,
-                            'ano_fabricacao': ano_fabricacao,
+                            'marca_fabricante': marca_fabricante if marca_fabricante else None,
+                            'ano_fabricacao': ano_fabricacao if ano_fabricacao else None,
                             'tipo_servico': tipo_servico,
                             'data_servico': data_servico.isoformat(),
                             'inspetor_responsavel': get_user_display_name(),
-                            'empresa_executante': empresa_executante,
+                            'empresa_executante': empresa_executante if empresa_executante else None,
                             'aprovado_inspecao': aprovado,
-                            'observacoes_gerais': observacoes_gerais,
+                            'observacoes_gerais': observacoes_gerais if observacoes_gerais else (
+                                "Inspeção de rotina - Equipamento OK" if aprovado == "Sim" 
+                                else "Não conformidade identificada"
+                            ),
                             'plano_de_acao': plano_acao,
                             'link_relatorio_pdf': None,
-                            'link_foto_nao_conformidade': None
+                            'link_foto_nao_conformidade': None,
+                            'local_id': location_id,  # ID do local
+                            'latitude': latitude,
+                            'longitude': longitude
                         }
                         
                         # Adiciona as datas calculadas
                         new_record.update(updated_dates)
                         
+                        # Tenta salvar
                         try:
-                            if save_inspection(new_record):
-                                log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", f"ID: {numero_identificacao}, Status: {aprovado}")
-                                st.success(f"Inspeção para o extintor '{numero_identificacao}' registrada com sucesso!")
-                                st.balloons()
-                                st.cache_data.clear()
+                            with st.spinner("💾 Salvando inspeção..."):
+                                if save_inspection(new_record):
+                                    # Log detalhado
+                                    log_details = f"ID: {numero_identificacao}, Status: {aprovado}, Tipo: {tipo_servico}"
+                                    if location_id:
+                                        log_details += f", Local: {location_id}"
+                                    if latitude and longitude:
+                                        log_details += ", GPS: Sim"
+                                    
+                                    log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", log_details)
+                                    
+                                    # Feedback de sucesso com resumo
+                                    st.success("✅ Inspeção registrada com sucesso!")
+                                    st.balloons()
+                                    
+                                    # Exibe resumo da inspeção
+                                    with st.expander("📋 Resumo da Inspeção Salva", expanded=True):
+                                        col_res1, col_res2 = st.columns(2)
+                                        
+                                        with col_res1:
+                                            st.markdown(f"""
+                                            **Equipamento:** {numero_identificacao}  
+                                            **Tipo:** {tipo_agente} - {capacidade}L/Kg  
+                                            **Status:** {aprovado}  
+                                            **Data:** {data_servico.strftime('%d/%m/%Y')}
+                                            """)
+                                        
+                                        with col_res2:
+                                            st.markdown(f"""
+                                            **Serviço:** {tipo_servico}  
+                                            **Inspetor:** {get_user_display_name()}  
+                                            **Empresa:** {empresa_executante or 'N/A'}
+                                            """)
+                                        
+                                        if location_id:
+                                            from operations.location_operations import get_location_name_by_id
+                                            location_name = get_location_name_by_id(location_id)
+                                            st.info(f"📍 **Local:** {location_name} ({location_id})")
+                                        
+                                        if latitude and longitude:
+                                            from utils.geolocation import format_coordinates, get_google_maps_link
+                                            st.info(f"🗺️ **GPS:** {format_coordinates(latitude, longitude)}")
+                                            maps_link = get_google_maps_link(latitude, longitude)
+                                            if maps_link:
+                                                st.markdown(f"[Ver no Google Maps]({maps_link})")
+                                        
+                                        if observacoes_gerais:
+                                            st.markdown(f"**📝 Observações:**")
+                                            st.text(observacoes_gerais)
+                                        
+                                        st.markdown(f"**🎯 Plano de Ação:**")
+                                        st.text(plano_acao)
+                                        
+                                        # Próximas datas
+                                        if updated_dates.get('data_proxima_inspecao'):
+                                            st.markdown(f"**📅 Próxima Inspeção:** {updated_dates['data_proxima_inspecao']}")
+                                    
+                                    # Limpa cache
+                                    st.cache_data.clear()
+                                    
+                                    # Aguarda um pouco para o usuário ver o resumo
+                                    import time
+                                    time.sleep(3)
+                                    
+                                    # Oferece opção de continuar ou voltar
+                                    st.info("👆 Role para cima para cadastrar outra inspeção ou navegue para outra aba.")
+                                    
                         except Exception as e:
-                            st.error(f"Erro ao salvar a inspeção: {e}")
+                            st.error(f"❌ Erro ao salvar a inspeção: {e}")
+                            st.exception(e)
+                            st.info("💡 Tente novamente ou contate o suporte se o erro persistir.")
