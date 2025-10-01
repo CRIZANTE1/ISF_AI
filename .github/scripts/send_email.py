@@ -486,8 +486,7 @@ EMAIL_TEMPLATES = {
             
             <p><strong>Tem dúvidas? Nossa equipe está pronta para ajudar:</strong></p>
             <ul>
-                <li>📧 Email: cristian.ferreira.carlos@gmail.com</li>
-                <li>💼 LinkedIn: <a href="https://www.linkedin.com/in/cristian-ferreira-carlos-256b19161/">Cristian Ferreira Carlos</a></li>
+                <li>📧 Email: isfiasegurancanotrabalho@gmail.com>
             </ul>
             
             <p>Não perca esta oportunidade de transformar sua gestão de segurança!</p>
