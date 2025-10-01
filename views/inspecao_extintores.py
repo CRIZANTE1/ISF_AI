@@ -804,173 +804,234 @@ def show_page():
                 st.markdown("---")
                 st.subheader("📍 Localização do Equipamento")
                 
-                # Seletor de local
-                from operations.location_operations import show_location_selector
+                # Seletor de local (simplificado para form)
+                from operations.location_operations import get_all_locations
                 
-                location_id = show_location_selector(
-                    key_suffix="manual_inspection",
-                    required=False,
-                    current_value=None
-                )
+                df_locations = get_all_locations()
+                
+                if df_locations.empty:
+                    st.warning("📍 Nenhum local cadastrado. O local ficará em branco nesta inspeção.")
+                    st.info("💡 Cadastre locais na aba 'Utilitários' > 'Gerenciar Locais'")
+                    location_id = None
+                else:
+                    # Prepara opções para o selectbox
+                    location_options = ["Nenhum / Não informado"] + df_locations.apply(
+                        lambda row: f"{row['id']} - {row['local']}", 
+                        axis=1
+                    ).tolist()
+                    
+                    # Selectbox para seleção de local
+                    selected_option = st.selectbox(
+                        "📍 Selecione o local:",
+                        options=location_options,
+                        index=0,
+                        key="location_select_manual",
+                        help="Selecione onde o equipamento está localizado"
+                    )
+                    
+                    # Extrai o ID da opção selecionada
+                    location_id = None
+                    if selected_option and selected_option != "Nenhum / Não informado":
+                        location_id = selected_option.split(" - ")[0]
+                    
+                    st.caption("💡 Para cadastrar novos locais, vá em 'Utilitários' > 'Gerenciar Locais'")
                 
                 st.markdown("---")
                 st.subheader("🗺️ Coordenadas GPS (Opcional)")
                 
-                # Widget de geolocalização
-                from utils.geolocation import show_geolocation_widget_optional
-                
-                latitude, longitude = show_geolocation_widget_optional(
-                    form_key="manual_inspection"
+                # Toggle para ativar geolocalização
+                usar_geo = st.toggle(
+                    "📍 Registrar coordenadas GPS",
+                    value=False,
+                    key="geo_toggle_manual",
+                    help="Ative para inserir as coordenadas GPS do equipamento"
                 )
+                
+                latitude = None
+                longitude = None
+                
+                if usar_geo:
+                    st.warning(
+                        "⚠️ **Importante:** A localização GPS pode ter margem de erro de 5 a 50 metros ou mais."
+                    )
+                    
+                    # Apenas método manual no form (automático requer JavaScript assíncrono)
+                    col_lat, col_lon = st.columns(2)
+                    
+                    with col_lat:
+                        latitude = st.number_input(
+                            "Latitude", 
+                            min_value=-90.0, 
+                            max_value=90.0,
+                            value=0.0,
+                            format="%.6f",
+                            key="manual_lat_inspection",
+                            help="Valores negativos para Sul, positivos para Norte"
+                        )
+                    
+                    with col_lon:
+                        longitude = st.number_input(
+                            "Longitude", 
+                            min_value=-180.0, 
+                            max_value=180.0,
+                            value=0.0,
+                            format="%.6f",
+                            key="manual_lon_inspection",
+                            help="Valores negativos para Oeste, positivos para Leste"
+                        )
+                    
+                    # Valida coordenadas
+                    if latitude == 0.0 and longitude == 0.0:
+                        st.info("💡 Insira coordenadas diferentes de zero para registrar a localização")
+                        latitude = None
+                        longitude = None
                 
                 st.markdown("---")
                 
-                # Botão de submissão
-                col_submit, col_info = st.columns([2, 1])
+                # Informação sobre campos obrigatórios
+                st.caption("📌 Campos com * são obrigatórios")
                 
-                with col_submit:
-                    submitted = st.form_submit_button(
-                        "💾 SALVAR INSPEÇÃO",
-                        type="primary",
-                        use_container_width=True
+                # BOTÃO DE SUBMIT - FORA DAS COLUNAS
+                submitted = st.form_submit_button(
+                    "💾 SALVAR INSPEÇÃO",
+                    type="primary",
+                    use_container_width=True
+                )
+            
+            # PROCESSAMENTO APÓS SUBMIT (FORA DO FORM)
+            if submitted:
+                # Validação dos campos obrigatórios
+                if not numero_identificacao:
+                    st.error("❌ O campo 'Número de Identificação' é obrigatório.")
+                elif not tipo_agente:
+                    st.error("❌ O campo 'Tipo de Agente' é obrigatório.")
+                elif capacidade <= 0:
+                    st.error("❌ A capacidade deve ser maior que zero.")
+                else:
+                    # Busca o último registro para preservar datas existentes
+                    last_record = find_last_record(df_extintores, numero_identificacao, 'numero_identificacao')
+                    
+                    # Define datas existentes para preservar
+                    existing_dates = {}
+                    if last_record is not None:
+                        existing_dates = {
+                            k: last_record.get(k) 
+                            for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
+                                     'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                        }
+                    
+                    # Calcula as novas datas com base no tipo de serviço
+                    updated_dates = calculate_next_dates(
+                        data_servico.isoformat(), 
+                        tipo_servico, 
+                        existing_dates
                     )
-                
-                with col_info:
-                    st.info("📌 Campos com * são obrigatórios")
-                
-                if submitted:
-                    # Validação dos campos obrigatórios
-                    if not numero_identificacao:
-                        st.error("❌ O campo 'Número de Identificação' é obrigatório.")
-                    elif not tipo_agente:
-                        st.error("❌ O campo 'Tipo de Agente' é obrigatório.")
-                    elif capacidade <= 0:
-                        st.error("❌ A capacidade deve ser maior que zero.")
-                    else:
-                        # Busca o último registro para preservar datas existentes
-                        last_record = find_last_record(df_extintores, numero_identificacao, 'numero_identificacao')
-                        
-                        # Define datas existentes para preservar
-                        existing_dates = {}
-                        if last_record is not None:
-                            existing_dates = {
-                                k: last_record.get(k) 
-                                for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
-                                         'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
-                            }
-                        
-                        # Calcula as novas datas com base no tipo de serviço
-                        updated_dates = calculate_next_dates(
-                            data_servico.isoformat(), 
-                            tipo_servico, 
-                            existing_dates
-                        )
-                        
-                        # Gera plano de ação baseado no status e observações
-                        inspection_data = {
-                            'aprovado_inspecao': aprovado,
-                            'observacoes_gerais': observacoes_gerais
-                        }
-                        plano_acao = generate_action_plan(inspection_data)
-                        
-                        # Dados completos da inspeção
-                        new_record = {
-                            'numero_identificacao': numero_identificacao,
-                            'numero_selo_inmetro': numero_selo_inmetro if numero_selo_inmetro else None,
-                            'tipo_agente': tipo_agente,
-                            'capacidade': capacidade,
-                            'marca_fabricante': marca_fabricante if marca_fabricante else None,
-                            'ano_fabricacao': ano_fabricacao if ano_fabricacao else None,
-                            'tipo_servico': tipo_servico,
-                            'data_servico': data_servico.isoformat(),
-                            'inspetor_responsavel': get_user_display_name(),
-                            'empresa_executante': empresa_executante if empresa_executante else None,
-                            'aprovado_inspecao': aprovado,
-                            'observacoes_gerais': observacoes_gerais if observacoes_gerais else (
-                                "Inspeção de rotina - Equipamento OK" if aprovado == "Sim" 
-                                else "Não conformidade identificada"
-                            ),
-                            'plano_de_acao': plano_acao,
-                            'link_relatorio_pdf': None,
-                            'link_foto_nao_conformidade': None,
-                            'local_id': location_id,  # ID do local
-                            'latitude': latitude,
-                            'longitude': longitude
-                        }
-                        
-                        # Adiciona as datas calculadas
-                        new_record.update(updated_dates)
-                        
-                        # Tenta salvar
-                        try:
-                            with st.spinner("💾 Salvando inspeção..."):
-                                if save_inspection(new_record):
-                                    # Log detalhado
-                                    log_details = f"ID: {numero_identificacao}, Status: {aprovado}, Tipo: {tipo_servico}"
+                    
+                    # Gera plano de ação baseado no status e observações
+                    inspection_data = {
+                        'aprovado_inspecao': aprovado,
+                        'observacoes_gerais': observacoes_gerais
+                    }
+                    plano_acao = generate_action_plan(inspection_data)
+                    
+                    # Dados completos da inspeção
+                    new_record = {
+                        'numero_identificacao': numero_identificacao,
+                        'numero_selo_inmetro': numero_selo_inmetro if numero_selo_inmetro else None,
+                        'tipo_agente': tipo_agente,
+                        'capacidade': capacidade,
+                        'marca_fabricante': marca_fabricante if marca_fabricante else None,
+                        'ano_fabricacao': ano_fabricacao if ano_fabricacao else None,
+                        'tipo_servico': tipo_servico,
+                        'data_servico': data_servico.isoformat(),
+                        'inspetor_responsavel': get_user_display_name(),
+                        'empresa_executante': empresa_executante if empresa_executante else None,
+                        'aprovado_inspecao': aprovado,
+                        'observacoes_gerais': observacoes_gerais if observacoes_gerais else (
+                            "Inspeção de rotina - Equipamento OK" if aprovado == "Sim" 
+                            else "Não conformidade identificada"
+                        ),
+                        'plano_de_acao': plano_acao,
+                        'link_relatorio_pdf': None,
+                        'link_foto_nao_conformidade': None,
+                        'local_id': location_id,
+                        'latitude': latitude,
+                        'longitude': longitude
+                    }
+                    
+                    # Adiciona as datas calculadas
+                    new_record.update(updated_dates)
+                    
+                    # Tenta salvar
+                    try:
+                        with st.spinner("💾 Salvando inspeção..."):
+                            if save_inspection(new_record):
+                                # Log detalhado
+                                log_details = f"ID: {numero_identificacao}, Status: {aprovado}, Tipo: {tipo_servico}"
+                                if location_id:
+                                    log_details += f", Local: {location_id}"
+                                if latitude and longitude:
+                                    log_details += ", GPS: Sim"
+                                
+                                log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", log_details)
+                                
+                                # Feedback de sucesso com resumo
+                                st.success("✅ Inspeção registrada com sucesso!")
+                                st.balloons()
+                                
+                                # Exibe resumo da inspeção
+                                with st.expander("📋 Resumo da Inspeção Salva", expanded=True):
+                                    col_res1, col_res2 = st.columns(2)
+                                    
+                                    with col_res1:
+                                        st.markdown(f"""
+                                        **Equipamento:** {numero_identificacao}  
+                                        **Tipo:** {tipo_agente} - {capacidade}L/Kg  
+                                        **Status:** {aprovado}  
+                                        **Data:** {data_servico.strftime('%d/%m/%Y')}
+                                        """)
+                                    
+                                    with col_res2:
+                                        st.markdown(f"""
+                                        **Serviço:** {tipo_servico}  
+                                        **Inspetor:** {get_user_display_name()}  
+                                        **Empresa:** {empresa_executante or 'N/A'}
+                                        """)
+                                    
                                     if location_id:
-                                        log_details += f", Local: {location_id}"
+                                        from operations.location_operations import get_location_name_by_id
+                                        location_name = get_location_name_by_id(location_id)
+                                        st.info(f"📍 **Local:** {location_name} ({location_id})")
+                                    
                                     if latitude and longitude:
-                                        log_details += ", GPS: Sim"
+                                        from utils.geolocation import format_coordinates, get_google_maps_link
+                                        st.info(f"🗺️ **GPS:** {format_coordinates(latitude, longitude)}")
+                                        maps_link = get_google_maps_link(latitude, longitude)
+                                        if maps_link:
+                                            st.markdown(f"[Ver no Google Maps]({maps_link})")
                                     
-                                    log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", log_details)
+                                    if observacoes_gerais:
+                                        st.markdown(f"**📝 Observações:**")
+                                        st.text(observacoes_gerais)
                                     
-                                    # Feedback de sucesso com resumo
-                                    st.success("✅ Inspeção registrada com sucesso!")
-                                    st.balloons()
+                                    st.markdown(f"**🎯 Plano de Ação:**")
+                                    st.text(plano_acao)
                                     
-                                    # Exibe resumo da inspeção
-                                    with st.expander("📋 Resumo da Inspeção Salva", expanded=True):
-                                        col_res1, col_res2 = st.columns(2)
-                                        
-                                        with col_res1:
-                                            st.markdown(f"""
-                                            **Equipamento:** {numero_identificacao}  
-                                            **Tipo:** {tipo_agente} - {capacidade}L/Kg  
-                                            **Status:** {aprovado}  
-                                            **Data:** {data_servico.strftime('%d/%m/%Y')}
-                                            """)
-                                        
-                                        with col_res2:
-                                            st.markdown(f"""
-                                            **Serviço:** {tipo_servico}  
-                                            **Inspetor:** {get_user_display_name()}  
-                                            **Empresa:** {empresa_executante or 'N/A'}
-                                            """)
-                                        
-                                        if location_id:
-                                            from operations.location_operations import get_location_name_by_id
-                                            location_name = get_location_name_by_id(location_id)
-                                            st.info(f"📍 **Local:** {location_name} ({location_id})")
-                                        
-                                        if latitude and longitude:
-                                            from utils.geolocation import format_coordinates, get_google_maps_link
-                                            st.info(f"🗺️ **GPS:** {format_coordinates(latitude, longitude)}")
-                                            maps_link = get_google_maps_link(latitude, longitude)
-                                            if maps_link:
-                                                st.markdown(f"[Ver no Google Maps]({maps_link})")
-                                        
-                                        if observacoes_gerais:
-                                            st.markdown(f"**📝 Observações:**")
-                                            st.text(observacoes_gerais)
-                                        
-                                        st.markdown(f"**🎯 Plano de Ação:**")
-                                        st.text(plano_acao)
-                                        
-                                        # Próximas datas
-                                        if updated_dates.get('data_proxima_inspecao'):
-                                            st.markdown(f"**📅 Próxima Inspeção:** {updated_dates['data_proxima_inspecao']}")
-                                    
-                                    # Limpa cache
-                                    st.cache_data.clear()
-                                    
-                                    # Aguarda um pouco para o usuário ver o resumo
-                                    import time
-                                    time.sleep(3)
-                                    
-                                    # Oferece opção de continuar ou voltar
-                                    st.info("👆 Role para cima para cadastrar outra inspeção ou navegue para outra aba.")
-                                    
-                        except Exception as e:
-                            st.error(f"❌ Erro ao salvar a inspeção: {e}")
-                            st.exception(e)
-                            st.info("💡 Tente novamente ou contate o suporte se o erro persistir.")
+                                    # Próximas datas
+                                    if updated_dates.get('data_proxima_inspecao'):
+                                        st.markdown(f"**📅 Próxima Inspeção:** {updated_dates['data_proxima_inspecao']}")
+                                
+                                # Limpa cache
+                                st.cache_data.clear()
+                                
+                                # Aguarda um pouco para o usuário ver o resumo
+                                import time
+                                time.sleep(3)
+                                
+                                # Oferece opção de continuar
+                                st.info("👆 Role para cima para cadastrar outra inspeção ou navegue para outra aba.")
+                                
+                    except Exception as e:
+                        st.error(f"❌ Erro ao salvar a inspeção: {e}")
+                        st.exception(e)
+                        st.info("💡 Tente novamente ou contate o suporte se o erro persistir.")
