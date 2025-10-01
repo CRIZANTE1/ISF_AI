@@ -248,6 +248,44 @@ def get_hose_status_df(df_hoses, df_disposals):
     
     return latest_hoses[existing_display_columns]
 
+
+@st.dialog("Registrar Ação Corretiva para Detector Multigás")
+def action_dialog_multigas(item_row):
+    equipment_id = item_row['id_equipamento']
+    
+    # Determine the problem based on status
+    problem = []
+    if item_row['status_calibracao'] != '🟢 OK':
+        problem.append(f"Calibração: {item_row['status_calibracao']}")
+    if item_row['status_bump_test'] != '🟢 OK':
+        problem.append(f"Bump Test: {item_row['status_bump_test']}")
+    problem_str = " | ".join(problem)
+
+    st.write(f"**Detector ID:** `{equipment_id}`")
+    st.write(f"**Problema Identificado:** `{problem_str}`")
+    
+    action_taken = st.text_area("Descreva a ação corretiva realizada:")
+    responsible = st.text_input("Responsável pela ação:", value=get_user_display_name())
+    
+    st.markdown("---")
+    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
+    photo_evidence = st.file_uploader("Foto da Evidência", type=["jpg", "jpeg", "png"])
+    
+    if st.button("Salvar Ação", type="primary"):
+        if not action_taken:
+            st.error("Por favor, descreva a ação realizada.")
+            return
+
+        with st.spinner("Registrando ação..."):
+            log_saved = save_multigas_action_log(equipment_id, problem_str, action_taken, responsible, photo_evidence)
+            
+            if log_saved:
+                st.success("Ação registrada com sucesso!")
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("Falha ao salvar o log da ação.")
+                
 @st.dialog("Registrar Baixa Definitiva de Extintor")
 def disposal_dialog_extinguisher(item_row):
     equipment_id = item_row['numero_identificacao']
@@ -1373,42 +1411,7 @@ def show_page():
                                 except (json.JSONDecodeError, TypeError) as e:
                                     st.error(f"Não foi possível carregar os detalhes da inspeção: {e}")
 
-@st.dialog("Registrar Ação Corretiva para Detector Multigás")
-def action_dialog_multigas(item_row):
-    equipment_id = item_row['id_equipamento']
-    
-    # Determine the problem based on status
-    problem = []
-    if item_row['status_calibracao'] != '🟢 OK':
-        problem.append(f"Calibração: {item_row['status_calibracao']}")
-    if item_row['status_bump_test'] != '🟢 OK':
-        problem.append(f"Bump Test: {item_row['status_bump_test']}")
-    problem_str = " | ".join(problem)
 
-    st.write(f"**Detector ID:** `{equipment_id}`")
-    st.write(f"**Problema Identificado:** `{problem_str}`")
-    
-    action_taken = st.text_area("Descreva a ação corretiva realizada:")
-    responsible = st.text_input("Responsável pela ação:", value=get_user_display_name())
-    
-    st.markdown("---")
-    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
-    photo_evidence = st.file_uploader("Foto da Evidência", type=["jpg", "jpeg", "png"])
-    
-    if st.button("Salvar Ação", type="primary"):
-        if not action_taken:
-            st.error("Por favor, descreva a ação realizada.")
-            return
-
-        with st.spinner("Registrando ação..."):
-            log_saved = save_multigas_action_log(equipment_id, problem_str, action_taken, responsible, photo_evidence)
-            
-            if log_saved:
-                st.success("Ação registrada com sucesso!")
-                st.cache_data.clear()
-                st.rerun()
-            else:
-                st.error("Falha ao salvar o log da ação.")
 
     with tab_multigas:
         st.header("Dashboard de Detectores Multigás")
