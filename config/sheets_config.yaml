@@ -162,7 +162,9 @@ camaras_espuma_inventario:
   - localizacao
   - marca
   - modelo
+  - tamanho_especifico
   - data_cadastro
+  
 inspecoes_camaras_espuma:
   - data_inspecao
   - id_camara
