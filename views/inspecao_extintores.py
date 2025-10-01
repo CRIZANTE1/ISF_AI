@@ -109,7 +109,7 @@ def show_page():
 
     with tab_qr:
         st.header("Verificação Rápida de Equipamento")
-
+    
         # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para registrar inspeções.")
@@ -121,40 +121,137 @@ def show_page():
             
             if st.session_state.qr_step == 'start':
                 st.subheader("1. Identifique o Equipamento")
+                
+                st.info("💡 **Dica:** Use o QR Code para inspeção mais rápida ou digite o ID manualmente se não tiver o código disponível.")
+                
                 col1, col2, col3 = st.columns([2, 0.5, 2])
+                
                 with col1:
                     if st.button("📷 Escanear QR Code", type="primary", use_container_width=True):
-                        st.session_state.qr_step = 'scan'; st.rerun()
+                        st.session_state.qr_step = 'scan'
+                        st.rerun()
+                
                 with col3:
-                    manual_id = st.text_input("Ou digite o ID do Equipamento")
+                    manual_id = st.text_input(
+                        "Ou digite o ID do Equipamento",
+                        placeholder="Ex: EXT-001",
+                        help="Digite o número de identificação do extintor"
+                    )
                     if st.button("🔍 Buscar por ID", use_container_width=True):
                         if manual_id:
                             st.session_state.qr_id = manual_id
                             st.session_state.last_record = find_last_record(df_extintores, manual_id, 'numero_identificacao')
-                            st.session_state.qr_step = 'inspect'; st.rerun()
-                        else: st.warning("Digite um ID.")
+                            st.session_state.qr_step = 'inspect'
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ Digite um ID válido.")
             
             if st.session_state.qr_step == 'scan':
-                st.subheader("2. Aponte a câmera para o QR Code")
-                qr_image = st.camera_input("Câmera", key="qr_camera", label_visibility="collapsed")
+                st.subheader("2. Escaneamento de QR Code")
+                
+                st.info("👉 **Dica:** Centralize o QR Code na câmera e aguarde a leitura automática")
+                
+                # Layout com preview e instruções
+                col_cam, col_inst = st.columns([2, 1])
+                
+                with col_cam:
+                    qr_image = st.camera_input(
+                        "Câmera", 
+                        key="qr_camera", 
+                        label_visibility="collapsed"
+                    )
+                
+                with col_inst:
+                    st.markdown("""
+                    ### ✅ Checklist:
+                    - [ ] Iluminação adequada
+                    - [ ] QR Code visível
+                    - [ ] Câmera focada
+                    - [ ] Distância apropriada
+                    """)
+                    
+                    st.markdown("---")
+                    
+                    st.markdown("""
+                    ### 💡 Dicas:
+                    - Aproxime ou afaste conforme necessário
+                    - Garanta boa iluminação
+                    - Mantenha a câmera estável
+                    """)
+                
                 if qr_image:
-                    with st.spinner("Processando..."):
+                    with st.spinner("🔍 Processando QR Code..."):
                         decoded_id, _ = decode_qr_from_image(qr_image)
+                        
                         if decoded_id:
+                            st.success(f"✅ QR Code lido com sucesso: **{decoded_id}**")
                             st.session_state.qr_id = decoded_id
-                            st.session_state.last_record = find_last_record(df_extintores, decoded_id, 'numero_identificacao')
-                            st.session_state.qr_step = 'inspect'; st.rerun()
-                        else: st.warning("QR Code não detectado. Tente novamente.")
-                if st.button("Cancelar"):
-                    st.session_state.qr_step = 'start'; st.rerun()
+                            st.session_state.last_record = find_last_record(
+                                df_extintores, 
+                                decoded_id, 
+                                'numero_identificacao'
+                            )
+                            
+                            # Pequeno delay para feedback visual
+                            import time
+                            time.sleep(1)
+                            
+                            st.session_state.qr_step = 'inspect'
+                            st.rerun()
+                        else:
+                            st.error("❌ QR Code não detectado. Tente novamente com melhor iluminação.")
+                            st.warning("💡 **Dicas:** Aproxime ou afaste a câmera, garanta boa iluminação")
+                
+                # Botões de navegação
+                col_cancel, col_manual = st.columns(2)
+                
+                with col_cancel:
+                    if st.button("◀️ Voltar", use_container_width=True):
+                        st.session_state.qr_step = 'start'
+                        st.rerun()
+                
+                with col_manual:
+                    if st.button("⌨️ Digitar ID manualmente", use_container_width=True):
+                        st.session_state.qr_step = 'start'
+                        st.rerun()
             
             if st.session_state.qr_step == 'inspect':
                 last_record = st.session_state.last_record
+                
                 if last_record is not None:
-                    st.success(f"Equipamento Encontrado! ID: **{st.session_state.qr_id}**")
-                    st.dataframe(pd.DataFrame([last_record]), use_container_width=True, hide_index=True)
+                    # === CABEÇALHO COM INFORMAÇÕES DO EQUIPAMENTO ===
+                    st.success(f"✅ Equipamento Localizado: **{st.session_state.qr_id}**")
                     
-                    st.subheader("3. Registrar Nova Inspeção (Nível 1)")
+                    # Cards com informações principais do equipamento
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Tipo", last_record.get('tipo_agente', 'N/A'))
+                    
+                    with col2:
+                        capacidade = last_record.get('capacidade', 'N/A')
+                        st.metric("Capacidade", f"{capacidade} L/Kg" if capacidade != 'N/A' else 'N/A')
+                    
+                    with col3:
+                        ultima_inspecao = last_record.get('data_servico', 'N/A')
+                        st.metric("Última Inspeção", ultima_inspecao)
+                    
+                    with col4:
+                        proxima_inspecao = last_record.get('data_proxima_inspecao', 'N/A')
+                        st.metric("Próxima Inspeção", proxima_inspecao)
+                    
+                    # Informações de local e GPS se disponíveis
+                    if last_record.get('local_id'):
+                        from operations.location_operations import get_location_name_by_id
+                        location_name = get_location_name_by_id(last_record.get('local_id'))
+                        if location_name:
+                            st.info(f"📍 **Último local registrado:** {location_name}")
+                    
+                    st.divider()
+                    
+                    # === FORMULÁRIO DE INSPEÇÃO ===
+                    st.subheader("⚡ Inspeção Rápida")
+                    
                     with st.form("quick_inspection_form"):
                         st.markdown("### 1️⃣ Status do Equipamento")
                         col_status1, col_status2 = st.columns(2)
@@ -237,28 +334,126 @@ def show_page():
                         
                         st.divider()
                         
-                        # NOVO: Seleção de Local
+                        # === SELEÇÃO DE LOCAL (SIMPLIFICADA PARA FORM) ===
                         st.markdown("### 4️⃣ Local do Equipamento")
                         
-                        # Import necessário para usar a função
-                        from operations.location_operations import show_location_selector
+                        # Carrega locais disponíveis
+                        from operations.location_operations import get_all_locations
                         
-                        location_id = show_location_selector(
-                            key_suffix=f"qr_inspection_{st.session_state.qr_id}",
-                            required=False,
-                            current_value=last_record.get('local_id') if last_record else None
-                        )
+                        df_locations = get_all_locations()
+                        
+                        if df_locations.empty:
+                            st.warning("📍 Nenhum local cadastrado. O local ficará em branco nesta inspeção.")
+                            st.info("💡 Cadastre locais na aba 'Utilitários' para usar aqui.")
+                            location_id = None
+                        else:
+                            # Prepara opções para o selectbox
+                            location_options = ["Nenhum / Não informado"] + df_locations.apply(
+                                lambda row: f"{row['id']} - {row['local']}", 
+                                axis=1
+                            ).tolist()
+                            
+                            # Tenta pegar o local atual do equipamento
+                            default_index = 0
+                            current_local = last_record.get('local_id') if last_record else None
+                            
+                            if current_local and not df_locations.empty:
+                                try:
+                                    matching_location = df_locations[df_locations['id'] == str(current_local)]
+                                    if not matching_location.empty:
+                                        location_text = f"{matching_location.iloc[0]['id']} - {matching_location.iloc[0]['local']}"
+                                        if location_text in location_options:
+                                            default_index = location_options.index(location_text)
+                                except:
+                                    pass
+                            
+                            # Selectbox para seleção de local
+                            selected_option = st.selectbox(
+                                "📍 Selecione o local onde o equipamento está instalado:",
+                                options=location_options,
+                                index=default_index,
+                                key=f"location_select_qr_{st.session_state.qr_id}",
+                                help="Selecione onde o equipamento está localizado"
+                            )
+                            
+                            # Extrai o ID da opção selecionada
+                            location_id = None
+                            if selected_option and selected_option != "Nenhum / Não informado":
+                                location_id = selected_option.split(" - ")[0]
+                            
+                            st.info("💡 **Dica:** Para cadastrar novos locais, vá em 'Utilitários' > 'Gerenciar Locais'")
                         
                         st.divider()
                         
-                        # Geolocalização Opcional
+                        # === GEOLOCALIZAÇÃO (SIMPLIFICADA PARA FORM) ===
                         st.markdown("### 5️⃣ Localização GPS (Opcional)")
                         
-                        from utils.geolocation import show_geolocation_widget_optional
-                        
-                        latitude, longitude = show_geolocation_widget_optional(
-                            form_key=f"qr_inspection_{st.session_state.qr_id}"
+                        # Toggle para ativar geolocalização
+                        usar_geo = st.toggle(
+                            "📍 Registrar coordenadas GPS",
+                            value=False,
+                            key=f"geo_toggle_qr_{st.session_state.qr_id}",
+                            help="Ative para capturar ou inserir as coordenadas GPS do equipamento"
                         )
+                        
+                        latitude = None
+                        longitude = None
+                        
+                        if usar_geo:
+                            st.warning(
+                                "⚠️ **Importante sobre a precisão GPS:**\n\n"
+                                "A localização obtida pelo navegador pode ter uma margem de erro de "
+                                "**5 a 50 metros** ou mais, dependendo do dispositivo e ambiente."
+                            )
+                            
+                            st.info(
+                                "💡 **Como capturar GPS:**\n"
+                                "1. Permita o acesso à localização no navegador quando solicitado\n"
+                                "2. Para melhor precisão, use um dispositivo móvel em área aberta\n"
+                                "3. Ou insira as coordenadas manualmente se já as tiver"
+                            )
+                            
+                            # Opção: Usar localização automática ou manual
+                            geo_method = st.radio(
+                                "Método de captura:",
+                                ["📱 Usar localização atual do dispositivo", "✏️ Inserir coordenadas manualmente"],
+                                key=f"geo_method_qr_{st.session_state.qr_id}"
+                            )
+                            
+                            if geo_method == "✏️ Inserir coordenadas manualmente":
+                                col_lat, col_lon = st.columns(2)
+                                
+                                with col_lat:
+                                    latitude = st.number_input(
+                                        "Latitude", 
+                                        min_value=-90.0, 
+                                        max_value=90.0,
+                                        value=0.0,
+                                        format="%.6f",
+                                        key=f"manual_lat_qr_{st.session_state.qr_id}",
+                                        help="Valores negativos para Sul, positivos para Norte"
+                                    )
+                                
+                                with col_lon:
+                                    longitude = st.number_input(
+                                        "Longitude", 
+                                        min_value=-180.0, 
+                                        max_value=180.0,
+                                        value=0.0,
+                                        format="%.6f",
+                                        key=f"manual_lon_qr_{st.session_state.qr_id}",
+                                        help="Valores negativos para Oeste, positivos para Leste"
+                                    )
+                                
+                                # Valida se as coordenadas foram preenchidas
+                                if latitude == 0.0 and longitude == 0.0:
+                                    st.warning("⚠️ Insira coordenadas diferentes de zero")
+                                    latitude = None
+                                    longitude = None
+                            else:
+                                # Usa geolocalização automática
+                                st.info("📍 A localização será capturada quando você clicar em 'Confirmar'")
+                                st.caption("Certifique-se de permitir o acesso à localização quando o navegador solicitar")
                         
                         st.divider()
                         
@@ -271,6 +466,25 @@ def show_page():
                         )
                         
                         if submitted and status:
+                            # Se escolheu usar localização automática, captura agora
+                            if usar_geo and geo_method == "📱 Usar localização atual do dispositivo":
+                                from utils.geolocation import get_user_location
+                                
+                                with st.spinner("📡 Obtendo localização GPS..."):
+                                    result = get_user_location()
+                                    
+                                    if result['error']:
+                                        st.warning(f"⚠️ Não foi possível obter GPS: {result['error']}")
+                                        st.info("A inspeção será salva sem coordenadas GPS.")
+                                        latitude = None
+                                        longitude = None
+                                    else:
+                                        latitude = result['latitude']
+                                        longitude = result['longitude']
+                                        
+                                        if result['accuracy']:
+                                            st.info(f"📍 GPS capturado com precisão de ±{result['accuracy']:.1f} metros")
+                            
                             with st.spinner("💾 Salvando inspeção..."):
                                 # Upload da foto se fornecida
                                 photo_link_nc = None
@@ -313,7 +527,7 @@ def show_page():
                                     }),
                                     'link_relatorio_pdf': None,
                                     'link_foto_nao_conformidade': photo_link_nc,
-                                    'local_id': location_id,  # NOVO: Salva o ID do local
+                                    'local_id': location_id,
                                     'latitude': latitude,
                                     'longitude': longitude
                                 })
@@ -321,20 +535,16 @@ def show_page():
                                 
                                 # Salva inspeção
                                 if save_inspection(new_record):
-                                    # Atualiza também a tabela de locais se necessário
+                                    # Log detalhado
+                                    log_details = f"ID: {st.session_state.qr_id}, Status: {status}"
                                     if location_id:
                                         from operations.location_operations import get_location_name_by_id
                                         location_name = get_location_name_by_id(location_id)
-                                        
-                                        # Atualiza a relação equipamento-local na planilha de locais
-                                        # (se você quiser manter um registro separado)
-                                        # update_extinguisher_location(st.session_state.qr_id, location_name)
+                                        log_details += f", Local: {location_name} ({location_id})"
+                                    if latitude and longitude:
+                                        log_details += f", GPS: {latitude:.6f},{longitude:.6f}"
                                     
-                                    log_action(
-                                        "INSPECIONOU_EXTINTOR_QR", 
-                                        f"ID: {st.session_state.qr_id}, Status: {status}, "
-                                        f"Local: {location_id or 'N/A'}, GPS: {'Sim' if latitude else 'Não'}"
-                                    )
+                                    log_action("INSPECIONOU_EXTINTOR_QR", log_details)
                                     
                                     # Feedback visual de sucesso
                                     st.success("✅ Inspeção registrada com sucesso!")
@@ -357,8 +567,11 @@ def show_page():
                                             st.write(f"**Observações:** {observacoes}")
                                         
                                         if latitude and longitude:
-                                            from utils.geolocation import format_coordinates
+                                            from utils.geolocation import format_coordinates, get_google_maps_link
                                             st.write(f"**GPS:** {format_coordinates(latitude, longitude)}")
+                                            maps_link = get_google_maps_link(latitude, longitude)
+                                            if maps_link:
+                                                st.markdown(f"[🗺️ Ver no Google Maps]({maps_link})")
                                     
                                     # Aguarda 2 segundos antes de resetar
                                     import time
@@ -369,15 +582,28 @@ def show_page():
                                     st.session_state.qr_id = None
                                     st.session_state.last_record = None
                                     
-                                    # Limpa também os estados de geolocalização e local
-                                    for key in list(st.session_state.keys()):
-                                        if 'geo_' in key or 'location_' in key:
-                                            del st.session_state[key]
-                                    
                                     st.cache_data.clear()
                                     st.rerun()
                                 else:
                                     st.error("❌ Erro ao salvar a inspeção. Tente novamente.")
+                
+                else:
+                    st.error(f"❌ Nenhum registro encontrado para o ID '{st.session_state.qr_id}'.")
+                    st.warning("⚠️ Verifique se o extintor está cadastrado na aba 'Cadastrar / Editar'.")
+                    
+                    st.markdown("---")
+                    st.info("💡 **O que fazer:**\n"
+                           "1. Verifique se digitou o ID corretamente\n"
+                           "2. Cadastre o extintor primeiro na aba 'Cadastrar / Editar'\n"
+                           "3. Tente escanear o QR Code novamente")
+                
+                # Botão para inspecionar outro equipamento
+                st.markdown("---")
+                if st.button("🔄 Inspecionar Outro Equipamento", use_container_width=True):
+                    st.session_state.qr_step = 'start'
+                    st.session_state.qr_id = None
+                    st.session_state.last_record = None
+                    st.rerun()
 
     with tab_cadastro:
         if not can_edit():
