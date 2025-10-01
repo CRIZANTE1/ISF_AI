@@ -44,6 +44,7 @@ from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
 from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
+from operations.multigas_operations import save_multigas_action_log
 from operations.alarm_operations import (
     save_alarm_action_log, get_alarm_status_df, save_alarm_inspection,
     CHECKLIST_QUESTIONS as ALARM_CHECKLIST
@@ -1372,6 +1373,43 @@ def show_page():
                                 except (json.JSONDecodeError, TypeError) as e:
                                     st.error(f"Não foi possível carregar os detalhes da inspeção: {e}")
 
+@st.dialog("Registrar Ação Corretiva para Detector Multigás")
+def action_dialog_multigas(item_row):
+    equipment_id = item_row['id_equipamento']
+    
+    # Determine the problem based on status
+    problem = []
+    if item_row['status_calibracao'] != '🟢 OK':
+        problem.append(f"Calibração: {item_row['status_calibracao']}")
+    if item_row['status_bump_test'] != '🟢 OK':
+        problem.append(f"Bump Test: {item_row['status_bump_test']}")
+    problem_str = " | ".join(problem)
+
+    st.write(f"**Detector ID:** `{equipment_id}`")
+    st.write(f"**Problema Identificado:** `{problem_str}`")
+    
+    action_taken = st.text_area("Descreva a ação corretiva realizada:")
+    responsible = st.text_input("Responsável pela ação:", value=get_user_display_name())
+    
+    st.markdown("---")
+    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
+    photo_evidence = st.file_uploader("Foto da Evidência", type=["jpg", "jpeg", "png"])
+    
+    if st.button("Salvar Ação", type="primary"):
+        if not action_taken:
+            st.error("Por favor, descreva a ação realizada.")
+            return
+
+        with st.spinner("Registrando ação..."):
+            log_saved = save_multigas_action_log(equipment_id, problem_str, action_taken, responsible, photo_evidence)
+            
+            if log_saved:
+                st.success("Ação registrada com sucesso!")
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("Falha ao salvar o log da ação.")
+
     with tab_multigas:
         st.header("Dashboard de Detectores Multigás")
         df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
@@ -1431,6 +1469,11 @@ def show_page():
                             st.error(f"**Ação:** Equipamento reprovado. Enviar para manutenção/calibração.")
                         elif status_bump == '🔵 PENDENTE':
                              st.info(f"**Ação:** Realizar novo teste de resposta.")
+
+                    # Botão de ação
+                    if geral_icon != "🟢":
+                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_multigas_{row['id_equipamento']}"):
+                            action_dialog_multigas(row.to_dict())
 
                     # Opcional: Mostrar detalhes da última calibração (se houver)
                     if pd.notna(row.get('link_certificado')):

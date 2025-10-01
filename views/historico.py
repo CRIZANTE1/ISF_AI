@@ -17,7 +17,8 @@ from gdrive.config import (
     FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
     LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME, LOG_EYEWASH_SHEET_NAME,
     LOG_FOAM_CHAMBER_SHEET_NAME, ALARM_INVENTORY_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME, 
-    LOG_ALARM_SHEET_NAME, HOSE_DISPOSAL_LOG_SHEET_NAME
+    LOG_ALARM_SHEET_NAME, HOSE_DISPOSAL_LOG_SHEET_NAME,
+    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, LOG_MULTIGAS_SHEET_NAME
 )
 
 # O dicionário ALL_COLUMNS foi movido para fora da função, tornando-se uma constante do módulo.
@@ -36,7 +37,14 @@ ALL_COLUMNS = {
     'data_baixa': 'Data da Baixa', 'motivo_condenacao': 'Motivo da Condenação', 
     'responsavel_baixa': 'Responsável pela Baixa', 'numero_identificacao_substituto': 'ID Substituto',
     'observacoes': 'Observações', 'link_foto_evidencia': 'Evidência Fotográfica',
-    'motivo': 'Motivo da Baixa', 'id_mangueira_substituta': 'Mangueira Substituta'
+    'motivo': 'Motivo da Baixa', 'id_mangueira_substituta': 'Mangueira Substituta',
+    # Multigas
+    'numero_serie': 'S/N', 'LEL_cilindro': 'LEL Cilindro', 'O2_cilindro': 'O2 Cilindro',
+    'H2S_cilindro': 'H2S Cilindro', 'CO_cilindro': 'CO Cilindro', 'LEL_encontrado': 'LEL Encontrado',
+    'O2_encontrado': 'O2 Encontrado', 'H2S_encontrado': 'H2S Encontrado', 'CO_encontrado': 'CO Encontrado',
+    'tipo_teste': 'Tipo de Teste', 'resultado_teste': 'Resultado', 'responsavel_nome': 'Responsável',
+    'responsavel_matricula': 'Matrícula', 'proxima_calibracao': 'Próx. Calibração',
+    'numero_certificado': 'Nº Certificado', 'link_certificado': 'Certificado', 'problema': 'Problema'
 }
 # -----------------------------
 
@@ -70,7 +78,10 @@ def format_dataframe_for_display(df, sheet_name):
         ALARM_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_sistema', 'status_geral', 'plano_de_acao', 'data_proxima_inspecao', 'inspetor'],
         LOG_ALARM_SHEET_NAME: ['data_acao', 'id_sistema', 'problema_original', 'acao_realizada', 'responsavel'],
         'log_baixas_extintores': ['data_baixa', 'numero_identificacao', 'motivo_condenacao', 'responsavel_baixa', 'numero_identificacao_substituto', 'observacoes', 'link_foto_evidencia'],
-        HOSE_DISPOSAL_LOG_SHEET_NAME: ['data_baixa', 'id_mangueira', 'motivo', 'responsavel', 'id_mangueira_substituta']
+        HOSE_DISPOSAL_LOG_SHEET_NAME: ['data_baixa', 'id_mangueira', 'motivo', 'responsavel', 'id_mangueira_substituta'],
+        MULTIGAS_INVENTORY_SHEET_NAME: ['id_equipamento', 'marca', 'modelo', 'numero_serie', 'data_cadastro'],
+        MULTIGAS_INSPECTIONS_SHEET_NAME: ['data_teste', 'id_equipamento', 'tipo_teste', 'resultado_teste', 'plano_de_acao', 'proxima_calibracao', 'link_certificado'],
+        LOG_MULTIGAS_SHEET_NAME: ['data_acao', 'id_equipamento', 'problema', 'acao_realizada', 'responsavel', 'link_foto_evidencia']
     }
 
     cols_to_show = SHEET_VIEW_COLUMNS.get(sheet_name, df.columns.tolist())
@@ -253,7 +264,8 @@ def show_page():
         subtabs = st.tabs([
             "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos (Cadastro)", "📋 Abrigos (Inspeções)",
             "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)", 
-            "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)", "🔔 Alarmes (Cadastro)", "🔔 Alarmes (Inspeções)"
+            "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)", "🔔 Alarmes (Cadastro)", "🔔 Alarmes (Inspeções)",
+            "💨 Multigas (Cadastro)", "💨 Multigas (Inspeções)"
         ])
 
         with subtabs[0]: display_formatted_dataframe(EXTINGUISHER_SHEET_NAME)
@@ -267,13 +279,15 @@ def show_page():
         with subtabs[8]: display_formatted_dataframe(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
         with subtabs[9]: display_formatted_dataframe(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
         with subtabs[10]: display_formatted_dataframe(ALARM_INVENTORY_SHEET_NAME)
-        with subtabs[11]: display_formatted_dataframe(ALARM_INSPECTIONS_SHEET_NAME)    
+        with subtabs[11]: display_formatted_dataframe(ALARM_INSPECTIONS_SHEET_NAME)
+        with subtabs[12]: display_formatted_dataframe(MULTIGAS_INVENTORY_SHEET_NAME)
+        with subtabs[13]: display_formatted_dataframe(MULTIGAS_INSPECTIONS_SHEET_NAME)
 
     with tab_logs:
         st.header("Logs de Ações Corretivas")
         subtabs = st.tabs([
             "🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", 
-            "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "🔔 Alarmes"
+            "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "🔔 Alarmes", "💨 Multigas"
         ])
 
         with subtabs[0]: display_formatted_dataframe(LOG_ACTIONS)
@@ -281,7 +295,8 @@ def show_page():
         with subtabs[2]: display_formatted_dataframe(LOG_SCBA_SHEET_NAME)
         with subtabs[3]: display_formatted_dataframe(LOG_EYEWASH_SHEET_NAME)
         with subtabs[4]: display_formatted_dataframe(LOG_FOAM_CHAMBER_SHEET_NAME)
-        with subtabs[5]: display_formatted_dataframe(LOG_ALARM_SHEET_NAME)    
+        with subtabs[5]: display_formatted_dataframe(LOG_ALARM_SHEET_NAME)
+        with subtabs[6]: display_formatted_dataframe(LOG_MULTIGAS_SHEET_NAME)
 
     with tab_disposals:
         st.header("🗑️ Registros de Baixas Definitivas")
