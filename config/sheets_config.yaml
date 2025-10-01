@@ -204,7 +204,15 @@ inspecoes_multigas:
   - proxima_calibracao
   - numero_certificado
   - link_certificado
-  - observacoes 
+  - observacoes
+  - plano_de_acao
+log_multigas:
+  - data_acao
+  - id_equipamento
+  - problema
+  - acao_realizada
+  - responsavel
+  - link_foto_evidencia
 alarmes_inventario:
   - id_sistema
   - localizacao
