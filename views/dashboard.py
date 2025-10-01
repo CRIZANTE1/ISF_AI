@@ -944,24 +944,26 @@ def show_page():
                             pass
                         else: # num_regularized == -1
                             st.error("A operação de regularização falhou. Verifique os logs.")
-                            
-
+    
         with st.expander("📄 Gerar Relatório Mensal..."):
             show_monthly_report_interface()
         st.markdown("---")
         
         df_full_history = load_sheet_data("extintores")
         df_locais = load_sheet_data("locais") 
-
+    
         if df_full_history.empty:
-            st.warning("Ainda não há registros de inspeção para exibir."); return
-
+            st.warning("Ainda não há registros de inspeção para exibir.")
+            return
+    
         with st.spinner("Analisando o status de todos os extintores..."):
             dashboard_df = get_consolidated_status_df(df_full_history, df_locais)
         
         if dashboard_df.empty:
-            st.warning("Não foi possível gerar o dashboard ou não há equipamentos ativos."); return
-
+            st.warning("Não foi possível gerar o dashboard ou não há equipamentos ativos.")
+            return
+    
+        # === MÉTRICAS PRINCIPAIS ===
         status_counts = dashboard_df['status_atual'].value_counts()
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("✅ Total Ativo", len(dashboard_df))
@@ -970,36 +972,163 @@ def show_page():
         col4.metric("🟠 NÃO CONFORME", status_counts.get("NÃO CONFORME (Aguardando Ação)", 0))
         st.markdown("---")
         
-        status_filter = st.multiselect("Filtrar por Status:", options=sorted(dashboard_df['status_atual'].unique()), default=sorted(dashboard_df['status_atual'].unique()))
+        # === FILTROS ===
+        col_filter1, col_filter2 = st.columns(2)
+        
+        with col_filter1:
+            status_filter = st.multiselect(
+                "Filtrar por Status:", 
+                options=sorted(dashboard_df['status_atual'].unique()), 
+                default=sorted(dashboard_df['status_atual'].unique())
+            )
+        
+        with col_filter2:
+            # Filtro por local (se houver dados de localização)
+            if 'local' in dashboard_df.columns and not df_locais.empty:
+                unique_locations = dashboard_df['local'].dropna().unique().tolist()
+                unique_locations.insert(0, "Todos os locais")
+                
+                location_filter = st.selectbox(
+                    "Filtrar por Local:",
+                    options=unique_locations,
+                    index=0
+                )
+            else:
+                location_filter = None
+        
+        # Aplica filtros
         filtered_df = dashboard_df[dashboard_df['status_atual'].isin(status_filter)]
         
-        st.subheader("Lista de Equipamentos")
+        if location_filter and location_filter != "Todos os locais":
+            filtered_df = filtered_df[filtered_df['local'] == location_filter]
+        
+        st.subheader(f"Lista de Equipamentos ({len(filtered_df)} encontrados)")
         
         if filtered_df.empty:
-            st.info("Nenhum item corresponde ao filtro selecionado.")
+            st.info("Nenhum item corresponde aos filtros selecionados.")
         else:
-            for index, row in filtered_df.iterrows():
-                status_icon = "🟢" if row['status_atual'] == 'OK' else ('🔴' if row['status_atual'] == 'VENCIDO' else '🟠')
+            # Agrupa por local para melhor organização
+            if 'local' in filtered_df.columns and not filtered_df['local'].isna().all():
+                # Separa equipamentos com e sem local definido
+                df_with_location = filtered_df[filtered_df['local'].notna() & (filtered_df['local'] != '')]
+                df_without_location = filtered_df[filtered_df['local'].isna() | (filtered_df['local'] == '')]
                 
-                expander_title = f"{status_icon} **ID:** {row['numero_identificacao']} | **Tipo:** {row['tipo_agente']} | **Status:** {row['status_atual']} | **Localização:** {row['status_instalacao']}"
+                # Exibe equipamentos agrupados por local
+                if not df_with_location.empty:
+                    grouped = df_with_location.groupby('local')
+                    
+                    for local_name, group_df in grouped:
+                        # Contador de status por local
+                        local_status = group_df['status_atual'].value_counts()
+                        ok_count = local_status.get("OK", 0)
+                        vencido_count = local_status.get("VENCIDO", 0)
+                        nc_count = local_status.get("NÃO CONFORME (Aguardando Ação)", 0)
+                        
+                        with st.expander(
+                            f"📍 **{local_name}** — Total: {len(group_df)} | "
+                            f"🟢 {ok_count} OK | 🔴 {vencido_count} Vencido | 🟠 {nc_count} Não Conforme",
+                            expanded=(vencido_count > 0 or nc_count > 0)  # Expande se houver problemas
+                        ):
+                            for index, row in group_df.iterrows():
+                                _render_extinguisher_card(row, df_full_history, location)
                 
-                with st.expander(expander_title):
-                    st.markdown(f"**Plano de Ação Sugerido:** {row['plano_de_acao']}")
-                    st.markdown("---")
-                    st.subheader("Próximos Vencimentos:")
+                # Exibe equipamentos sem local definido
+                if not df_without_location.empty:
+                    with st.expander(
+                        f"⚠️ **Sem Local Definido** — Total: {len(df_without_location)}",
+                        expanded=True
+                    ):
+                        st.warning("Os equipamentos abaixo não têm local definido. Defina o local durante a próxima inspeção.")
+                        for index, row in df_without_location.iterrows():
+                            _render_extinguisher_card(row, df_full_history, location)
+            else:
+                # Se não houver dados de localização, exibe lista simples
+                for index, row in filtered_df.iterrows():
+                    _render_extinguisher_card(row, df_full_history, location)
+    
+    def _render_extinguisher_card(row, df_full_history, location):
+        """
+        Função auxiliar para renderizar um card de extintor.
+        
+        Args:
+            row: Linha do DataFrame com dados do extintor
+            df_full_history: DataFrame completo de histórico
+            location: Dados de geolocalização (se disponível)
+        """
+        status_icon = "🟢" if row['status_atual'] == 'OK' else ('🔴' if row['status_atual'] == 'VENCIDO' else '🟠')
+        
+        # Busca dados adicionais do último registro
+        last_record = find_last_record(df_full_history, row['numero_identificacao'], 'numero_identificacao')
+        
+        # Informações de localização
+        local_display = row.get('local', 'Local não definido')
+        if pd.isna(local_display) or local_display == '':
+            local_display = "⚠️ Local não definido"
+        else:
+            local_display = f"📍 {local_display}"
+        
+        # Card do extintor
+        with st.container(border=True):
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.markdown(f"### {status_icon} ID: {row['numero_identificacao']}")
+                st.markdown(f"**Tipo:** {row['tipo_agente']} | **Status:** {row['status_atual']}")
+                st.markdown(f"**Local:** {local_display}")
+            
+            with col2:
+                if row['status_atual'] != 'OK':
+                    if st.button(
+                        "✍️ Ação", 
+                        key=f"action_ext_{row['numero_identificacao']}", 
+                        use_container_width=True,
+                        type="primary"
+                    ):
+                        action_form(row.to_dict(), df_full_history, location)
+            
+            # Detalhes expansíveis
+            with st.expander("📋 Ver Detalhes Completos"):
+                col_info1, col_info2 = st.columns(2)
+                
+                with col_info1:
+                    st.markdown("**Informações do Equipamento:**")
+                    st.write(f"- **Selo INMETRO:** {row.get('numero_selo_inmetro', 'N/A')}")
+                    st.write(f"- **Tipo:** {row['tipo_agente']}")
+                    st.write(f"- **Plano de Ação:** {row['plano_de_acao']}")
+                
+                with col_info2:
+                    st.markdown("**Próximos Vencimentos:**")
+                    st.write(f"- **Inspeção Mensal:** {row['prox_venc_inspecao']}")
+                    st.write(f"- **Manutenção Nível 2:** {row['prox_venc_maint2']}")
+                    st.write(f"- **Manutenção Nível 3:** {row['prox_venc_maint3']}")
+                
+                # Informações de geolocalização (se disponível)
+                if last_record:
+                    lat = last_record.get('latitude')
+                    lon = last_record.get('longitude')
                     
-                    col_venc1, col_venc2, col_venc3 = st.columns(3)
-                    col_venc1.metric("Inspeção Mensal", value=row['prox_venc_inspecao'])
-                    col_venc2.metric("Manutenção Nível 2", value=row['prox_venc_maint2'])
-                    col_venc3.metric("Manutenção Nível 3", value=row['prox_venc_maint3'])
-
-                    st.caption(f"Último Selo INMETRO registrado: {row.get('numero_selo_inmetro', 'N/A')}")
-                    
-                    if row['status_atual'] != 'OK':
+                    if lat and lon and not pd.isna(lat) and not pd.isna(lon):
                         st.markdown("---")
-                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_ext_{index}", width='stretch'):
-                            action_form(row.to_dict(), df_full_history, location)
-                            
+                        st.markdown("**📍 Localização GPS:**")
+                        
+                        # Trata vírgula decimal se necessário
+                        if isinstance(lat, str):
+                            lat = float(lat.replace(',', '.'))
+                        if isinstance(lon, str):
+                            lon = float(lon.replace(',', '.'))
+                        
+                        from utils.geolocation import format_coordinates, get_google_maps_link
+                        
+                        col_geo1, col_geo2 = st.columns([2, 1])
+                        
+                        with col_geo1:
+                            st.info(f"🗺️ Coordenadas: {format_coordinates(lat, lon)}")
+                        
+                        with col_geo2:
+                            maps_link = get_google_maps_link(lat, lon)
+                            if maps_link:
+                                st.markdown(f"[🗺️ Ver no Mapa]({maps_link})")
+                                
                            
 
     with tab_hoses:
