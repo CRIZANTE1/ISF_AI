@@ -1066,10 +1066,11 @@ def show_page():
                                                     st.write(f"- **Manutenção Nível 3:** {row['prox_venc_maint3']}")
                                                 
                                                 # Informações de geolocalização (se disponível)
-                                                llast_record = find_last_record(df_full_history, row['numero_identificacao'], 'numero_identificacao')
-                                                if last_record:
-                                                    lat = last_record.get('latitude')
-                                                    lon = last_record.get('longitude')
+                                                # BUSCA O ÚLTIMO REGISTRO AQUI DENTRO DO LOOP
+                                                ext_last_record = find_last_record(df_full_history, row['numero_identificacao'], 'numero_identificacao')
+                                                if ext_last_record:
+                                                    lat = ext_last_record.get('latitude')
+                                                    lon = ext_last_record.get('longitude')
                                                     
                                                     # Validação robusta de coordenadas
                                                     lat_valid = False
@@ -1164,6 +1165,56 @@ def show_page():
                                                 st.write(f"- **Inspeção Mensal:** {row['prox_venc_inspecao']}")
                                                 st.write(f"- **Manutenção Nível 2:** {row['prox_venc_maint2']}")
                                                 st.write(f"- **Manutenção Nível 3:** {row['prox_venc_maint3']}")
+                                            
+                                            # Informações de geolocalização (se disponível)
+                                            ext_last_record_nolocal = find_last_record(df_full_history, row['numero_identificacao'], 'numero_identificacao')
+                                            if ext_last_record_nolocal:
+                                                lat = ext_last_record_nolocal.get('latitude')
+                                                lon = ext_last_record_nolocal.get('longitude')
+                                                
+                                                # Validação robusta de coordenadas
+                                                lat_valid = False
+                                                lon_valid = False
+                                                
+                                                if lat is not None and lat != '' and str(lat).lower() not in ['none', 'nan', 'null']:
+                                                    try:
+                                                        if isinstance(lat, str):
+                                                            lat = float(lat.replace(',', '.'))
+                                                        else:
+                                                            lat = float(lat)
+                                                        lat_valid = True
+                                                    except (ValueError, TypeError):
+                                                        lat = None
+                                                else:
+                                                    lat = None
+                                                
+                                                if lon is not None and lon != '' and str(lon).lower() not in ['none', 'nan', 'null']:
+                                                    try:
+                                                        if isinstance(lon, str):
+                                                            lon = float(lon.replace(',', '.'))
+                                                        else:
+                                                            lon = float(lon)
+                                                        lon_valid = True
+                                                    except (ValueError, TypeError):
+                                                        lon = None
+                                                else:
+                                                    lon = None
+                                                
+                                                if lat_valid and lon_valid and lat != 0.0 and lon != 0.0:
+                                                    st.markdown("---")
+                                                    st.markdown("**📍 Localização GPS:**")
+                                                    
+                                                    from utils.geolocation import format_coordinates, get_google_maps_link
+                                                    
+                                                    col_geo1, col_geo2 = st.columns([2, 1])
+                                                    
+                                                    with col_geo1:
+                                                        st.info(f"🗺️ Coordenadas: {format_coordinates(lat, lon)}")
+                                                    
+                                                    with col_geo2:
+                                                        maps_link = get_google_maps_link(lat, lon)
+                                                        if maps_link:
+                                                            st.markdown(f"[🗺️ Ver no Mapa]({maps_link})")
                     else:
                         # Se não houver dados de localização, exibe lista simples
                         for index, row in filtered_df.iterrows():
