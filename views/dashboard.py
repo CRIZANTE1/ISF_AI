@@ -1066,20 +1066,47 @@ def show_page():
                                                     st.write(f"- **Manutenção Nível 3:** {row['prox_venc_maint3']}")
                                                 
                                                 # Informações de geolocalização (se disponível)
-                                                last_record = find_last_record(df_full_history, row['numero_identificacao'], 'numero_identificacao')
+                                                llast_record = find_last_record(df_full_history, row['numero_identificacao'], 'numero_identificacao')
                                                 if last_record:
                                                     lat = last_record.get('latitude')
                                                     lon = last_record.get('longitude')
                                                     
-                                                    if lat and lon and not pd.isna(lat) and not pd.isna(lon):
+                                                    # Validação robusta de coordenadas
+                                                    lat_valid = False
+                                                    lon_valid = False
+                                                    
+                                                    # Verifica se latitude é válida
+                                                    if lat is not None and lat != '' and str(lat).lower() not in ['none', 'nan', 'null']:
+                                                        try:
+                                                            # Trata vírgula decimal se necessário
+                                                            if isinstance(lat, str):
+                                                                lat = float(lat.replace(',', '.'))
+                                                            else:
+                                                                lat = float(lat)
+                                                            lat_valid = True
+                                                        except (ValueError, TypeError):
+                                                            lat = None
+                                                    else:
+                                                        lat = None
+                                                    
+                                                    # Verifica se longitude é válida
+                                                    if lon is not None and lon != '' and str(lon).lower() not in ['none', 'nan', 'null']:
+                                                        try:
+                                                            # Trata vírgula decimal se necessário
+                                                            if isinstance(lon, str):
+                                                                lon = float(lon.replace(',', '.'))
+                                                            else:
+                                                                lon = float(lon)
+                                                            lon_valid = True
+                                                        except (ValueError, TypeError):
+                                                            lon = None
+                                                    else:
+                                                        lon = None
+                                                    
+                                                    # Só exibe se ambas as coordenadas forem válidas
+                                                    if lat_valid and lon_valid and lat != 0.0 and lon != 0.0:
                                                         st.markdown("---")
                                                         st.markdown("**📍 Localização GPS:**")
-                                                        
-                                                        # Trata vírgula decimal se necessário
-                                                        if isinstance(lat, str):
-                                                            lat = float(lat.replace(',', '.'))
-                                                        if isinstance(lon, str):
-                                                            lon = float(lon.replace(',', '.'))
                                                         
                                                         from utils.geolocation import format_coordinates, get_google_maps_link
                                                         
