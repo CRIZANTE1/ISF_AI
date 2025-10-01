@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
+from datetime import datetime  # ✅ ADICIONAR
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -14,9 +15,12 @@ from auth.auth_utils import (
     get_user_display_name, check_user_access, can_edit, has_ai_features
 )
 from config.page_config import set_page_config
-from operations.history import load_sheet_data
-from gdrive.config import FOAM_CHAMBER_INVENTORY_SHEET_NAME
-from reports.foam_chamber_report import generate_foam_chamber_consolidated_report
+from operations.history import load_sheet_data  
+from gdrive.config import (
+    FOAM_CHAMBER_INVENTORY_SHEET_NAME,
+    FOAM_CHAMBER_INSPECTIONS_SHEET_NAME  
+)
+from reports.foam_chamber_report import generate_foam_chamber_consolidated_report  
 
 
 set_page_config()
@@ -266,9 +270,6 @@ def show_page():
         
         st.markdown("---")
         
-        # Carrega dados
-        from operations.history import load_sheet_data
-        from gdrive.config import FOAM_CHAMBER_INSPECTIONS_SHEET_NAME, FOAM_CHAMBER_INVENTORY_SHEET_NAME
         
         with st.spinner("Carregando dados das inspeções..."):
             inspections_df = load_sheet_data(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
