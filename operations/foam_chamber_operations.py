@@ -29,7 +29,9 @@ CHECKLIST_QUESTIONS = {
         "Linhas e Conexões": [
             "Tomadas de solução e linhas sem obstrução",
             "Drenos livres e estanques",
-            "Ejetores e orifícios desobstruídos"
+            "Ejetores e orifícios desobstruídos",
+            "Placa de orifício íntegra e sem obstruções",
+            "Placa de orifício compatível com o modelo da câmara"  # ✅ NOVO ITEM
         ],
         "Teste Funcional": [
             "Verificação de fluxo de água/espuma",
@@ -50,7 +52,9 @@ CHECKLIST_QUESTIONS = {
         "Linhas e Conexões": [
             "Tomadas de solução e linhas sem obstrução",
             "Drenos livres e estanques",
-            "Ejetores e orifícios desobstruídos"
+            "Ejetores e orifícios desobstruídos",
+            "Placa de orifício íntegra e sem obstruções",
+            "Placa de orifício compatível com o modelo da câmara"  # ✅ NOVO ITEM
         ],
         "Teste Funcional": [
             "Verificação de fluxo de água/espuma",
@@ -73,7 +77,9 @@ CHECKLIST_QUESTIONS = {
         "Linhas e Conexões": [
             "Tomadas de solução e linhas sem obstrução",
             "Drenos livres e estanques",
-            "Ejetores e orifícios desobstruídos"
+            "Ejetores e orifícios desobstruídos",
+            "Placa de orifício íntegra e sem obstruções",
+            "Placa de orifício compatível com o modelo da câmara"  # ✅ NOVO ITEM
         ],
         "Teste Funcional": [
             "Verificação de fluxo de água/espuma",
@@ -83,7 +89,6 @@ CHECKLIST_QUESTIONS = {
     }
 }
 
-# Mapa de planos de ação (agora cobre todos os modelos)
 ACTION_PLAN_MAP = {
     "Pintura e estrutura sem corrosão ou amassados": "Programar serviço de tratamento de corrosão, reparo e repintura.",
     "Sem vazamentos visíveis no tanque e conexões": "Identificar ponto de vazamento, substituir juntas/vedações ou reparar a conexão.",
@@ -95,6 +100,8 @@ ACTION_PLAN_MAP = {
     "Tomadas de solução e linhas sem obstrução": "Realizar a desobstrução e limpeza completa das linhas de solução.",
     "Drenos livres e estanques": "Desobstruir e verificar a estanqueidade dos drenos.",
     "Ejetores e orifícios desobstruídos": "Realizar a limpeza e desobstrução dos ejetores e orifícios.",
+    "Placa de orifício íntegra e sem obstruções": "Inspecionar, limpar ou substituir a placa de orifício conforme necessário.",
+    "Placa de orifício compatível com o modelo da câmara": "CRÍTICO: Substituir a placa de orifício por uma compatível com o modelo da câmara. A placa incorreta compromete a vazão e eficiência do sistema.",  # ✅ NOVO
     "Tubo de projeção íntegro (sem corrosão ou danos)": "Avaliar a integridade do tubo. Programar reparo ou substituição se necessário.",
     "Defletor de projeção íntegro e bem fixado": "Reapertar ou substituir o defletor de projeção.",
     "Membrana de elastômero sem ressecamento ou danos visíveis": "Substituir a membrana de elastômero.",
@@ -103,7 +110,7 @@ ACTION_PLAN_MAP = {
     "Funcionamento do sistema confirmado": "Realizar diagnóstico completo para identificar e corrigir a falha funcional."
 }
 
-def save_new_foam_chamber(chamber_id, location, brand, model):
+def save_new_foam_chamber(chamber_id, location, brand, model, specific_size=None):
     """Salva uma nova câmara de espuma no inventário."""
     try:
         uploader = GoogleDriveUploader()
@@ -114,14 +121,21 @@ def save_new_foam_chamber(chamber_id, location, brand, model):
                 st.error(f"Erro: O ID '{chamber_id}' já está cadastrado.")
                 return False
 
-        data_row = [chamber_id, location, brand, model, date.today().isoformat()]
+        data_row = [
+            chamber_id, 
+            location, 
+            brand, 
+            model, 
+            specific_size if specific_size else "",  
+            date.today().isoformat()
+        ]
+        
         uploader.append_data_to_sheet(FOAM_CHAMBER_INVENTORY_SHEET_NAME, data_row)
-        log_action("CADASTROU_CAMARA_ESPUMA", f"ID: {chamber_id}, Modelo: {model}")
+        log_action("CADASTROU_CAMARA_ESPUMA", f"ID: {chamber_id}, Modelo: {model}, Tamanho: {specific_size}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar nova câmara de espuma: {e}")
         return False
-
 def generate_foam_chamber_action_plan(non_conformities):
     """Gera um plano de ação consolidado para as não conformidades."""
     if not non_conformities:
