@@ -440,6 +440,7 @@ def get_consolidated_status_df(df_full, df_locais):
     unique_ids = df_copy['numero_identificacao'].unique()
 
     for ext_id in unique_ids:
+        # Pula se o equipamento foi baixado
         if ext_id in disposed_ids:
             continue
             
@@ -447,32 +448,51 @@ def get_consolidated_status_df(df_full, df_locais):
         if ext_df.empty: 
             continue
         
+        # Pega o último registro usando .iloc ao invés de indexação booleana
         latest_record_info = ext_df.iloc[-1]
         
-        
+        # Calcula as datas dos últimos serviços
         last_insp_date = ext_df['data_servico'].max()
-        last_maint2_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 2']['data_servico'].max()
-        last_maint3_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 3']['data_servico'].max()
         
+        # Filtra por tipo de serviço e pega a data máxima
+        maint2_records = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 2']
+        last_maint2_date = maint2_records['data_servico'].max() if not maint2_records.empty else pd.NaT
+        
+        maint3_records = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 3']
+        last_maint3_date = maint3_records['data_servico'].max() if not maint3_records.empty else pd.NaT
+        
+        # Calcula próximas datas
         next_insp = (last_insp_date + relativedelta(months=1)) if pd.notna(last_insp_date) else pd.NaT
         next_maint2 = (last_maint2_date + relativedelta(months=12)) if pd.notna(last_maint2_date) else pd.NaT
         next_maint3 = (last_maint3_date + relativedelta(years=5)) if pd.notna(last_maint3_date) else pd.NaT
         
-        vencimentos = [d for d in [next_insp, next_maint2, next_maint3] if pd.notna(d)]
+        # Coleta vencimentos válidos
+        vencimentos = []
+        if pd.notna(next_insp):
+            vencimentos.append(next_insp)
+        if pd.notna(next_maint2):
+            vencimentos.append(next_maint2)
+        if pd.notna(next_maint3):
+            vencimentos.append(next_maint3)
+        
         if not vencimentos: 
             continue
+            
         proximo_vencimento_real = min(vencimentos)
         
         today_ts = pd.Timestamp(date.today())
         status_atual = "OK"
         
-        if latest_record_info.get('plano_de_acao') == "FORA DE OPERAÇÃO (SUBSTITUÍDO)":
+        # Verifica plano de ação
+        plano_acao = latest_record_info.get('plano_de_acao')
+        if plano_acao == "FORA DE OPERAÇÃO (SUBSTITUÍDO)":
             status_atual = "FORA DE OPERAÇÃO"
         elif latest_record_info.get('aprovado_inspecao') == 'Não': 
             status_atual = "NÃO CONFORME (Aguardando Ação)"
         elif proximo_vencimento_real < today_ts: 
             status_atual = "VENCIDO"
 
+        # Pula equipamentos fora de operação
         if status_atual == "FORA DE OPERAÇÃO":
             continue
 
@@ -485,20 +505,37 @@ def get_consolidated_status_df(df_full, df_locais):
             'prox_venc_inspecao': next_insp.strftime('%d/%m/%Y') if pd.notna(next_insp) else "N/A",
             'prox_venc_maint2': next_maint2.strftime('%d/%m/%Y') if pd.notna(next_maint2) else "N/A",
             'prox_venc_maint3': next_maint3.strftime('%d/%m/%Y') if pd.notna(next_maint3) else "N/A",
-            'plano_de_acao': latest_record_info.get('plano_de_acao'),
+            'plano_de_acao': plano_acao,
         })
 
     if not consolidated_data:
         return pd.DataFrame()
 
     dashboard_df = pd.DataFrame(consolidated_data)
+    
+    # Merge com locais se disponível
     if not df_locais.empty:
-        df_locais = df_locais.rename(columns={'id': 'numero_identificacao'})
-        df_locais['numero_identificacao'] = df_locais['numero_identificacao'].astype(str)
-        dashboard_df = pd.merge(dashboard_df, df_locais[['numero_identificacao', 'local']], on='numero_identificacao', how='left')
-        dashboard_df['status_instalacao'] = dashboard_df['local'].apply(lambda x: f"✅ {x}" if pd.notna(x) and str(x).strip() != '' else "⚠️ Local não definido")
+        # Prepara DataFrame de locais
+        df_locais_prep = df_locais.copy()
+        df_locais_prep = df_locais_prep.rename(columns={'id': 'numero_identificacao'})
+        df_locais_prep['numero_identificacao'] = df_locais_prep['numero_identificacao'].astype(str)
+        dashboard_df['numero_identificacao'] = dashboard_df['numero_identificacao'].astype(str)
+        
+        # Faz o merge
+        dashboard_df = pd.merge(
+            dashboard_df, 
+            df_locais_prep[['numero_identificacao', 'local']], 
+            on='numero_identificacao', 
+            how='left'
+        )
+        
+        # Cria status de instalação
+        dashboard_df['status_instalacao'] = dashboard_df['local'].apply(
+            lambda x: f"✅ {x}" if pd.notna(x) and str(x).strip() != '' else "⚠️ Local não definido"
+        )
     else:
         dashboard_df['status_instalacao'] = "⚠️ Local não definido"
+        dashboard_df['local'] = None
         
     return dashboard_df
 
