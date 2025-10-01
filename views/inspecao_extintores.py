@@ -746,6 +746,7 @@ def show_page():
                                 'observacoes_gerais': observacoes_gerais
                             }
                             plano_acao = generate_action_plan(inspection_data)
+                            st.info(f"Plano de Ação Gerado: {plano_acao}")
                             
                             # Dados completos da inspeção
                             new_record = {

@@ -3,10 +3,11 @@ import pandas as pd
 import numpy as np
 from datetime import date
 from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
+from gdrive.config import MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, LOG_MULTIGAS_SHEET_NAME
 from utils.auditoria import log_action
 from AI.api_Operation import PDFQA
 from utils.prompts import get_multigas_calibration_prompt
+from operations.photo_operations import upload_evidence_photo
 
 def to_safe_cell(value):
     """Converte None ou NaN para string vazia para garantir a escrita correta na planilha."""
@@ -53,11 +54,23 @@ def save_new_multigas_detector(detector_id, brand, model, serial_number, cylinde
         st.error(f"Erro ao salvar novo detector: {e}")
         return False
 
+def generate_multigas_action_plan(resultado_teste, tipo_teste):
+    if resultado_teste == 'Aprovado':
+        return "Manter em monitoramento periódico."
+    if tipo_teste == 'Calibração Anual':
+        return "Equipamento reprovado na calibração. Enviar para manutenção especializada ou substituir."
+    else:  # Bump Test
+        return "Equipamento reprovado no teste de resposta (Bump Test). Realizar calibração completa."
+
+
 def save_multigas_inspection(data):
     """Salva um novo registro de teste (bump test ou calibração), tratando valores nulos."""
     try:
         uploader = GoogleDriveUploader()
         
+        # Gera o plano de ação
+        action_plan = generate_multigas_action_plan(data.get('resultado_teste'), data.get('tipo_teste'))
+
         data_row = [
             to_safe_cell(data.get('data_teste')),
             to_safe_cell(data.get('hora_teste')),
@@ -73,7 +86,8 @@ def save_multigas_inspection(data):
             to_safe_cell(data.get('proxima_calibracao')),
             to_safe_cell(data.get('numero_certificado')),
             to_safe_cell(data.get('link_certificado')),
-            to_safe_cell(data.get('observacoes')) 
+            to_safe_cell(data.get('observacoes')),
+            to_safe_cell(action_plan)
         ]
         
         uploader.append_data_to_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME, [data_row])
@@ -551,3 +565,50 @@ def get_all_detector_ids(df_inventory):
     except Exception as e:
         st.error(f"Erro ao recuperar lista de detectores: {e}")
         return []
+
+def save_multigas_action_log(detector_id, problem, action_taken, responsible, photo_file=None):
+    """
+    Salva um registro de ação corretiva para um detector de multigás no log.
+    
+    Args:
+        detector_id (str): ID do detector de multigás
+        problem (str): Descrição do problema
+        action_taken (str): Ação corretiva realizada
+        responsible (str): Responsável pela ação
+        photo_file (file): Foto da ação corretiva (opcional)
+        
+    Returns:
+        bool: True se a operação for bem-sucedida, False caso contrário
+    """
+    try:
+        uploader = GoogleDriveUploader()
+        
+        # Faz upload da foto se fornecida
+        photo_link = None
+        if photo_file:
+            try:
+                photo_link = upload_evidence_photo(
+                    photo_file, 
+                    detector_id, 
+                    "acao_corretiva_multigas"
+                )
+            except Exception as photo_error:
+                st.warning(f"Erro no upload da foto: {photo_error}. Continuando sem foto...")
+        
+        # Prepara linha de dados para o log
+        data_row = [
+            date.today().isoformat(),  # data_acao
+            detector_id,               # id_equipamento
+            problem,                   # problema
+            action_taken,              # acao_realizada
+            responsible,               # responsavel
+            photo_link or ""           # link_foto_evidencia
+        ]
+        
+        uploader.append_data_to_sheet(LOG_MULTIGAS_SHEET_NAME, [data_row])
+        log_action("REGISTROU_ACAO_MULTIGAS", f"ID: {detector_id}, Ação: {action_taken[:50]}...")
+        return True
+        
+    except Exception as e:
+        st.error(f"Erro ao salvar log de ação para o detector {detector_id}: {e}")
+        return False
