@@ -52,3 +52,19 @@ def log_action(action: str, details: str = "", target_uo: str = None):
         # Opcionalmente, pode também mostrar na interface do Streamlit em debug
         if st.secrets.get("debug_mode", False):
             st.error(f"⚠️ Erro no log de auditoria: {e}")
+            
+def log_action_with_geo(action, details, latitude=None, longitude=None):
+    """
+    Versão estendida do log_action que inclui informação de geolocalização.
+    
+    Args:
+        action: Tipo de ação
+        details: Detalhes da ação
+        latitude: Latitude (opcional)
+        longitude: Longitude (opcional)
+    """
+    geo_info = ""
+    if latitude and longitude:
+        geo_info = f" | GPS: {latitude:.6f},{longitude:.6f}"
+    
+    log_action(action, f"{details}{geo_info}")
