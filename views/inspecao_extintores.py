@@ -252,6 +252,79 @@ def show_page():
         else:
             st.info("Use este formulário para cadastrar manualmente uma inspeção de extintor, sem necessidade de processamento IA.")
             
+            # BOTÃO DE CAPTURA DE GPS - ANTES DO FORMULÁRIO
+            st.markdown("---")
+            st.subheader("🌐 Capturar Localização Atual (Opcional)")
+            
+            col_btn1, col_btn2 = st.columns([3, 1])
+            
+            with col_btn1:
+                st.info("Clique no botão ao lado para capturar automaticamente as coordenadas GPS do seu dispositivo.")
+            
+            with col_btn2:
+                capture_location = st.button("📍 Capturar GPS", use_container_width=True, type="secondary", key="btn_capture_gps_manual")
+            
+            # Inicializa variáveis de sessão para as coordenadas
+            if 'manual_lat_captured' not in st.session_state:
+                st.session_state['manual_lat_captured'] = None
+            if 'manual_lon_captured' not in st.session_state:
+                st.session_state['manual_lon_captured'] = None
+            
+            # Captura a localização quando o botão é clicado
+            if capture_location:
+                st.session_state['capture_geo_manual'] = True
+            
+            # Executa a captura se o flag estiver ativo
+            if st.session_state.get('capture_geo_manual', False):
+                location_js = streamlit_js_eval(js_expressions="""
+                    new Promise(function(resolve, reject) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) { 
+                                resolve({ 
+                                    latitude: position.coords.latitude, 
+                                    longitude: position.coords.longitude 
+                                }); 
+                            },
+                            function(error) { 
+                                resolve({ error: error.message }); 
+                            }
+                        );
+                    });
+                """, key="manual_inspection_geolocation")
+                
+                if location_js:
+                    st.session_state['capture_geo_manual'] = False  # Reset flag
+                    
+                    if 'error' in location_js:
+                        st.error(f"❌ Erro ao capturar localização: {location_js['error']}")
+                        st.info("Verifique se você permitiu o acesso à localização no seu navegador.")
+                    else:
+                        # Salva as coordenadas no session_state
+                        st.session_state['manual_lat_captured'] = location_js['latitude']
+                        st.session_state['manual_lon_captured'] = location_js['longitude']
+                        
+                        st.success(f"✅ Localização capturada com sucesso!")
+                        
+                        # Exibe as coordenadas
+                        col_display1, col_display2 = st.columns(2)
+                        
+                        with col_display1:
+                            st.metric("📍 Latitude", f"{location_js['latitude']:.6f}")
+                        
+                        with col_display2:
+                            st.metric("📍 Longitude", f"{location_js['longitude']:.6f}")
+                        
+                        st.info("💡 As coordenadas foram preenchidas automaticamente no formulário abaixo.")
+                        
+                        # Link para o Google Maps
+                        lat = location_js['latitude']
+                        lon = location_js['longitude']
+                        maps_url = f"https://www.google.com/maps?q={lat},{lon}"
+                        st.markdown(f"🗺️ [Ver localização no Google Maps]({maps_url})")
+            
+            st.markdown("---")
+            
+            # FORMULÁRIO PRINCIPAL
             with st.form("manual_inspection_form", clear_on_submit=True):
                 st.subheader("Dados da Inspeção")
                 
@@ -282,7 +355,7 @@ def show_page():
                 
                 observacoes_gerais = st.text_area("Observações", help="Descreva problemas encontrados, se houver.")
                 
-                # NOVO: Seção de Localização
+                # SEÇÃO DE LOCALIZAÇÃO
                 st.markdown("---")
                 st.subheader("📍 Localização (Opcional)")
                 
@@ -297,28 +370,33 @@ def show_page():
                 
                 # Campo de geolocalização
                 st.markdown("#### 🗺️ Coordenadas GPS (Opcional)")
-                st.info("💡 **Dica:** Use o botão abaixo do formulário para capturar automaticamente sua localização atual.")
+                st.caption("Use o botão 'Capturar GPS' acima do formulário para preencher automaticamente.")
                 
                 col_geo1, col_geo2 = st.columns(2)
                 
                 with col_geo1:
+                    # Usa o valor capturado se existir, senão None
+                    default_lat = st.session_state.get('manual_lat_captured')
                     manual_latitude = st.number_input(
                         "Latitude", 
-                        value=None, 
+                        value=default_lat,
                         format="%.6f",
                         help="Ex: -23.550520",
                         key="manual_lat_input"
                     )
                 
                 with col_geo2:
+                    # Usa o valor capturado se existir, senão None
+                    default_lon = st.session_state.get('manual_lon_captured')
                     manual_longitude = st.number_input(
                         "Longitude", 
-                        value=None, 
+                        value=default_lon,
                         format="%.6f",
                         help="Ex: -46.633308",
                         key="manual_lon_input"
                     )
                 
+                # BOTÃO DE SUBMIT DO FORMULÁRIO
                 submitted = st.form_submit_button("💾 Salvar Inspeção", type="primary", use_container_width=True)
                 
                 if submitted:
@@ -364,8 +442,8 @@ def show_page():
                             'plano_de_acao': plano_acao,
                             'link_relatorio_pdf': None,
                             'link_foto_nao_conformidade': None,
-                            'latitude': manual_latitude,  # NOVO
-                            'longitude': manual_longitude  # NOVO
+                            'latitude': manual_latitude if manual_latitude else None,
+                            'longitude': manual_longitude if manual_longitude else None
                         }
                         
                         # Adiciona as datas calculadas
@@ -373,7 +451,7 @@ def show_page():
                         
                         try:
                             if save_inspection(new_record):
-                                # NOVO: Salva o local na aba 'locais' se foi informado
+                                # Salva o local na aba 'locais' se foi informado
                                 if selected_location:
                                     from operations.extinguisher_operations import update_extinguisher_location
                                     from operations.history import load_sheet_data as load_locations_data
@@ -397,73 +475,14 @@ def show_page():
                                     st.success(f"🗺️ Coordenadas GPS salvas: ({manual_latitude:.6f}, {manual_longitude:.6f})")
                                 
                                 st.balloons()
+                                
+                                # Limpa as coordenadas capturadas do session_state
+                                st.session_state['manual_lat_captured'] = None
+                                st.session_state['manual_lon_captured'] = None
+                                
                                 st.cache_data.clear()
                                 st.rerun()
                         except Exception as e:
                             st.error(f"❌ Erro ao salvar a inspeção: {e}")
                             import traceback
                             st.error(traceback.format_exc())
-            
-            # Botão de geolocalização FORA do formulário (para não resetar os campos)
-            st.markdown("---")
-            st.subheader("🌐 Capturar Localização Atual")
-            
-            col_btn1, col_btn2 = st.columns([3, 1])
-            
-            with col_btn1:
-                st.info("Clique no botão ao lado para capturar automaticamente as coordenadas GPS do seu dispositivo.")
-            
-            with col_btn2:
-                capture_location = st.button("📍 Capturar GPS", use_container_width=True, type="secondary")
-            
-            if capture_location:
-                # Armazena um flag para indicar que deve capturar localização
-                st.session_state['capture_geo_manual'] = True
-                st.rerun()
-            
-            # Captura a localização se o flag estiver ativo
-            if st.session_state.get('capture_geo_manual', False):
-                location_js = streamlit_js_eval(js_expressions="""
-                    new Promise(function(resolve, reject) {
-                        navigator.geolocation.getCurrentPosition(
-                            function(position) { 
-                                resolve({ 
-                                    latitude: position.coords.latitude, 
-                                    longitude: position.coords.longitude 
-                                }); 
-                            },
-                            function(error) { 
-                                resolve({ error: error.message }); 
-                            }
-                        );
-                    });
-                """, key="manual_inspection_geolocation")
-                
-                if location_js:
-                    st.session_state['capture_geo_manual'] = False  # Reset flag
-                    
-                    if 'error' in location_js:
-                        st.error(f"❌ Erro ao capturar localização: {location_js['error']}")
-                        st.info("Verifique se você permitiu o acesso à localização no seu navegador.")
-                    else:
-                        lat = location_js['latitude']
-                        lon = location_js['longitude']
-                        
-                        st.success(f"✅ Localização capturada com sucesso!")
-                        
-                        # Exibe as coordenadas em formato copiável
-                        col_display1, col_display2 = st.columns(2)
-                        
-                        with col_display1:
-                            st.code(f"{lat:.6f}", language=None)
-                            st.caption("👆 Copie esta Latitude")
-                        
-                        with col_display2:
-                            st.code(f"{lon:.6f}", language=None)
-                            st.caption("👆 Copie esta Longitude")
-                        
-                        st.info("💡 Cole estes valores nos campos de coordenadas no formulário acima e clique em 'Salvar Inspeção'.")
-                        
-                        # Link para o Google Maps
-                        maps_url = f"https://www.google.com/maps?q={lat},{lon}"
-                        st.markdown(f"🗺️ [Ver localização no Google Maps]({maps_url})")
