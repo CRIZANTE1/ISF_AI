@@ -203,7 +203,7 @@ def show_page():
                     horizontal=False
                 )
                 
-                # ✅ NOVO: Campo de tamanho específico
+                # Campo de tamanho específico
                 quick_size = st.text_input(
                     "Tamanho/Modelo Específico*", 
                     placeholder="Ex: MCS-17, MCS-33, TF-22",
@@ -235,4 +235,4 @@ def show_page():
                                 st.balloons()
                                 st.cache_data.clear()
                             else:
-                    st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
+                                st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
