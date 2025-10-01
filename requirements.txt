@@ -1,6 +1,8 @@
 streamlit-option-menu
 
 streamlit>=1.28.0
+folium>=0.14.0
+streamlit-folium>=0.15.0
 
 # ========================
 # Manipulação de Dados e Datas
