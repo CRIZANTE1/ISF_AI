@@ -244,6 +244,7 @@ def show_page():
                                     st.success(f"Extintor '{ext_id_to_edit}' atualizado com sucesso!"); st.cache_data.clear(); st.rerun()
                                 except Exception as e: st.error(f"Erro ao atualizar: {e}")
 
+    # Nova aba para cadastro manual de inspeções
     with tab_manual:
         st.header("Cadastro Manual de Inspeção")
         
@@ -252,9 +253,9 @@ def show_page():
         else:
             st.info("Use este formulário para cadastrar manualmente uma inspeção de extintor, sem necessidade de processamento IA.")
             
-            # BOTÃO DE CAPTURA DE GPS - ANTES DO FORMULÁRIO
+
             st.markdown("---")
-            st.subheader("🌐 Capturar Localização Atual (Opcional)")
+            st.subheader("🌐 Passo 1: Capturar Localização GPS (Opcional)")
             
             col_btn1, col_btn2 = st.columns([3, 1])
             
@@ -314,7 +315,7 @@ def show_page():
                         with col_display2:
                             st.metric("📍 Longitude", f"{location_js['longitude']:.6f}")
                         
-                        st.info("💡 As coordenadas foram preenchidas automaticamente no formulário abaixo.")
+                        st.info("💡 As coordenadas foram salvas e serão preenchidas automaticamente no formulário abaixo.")
                         
                         # Link para o Google Maps
                         lat = location_js['latitude']
@@ -322,11 +323,32 @@ def show_page():
                         maps_url = f"https://www.google.com/maps?q={lat},{lon}"
                         st.markdown(f"🗺️ [Ver localização no Google Maps]({maps_url})")
             
+            # ====================================================================
+            # SEÇÃO 2: SELEÇÃO DE LOCAL (FORA DO FORMULÁRIO)
+            # ====================================================================
             st.markdown("---")
+            st.subheader("📍 Passo 2: Selecionar Local (Opcional)")
             
-            # FORMULÁRIO PRINCIPAL
+            from operations.location_operations import show_location_selector
+            
+            # Widget de seleção de local - FORA DO FORMULÁRIO
+            selected_location = show_location_selector(
+                key_suffix="manual_inspection",
+                required=False,
+                current_value=None
+            )
+            
+            if selected_location:
+                st.success(f"✅ Local selecionado: **{selected_location}**")
+            
+            # ====================================================================
+            # SEÇÃO 3: FORMULÁRIO DE INSPEÇÃO (SEM BOTÕES INTERNOS)
+            # ====================================================================
+            st.markdown("---")
+            st.subheader("📝 Passo 3: Preencher Dados da Inspeção")
+            
             with st.form("manual_inspection_form", clear_on_submit=True):
-                st.subheader("Dados da Inspeção")
+                st.write("**Dados do Equipamento**")
                 
                 # Dados básicos do equipamento
                 col1, col2 = st.columns(2)
@@ -343,7 +365,7 @@ def show_page():
                 
                 # Dados da inspeção
                 st.markdown("---")
-                st.subheader("Informações da Inspeção")
+                st.write("**Informações da Inspeção**")
                 
                 col7, col8 = st.columns(2)
                 tipo_servico = col7.selectbox("Tipo de Serviço", ["Inspeção", "Manutenção Nível 2", "Manutenção Nível 3"])
@@ -355,44 +377,31 @@ def show_page():
                 
                 observacoes_gerais = st.text_area("Observações", help="Descreva problemas encontrados, se houver.")
                 
-                # SEÇÃO DE LOCALIZAÇÃO
+                # Coordenadas GPS (somente leitura dentro do formulário)
                 st.markdown("---")
-                st.subheader("📍 Localização (Opcional)")
-                
-                from operations.location_operations import show_location_selector
-                
-                # Widget de seleção de local
-                selected_location = show_location_selector(
-                    key_suffix="manual_inspection",
-                    required=False,
-                    current_value=None
-                )
-                
-                # Campo de geolocalização
-                st.markdown("#### 🗺️ Coordenadas GPS (Opcional)")
-                st.caption("Use o botão 'Capturar GPS' acima do formulário para preencher automaticamente.")
+                st.write("**🗺️ Coordenadas GPS**")
                 
                 col_geo1, col_geo2 = st.columns(2)
                 
+                # Pega valores do session_state ou permite entrada manual
+                default_lat = st.session_state.get('manual_lat_captured')
+                default_lon = st.session_state.get('manual_lon_captured')
+                
                 with col_geo1:
-                    # Usa o valor capturado se existir, senão None
-                    default_lat = st.session_state.get('manual_lat_captured')
                     manual_latitude = st.number_input(
                         "Latitude", 
                         value=default_lat,
                         format="%.6f",
-                        help="Ex: -23.550520",
+                        help="Use o botão 'Capturar GPS' acima ou digite manualmente",
                         key="manual_lat_input"
                     )
                 
                 with col_geo2:
-                    # Usa o valor capturado se existir, senão None
-                    default_lon = st.session_state.get('manual_lon_captured')
                     manual_longitude = st.number_input(
                         "Longitude", 
                         value=default_lon,
                         format="%.6f",
-                        help="Ex: -46.633308",
+                        help="Use o botão 'Capturar GPS' acima ou digite manualmente",
                         key="manual_lon_input"
                     )
                 
@@ -401,88 +410,90 @@ def show_page():
                 
                 if submitted:
                     if not numero_identificacao:
-                        st.error("O campo 'Número de Identificação' é obrigatório.")
+                        st.error("❌ O campo 'Número de Identificação' é obrigatório.")
                     else:
-                        # Busca o último registro para preservar datas existentes
-                        last_record = find_last_record(df_extintores, numero_identificacao, 'numero_identificacao')
-                        
-                        # Define datas existentes para preservar
-                        existing_dates = {}
-                        if last_record:
-                            existing_dates = {
-                                k: last_record.get(k) 
-                                for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
-                                         'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                        with st.spinner("Salvando inspeção..."):
+                            # Busca o último registro para preservar datas existentes
+                            last_record = find_last_record(df_extintores, numero_identificacao, 'numero_identificacao')
+                            
+                            # Define datas existentes para preservar
+                            existing_dates = {}
+                            if last_record:
+                                existing_dates = {
+                                    k: last_record.get(k) 
+                                    for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
+                                             'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                                }
+                            
+                            # Calcula as novas datas com base no tipo de serviço
+                            updated_dates = calculate_next_dates(data_servico.isoformat(), tipo_servico, existing_dates)
+                            
+                            # Gera plano de ação
+                            inspection_data = {
+                                'aprovado_inspecao': aprovado,
+                                'observacoes_gerais': observacoes_gerais
                             }
-                        
-                        # Calcula as novas datas com base no tipo de serviço
-                        updated_dates = calculate_next_dates(data_servico.isoformat(), tipo_servico, existing_dates)
-                        
-                        # Gera plano de ação
-                        inspection_data = {
-                            'aprovado_inspecao': aprovado,
-                            'observacoes_gerais': observacoes_gerais
-                        }
-                        plano_acao = generate_action_plan(inspection_data)
-                        
-                        # Dados completos da inspeção
-                        new_record = {
-                            'numero_identificacao': numero_identificacao,
-                            'numero_selo_inmetro': numero_selo_inmetro,
-                            'tipo_agente': tipo_agente,
-                            'capacidade': capacidade,
-                            'marca_fabricante': marca_fabricante,
-                            'ano_fabricacao': ano_fabricacao,
-                            'tipo_servico': tipo_servico,
-                            'data_servico': data_servico.isoformat(),
-                            'inspetor_responsavel': get_user_display_name(),
-                            'empresa_executante': empresa_executante,
-                            'aprovado_inspecao': aprovado,
-                            'observacoes_gerais': observacoes_gerais,
-                            'plano_de_acao': plano_acao,
-                            'link_relatorio_pdf': None,
-                            'link_foto_nao_conformidade': None,
-                            'latitude': manual_latitude if manual_latitude else None,
-                            'longitude': manual_longitude if manual_longitude else None
-                        }
-                        
-                        # Adiciona as datas calculadas
-                        new_record.update(updated_dates)
-                        
-                        try:
-                            if save_inspection(new_record):
-                                # Salva o local na aba 'locais' se foi informado
-                                if selected_location:
-                                    from operations.extinguisher_operations import update_extinguisher_location
-                                    from operations.history import load_sheet_data as load_locations_data
+                            plano_acao = generate_action_plan(inspection_data)
+                            
+                            # Dados completos da inspeção
+                            new_record = {
+                                'numero_identificacao': numero_identificacao,
+                                'numero_selo_inmetro': numero_selo_inmetro,
+                                'tipo_agente': tipo_agente,
+                                'capacidade': capacidade,
+                                'marca_fabricante': marca_fabricante,
+                                'ano_fabricacao': ano_fabricacao,
+                                'tipo_servico': tipo_servico,
+                                'data_servico': data_servico.isoformat(),
+                                'inspetor_responsavel': get_user_display_name(),
+                                'empresa_executante': empresa_executante,
+                                'aprovado_inspecao': aprovado,
+                                'observacoes_gerais': observacoes_gerais,
+                                'plano_de_acao': plano_acao,
+                                'link_relatorio_pdf': None,
+                                'link_foto_nao_conformidade': None,
+                                'latitude': manual_latitude if manual_latitude else None,
+                                'longitude': manual_longitude if manual_longitude else None
+                            }
+                            
+                            # Adiciona as datas calculadas
+                            new_record.update(updated_dates)
+                            
+                            try:
+                                if save_inspection(new_record):
+                                    # Salva o local na aba 'locais' se foi informado
+                                    if selected_location:
+                                        from operations.extinguisher_operations import update_extinguisher_location
+                                        from operations.history import load_sheet_data as load_locations_data
+                                        
+                                        df_locais = load_locations_data("locais")
+                                        
+                                        # Busca o nome do local selecionado
+                                        if not df_locais.empty:
+                                            location_row = df_locais[df_locais['id'] == selected_location]
+                                            if not location_row.empty:
+                                                location_name = location_row.iloc[0]['local']
+                                                update_extinguisher_location(numero_identificacao, location_name)
                                     
-                                    df_locais = load_locations_data("locais")
+                                    log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", f"ID: {numero_identificacao}, Status: {aprovado}")
                                     
-                                    # Busca o nome do local selecionado
-                                    if not df_locais.empty:
-                                        location_row = df_locais[df_locais['id'] == selected_location]
-                                        if not location_row.empty:
-                                            location_name = location_row.iloc[0]['local']
-                                            update_extinguisher_location(numero_identificacao, location_name)
-                                
-                                log_action("SALVOU_INSPECAO_EXTINTOR_MANUAL", f"ID: {numero_identificacao}, Status: {aprovado}")
-                                st.success(f"✅ Inspeção para o extintor '{numero_identificacao}' registrada com sucesso!")
-                                
-                                if selected_location:
-                                    st.success(f"📍 Local '{selected_location}' associado ao equipamento.")
-                                
-                                if manual_latitude and manual_longitude:
-                                    st.success(f"🗺️ Coordenadas GPS salvas: ({manual_latitude:.6f}, {manual_longitude:.6f})")
-                                
-                                st.balloons()
-                                
-                                # Limpa as coordenadas capturadas do session_state
-                                st.session_state['manual_lat_captured'] = None
-                                st.session_state['manual_lon_captured'] = None
-                                
-                                st.cache_data.clear()
-                                st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Erro ao salvar a inspeção: {e}")
-                            import traceback
-                            st.error(traceback.format_exc())
+                                    st.success(f"✅ Inspeção para o extintor '{numero_identificacao}' registrada com sucesso!")
+                                    
+                                    if selected_location:
+                                        st.success(f"📍 Local '{selected_location}' associado ao equipamento.")
+                                    
+                                    if manual_latitude and manual_longitude:
+                                        st.success(f"🗺️ Coordenadas GPS salvas: ({manual_latitude:.6f}, {manual_longitude:.6f})")
+                                    
+                                    st.balloons()
+                                    
+                                    # Limpa as coordenadas capturadas do session_state
+                                    st.session_state['manual_lat_captured'] = None
+                                    st.session_state['manual_lon_captured'] = None
+                                    
+                                    st.cache_data.clear()
+                                    st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Erro ao salvar a inspeção: {e}")
+                                import traceback
+                                st.error(traceback.format_exc())
