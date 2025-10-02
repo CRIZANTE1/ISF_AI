@@ -1500,47 +1500,96 @@ def show_page():
             elif df_alarm_inspections.empty:
                 st.warning("Nenhuma inspeção de sistema de alarme registrada.")
             else:
-                # --- SEÇÃO DE RELATÓRIO MENSAL ---
-                with st.expander("📄 Gerar Relatório Mensal de Inspeções", expanded=False):
+                # --- SEÇÃO DE RELATÓRIO COM OPÇÃO MENSAL/SEMESTRAL ---
+                with st.expander("📄 Gerar Relatório de Inspeções", expanded=False):
                     # Converte a coluna de data para o formato datetime
                     df_alarm_inspections['data_inspecao_dt'] = pd.to_datetime(df_alarm_inspections['data_inspecao'], errors='coerce')
-
-                    # Filtros para mês e ano
-                    today = datetime.now()
-                    col1, col2 = st.columns(2)
+    
+                    # Seletor de tipo de relatório
+                    col_type, col_rest = st.columns([1, 3])
+                    with col_type:
+                        report_type = st.radio(
+                            "Tipo de Relatório:",
+                            ["📅 Mensal", "📆 Semestral"],
+                            key="dashboard_alarm_report_type"
+                        )
                     
-                    with col1:
-                        years_with_data = sorted(df_alarm_inspections['data_inspecao_dt'].dt.year.unique(), reverse=True)
-                        if not years_with_data:
-                            years_with_data = [today.year]
-                        selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="dashboard_alarm_report_year")
-                    
-                    with col2:
-                        months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
-                                 "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-                        default_month_index = today.month - 1
-                        selected_month_name = st.selectbox("Selecione o Mês:", months, 
-                                                         index=default_month_index, key="dashboard_alarm_report_month")
-                    
-                    selected_month_number = months.index(selected_month_name) + 1
-
-                    # Filtra os dados pelo mês e ano selecionados
-                    inspections_selected_month = df_alarm_inspections[
-                        (df_alarm_inspections['data_inspecao_dt'].dt.year == selected_year) &
-                        (df_alarm_inspections['data_inspecao_dt'].dt.month == selected_month_number)
-                    ].sort_values(by='data_inspecao_dt')
-
-                    if inspections_selected_month.empty:
-                        st.info(f"Nenhuma inspeção foi registrada em {selected_month_name} de {selected_year}.")
+                    with col_rest:
+                        today = datetime.now()
+                        
+                        if report_type == "📅 Mensal":
+                            # Filtros para mês e ano
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                years_with_data = sorted(df_alarm_inspections['data_inspecao_dt'].dt.year.unique(), reverse=True)
+                                if not years_with_data:
+                                    years_with_data = [today.year]
+                                selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="dashboard_alarm_report_year")
+                            
+                            with col2:
+                                months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
+                                         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+                                default_month_index = today.month - 1
+                                selected_month_name = st.selectbox("Selecione o Mês:", months, 
+                                                                 index=default_month_index, key="dashboard_alarm_report_month")
+                            
+                            selected_month_number = months.index(selected_month_name) + 1
+    
+                            # Filtra os dados pelo mês e ano selecionados
+                            inspections_selected = df_alarm_inspections[
+                                (df_alarm_inspections['data_inspecao_dt'].dt.year == selected_year) &
+                                (df_alarm_inspections['data_inspecao_dt'].dt.month == selected_month_number)
+                            ].sort_values(by='data_inspecao_dt')
+                            
+                            period_description = f"{selected_month_name}/{selected_year}"
+                            period_type = "monthly"
+                            
+                        else:  # Semestral
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                years_with_data = sorted(df_alarm_inspections['data_inspecao_dt'].dt.year.unique(), reverse=True)
+                                if not years_with_data:
+                                    years_with_data = [today.year]
+                                selected_year = st.selectbox("Selecione o Ano:", years_with_data, key="dashboard_alarm_report_year_sem")
+                            
+                            with col2:
+                                selected_semester = st.selectbox(
+                                    "Selecione o Semestre:",
+                                    ["1º Semestre (Jan-Jun)", "2º Semestre (Jul-Dez)"],
+                                    key="dashboard_alarm_report_semester"
+                                )
+                            
+                            # Define os meses do semestre selecionado
+                            if "1º" in selected_semester:
+                                semester_months = [1, 2, 3, 4, 5, 6]
+                                semester_num = 1
+                            else:
+                                semester_months = [7, 8, 9, 10, 11, 12]
+                                semester_num = 2
+                            
+                            # Filtra os dados pelo semestre e ano selecionados
+                            inspections_selected = df_alarm_inspections[
+                                (df_alarm_inspections['data_inspecao_dt'].dt.year == selected_year) &
+                                (df_alarm_inspections['data_inspecao_dt'].dt.month.isin(semester_months))
+                            ].sort_values(by='data_inspecao_dt')
+                            
+                            period_description = f"{semester_num}º Semestre de {selected_year}"
+                            period_type = "biannual"
+    
+                    if inspections_selected.empty:
+                        st.info(f"Nenhuma inspeção foi registrada em {period_description}.")
                     else:
-                        st.write(f"Encontradas {len(inspections_selected_month)} inspeções em {selected_month_name}/{selected_year}.")
+                        st.write(f"Encontradas {len(inspections_selected)} inspeções em {period_description}.")
                         
                         if st.button("📄 Gerar e Imprimir Relatório do Dashboard", type="primary", key="dashboard_generate_alarm_report"):
                             unit_name = st.session_state.get('current_unit_name', 'N/A')
                             report_html = generate_alarm_inspection_html(
-                                inspections_selected_month, 
+                                inspections_selected, 
                                 df_alarm_inventory, 
-                                unit_name
+                                unit_name,
+                                period_type=period_type
                             )
                             
                             js_code = f"""
