@@ -2,7 +2,7 @@ import pandas as pd
 import json
 from datetime import datetime
 
-def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name):
+def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, period_type="monthly"):
     """
     Gera um relatório de inspeções de sistemas de alarme em HTML.
     
@@ -10,6 +10,7 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name):
         df_inspections: DataFrame com as inspeções de alarme
         df_inventory: DataFrame com o inventário de sistemas
         unit_name: Nome da unidade/empresa
+        period_type: Tipo de período ("monthly" ou "biannual")
     
     Returns:
         str: HTML formatado para impressão
@@ -29,6 +30,16 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name):
     
     # Formata as colunas de data
     report_df['data_inspecao_fmt'] = pd.to_datetime(report_df['data_inspecao']).dt.strftime('%d/%m/%Y')
+    
+    # Define o título baseado no tipo de período
+    if period_type == "biannual":
+        # Determina o semestre baseado na primeira inspeção
+        first_date = pd.to_datetime(report_df['data_inspecao']).min()
+        semester = 1 if first_date.month <= 6 else 2
+        period_title = f"{semester}º Semestre de {first_date.year}"
+    else:
+        first_date = pd.to_datetime(report_df['data_inspecao']).min()
+        period_title = first_date.strftime('%B/%Y')
     
     # Gera as linhas da tabela
     table_rows_html = ""
@@ -80,22 +91,42 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name):
         </tr>
         """
     
-    # CSS para o relatório
+    # CSS para o relatório (CORRIGIDO para evitar corte de texto)
     styles = """
     <style>
-        @media print { body { -webkit-print-color-adjust: exact; } }
+        @page { 
+            size: A4 landscape; 
+            margin: 15mm; 
+        }
+        @media print { 
+            body { -webkit-print-color-adjust: exact; }
+            .footer { page-break-inside: avoid; }
+        }
         body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
         .header h1 { font-size: 16px; margin: 0; }
         .header h2 { font-size: 14px; margin: 0; color: #666; }
         .info-bar { display: flex; justify-content: space-between; border: 1px solid #000; padding: 8px; margin: 10px 0; background-color: #f5f5f5; }
-        table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
-        th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
+        table { width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 20px; }
+        th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; word-wrap: break-word; }
         th { background-color: #e0e0e0; text-align: center; font-weight: bold; }
         .status-ok { background-color: #e8f5e8; }
         .status-fail { background-color: #ffe5e5; }
-        .footer { font-size: 9px; border: 1px solid #000; padding: 8px; margin-top: 15px; background-color: #f9f9f9; }
-        .signatures { margin-top: 30px; display: flex; justify-content: space-around; }
+        .footer { 
+            font-size: 9px; 
+            border: 1px solid #000; 
+            padding: 10px; 
+            margin-top: 20px; 
+            background-color: #f9f9f9;
+            page-break-inside: avoid;
+            clear: both;
+        }
+        .signatures { 
+            margin-top: 30px; 
+            display: flex; 
+            justify-content: space-around;
+            page-break-inside: avoid;
+        }
         .signature-box { text-align: center; }
         .signature-line { border-top: 1px solid #000; width: 200px; margin: 20px auto 5px; }
     </style>
@@ -107,13 +138,14 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name):
     <html>
     <head>
         <title>Relatório de Inspeções de Sistemas de Alarme</title>
+        <meta charset="utf-8">
         {styles}
     </head>
     <body>
         <div class="header">
             <div>
                 <h1>RELATÓRIO DE INSPEÇÕES DE SISTEMAS DE ALARME</h1>
-                <h2>Período: {datetime.now().strftime('%B/%Y')}</h2>
+                <h2>Período: {period_title}</h2>
             </div>
             <div>
                 <strong>Data:</strong> {datetime.now().strftime('%d/%m/%Y')}<br>
