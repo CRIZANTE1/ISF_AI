@@ -23,7 +23,7 @@ from auth.auth_utils import (
 )
 from utils.auditoria import get_sao_paulo_time_str, log_action
 from config.page_config import set_page_config
-from operations.instrucoes import mostrar_instrucoes_abrigos
+from operations.instrucoes import instru_mangueiras
 
 
 set_page_config()
