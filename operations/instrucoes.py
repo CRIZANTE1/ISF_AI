@@ -1,6 +1,385 @@
 import streamlit as st
 
 
+def instru_alarms():
+    """Instruções para Sistemas de Alarme de Emergência"""
+    st.header("📖 Guia de Uso - Gestão de Sistemas de Alarme de Emergência")
+
+    # Alerta de priorização
+    st.success(
+        "⚡ **Recomendação:** Para as verificações de rotina, utilize a aba **'📋 Realizar Inspeção'**! "
+        "Ela segue um checklist completo, guiado e garante a conformidade com as normas técnicas."
+    )
+
+    st.markdown("---")
+
+    # Comparação de métodos
+    st.subheader("🎯 Escolha o Melhor Método para Sua Situação")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        ### 📋 Realizar Inspeção
+        **⚡ PARA USO REGULAR - RECOMENDADA**
+
+        **Tempo:** ~5-10 minutos por sistema
+
+        **Ideal para:**
+        - ✅ Inspeções semanais/periódicas obrigatórias
+        - ✅ Verificações de conformidade
+        - ✅ Geração de histórico e rastreabilidade
+        - ✅ Checklist completo e guiado
+
+        **Como funciona:**
+        1. Selecione o sistema de alarme da lista
+        2. Responda ao checklist de verificação
+        3. Se houver não conformidade, anexe uma foto
+        4. O sistema gera status e salva a inspeção
+
+        **O que inclui:**
+        - 🔍 Inspeção de componentes físicos (painel, fiação)
+        - 🔊 Testes de funcionamento (sirenes, luzes)
+        - 🔥 Verificação de sensores e detectores
+        - 📋 Análise de documentação e sinalização
+
+        **Vantagens:**
+        - ⚡ Rápida e eficiente
+        - 📋 Checklist guiado e padronizado
+        - 📸 Exigência de evidência para falhas
+        - 📊 Rastreabilidade completa
+        """)
+
+    with col2:
+        st.markdown("""
+        ### ➕ Cadastro Completo
+        **📋 PARA EQUIPAMENTOS NOVOS**
+
+        **Tempo:** ~5 minutos
+
+        **Ideal para:**
+        - 🆕 Sistemas recém-instalados
+        - 📝 Documentação técnica detalhada
+        - 🔧 Registro de marca, modelo e especificações
+        - 📊 Gestão completa do inventário
+
+        **Como funciona:**
+        1. Preencha o ID único do sistema (ex: AL-01)
+        2. Informe a localização detalhada
+        3. Adicione marca, modelo e data de instalação
+        4. Insira especificações como tipo e área de cobertura
+
+        **Vantagens:**
+        - 📋 Documentação completa
+        - 🔧 Registro de especificações técnicas
+        - 📊 Base para um histórico detalhado
+        - ✅ Facilita futuras manutenções
+        """)
+
+    with col3:
+        st.markdown("""
+        ### ✍️ Cadastro Rápido
+        **🚀 PARA ADICIONAR EM LOTE**
+
+        **Tempo:** ~1-2 minutos
+
+        **Ideal para:**
+        - 🆕 Adicionar múltiplos sistemas rapidamente
+        - ⚡ Criar um inventário inicial
+        - 📝 Apenas informações essenciais
+        - 🔄 Atualizar com detalhes depois
+
+        **Como funciona:**
+        1. Insira o ID do sistema
+        2. Informe a localização
+        3. Selecione o tipo de sistema
+        4. Escolha a marca de uma lista (ou digite)
+
+        **Vantagens:**
+        - ⚡ Extremamente rápido
+        - 📝 Apenas dados essenciais
+        - 🔧 Marcas pré-cadastradas
+        - ✏️ Permite completar os detalhes posteriormente
+        """)
+
+    st.markdown("---")
+
+    # Fluxo de trabalho recomendado
+    st.subheader("🎯 Fluxo de Trabalho Recomendado")
+
+    st.info("""
+    **Para Máxima Eficiência, Siga Esta Ordem:**
+
+    1️⃣ **Primeira Vez no Sistema?**
+    → Cadastre todos os seus sistemas de alarme usando o **Cadastro Rápido** ou **Cadastro Completo**.
+
+    2️⃣ **Inspeção Periódica?**
+    → Vá para **"📋 Realizar Inspeção"** e siga o checklist para cada sistema.
+
+    3️⃣ **Precisa de um Relatório para Auditoria?**
+    → Na aba de inspeção, use a função **"📄 Gerar Relatório Mensal de Inspeções"** para criar e imprimir um relatório consolidado do mês.
+    """)
+
+    st.markdown("---")
+
+    # Guia detalhado de inspeção
+    st.subheader("📋 Guia Completo: Realizando uma Inspeção")
+
+    with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
+        st.markdown("""
+        #### **Antes de Começar:**
+        - 📋 Tenha acesso físico ao painel e componentes do sistema de alarme.
+        - 🔑 Chaves de acesso ao painel, se necessário.
+        - 📱 Celular com câmera para registrar não conformidades.
+        - 📊 Acesso ao sistema (computador ou tablet).
+
+        ---
+
+        #### **Passo 1: Selecione o Sistema** 🔍
+
+        1. Vá para a aba **"📋 Realizar Inspeção"**.
+        2. Na caixa de seleção, escolha o sistema que você irá inspecionar (identificado pelo seu ID).
+        3. O sistema exibirá automaticamente a **Localização**, **Marca** e **Modelo** para confirmação.
+
+        ---
+
+        #### **Passo 2: Responda ao Checklist de Verificação** ✅
+
+        O checklist é dividido em quatro categorias para uma inspeção completa e organizada. Para cada item, marque uma das três opções:
+
+        - ✅ **Conforme** - O item está em perfeitas condições e funcionando como esperado.
+        - ❌ **Não Conforme** - Foi encontrado um problema, defeito ou irregularidade.
+        - ⚠️ **N/A** - O item não se aplica a este sistema de alarme específico.
+
+        **Categorias do Checklist:**
+
+        **1. Componentes Físicos:**
+           - Avalia o estado do painel de controle, fiação, sirenes, luzes e baterias.
+           - *Exemplo de item: "Painel de controle sem danos físicos".*
+
+        **2. Funcionamento:**
+           - Verifica se o sistema opera corretamente, incluindo testes de sirenes, luzes e comunicação com a central (se houver).
+           - *Exemplo de item: "Sirenes funcionam corretamente durante teste".*
+
+        **3. Sensores e Detectores:**
+           - Testa a resposta dos detectores (fumaça, calor), acionadores manuais e a cobertura dos sensores no ambiente.
+           - *Exemplo de item: "Detectores de fumaça respondem ao teste".*
+
+        **4. Documentação e Sinalização:**
+           - Confere se as instruções, planos de evacuação e contatos de emergência estão visíveis, atualizados e corretos.
+           - *Exemplo de item: "Plano de evacuação atualizado e visível".*
+
+        💡 **Dica:** Seja criterioso. Marcar "Não Conforme" indica que uma ação corretiva é necessária.
+
+        ---
+
+        #### **Passo 3: Registre Não Conformidades (Se Houver)** 📸
+
+        **Se você marcar QUALQUER item como "Não Conforme":**
+
+        1. O sistema exibirá um aviso: *"Foi encontrada pelo menos uma não conformidade. Por favor, anexe uma foto como evidência."*
+        2. O campo para upload de foto se tornará **obrigatório**.
+        3. Use a câmera do seu dispositivo para tirar uma foto clara do problema.
+
+        **Boas práticas para fotos:**
+        - 🔦 Ilumine bem o problema.
+        - 🎯 Foque no componente com defeito.
+        - 📏 Mostre o contexto para fácil identificação da localização do problema.
+
+        ⚠️ **IMPORTANTE:** Não é possível salvar uma inspeção com não conformidades **SEM** anexar uma foto. Isso garante a rastreabilidade e a evidência para auditorias.
+
+        ---
+
+        #### **Passo 4: Revise e Salve a Inspeção** 💾
+
+        1. Após preencher todo o checklist e anexar fotos (se necessário), clique no botão **"✅ Salvar Inspeção"**.
+        2. O sistema processará as informações e fará o seguinte automaticamente:
+           - **Calcula o Status Geral:**
+             - 🟢 Tudo "Conforme" → Status **"Aprovado"**.
+             - 🔴 Pelo menos um "Não Conforme" → Status **"Reprovado com Pendências"**.
+           - **Gera um Plano de Ação (se houver pendências):** Baseado nos itens não conformes, o sistema sugere ações corretivas.
+           - **Calcula a Próxima Inspeção:** A data da próxima inspeção é agendada para **7 dias** após a data atual.
+           - **Registra no Histórico:** Todos os dados são salvos para consultas e relatórios futuros.
+
+        🎉 Se a inspeção for salva com sucesso e o status for "Aprovado", uma animação de balões aparecerá como comemoração!
+
+        ---
+        """)
+
+    st.markdown("---")
+
+    # Requisitos legais
+    st.subheader("⚖️ Requisitos Legais e Normas")
+
+    with st.expander("📜 Normas e Legislação Aplicável"):
+        st.markdown("""
+        A inspeção e manutenção de sistemas de alarme de incêndio são regidas por normas técnicas rigorosas para garantir sua eficácia.
+
+        #### **Principais Normas:**
+
+        **ABNT NBR 17240 - Sistemas de detecção e alarme de incêndio – Projeto, instalação, comissionamento e manutenção de sistemas de detecção e alarme de incêndio**
+        - 🇧🇷 É a principal norma brasileira que estabelece os requisitos para todo o ciclo de vida do sistema.
+        - ⏰ Define as frequências de testes e inspeções (diárias, mensais, trimestrais, anuais).
+        - 🔧 Exige que a manutenção seja realizada por profissionais qualificados.
+
+        **NFPA 72 - National Fire Alarm and Signaling Code**
+        - 🇺🇸 A norma internacional mais reconhecida para sistemas de alarme.
+        - 📅 Estabelece rotinas de inspeção visual e testes funcionais com periodicidades bem definidas.
+        - 📋 Exige a manutenção de registros detalhados de todas as inspeções, testes e manutenções.
+
+        **Instruções Técnicas (IT) do Corpo de Bombeiros:**
+        - 🔥 Cada estado brasileiro possui suas próprias ITs, que são de cumprimento obrigatório para a obtenção e renovação do AVCB (Auto de Vistoria do Corpo de Bombeiros).
+        - 🚨 Geralmente são baseadas na NBR 17240, mas podem incluir requisitos específicos.
+
+        ---
+
+        #### **Frequências de Inspeção Recomendadas pelas Normas:**
+
+        | Frequência | Atividade | Responsável |
+        |------------|-----------|-------------|
+        | **Semanal** | Inspeção visual dos painéis para verificar status normal | Equipe Interna (Usuário) |
+        | **Mensal** | Teste funcional de baterias e fontes de alimentação | Equipe Interna Qualificada |
+        | **Trimestral**| Teste de acionadores manuais e detectores (amostragem) | Equipe Interna Qualificada |
+        | **Anual** | Teste completo de todos os dispositivos e componentes | Empresa Especializada |
+
+        💡 **Observação:** O sistema está configurado com uma periodicidade de **7 dias** para a próxima inspeção, incentivando uma verificação visual constante e garantindo um nível de segurança acima do mínimo exigido por norma para inspeções visuais.
+
+        ---
+        """)
+
+    st.markdown("---")
+
+    # Critérios de aprovação/reprovação
+    st.subheader("🎯 Critérios de Aprovação e Reprovação")
+
+    with st.expander("✅ Quando um Sistema é APROVADO"):
+        st.markdown("""
+        **Um sistema de alarme é considerado APROVADO quando:**
+
+        ✅ **Todos os itens do checklist** são marcados como **"Conforme"** ou **"N/A"**.
+        ✅ **Componentes Físicos:** O painel, fiação, sirenes e luzes estão íntegros, sem danos, corrosão ou obstruções.
+        ✅ **Funcionamento:** O painel indica estado "Normal". As sirenes e luzes estroboscópicas são ativadas corretamente durante os testes. A comunicação com a central (se houver) está ativa.
+        ✅ **Sensores e Detectores:** Todos os dispositivos respondem adequadamente aos testes e não apresentam danos ou sujeira excessiva.
+        ✅ **Documentação:** O plano de evacuação e os contatos de emergência estão atualizados e visíveis.
+        """)
+
+    with st.expander("❌ Quando um Sistema é REPROVADO (Com Pendências)"):
+        st.markdown("""
+        **Um sistema é REPROVADO se pelo menos UM item for marcado como "Não Conforme".**
+
+        ❌ **Problemas CRÍTICOS (Ação Imediata):**
+        - 🚨 Painel de controle indicando falha ("Falha", "Fogo", "Avaria") que não pode ser rearmado.
+        - 🚨 Sirenes ou luzes estroboscópicas não funcionam durante o teste.
+        - 🚨 Detectores de fumaça ou acionadores manuais não respondem ao teste.
+        - 🚨 Baterias de backup danificadas ou com vazamento.
+        - 🚨 Fiação exposta, rompida ou com sinais de curto-circuito.
+
+        📋 **Problemas MODERADOS (Programar Correção):**
+        - Painel com danos físicos que não afetam o funcionamento.
+        - Detectores sujos que precisam de limpeza.
+        - Plano de evacuação ou contatos de emergência desatualizados.
+        - Sinalização de rotas de fuga danificada ou obstruída.
+
+        **IMPORTANTE:**
+        - Um sistema com pendências **CRÍTICAS** deve ser sinalizado como **INOPERANTE** e a manutenção deve ser acionada **IMEDIATAMENTE**.
+        - Medidas compensatórias (como vigilância por brigadistas) devem ser adotadas até a correção do problema.
+        """)
+
+    st.markdown("---")
+
+    # Perguntas frequentes
+    st.subheader("❓ Perguntas Frequentes")
+
+    with st.expander("📅 Com que frequência devo usar este sistema para inspecionar?"):
+        st.markdown("""
+        **O sistema agenda a próxima inspeção para 7 dias após a última realizada.**
+
+        Esta frequência é ideal para **inspeções visuais de rotina**, que garantem a verificação constante do estado do sistema.
+
+        **Recomendação de Rotina:**
+        -  weekly **Inspeção via Sistema (Checklist Visual):** Realize semanalmente para garantir que não há falhas aparentes no painel e nos componentes. Isso cria um histórico robusto.
+        - monthly **Testes Funcionais:** Conforme a NBR 17240, realize testes mais aprofundados mensalmente ou trimestralmente (como teste de baterias e acionadores).
+        - annually **Manutenção por Especialistas:** Pelo menos uma vez por ano, contrate uma empresa especializada para realizar um teste completo em todos os componentes do sistema.
+        """)
+
+    with st.expander("📸 Preciso tirar foto em TODAS as inspeções?"):
+        st.markdown("""
+        **NÃO.**
+
+        A foto é **OBRIGATÓRIA** apenas quando um ou mais itens são marcados como **"Não Conforme"**.
+
+        - ✅ **Inspeção 100% Conforme:** Nenhuma foto é necessária.
+        - ❌ **Inspeção com Não Conformidade:** A foto é exigida pelo sistema para servir como evidência clara do problema, facilitando a ação corretiva e servindo como registro para auditorias.
+        """)
+
+    with st.expander("🆘 O que fazer quando encontro um problema crítico?"):
+        st.markdown("""
+        Problemas críticos são aqueles que comprometem a capacidade do sistema de funcionar em uma emergência (ex: sirene não toca, painel em falha geral).
+
+        ### **Protocolo de Ação Imediata:**
+
+        **1. REGISTRE no Sistema:**
+           - Marque o item como **"Não Conforme"**.
+           - Tire uma foto clara e detalhada do problema.
+           - **Salve a inspeção imediatamente** para que fique registrada.
+
+        **2. COMUNIQUE Imediatamente (Verbalmente e por E-mail):**
+           - Seu supervisor direto.
+           - A equipe de Segurança do Trabalho (SESMT) / Brigada de Incêndio.
+           - O responsável pela manutenção.
+
+        **3. SINALIZE o Risco:**
+           - Se possível, coloque uma etiqueta ou aviso no painel de controle indicando "SISTEMA EM MANUTENÇÃO / INOPERANTE".
+
+        **4. ACIONE a Manutenção Corretiva:**
+           - Abra um chamado de manutenção de **emergência**. Não espere pela rotina normal.
+
+        **5. IMPLEMENTE Medidas Compensatórias:**
+           - Aumente as rondas da vigilância ou da brigada na área desprotegida.
+           - Disponibilize extintores adicionais na área, se necessário.
+           - Avalie a necessidade de paralisar atividades de alto risco até a correção do sistema.
+
+        **Lembre-se:** A omissão diante de uma falha crítica pode ter consequências graves. A documentação no sistema é sua principal evidência de que a falha foi identificada e reportada corretamente.
+        """)
+
+    st.markdown("---")
+
+    # Call-to-action
+    st.success("""
+    ### 🚀 Pronto para Começar?
+
+    **Siga este checklist rápido:**
+
+    ✅ **Já tem sistemas cadastrados?**
+    → Vá direto para a aba **"📋 Realizar Inspeção"**.
+
+    ❌ **Ainda não tem sistemas no inventário?**
+    → Comece pela aba **"✍️ Cadastro Rápido"** para adicionar os equipamentos essenciais.
+
+    📚 **Dúvidas sobre algum item do checklist?**
+    → Revise a seção **"Critérios de Aprovação e Reprovação"** acima.
+
+    ---
+
+    **Lembre-se:**
+    - Inspeções **SEMANAIS** criam um histórico robusto e confiável.
+    - O registro fotográfico de falhas é **ESSENCIAL** para auditorias.
+    - Um sistema de alarme bem mantido salva vidas e patrimônio.
+
+    Este sistema foi projetado para facilitar a conformidade e manter sua documentação sempre organizada e acessível! ⚡
+    """)
+
+    # Footer informativo
+    st.markdown("---")
+    st.caption("""
+    📌 **Normas de Referência:**
+    - ABNT NBR 17240 (Sistemas de detecção e alarme de incêndio)
+    - NFPA 72 (National Fire Alarm and Signaling Code)
+    - Instruções Técnicas (IT) do Corpo de Bombeiros local.
+
+    🔄 **Última Atualização das Instruções:** Janeiro/2025
+    📖 **Versão do Guia:** 1.0
+    """)
 def instru_foam_chamber():
     """Instruções para Câmaras de Espuma"""
     st.header("📖 Guia de Uso - Sistema de Câmaras de Espuma")
