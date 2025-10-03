@@ -17,7 +17,7 @@ from config.page_config import set_page_config
 from operations.history import load_sheet_data
 from gdrive.config import SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
 from utils.auditoria import log_action
-from operations.instrucoes import instru_sbca
+from operations.instrucoes import instru_scba
 
 
 set_page_config()
@@ -134,7 +134,7 @@ def show_page():
 
 
     with tab_instrucoes:
-        instru_sbca()
+        instru_scba()
         
     
     with tab_test_scba:
