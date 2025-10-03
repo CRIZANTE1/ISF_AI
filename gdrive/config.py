@@ -51,6 +51,8 @@ SUPPORT_REQUESTS_SHEET_NAME = "solicitacoes_suporte"
 EXTINGUISHER_DISPOSAL_LOG_SHEET_NAME = "log_baixas_extintores"
 CANHAO_MONITOR_INVENTORY_SHEET_NAME = "canhoes_monitores_inventario"
 CANHAO_MONITOR_INSPECTIONS_SHEET_NAME = "inspecoes_canhoes_monitores"
+LOG_CANHAO_MONITOR_SHEET_NAME = "log_canhoes_monitores"
+
 
 
 
