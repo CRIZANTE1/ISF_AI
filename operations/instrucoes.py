@@ -1,6 +1,8 @@
 import streamlit as st
 
 
+import streamlit as st
+
 def instru_eyewash():
     """Instruções para o Dashboard de Chuveiros e Lava-Olhos"""
     st.header("📖 Guia de Uso - Sistema de Inspeção de Chuveiros e Lava-Olhos")
@@ -117,7 +119,7 @@ def instru_eyewash():
         2. No menu dropdown, selecione o equipamento a ser inspecionado.
         3. O sistema mostrará automaticamente:
            - 📍 **Localização** do equipamento
-           - 📊 **Status atual** e data da última inspeção
+           - 📊 **Status atual** e última inspeção
            - ⏰ **Data de vencimento** da próxima inspeção
         
         💡 **Dica:** Se o equipamento não aparecer na lista, primeiro cadastre-o nas abas de cadastro.
@@ -161,10 +163,10 @@ def instru_eyewash():
         **Quando marcar algum item como "Não Conforme":**
         
         1. O sistema **automaticamente exigirá** uma foto.
-        2. Você verá um aviso: *"Foi encontrada X não conformidade(s)"*.
-        3. Use o campo de upload para anexar uma foto clara como evidência.
+        2. Você verá um aviso: *"Foram encontradas X não conformidades"*.
+        3. Use o campo de upload para anexar foto como evidência.
         
-        ⚠️ **IMPORTANTE:** Não é possível salvar uma inspeção com não conformidades SEM foto! Isso é crucial para a rastreabilidade e para comprovar a necessidade de manutenção.
+        ⚠️ **IMPORTANTE:** Não é possível salvar inspeção com não conformidades SEM foto! Isso é crucial para a rastreabilidade e para comprovar a necessidade de manutenção.
         
         ---
         
@@ -173,9 +175,14 @@ def instru_eyewash():
         1. Revise todas as respostas do checklist.
         2. Verifique se as fotos (se houver) foram anexadas.
         3. Clique em **"✅ Salvar Inspeção"**.
-        4. O sistema irá confirmar o salvamento e agendar a próxima inspeção.
+        4. Aguarde a confirmação de salvamento.
+        5. 🎉 Sistema mostrará mensagem de sucesso!
         
-        ---
+        **O sistema automaticamente:**
+        - ✅ Calcula a **próxima data de inspeção** (30 dias)
+        - 📊 Atualiza o **status do equipamento**
+        - 📝 Registra no **histórico completo**
+        - 🔔 Gera **alertas** se houver problemas críticos
         """)
     
     st.markdown("---")
@@ -227,36 +234,60 @@ def instru_eyewash():
     
     with st.expander("✅ Quando Aprovar um Equipamento"):
         st.markdown("""
-        **Um equipamento está APROVADO quando atende aos requisitos essenciais:**
+        **Um equipamento está APROVADO quando:**
         
-        ✅ **Acesso e Sinalização:** Caminho livre, sinalização clara e visível (NR 26).
-        ✅ **Acionamento:** Válvula de acionamento rápido (em 1 segundo ou menos) e que permanece aberta sem o uso das mãos.
-        ✅ **Fluxo de Água:** O fluxo é contínuo, com volume e pressão adequados (água limpa).
-        ✅ **Componentes:** Bocais do lava-olhos limpos, com tampas de proteção funcionando; crivo do chuveiro sem incrustações.
-        ✅ **Estrutura:** Sem corrosão significativa, vazamentos ou danos estruturais.
+        ✅ **Estrutura Física:**
+        - Sem danos, corrosão ou desgaste significativo
+        - Pintura e identificação legíveis
+        - Suportes e fixações firmes
+        
+        ✅ **Sistema Hidráulico:**
+        - Válvulas operam sem esforço excessivo
+        - Sem vazamentos visíveis
+        - Conexões firmes e sem corrosão
+        
+        ✅ **Funcionalidade:**
+        - Acionamento imediato (< 1 segundo)
+        - Fluxo de água adequado
+        - Cobertura completa (chuveiro)
+        - Jatos centralizados (lava-olhos)
+        
+        ✅ **Acessibilidade:**
+        - Caminho livre de obstáculos
+        - Sinalização visível
+        - Iluminação adequada
+        - Distância conforme norma (< 10 segundos de caminhada)
         """)
     
     with st.expander("❌ Quando Reprovar um Equipamento"):
         st.markdown("""
-        **Um equipamento deve ser REPROVADO e necessita de ação corretiva quando:**
+        **Um equipamento deve ser REPROVADO quando:**
         
-        ❌ **Problemas CRÍTICOS (Ação Imediata e Interdição):**
-        - 🚨 **Não há fluxo de água** ou o fluxo é insignificante.
-        - 🚨 A **válvula não aciona** ou não permanece aberta.
-        - 🚨 O **acesso está completamente bloqueado**.
-        - 🚨 A água está visivelmente **contaminada** (ferrugem, detritos).
+        ❌ **Problemas CRÍTICOS (ação imediata):**
+        - 🚨 Não há fluxo de água
+        - 🚨 Válvula não aciona ou trava
+        - 🚨 Vazamento significativo
+        - 🚨 Acesso completamente bloqueado
+        - 🚨 Estrutura comprometida (risco de queda)
         
-        ⚠️ **Problemas GRAVES (Correção Urgente < 7 dias):**
-        - Vazamento significativo na tubulação ou nas válvulas.
-        - Pressão da água muito baixa, incapaz de lavar eficazmente.
-        - Jatos do lava-olhos irregulares ou que podem ferir os olhos.
-        - Corrosão avançada que compromete a integridade do equipamento.
-        - Ausência total de sinalização.
+        ⚠️ **Problemas GRAVES (correção urgente):**
+        - Pressão insuficiente
+        - Acionamento difícil ou lento
+        - Bocais parcialmente obstruídos
+        - Corrosão avançada
+        - Sinalização ausente ou ilegível
         
-        📋 **Problemas MODERADOS (Programar Correção < 30 dias):**
-        - Pintura descascada com corrosão superficial.
-        - Tampas protetoras dos bocais ausentes ou danificadas.
-        - Obstrução parcial do acesso que pode ser removida.
+        📋 **Problemas MODERADOS (programar correção):**
+        - Pintura descascada (sem corrosão)
+        - Tampa protetora danificada
+        - Acesso parcialmente obstruído
+        - Iluminação deficiente
+        - Sinalização desbotada
+        
+        **IMPORTANTE:** 
+        - Equipamento com problema CRÍTICO deve ser **interditado** imediatamente
+        - Providencie equipamento **substituto temporário** se necessário
+        - Notifique **imediatamente** o responsável pela manutenção
         """)
     
     st.markdown("---")
@@ -292,7 +323,6 @@ def instru_eyewash():
         **Duração do Teste:** Para a verificação mensal, acione por tempo suficiente para garantir que a água saia limpa e o fluxo seja constante (geralmente 15-30 segundos). A norma exige que o equipamento seja capaz de fornecer fluxo por **15 minutos contínuos**.
         """)
     
-    # Outras FAQs permanecem as mesmas
     with st.expander("📸 Preciso tirar foto em TODAS as inspeções?"):
         st.markdown("""
         **NÃO - Apenas quando houver não conformidade.**
@@ -301,24 +331,116 @@ def instru_eyewash():
         - ❌ Qualquer item marcado como **"Não Conforme"**
         - 🚨 Para evidenciar o problema encontrado
         - 📋 Obrigatório para auditoria e rastreabilidade
+        
+        **Quando a foto é OPCIONAL:**
+        - ✅ Inspeção 100% conforme
+        - ⚠️ Item marcado como N/A
+        - 📊 Para documentação adicional (boas práticas)
+        
+        **Dicas para fotos eficientes:**
+        - 🎯 Foque no **problema específico**
+        - 📏 Inclua **referência de tamanho** (ex: régua)
+        - 🔦 Ilumine bem o local
+        - 📐 Tire de **múltiplos ângulos** se necessário
+        
+        **Resolução recomendada:**
+        - 📱 Qualidade média do celular já é suficiente
+        - 💾 Sistema aceita até 10MB por foto
+        - 🖼️ Formatos: JPG, JPEG, PNG
         """)
-
+    
     with st.expander("🔧 O que fazer quando encontro um problema?"):
         st.markdown("""
         **Fluxo de Ação Recomendado:**
         
         **1. Durante a Inspeção:**
-        - ✅ Marque como **"Não Conforme"** no checklist.
-        - 📸 Tire **foto** evidenciando o problema.
-        - 💾 **Salve** a inspeção no sistema para registrar a falha.
+        - ✅ Marque como **"Não Conforme"** no checklist
+        - 📸 Tire **foto** evidenciando o problema
+        - 📝 Descreva em **observações** se necessário
+        - 💾 **Salve** a inspeção no sistema
         
-        **2. Após a Inspeção:**
-        - 🚨 Para problemas **CRÍTICOS**, interdite o equipamento com uma placa e comunique a manutenção e a segurança do trabalho **IMEDIATAMENTE**.
-        - 📧 Notifique formalmente o setor responsável pela manutenção sobre todas as não conformidades encontradas.
-        - 📊 Acompanhe o status da correção no Dashboard do sistema.
-        - ✅ Realize uma **nova inspeção completa** após a manutenção para garantir que o problema foi resolvido.
+        **2. Classificação de Urgência:**
+        
+        **🚨 CRÍTICO (Ação Imediata - Mesmo Dia):**
+        - Sem fluxo de água
+        - Válvula travada
+        - Acesso totalmente bloqueado
+        - Estrutura com risco de queda
+        
+        **⚠️ URGENTE (Até 7 dias):**
+        - Pressão muito baixa
+        - Vazamento significativo
+        - Acionamento difícil
+        - Sinalização ausente
+        
+        **📋 IMPORTANTE (Até 30 dias):**
+        - Pintura danificada
+        - Iluminação deficiente
+        - Obstrução parcial de acesso
+        
+        **3. Após a Inspeção:**
+        - 🔔 O sistema gera **automaticamente** um plano de ação
+        - 📧 Notifique o **responsável pela manutenção**
+        - 📊 Acompanhe no **Dashboard** até correção
+        - ✅ Faça **nova inspeção** após correção
+        
+        **4. Registro de Correção:**
+        - Use a aba **"Histórico e Logs"** para registrar ações tomadas
+        - Anexe foto **após a correção** como evidência
+        - Sistema mantém **rastreabilidade completa**
         """)
+    
+    with st.expander("🆕 Como cadastrar um equipamento novo?"):
+        st.markdown("""
+        **Você tem DUAS opções de cadastro:**
         
+        ---
+        
+        **🚀 Opção 1: CADASTRO RÁPIDO**
+        *(Use para adicionar rapidamente ao inventário)*
+        
+        1. Vá para aba **"✍️ Cadastro Rápido"**
+        2. Preencha apenas:
+           - ID do equipamento (ex: CLO-001)
+           - Localização (ex: Laboratório - Setor A)
+           - Tipo (Chuveiro / Lava-olhos / Combinado)
+           - Marca (lista pré-definida ou digite)
+        3. Clique em **"Cadastrar Rápido"**
+        4. ✅ Pronto! Equipamento já está no sistema
+        
+        **Tempo:** ~1-2 minutos
+        
+        ---
+        
+        **📋 Opção 2: CADASTRO COMPLETO**
+        *(Use quando tiver todas as informações técnicas)*
+        
+        1. Vá para aba **"➕ Cadastrar Novo Equipamento (Completo)"**
+        2. Preencha todos os campos:
+           - **Básico:** ID e localização (obrigatórios)
+           - **Técnico:** Marca, modelo, tamanho
+           - **Instalação:** Data de instalação
+           - **Especificações:** Pressão, vazão, etc.
+           - **Observações:** Informações adicionais
+        3. Clique em **"➕ Cadastrar Equipamento Completo"**
+        4. ✅ Equipamento cadastrado com todos os detalhes
+        
+        **Tempo:** ~3-5 minutos
+        
+        ---
+        
+        **💡 Qual escolher?**
+        
+        - 🚀 **Rápido:** Para fazer inventário inicial de muitos equipamentos
+        - 📋 **Completo:** Quando tiver projeto/documentação técnica
+        - ✏️ **Dica:** Use rápido primeiro, depois edite para completar dados
+        
+        **Depois de cadastrar:**
+        - ✅ Equipamento aparece na lista de inspeções
+        - 📊 É incluído nos relatórios e dashboards
+        - 🔔 Sistema começa a monitorar vencimentos
+        """)
+    
     st.markdown("---")
     
     # Call-to-action
@@ -328,13 +450,13 @@ def instru_eyewash():
     **Siga este checklist rápido:**
     
     ✅ **Já tem equipamentos cadastrados?**
-    → Vá para aba **"📋 Realizar Inspeção"**.
+    → Vá para aba **"📋 Realizar Inspeção"**
     
     ❌ **Ainda não tem nenhum equipamento cadastrado?**
-    → Comece pela aba **"✍️ Cadastro Rápido"** para adicionar ao inventário.
+    → Comece pela aba **"✍️ Cadastro Rápido"** para adicionar ao inventário
     
     📚 **Dúvidas sobre algum item do checklist?**
-    → Revise a seção **"Critérios de Aprovação e Reprovação"** acima.
+    → Revise a seção **"Critérios de Aprovação e Reprovação"** acima
     
     ---
     
