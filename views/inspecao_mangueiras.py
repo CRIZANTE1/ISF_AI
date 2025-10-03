@@ -23,6 +23,8 @@ from auth.auth_utils import (
 )
 from utils.auditoria import get_sao_paulo_time_str, log_action
 from config.page_config import set_page_config
+from operations.instrucoes import instru_mangueiras
+
 
 set_page_config()
 pdf_qa = PDFQA()
@@ -35,13 +37,17 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    # Adicionando uma nova aba para cadastro manual de mangueiras
-    tab_hoses, tab_manual_hose, tab_shelters, tab_shelters_insp = st.tabs([
-        "Inspeção de Mangueiras com IA", 
-        "Cadastro Manual de Mangueiras",
-        "Cadastro de Abrigos de Emergência",
-        "Inspeção de Abrigos"
+    # Adicionando aba de instruções
+    tab_instrucoes, tab_hoses, tab_manual_hose, tab_shelters, tab_shelters_insp = st.tabs([
+        "📖 Como Usar",
+        "🤖 Inspeção de Mangueiras (IA)", 
+        "✍️ Cadastro Manual de Mangueiras",
+        "🤖 Cadastro de Abrigos (IA)",
+        "🔍 Inspeção de Abrigos"
     ])
+
+    with tab_instrucoes:
+        instru_mangueiras()
 
     with tab_hoses:
         st.header("Registrar Teste Hidrostático de Mangueiras")
