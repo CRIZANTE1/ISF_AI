@@ -55,7 +55,7 @@ def show_page():
         # Alerta de priorização
         st.success(
             "⚡ **Recomendação:** Para testes de resposta (Bump Test) diários, "
-            "use o **Registro Manual de Teste**! É rápido, prático e não requer upload de arquivos."
+            "use o **Registro Teste de Resposta**! É rápido, prático e não requer upload de arquivos."
         )
     
         st.markdown("---")
