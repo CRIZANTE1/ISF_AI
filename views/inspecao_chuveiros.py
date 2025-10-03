@@ -42,7 +42,7 @@ def show_page():
         # Alerta de importância
         st.info(
             "🚨 **Importante:** Chuveiros de emergência e lava-olhos são equipamentos críticos de segurança. "
-            "Inspeções mensais são OBRIGATÓRIAS conforme NBR 16071 e normas de saúde ocupacional."
+            "Inspeções mensais são essênciais para o funcionamento correto do equipamento"
         )
         
         st.markdown("---")
