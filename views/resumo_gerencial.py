@@ -15,10 +15,11 @@ from gdrive.config import (
     SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME, SCBA_SHEET_NAME,
     SCBA_VISUAL_INSPECTIONS_SHEET_NAME, EYEWASH_INSPECTIONS_SHEET_NAME,
     FOAM_CHAMBER_INVENTORY_SHEET_NAME, FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
-    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME
+    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME,
+    CANHAO_MONITOR_INVENTORY_SHEET_NAME,      
+    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME    
 )
 
-# Importa as funções de status do dashboard.py (reutilização de código)
 from .dashboard import (
     get_consolidated_status_df,
     get_hose_status_df,
@@ -27,7 +28,8 @@ from .dashboard import (
     get_eyewash_status_df,
     get_foam_chamber_status_df,
     get_multigas_status_df,
-    get_alarm_status_df
+    get_alarm_status_df,
+    get_canhao_monitor_status_df  
 )
 
 set_page_config()
@@ -46,9 +48,9 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms = st.tabs([
-    "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
-    "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás", "🔔 Alarmes"
+    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms, tab_canhoes = st.tabs([
+        "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
+        "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás", "🔔 Alarmes", "🌊 Canhões Monitores"
     ])
 
     with tab_extinguishers:
@@ -282,4 +284,38 @@ def show_page():
                     pending_alarms[['id_sistema', 'status_dashboard', 'plano_de_acao', 'data_proxima_inspecao']],
                     column_config={"id_sistema": "ID", "status_dashboard": "Status", "plano_de_acao": "Ação Recomendada", "data_proxima_inspecao": "Vencimento"},
                     width='stretch', hide_index=True
+                )
+
+    with tab_canhoes:
+        st.header("Situação dos Canhões Monitores")
+        df_inventory = load_sheet_data(CANHAO_MONITOR_INVENTORY_SHEET_NAME)
+        df_inspections = load_sheet_data(CANHAO_MONITOR_INSPECTIONS_SHEET_NAME)
+
+        if df_inspections.empty:
+            st.warning("Nenhum registro de canhão monitor encontrado.")
+        else:
+            dashboard_df = get_canhao_monitor_status_df(df_inspections)
+            if not df_inventory.empty:
+                dashboard_df = pd.merge(dashboard_df, df_inventory[['id_equipamento', 'localizacao']], on='id_equipamento', how='left')
+
+            status_counts = dashboard_df['status_dashboard'].value_counts()
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("✅ Total", len(dashboard_df))
+            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+            col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
+            col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+            st.markdown("---")
+
+            st.subheader("Canhões Monitores com Pendências")
+            pending_df = dashboard_df[dashboard_df['status_dashboard'] != '🟢 OK']
+            if pending_df.empty:
+                st.success("✅ Todos os canhões monitores estão em conformidade!")
+            else:
+                st.dataframe(
+                    pending_df[['id_equipamento', 'status_dashboard', 'plano_de_acao', 'localizacao', 'data_proxima_inspecao']],
+                    column_config={
+                        "id_equipamento": "ID", "status_dashboard": "Status", "plano_de_acao": "Ação Recomendada", 
+                        "localizacao": "Localização", "data_proxima_inspecao": "Vencimento"
+                    },
+                    use_container_width=True, hide_index=True
                 )
