@@ -305,10 +305,6 @@ def show_page():
             - Teste Posi3 por empresa certificada
             - Laudos técnicos com validade de 1 ano
             
-            📅 **Trimestral:**
-            - Análise de Qualidade do Ar (compressor)
-            - Laudo laboratorial dos cilindros
-            
             📅 **Extraordinária:**
             - Após quedas ou impactos
             - Após exposição a produtos químicos
