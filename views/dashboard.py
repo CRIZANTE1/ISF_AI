@@ -57,6 +57,27 @@ from operations.dashboard_operations import load_all_dashboard_data, get_dashboa
 set_page_config()
 
 
+
+def get_canhao_monitor_status_df(df_inspections):
+    if df_inspections.empty:
+        return pd.DataFrame()
+
+    df_inspections['data_inspecao'] = pd.to_datetime(df_inspections['data_inspecao'], errors='coerce')
+    latest_inspections = df_inspections.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_equipamento', keep='first').copy()
+    
+    today = pd.Timestamp(date.today())
+    latest_inspections['data_proxima_inspecao'] = pd.to_datetime(latest_inspections['data_proxima_inspecao'], errors='coerce')
+    
+    conditions = [
+        (latest_inspections['data_proxima_inspecao'] < today),
+        (latest_inspections['status_geral'] == 'Reprovado com Pendências')
+    ]
+    choices = ['🔴 VENCIDO', '🟠 COM PENDÊNCIAS']
+    latest_inspections['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
+    
+    return latest_inspections
+
+
 def get_multigas_status_df(df_inventory, df_inspections):
     if df_inventory.empty:
         return pd.DataFrame()
