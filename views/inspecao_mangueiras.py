@@ -234,7 +234,7 @@ def show_page():
             st.session_state.setdefault('shelter_step', 'start')
             st.session_state.setdefault('shelter_processed_data', None)
             st.session_state.setdefault('shelter_uploaded_pdf', None)
-
+    
             st.subheader("1. Faça o Upload do Inventário PDF")
             st.info("O sistema analisará o PDF, extrairá os dados de todos os abrigos e preparará os registros para salvamento.")
             
@@ -262,33 +262,81 @@ def show_page():
             if st.session_state.shelter_step == 'confirm' and st.session_state.shelter_processed_data:
                 st.subheader("2. Confira os Dados Extraídos e Salve no Sistema")
                 
+                # Exibe preview dos abrigos extraídos
                 for abrigo in st.session_state.shelter_processed_data:
                     with st.expander(f"**Abrigo ID:** {abrigo.get('id_abrigo')} | **Cliente:** {abrigo.get('cliente')}"):
+                        st.write(f"**Local:** {abrigo.get('local', 'N/A')}")
                         st.json(abrigo.get('itens', {}))
-
+    
                 if st.button("💾 Confirmar e Salvar Abrigos", type="primary", use_container_width=True):
-                    with st.spinner("Salvando registros dos abrigos..."):
-                        total_count = len(st.session_state.shelter_processed_data)
-                        progress_bar = st.progress(0, "Salvando...")
-                        
-                        for i, record in enumerate(st.session_state.shelter_processed_data):
-                            save_shelter_inventory(
-                                shelter_id=record.get('id_abrigo'),
-                                client=record.get('cliente'),
-                                local=record.get('local'),
-                                items_dict=record.get('itens', {})
-                            )
-                            progress_bar.progress((i + 1) / total_count)
-                        
-                        st.success(f"{total_count} abrigos salvos com sucesso!")
-                        st.balloons()
-                        
-                        # Limpar o estado para um novo upload
-                        st.session_state.shelter_step = 'start'
-                        st.session_state.shelter_processed_data = None
-                        st.session_state.shelter_uploaded_pdf = None
-                        st.cache_data.clear()
-                        st.rerun()
+                    with st.spinner("Salvando registros dos abrigos em lote..."):
+                        try:
+                            # Prepara todas as linhas para salvamento em lote
+                            shelter_rows = []
+                            audit_log_rows = []
+                            
+                            for record in st.session_state.shelter_processed_data:
+                                # Converte o dicionário de itens para JSON
+                                items_json_string = json.dumps(record.get('itens', {}), ensure_ascii=False)
+                                
+                                # Prepara linha do abrigo
+                                shelter_row = [
+                                    record.get('id_abrigo'),
+                                    record.get('cliente'),
+                                    record.get('local', 'N/A'),  # Garante um valor padrão
+                                    items_json_string
+                                ]
+                                shelter_rows.append(shelter_row)
+                                
+                                # Prepara linha de auditoria
+                                audit_log_row = [
+                                    get_sao_paulo_time_str(),
+                                    get_user_email() or "não logado",
+                                    get_user_role(),
+                                    "SALVOU_ABRIGO_LOTE",
+                                    f"ID: {record.get('id_abrigo')}, Cliente: {record.get('cliente')}",
+                                    st.session_state.get('current_unit_name', 'N/A')
+                                ]
+                                audit_log_rows.append(audit_log_row)
+                            
+                            # Salva todos os abrigos de uma vez
+                            uploader = GoogleDriveUploader()
+                            uploader.append_data_to_sheet(SHELTER_SHEET_NAME, shelter_rows)
+                            
+                            # Salva logs de auditoria de uma vez
+                            matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                            matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
+                            
+                            total_count = len(st.session_state.shelter_processed_data)
+                            st.success(f"✅ {total_count} abrigo(s) salvo(s) com sucesso em lote!")
+                            st.balloons()
+                            
+                            # Limpar o estado para um novo upload
+                            st.session_state.shelter_step = 'start'
+                            st.session_state.shelter_processed_data = None
+                            st.session_state.shelter_uploaded_pdf = None
+                            st.cache_data.clear()
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"❌ Erro ao salvar abrigos em lote: {e}")
+                            import traceback
+                            st.error(traceback.format_exc())
+                            
+                            # Log do erro para auditoria
+                            try:
+                                error_log_row = [
+                                    get_sao_paulo_time_str(),
+                                    get_user_email() or "não logado",
+                                    get_user_role(),
+                                    "ERRO_SALVAMENTO_ABRIGO_LOTE",
+                                    f"Erro: {str(e)[:200]}",
+                                    st.session_state.get('current_unit_name', 'N/A')
+                                ]
+                                matrix_uploader = GoogleDriveUploader(is_matrix=True)
+                                matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, [error_log_row])
+                            except:
+                                pass  # Falha silenciosa no log de erro
 
     with tab_shelters_insp:
         st.header("Realizar Inspeção de um Abrigo de Emergência")
