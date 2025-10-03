@@ -24,7 +24,9 @@ from gdrive.config import ALARM_INVENTORY_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NA
 from reports.alarm_report import generate_alarm_inspection_html
 from streamlit_js_eval import streamlit_js_eval
 import json
+from operations.instrucoes import instru_alarms 
 
+# --- CONFIGURAÇÃO DA PÁGINA ---
 set_page_config()
 
 def show_page():
@@ -35,14 +37,18 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    # Cria as abas da interface
-    tab_inspection, tab_register, tab_quick_register = st.tabs([
+    # --- CRIAÇÃO DAS ABAS (COM A NOVA ABA DE INSTRUÇÕES) ---
+    tab_instructions, tab_inspection, tab_register, tab_quick_register = st.tabs([
+        "📖 Instruções de Uso" ,
         "📋 Realizar Inspeção", 
         "➕ Cadastrar Novo Sistema (Completo)",
         "✍️ Cadastro Rápido de Sistema"
+        
     ])
 
-    # Aba de Inspeção
+    with tab_instructions:
+        instru_alarms()
+        
     with tab_inspection:
         st.header("Realizar Inspeção Periódica")
 
