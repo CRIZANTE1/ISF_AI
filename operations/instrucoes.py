@@ -3,7 +3,7 @@ import streamlit as st
 
 def instru_dash():
     """Instruções para o Dashboard"""
-    st.header("📘 Guia Completo da Dashboard")
+        st.header("📘 Guia Completo da Dashboard")
         
         # Introdução com destaque
         st.markdown("""
