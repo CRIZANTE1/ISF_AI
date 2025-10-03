@@ -1392,5 +1392,268 @@ def instru_scba():
 
 def instru_multigas():
     """Instruções para Multigás"""
-    st.header("📖 Guia de Uso - Detectores Multigás")
-    st.info("Instruções de Multigás serão adicionadas em breve.")
+    st.header("📖 Guia de Uso - Sistema de Detectores Multigás")
+
+    # Alerta de priorização
+    st.success(
+        "⚡ **Recomendação:** Para testes de resposta (Bump Test) diários, "
+        "use o **Registro Teste de Resposta**! É rápido, prático e não requer upload de arquivos."
+    )
+
+    st.markdown("---")
+
+    # Comparação de métodos
+    st.subheader("🎯 Escolha o Melhor Método para Sua Situação")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        ### 📋 Teste de Resposta
+        **⚡ PARA USO DIÁRIO - RECOMENDADO**
+        
+        **Tempo:** ~1-2 minutos por detector
+        
+        **Ideal para:**
+        - ✅ Bump tests diários/semanais
+        - ✅ Verificações rápidas de resposta
+        - ✅ Testes periódicos de rotina
+        - ✅ Testes extraordinários (após quedas)
+        
+        **Como funciona:**
+        1. Selecione o detector da lista
+        2. Veja os valores de referência do cilindro
+        3. Insira os valores encontrados no teste
+        4. Sistema aprova/reprova automaticamente
+        5. Salve - Pronto! ✅
+        
+        **Vantagens:**
+        - ⚡ Extremamente rápido
+        - 🤖 Avaliação automática
+        - 📊 Gera relatório mensal
+        - 🔄 Permite atualizar valores do cilindro
+        """)
+
+    with col2:
+        st.markdown("""
+        ### 📄 Calibração Anual (IA)
+        **🤖 INTELIGÊNCIA ARTIFICIAL**
+        
+        **Tempo:** ~2-3 minutos
+        
+        **Ideal para:**
+        - 📅 Calibrações anuais obrigatórias
+        - 📄 Processar certificados externos
+        - 🏢 Serviços de empresas terceirizadas
+        - 📋 Manter conformidade legal
+        
+        **Como funciona:**
+        1. Faça upload do certificado PDF
+        2. IA extrai todos os dados automaticamente
+        3. Revise as informações extraídas
+        4. Se for detector novo, cadastre na hora
+        5. Confirme e salve com PDF anexado
+        
+        **Vantagens:**
+        - 🤖 IA processa tudo sozinha
+        - 📄 PDF fica anexado ao registro
+        - 🆕 Cadastra detectores novos automaticamente
+        - ⏱️ Economiza tempo de digitação
+        
+        **Requer:** Plano Premium IA
+        """)
+
+    with col3:
+        st.markdown("""
+        ### ✍️ Cadastro Manual
+        **🆕 PARA EQUIPAMENTOS NOVOS**
+        
+        **Tempo:** ~2-3 minutos
+        
+        **Ideal para:**
+        - 🆕 Cadastrar detector novo
+        - 🔧 Configurar valores do cilindro
+        - ✏️ Ajustes e correções
+        - 📝 Primeira configuração
+        
+        **Como funciona:**
+        - **Completo:** Preenche todos os campos
+        - **Simplificado:** Apenas dados essenciais
+        
+        Valores padrão do cilindro:
+        - LEL: 50% LEL
+        - O²: 18% Vol
+        - H²S: 25 ppm
+        - CO: 100 ppm
+        
+        **Vantagens:**
+        - 🆕 Para equipamentos novos
+        - 🔧 Controle total dos dados
+        - ⚙️ Configura valores de referência
+        """)
+
+    st.markdown("---")
+
+    # Fluxo de trabalho recomendado
+    st.subheader("🎯 Fluxo de Trabalho Recomendado")
+
+    st.info("""
+    **Para Máxima Eficiência, Siga Esta Ordem:**
+    
+    1️⃣ **Testes Diários/Semanais (Bump Test)** → Use **"Registrar Teste de Resposta"** (mais rápido!)
+    
+    2️⃣ **Recebeu Certificado de Calibração Anual** → Use **"Calibração Anual (PDF)"** (IA processa)
+    
+    3️⃣ **Cadastrar Detector Novo** → Use **"Cadastro Manual"** (completo ou simplificado)
+    
+    4️⃣ **Relatório Mensal** → Gere na própria aba de "Registrar Teste de Resposta"
+    """)
+
+    st.markdown("---")
+
+    # Guia detalhado de Teste de Resposta
+    st.subheader("📋 Guia Completo: Registro de Teste de Resposta")
+
+    with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
+        st.markdown("""
+        #### **O que é o Bump Test (Teste de Resposta)?**
+        
+        É um teste rápido que verifica se o detector está **respondendo corretamente** aos gases.
+        Você expõe o detector a concentrações conhecidas de gás (do cilindro de referência) e 
+        verifica se as leituras do equipamento estão dentro da margem de erro aceitável.
+        
+        ---
+        
+        #### **Quando fazer o Bump Test?**
+        
+        ✅ **Testes Periódicos (Recomendado):**
+        - 📅 **Diariamente:** Antes de cada uso em ambientes críticos
+        - 📅 **Semanalmente:** Para uso regular
+        - 📅 **Mensalmente:** Mínimo obrigatório
+        
+        ⚠️ **Testes Extraordinários (Obrigatórios):**
+        - Após quedas ou impactos no equipamento
+        - Após exposição a concentrações extremas de gás
+        - Após manutenção ou reparo
+        - Se o equipamento apresentar comportamento anormal
+        
+        ---
+        
+        #### **Passo 1: Selecione o Detector** 🔍
+        
+        1. Na aba **"📋 Registrar Teste de Resposta"**
+        2. No dropdown, escolha o detector que será testado
+        3. O sistema mostrará:
+           - Marca, Modelo e Número de Série
+           - **Valores de Referência do Cilindro** (os valores esperados)
+        
+        💡 **Dica:** Os valores de referência são as concentrações do seu cilindro de gás padrão.
+        
+        ---
+        
+        #### **Passo 2: Configure Data/Hora e Tipo de Teste** ⏰
+        
+        - **Data e Hora:** Por padrão, usa o momento atual
+        - **Tipo de Teste:**
+          - 📅 **Periódico:** Testes de rotina regular
+          - ⚠️ **Extraordinário:** Após eventos especiais (quedas, manutenção, etc.)
+        
+        ---
+        
+        #### **Passo 3: Realize o Teste Físico** 🧪
+        
+        **No equipamento físico:**
+        1. Ligue o detector e aguarde estabilização
+        2. Conecte o cilindro de gás de referência
+        3. Exponha o detector ao gás por tempo suficiente
+        4. Anote os valores exibidos no display do detector para cada gás:
+           - **LEL** (% LEL) - Limite Explosivo Inferior
+           - **O²** (% Vol) - Oxigênio
+           - **H²S** (ppm) - Sulfeto de Hidrogênio
+           - **CO** (ppm) - Monóxido de Carbono
+        
+        ---
+        
+        #### **Passo 4: Insira os Valores no Sistema** 📝
+        
+        Digite os valores que o detector mostrou durante o teste:
+        - Se o detector não possui sensor para algum gás, deixe em branco
+        - Digite exatamente o valor que apareceu no display
+        - Não arredonde - use o valor preciso
+        
+        ---
+        
+        #### **Passo 5: Sistema Avalia Automaticamente** 🤖
+        
+        Ao clicar em **"💾 Salvar Teste"**, o sistema:
+        
+        1. **Compara** os valores encontrados com os de referência
+        2. **Calcula** o erro percentual para cada gás
+        3. **Aprova** se o erro for ≤ 10% (margem padrão do manual)
+        4. **Reprova** se qualquer gás exceder a margem de erro
+        5. **Gera observações automáticas** explicando o resultado
+        
+        **Exemplo de Avaliação:**
+        Cilindro LEL: 50% → Detector mostrou: 52%
+        Erro: 4% → ✅ APROVADO (dentro da margem de 10%)
+        
+        Cilindro CO: 100 ppm → Detector mostrou: 89 ppm
+        Erro: 11% → ❌ REPROVADO (fora da margem de 10%)
+        ---
+        
+        #### **Passo 6: Informe o Responsável** 👤
+        
+        - **Nome:** Quem realizou o teste
+        - **Matrícula:** Identificação do operador
+        
+        Esses dados são importantes para rastreabilidade e auditoria.
+        
+        ---
+        
+        #### **🔄 Quando Atualizar Valores do Cilindro?**
+        
+        Use o toggle **"Atualizar valores de referência do cilindro?"** quando:
+        
+        ✅ **Você trocou o cilindro de gás** por um novo com concentrações diferentes
+        ✅ **Recebeu um novo lote** de cilindros com valores atualizados
+        ✅ **Os valores no rótulo do cilindro** são diferentes dos cadastrados
+        
+        ⚠️ **Atenção:** Os novos valores serão salvos **permanentemente** para este detector!
+        
+        ---
+        
+        #### **📊 Gerar Relatório Mensal**
+        
+        Ao topo da aba, há um expansível **"📄 Gerar Relatório Mensal de Bump Tests"**:
+        
+        1. Selecione o **Mês** e **Ano** desejado
+        2. Sistema filtra todos os testes do período
+        3. Clique em **"Gerar e Imprimir Relatório do Mês"**
+        4. Relatório abre em nova janela pronto para impressão
+        
+        **O relatório inclui:**
+        - Data e hora de cada teste
+        - Equipamento testado (marca, modelo, série)
+        - Valores encontrados (LEL, O², H²S, CO)
+        - Tipo de teste (Periódico/Extraordinário)
+        - Resultado (Aprovado/Reprovado)
+        - Responsável pelo teste
+        
+        💡 **Ideal para:** Auditorias, inspeções, comprovação de conformidade
+        
+        ---
+        
+        #### **⚡ Dicas para Testes Mais Rápidos:**
+        
+        - 📋 Tenha uma **lista impressa** de todos os detectores para não esquecer nenhum
+        - 🔢 **Anote os valores** em papel primeiro, depois digite todos de uma vez
+        - ⏰ Faça os testes no **mesmo horário** todos os dias (cria rotina)
+        - 🎯 Organize por **área** - teste todos os detectores de um setor por vez
+        - 🔄 Mantenha o **cilindro de referência sempre acessível**
+        - 📱 Use tablet ou celular em campo (sistema é responsivo)
+        """)
+
+
+
+
+
