@@ -2,47 +2,180 @@ import streamlit as st
 
 
 def instru_canhoes_monitores():
-    """Instruções para a página de Canhões Monitores."""
-    st.header("📖 Guia de Uso - Inspeção de Canhões Monitores")
+    """Instruções detalhadas e completas para a página de Canhões Monitores."""
+    st.header("📖 Guia Completo - Gestão de Canhões Monitores")
+
+    # Alerta de importância e base normativa
     st.info(
-        "Esta seção é dedicada à inspeção, teste e cadastro de canhões monitores, "
-        "seguindo as recomendações da norma **NFPA 25**."
+        "🚨 **Importante:** Canhões monitores são equipamentos de combate a incêndio de alta capacidade, essenciais para a proteção de áreas de alto risco. "
+        "A manutenção de sua prontidão operacional é crítica. Este módulo segue as diretrizes da norma **NFPA 25** "
+        "para inspeção, teste e manutenção."
     )
 
-    st.subheader("🎯 Tipos de Atividades e Frequências")
+    st.markdown("---")
+
+    # 1. Comparação de métodos
+    st.subheader("🎯 Métodos Disponíveis no Sistema")
+
     col1, col2 = st.columns(2)
+
     with col1:
         st.markdown("""
-        #### 📋 Inspeção Visual (Trimestral)
-        **Frequência:** A cada 3 meses
-        
-        **Objetivo:**
-        - Verificar a integridade física do equipamento.
-        - Identificar corrosão, danos, vazamentos ou obstruções.
-        - Garantir que todos os componentes operacionais estão em bom estado.
-        - Assegurar que o acesso ao equipamento está desobstruído.
+        ### 📋 Realizar Inspeção / Teste
+        **⚡ PARA USO REGULAR - RECOMENDADO**
+
+        **Tempo:** ~5-10 minutos por canhão
+
+        **Ideal para:**
+        - ✅ Inspeções visuais trimestrais obrigatórias.
+        - 🌊 Testes funcionais anuais com fluxo de água.
+        - ✅ Verificações de conformidade para auditorias.
+        - 📋 Seguir um checklist completo e guiado.
+
+        **Como funciona:**
+        1. Selecione o canhão monitor da lista.
+        2. Escolha o tipo de atividade (Visual ou Funcional).
+        3. Responda ao checklist detalhado.
+        4. **Anexe foto** (obrigatória para testes funcionais e não conformidades).
+        5. O sistema gera o status e o plano de ação automaticamente.
         """)
+
     with col2:
         st.markdown("""
-        #### 🌊 Teste Funcional (Anual)
-        **Frequência:** A cada 12 meses
-        
-        **Objetivo:**
-        - Operar o equipamento em todo o seu curso de movimento.
-        - Testar o fluxo de água para verificar o alcance e a forma do jato.
-        - Garantir que não há vazamentos sob pressão.
-        - Verificar o funcionamento dos sistemas de travamento.
+        ### ➕ Cadastrar Novo Canhão
+        **🆕 PARA EQUIPAMENTOS NOVOS**
+
+        **Tempo:** ~2 minutos por canhão
+
+        **Ideal para:**
+        - 🆕 Adicionar novos canhões ao inventário do sistema.
+        - 📝 Registrar informações básicas como ID, localização, marca e modelo.
+        - 📊 Criar a base de dados para futuras inspeções.
+
+        **Como funciona:**
+        1. Preencha o ID único do equipamento.
+        2. Informe a localização detalhada.
+        3. Adicione marca e modelo (opcional).
+        4. Salve o equipamento para que ele apareça na lista de inspeção.
         """)
 
     st.markdown("---")
+
+    # 2. Fluxo de trabalho recomendado
     st.subheader("🚀 Fluxo de Trabalho Recomendado")
-    st.markdown("""
-    1.  **Primeiro Uso:** Vá para a aba **"➕ Cadastrar Novo Canhão"** para adicionar todos os seus canhões monitores ao sistema.
-    2.  **Rotina Trimestral:** Use a aba **"📋 Realizar Inspeção / Teste"**, selecione a opção **"Inspeção Visual (Trimestral)"** e preencha o checklist.
-    3.  **Rotina Anual:** Use a aba **"📋 Realizar Inspeção / Teste"**, selecione a opção **"Teste Funcional (Anual)"**. Este teste já inclui todos os itens da inspeção visual.
-    4.  **Não Conformidades:** Se qualquer item for marcado como "Não Conforme" ou "Reprovado", o sistema **exigirá uma foto** como evidência.
-    5.  **Acompanhamento:** Utilize a **Dashboard** principal para monitorar os status (OK, Vencido, Com Pendências) e os prazos das próximas atividades.
+    st.info("""
+    **Para Máxima Eficiência, Siga Esta Ordem:**
+
+    1️⃣ **Primeira Vez no Sistema?**
+    → Vá para a aba **"➕ Cadastrar Novo Canhão"** para adicionar todos os seus canhões monitores ao sistema.
+
+    2️⃣ **Rotina Trimestral?**
+    → Use a aba **"📋 Realizar Inspeção / Teste"**, selecione a opção **"Inspeção Visual (Trimestral)"** e preencha o checklist.
+
+    3️⃣ **Rotina Anual?**
+    → Use a aba **"📋 Realizar Inspeção / Teste"**, selecione a opção **"Teste Funcional (Anual)"**. Este teste já inclui todos os itens da inspeção visual.
+
+    4️⃣ **Acompanhamento:**
+    → Utilize a **Dashboard** principal para monitorar os status (OK, Vencido, Com Pendências) e os prazos das próximas atividades de todos os seus canhões.
     """)
+
+    st.markdown("---")
+
+    # 3. Guia Passo a Passo de Uso da Ferramenta
+    st.subheader("📱 Passo a Passo Detalhado no Sistema")
+
+    with st.expander("🚀 Como Realizar e Registrar uma Inspeção/Teste", expanded=True):
+        st.markdown("""
+        #### **1. Preparação**
+        - **Para Inspeção Visual:** Apenas acesso visual ao equipamento e arredores.
+        - **Para Teste Funcional:** Notifique a brigada/bombeiros, isole a área do teste, garanta um suprimento de água adequado e verifique se o local de descarte da água (drenagem) está preparado.
+
+        #### **2. Seleção no Sistema**
+        1. Vá para a aba **"📋 Realizar Inspeção / Teste"**.
+        2. Selecione o canhão a ser inspecionado pelo seu **ID** no menu suspenso.
+        3. O sistema exibirá as informações básicas (Localização, Marca, Modelo) para sua confirmação.
+        4. Escolha o **Tipo de Atividade** que você está realizando: `Inspeção Visual (Trimestral)` ou `Teste Funcional (Anual)`.
+
+        #### **3. Preenchimento do Checklist**
+        - O checklist é baseado nos componentes da imagem e nos requisitos da NFPA 25.
+        - Avalie cada item e marque uma das três opções:
+          - ✅ **Conforme:** O item está em perfeitas condições e operando como esperado.
+          - ❌ **Não Conforme:** Foi encontrado um problema, defeito ou irregularidade que requer atenção.
+          - ⚠️ **N/A:** O item não se aplica a este modelo específico de canhão.
+
+        #### **4. Evidência Fotográfica (Regra Crítica)** 📸
+
+        O sistema **exigirá o anexo de uma foto** em duas situações obrigatórias:
+
+        *   **Situação A: Encontrou um problema (Qualquer Atividade)**
+            *   Se você marcar **QUALQUER** item como "Não Conforme" ou "Reprovado".
+            *   **Foto Exigida:** Uma imagem clara que mostre o defeito (ex: ponto de corrosão, volante quebrado, vazamento na junta). Isso é crucial para a ordem de serviço e auditoria.
+
+        *   **Situação B: Realizando Teste Funcional (Anual)**
+            *   A foto é **SEMPRE OBRIGATÓRIA**, mesmo que todos os itens sejam aprovados.
+            *   **Motivo:** É a sua prova irrefutável de que o teste com água foi realmente executado.
+            *   **Foto Ideal:** Uma imagem do canhão em operação, lançando o jato de água. Se não for possível, uma foto da equipe realizando o procedimento no local.
+
+        #### **5. Finalização e Registro**
+        1. Após preencher todo o checklist e anexar as fotos necessárias, clique em **"✅ Salvar Registro"**.
+        2. O sistema processará as informações e fará o seguinte automaticamente:
+           - **Calcula o Status Geral:** `Aprovado` ou `Reprovado com Pendências`.
+           - **Gera um Plano de Ação** se houver pendências.
+           - **Calcula a Próxima Inspeção:** +3 meses para visual, +12 meses para funcional.
+           - **Registra no Histórico:** Todos os dados são salvos para consultas futuras.
+        """)
+
+    st.markdown("---")
+
+    # 4. Critérios Técnicos de Avaliação
+    st.subheader("🔍 Critérios de Aprovação e Reprovação (Baseado na NFPA 25)")
+
+    with st.expander("✅ Quando APROVAR um Item (Conforme)"):
+        st.markdown("""
+        **O equipamento e seus componentes estão aptos se:**
+        - **Acesso:** O caminho até o canhão e a área ao seu redor estão completamente livres de obstruções.
+        - **Estrutura:** Não há corrosão severa, trincas ou danos que possam comprometer a segurança sob pressão. A pintura protege o metal.
+        - **Movimentação:** O giro (horizontal) e a elevação (vertical) são suaves e podem ser realizados por uma única pessoa sem força excessiva.
+        - **Travamento:** Os manípulos ou volantes de travamento fixam o canhão firmemente na posição desejada, sem deslizar.
+        - **Vazamentos:** Não há vazamentos visíveis nas juntas, conexões ou no corpo do equipamento, tanto sem pressão quanto sob pressão.
+        - **Desempenho do Jato (Teste Funcional):** O jato de água é contínuo, firme e atinge a distância esperada. Se o esguicho for regulável, ele alterna entre os padrões (ex: jato sólido, neblina) corretamente.
+        """)
+
+    with st.expander("❌ Quando REPROVAR um Item (Não Conforme)"):
+        st.markdown("""
+        **Um item deve ser reprovado se apresentar qualquer uma das seguintes condições:**
+
+        **🔴 Falhas CRÍTICAS (Requer Ação Imediata e possível interdição do equipamento):**
+        - **Movimento Travado:** Impossibilidade de mover o canhão em qualquer direção.
+        - **Vazamento Grave:** Jato de água saindo pelas juntas, flange ou corpo, o que compromete a pressão e o alcance do jato principal.
+        - **Dano Estrutural Visível:** Trincas no corpo, flange solto ou parafusos de fixação faltando/corroídos.
+        - **Componentes Quebrados:** Volante de operação, manípulo de trava ou esguicho ausentes ou quebrados.
+        - **Obstrução Total:** Não sai água ou o fluxo é mínimo durante o teste funcional.
+
+        **🟠 Falhas de MANUTENÇÃO (Programar Correção Urgente):**
+        - **Movimentação Difícil:** Exige força excessiva para operar (indicativo de falta de lubrificação ou corrosão interna).
+        - **Travamento Ineficiente:** O canhão se move lentamente sozinho quando está sob pressão.
+        - **Corrosão Avançada:** Pontos de corrosão que, se não tratados, podem evoluir para uma falha crítica.
+        - **Gotejamento/Pequenos Vazamentos:** Vazamentos que não comprometem o jato principal, mas indicam desgaste das vedações.
+        - **Sinalização/Acesso:** Placa de identificação ilegível ou acesso ao equipamento parcialmente obstruído.
+        """)
+        
+    with st.expander("🛠️ Lubrificação e Manutenção Preventiva"):
+        st.markdown("""
+        A norma NFPA 25 exige que os canhões monitores e seus componentes móveis sejam lubrificados **anualmente** para garantir a operação.
+
+        **Procedimento Básico:**
+        1.  **Limpeza:** Remova graxa antiga e detritos das articulações e engrenagens.
+        2.  **Aplicação:** Aplique graxa resistente à água nas graxeiras (se houver), engrenagens de elevação e na base giratória.
+        3.  **Operação:** Mova o canhão em toda a sua amplitude (vertical e horizontal) para distribuir a nova lubrificação.
+        4.  **Registro:** Documente a lubrificação nas observações da inspeção anual no sistema.
+
+        **Importante:** Utilize sempre o tipo de lubrificante especificado pelo fabricante do equipamento.
+        """)
+        
+    st.markdown("---")
+
+    st.success("Manter os registros de inspeção e teste em dia é a sua melhor evidência de conformidade com as normas de segurança e a garantia de que o equipamento funcionará quando mais for preciso.")
     
 def instru_eyewash():
     """Instruções para o Dashboard de Chuveiros e Lava-Olhos"""
