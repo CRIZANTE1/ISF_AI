@@ -948,8 +948,8 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms = st.tabs([
-    "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
+    tab_help, tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms = st.tabs([
+    "📘 Como Usar","🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
     "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás", "🔔 Alarmes"
 ])
 
@@ -961,7 +961,52 @@ def show_page():
             );
         });
     """)
-
+    
+    with tab_help:
+        st.header("📘 Guia de Uso da Dashboard")
+        st.markdown("Esta aba explica como navegar e interpretar os dados da dashboard de inspeções.")
+    
+        with st.expander("📊 O que é a Dashboard?"):
+            st.markdown("""
+            A dashboard consolida **todos os registros de inspeção** dos equipamentos de emergência em uma única tela.
+            
+            - ✅ Mostra status **atualizado** de cada item
+            - ⏱️ Ajuda a acompanhar **vencimentos e pendências**
+            - 📄 Permite gerar relatórios e registrar **ações corretivas**
+            """)
+    
+        with st.expander("🟢🟠🔴 O que significam os Status?"):
+            st.markdown("""
+            - 🟢 **OK** → Equipamento dentro do prazo e em conformidade  
+            - 🟠 **Com Pendências** → Reprovado em algum item, exige ação corretiva  
+            - 🔴 **Vencido** → Prazo de inspeção/manutenção expirado  
+            - 🔵 **Pendente** → Sem inspeção registrada ainda  
+    
+            **Atenção:** Sempre priorize equipamentos 🔴 ou 🟠.
+            """)
+    
+        with st.expander("📌 Como filtrar e consultar equipamentos?"):
+            st.markdown("""
+            1. Use os **filtros de status** no topo da aba de cada equipamento  
+            2. Clique no **expander** de um item para ver detalhes  
+            3. Verifique datas de inspeção, próximos vencimentos e plano de ação sugerido  
+            4. Se necessário, clique em **✍️ Registrar Ação** para regularizar o status
+            """)
+    
+        with st.expander("🛠️ O que fazer em caso de Reprovação?"):
+            st.markdown("""
+            - Analise o **plano de ação sugerido**  
+            - Registre uma **ação corretiva ou substituição** no próprio sistema  
+            - Após corrigir, uma nova inspeção é registrada automaticamente como **Aprovada**  
+            - Guarde o **relatório/laudo** como evidência para auditorias
+            """)
+    
+        with st.expander("📄 Como gerar Relatórios?"):
+            st.markdown("""
+            - Em cada aba, procure a opção **Gerar Relatório**  
+            - O sistema exporta em **PDF** ou abre em nova aba para impressão  
+            - Relatórios podem ser usados em **auditorias internas e externas**
+            """)
     with tab_extinguishers:
         st.header("Dashboard de Extintores")
         
