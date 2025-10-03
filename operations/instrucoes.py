@@ -1,6 +1,5 @@
 import streamlit as st
 
-import streamlit as st
 
 def instru_dash():
     """Instruções para o Dashboard"""
