@@ -1,6 +1,1427 @@
 import streamlit as st
 
 
+def instru_foam_chamber():
+    """Instruções para Câmaras de Espuma"""
+    st.header("📖 Guia de Uso - Sistema de Câmaras de Espuma")
+
+    # Alerta de priorização
+    st.success(
+        "⚡ **Recomendação:** Para inspeções regulares, use a **Inspeção Visual Periódica**! "
+        "É completa, guiada por modelo e garante conformidade com as normas técnicas."
+    )
+
+    st.markdown("---")
+
+    # Comparação de métodos
+    st.subheader("🎯 Escolha o Melhor Método para Sua Situação")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        ### 📋 Inspeção Visual/Funcional
+        **⚡ PARA USO REGULAR - RECOMENDADA**
+
+        **Tempo:** ~10-15 minutos por câmara
+
+        **Ideal para:**
+        - ✅ Inspeções semestrais obrigatórias
+        - ✅ Testes funcionais anuais
+        - ✅ Verificações de conformidade
+        - ✅ Checklist guiado por modelo
+
+        **Como funciona:**
+        1. Selecione a câmara da lista
+        2. Escolha tipo: Visual ou Funcional
+        3. Responda checklist específico do modelo
+        4. Tire foto se houver não conformidade
+        5. Sistema gera plano de ação automaticamente
+
+        **O que inclui:**
+        - 🔍 Inspeção de estrutura e pintura
+        - 🔧 Verificação de componentes internos
+        - 💧 Verificação de válvulas e conexões
+        - 🧪 Teste funcional (se anual)
+        - 📋 Checklist completo guiado
+
+        **Vantagens:**
+        - ⚡ Rápida e eficiente
+        - 📋 Guiada por modelo específico
+        - 🤖 Plano de ação automático
+        - 📊 Rastreabilidade completa
+        - ✅ Verifica compatibilidade de placa de orifício
+        """)
+
+    with col2:
+        st.markdown("""
+        ### ➕ Cadastro Completo
+        **📋 PARA EQUIPAMENTOS NOVOS**
+
+        **Tempo:** ~5 minutos
+
+        **Ideal para:**
+        - 🆕 Câmaras recém-instaladas
+        - 📝 Documentação detalhada
+        - 🔧 Especificações técnicas completas
+        - 📊 Gestão de inventário
+
+        **Como funciona:**
+        1. Preencha ID único da câmara
+        2. Informe localização detalhada
+        3. Selecione modelo (MCS/TF/MLS)
+        4. **CRÍTICO:** Informe tamanho específico
+        5. Adicione marca e observações
+
+        **Campos obrigatórios:**
+        - 🏷️ ID da câmara
+        - 📍 Localização
+        - 🔧 Modelo (MCS/TF/MLS)
+        - 📏 **Tamanho específico** (ex: MCS-17)
+
+        **Vantagens:**
+        - 📋 Documentação completa
+        - 🔧 Especificações técnicas
+        - 📊 Histórico desde instalação
+        - ✅ Base para inspeções futuras
+        """)
+
+    with col3:
+        st.markdown("""
+        ### ✍️ Cadastro Rápido
+        **🚀 PARA ADICIONAR RAPIDAMENTE**
+
+        **Tempo:** ~2 minutos
+
+        **Ideal para:**
+        - 🆕 Adicionar múltiplas câmaras
+        - ⚡ Inventário inicial rápido
+        - 📝 Dados essenciais apenas
+        - 🔄 Atualizar depois com detalhes
+
+        **Como funciona:**
+        1. ID da câmara
+        2. Localização
+        3. Tipo (3 opções pré-definidas)
+        4. **Tamanho específico**
+        5. Marca (lista pré-definida)
+
+        **Vantagens:**
+        - ⚡ Extremamente rápido
+        - 📝 Apenas dados essenciais
+        - 🔧 Marcas pré-cadastradas
+        - ✏️ Pode completar depois
+        """)
+
+    st.markdown("---")
+
+    # Fluxo de trabalho recomendado
+    st.subheader("🎯 Fluxo de Trabalho Recomendado")
+
+    st.info("""
+    **Para Máxima Eficiência, Siga Esta Ordem:**
+
+    1️⃣ **Primeira Vez no Sistema?**
+    → Cadastre todas as câmaras usando **Cadastro Rápido** ou **Cadastro Completo**
+
+    2️⃣ **Inspeção Semestral Obrigatória?**
+    → Use **Inspeção Visual Periódica** com o checklist guiado
+
+    3️⃣ **Inspeção Funcional Anual?**
+    → Use **Inspeção Funcional Anual** (inclui teste funcional completo)
+
+    4️⃣ **Relatório para Auditoria?**
+    → Gere **Relatório Consolidado em PDF** na última aba
+    """)
+
+    st.markdown("---")
+
+    # Guia detalhado de inspeção
+    st.subheader("📋 Guia Completo: Inspeção Visual e Funcional")
+
+    with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
+        st.markdown("""
+        #### **Antes de Começar:**
+        - 📋 Tenha acesso físico à câmara de espuma
+        - 🔧 Ferramentas básicas para abrir/fechar câmara
+        - 📱 Celular para tirar fotos se necessário
+        - 🧰 Kit de limpeza (se necessário)
+        - 📊 Acesso ao sistema (computador ou tablet)
+
+        ---
+
+        #### **Passo 1: Selecione a Câmara** 🔍
+
+        1. Vá para aba **"📋 Realizar Inspeção"**
+        2. No dropdown, selecione a câmara a ser inspecionada
+        3. O sistema mostrará automaticamente:
+           - 📍 **Localização** da câmara
+           - 🔧 **Modelo** (MCS/TF/MLS)
+           - 📏 **Tamanho específico** cadastrado
+
+        ⚠️ **ATENÇÃO:** Se o tamanho específico não estiver cadastrado, aparecerá um alerta amarelo.
+        Neste caso, você não poderá verificar a compatibilidade da placa de orifício durante a inspeção.
+
+        💡 **Dica:** Se o tamanho não estiver cadastrado, atualize o cadastro primeiro antes de inspecionar.
+
+        ---
+
+        #### **Passo 2: Escolha o Tipo de Inspeção** 📅
+
+        **Visual Semestral:**
+        - 📅 Obrigatória a cada **6 meses**
+        - ⏱️ Tempo: ~10 minutos
+        - 🔍 Verificação externa e componentes visíveis
+        - 📋 Checklist sem teste funcional
+
+        **Funcional Anual:**
+        - 📅 Obrigatória **anualmente**
+        - ⏱️ Tempo: ~15-20 minutos
+        - 🔍 Inclui TUDO da visual + teste funcional
+        - 💧 Teste de fluxo de água/espuma
+        - 📋 Checklist completo
+
+        💡 **Quando fazer cada uma:**
+        - **Semestral:** Meses 1, 7 do ano
+        - **Anual:** Substituir uma das semestrais por funcional
+
+        ---
+
+        #### **Passo 3: Responda ao Checklist Específico do Modelo** ✅
+
+        O checklist é **automaticamente gerado** baseado no modelo da câmara:
+
+        **📋 Para MCS - Selo de Vidro:**
+
+        **1. Condições Gerais**
+        - Pintura e estrutura sem corrosão?
+        - Sem vazamentos visíveis?
+        - Válvulas em bom estado?
+
+        **2. Componentes da Câmara**
+        - Câmara de espuma íntegra?
+        - Selo de vidro limpo e íntegro?
+        - Junta de vedação em boas condições?
+        - Defletor e barragem íntegros?
+
+        **3. Linhas e Conexões**
+        - Tomadas de solução sem obstrução?
+        - Drenos livres e estanques?
+        - Ejetores desobstruídos?
+        - Placa de orifício íntegra?
+        - ✅ **NOVO:** Placa compatível com modelo?
+
+        **4. Teste Funcional (apenas anual)**
+        - Fluxo de água/espuma OK?
+        - Estanqueidade da linha?
+        - Sistema funciona corretamente?
+
+        ---
+
+        **📋 Para TF - Tubo de Filme:**
+
+        Similar ao MCS, mas substitui:
+        - Selo de vidro → Tubo de projeção
+        - Junta de vedação → Defletor de projeção
+
+        ---
+
+        **📋 Para MLS - Membrana Low Shear:**
+
+        Similar ao MCS, mas substitui:
+        - Selo de vidro → Membrana de elastômero
+        - Verifica ressecamento da membrana
+
+        ---
+
+        #### **Para Cada Item do Checklist:**
+
+        Marque uma das 3 opções:
+        - ✅ **Conforme** - Item está OK
+        - ❌ **Não Conforme** - Item tem problema
+        - ⚠️ **N/A** - Não se aplica (ex: se não tiver)
+
+        💡 **Dica:** Seja criterioso - **Não Conforme** significa que há um problema real que precisa correção.
+
+        ---
+
+        #### **Passo 4: Registre Não Conformidades (Se Houver)** 📸
+
+        **Quando marcar algum item como "Não Conforme":**
+
+        1. O sistema **automaticamente exigirá** uma foto
+        2. Você verá um aviso: *"Foi encontrada não conformidade"*
+        3. Use o campo de upload para anexar foto como evidência
+
+        **Opções de foto:**
+        - 📷 **Tirar foto na hora** (mais rápido)
+        - 📁 **Enviar da galeria** (melhor qualidade)
+
+        **Boas práticas para fotos:**
+        - 🔦 Ilumine bem o problema
+        - 📏 Mostre contexto (onde fica)
+        - 🎯 Foque no item não conforme
+        - 📐 Mostre detalhes (corrosão, trinca, etc.)
+
+        ⚠️ **IMPORTANTE:** Não é possível salvar inspeção com não conformidades SEM foto!
+
+        ---
+
+        #### **Passo 5: Sistema Gera Plano de Ação Automaticamente** 🤖
+
+        Ao salvar, o sistema **automaticamente:**
+
+        1. **Calcula o status geral:**
+           - 🟢 Tudo Conforme → **Aprovado**
+           - 🔴 Algo Não Conforme → **Reprovado com Pendências**
+
+        2. **Gera plano de ação específico:**
+
+        Exemplos de planos automáticos:
+
+        **Se: Pintura e estrutura com corrosão**
+        → *"Programar serviço de tratamento de corrosão, reparo e repintura."*
+
+        **Se: Selo de vidro trincado**
+        → *"Realizar a limpeza ou substituição do selo de vidro."*
+
+        **Se: Placa de orifício incompatível**
+        → *"CRÍTICO: Substituir por placa compatível. A placa incorreta compromete vazão e eficiência."*
+
+        **Se: Vazamento nas conexões**
+        → *"Substituir juntas/vedações ou reparar a conexão."*
+
+        3. **Calcula próxima inspeção:**
+        - Visual Semestral → +6 meses
+        - Funcional Anual → +12 meses
+
+        ---
+
+        #### **Passo 6: Revise e Salve** 💾
+
+        1. Revise todas as respostas
+        2. Confirme que fotos (se houver) foram anexadas
+        3. Clique em **"✅ Salvar Inspeção"**
+        4. 🎉 Sistema confirma salvamento!
+
+        **O sistema automaticamente:**
+        - ✅ Registra no histórico
+        - 📅 Agenda próxima inspeção
+        - 🚨 Gera alertas se crítico
+        - 📊 Atualiza Dashboard
+
+        ---
+
+        #### **⚡ Dicas para Inspeções Mais Eficientes:**
+
+        **Preparação:**
+        - 📋 Imprima lista de todas as câmaras
+        - 🗺️ Planeje rota lógica (por área)
+        - 🔋 Celular com bateria suficiente
+        - 🧰 Kit de ferramentas básico
+
+        **Durante a inspeção:**
+        - 🔍 Faça inspeção visual completa antes de abrir
+        - 📸 Tire fotos ANTES de corrigir problemas simples
+        - 📝 Seja específico nas não conformidades
+        - 🧹 Aproveite para limpar se necessário
+
+        **Após a inspeção:**
+        - 🔧 Corrija imediatamente problemas simples
+        - 🚨 Reporte URGENTEMENTE problemas críticos
+        - 📊 Revise relatório no sistema
+        - 📅 Programe correções necessárias
+
+        ---
+
+        #### **❓ Problemas Comuns e Soluções:**
+
+        **"Câmara não aparece na lista"**
+        - ✅ Cadastre nas abas de cadastro primeiro
+        - ✅ Confirme se está no ambiente correto
+
+        **"Não sei qual é o tamanho específico"**
+        - ✅ Verifique placa de identificação na câmara
+        - ✅ Consulte projeto de instalação
+        - ✅ Entre em contato com fabricante
+
+        **"Como sei se a placa de orifício está correta?"**
+        - ✅ Compare com especificação do fabricante
+        - ✅ Verifique projeto original
+        - ✅ Consulte manual da câmara
+
+        **"Foto não anexa / Upload falha"**
+        - ✅ Reduza tamanho da foto (<10MB)
+        - ✅ Use formato JPG ou PNG
+        - ✅ Verifique conexão internet
+
+        **"Inspeção não salva"**
+        - ✅ Responda TODAS as perguntas
+        - ✅ Anexe foto se houver NC
+        - ✅ Verifique conexão
+        - ✅ Tente novamente após alguns segundos
+        """)
+
+    st.markdown("---")
+
+    # Tipos de câmaras
+    st.subheader("🔧 Entendendo os Tipos de Câmaras de Espuma")
+
+    with st.expander("📚 Guia Completo dos Modelos"):
+        st.markdown("""
+        ### **MCS - Membrana Com Selo de Vidro**
+
+        **Como funciona:**
+        - Solução entra pela base
+        - Passa pelo selo de vidro
+        - Defletor gera a espuma
+        - Barragem distribui uniformemente
+
+        **Componentes críticos:**
+        - 🔴 **Selo de vidro** - Deve estar limpo e íntegro
+        - 🔧 **Junta de vedação** - Não pode estar ressecada
+        - 📏 **Defletor** - Essencial para qualidade da espuma
+        - 📊 **Barragem** - Distribui espuma uniformemente
+
+        **Principais problemas:**
+        - Selo de vidro sujo/trincado
+        - Junta ressecada
+        - Defletor danificado
+        - Placa de orifício incompatível
+
+        **Manutenção típica:**
+        - Limpeza semestral do selo
+        - Substituição de juntas (a cada 2-3 anos)
+        - Verificação de corrosão
+
+        ---
+
+        ### **TF - Tubo de Filme (Type II)**
+
+        **Como funciona:**
+        - Solução entra em alta velocidade
+        - Jato atinge defletor de projeção
+        - Forma película fina (filme)
+        - Espuma de alta expansão
+
+        **Componentes críticos:**
+        - 🔧 **Tubo de projeção** - Não pode ter corrosão interna
+        - 📊 **Defletor de projeção** - Deve estar bem fixado
+        - 📏 **Placa de orifício** - Define vazão
+
+        **Principais problemas:**
+        - Corrosão no tubo interno
+        - Defletor desalinhado
+        - Obstrução no orifício
+        - Placa de orifício errada
+
+        **Manutenção típica:**
+        - Inspeção visual do tubo
+        - Verificação de alinhamento
+        - Limpeza de orifícios
+
+        ---
+
+        ### **MLS - Membrana Low Shear**
+
+        **Como funciona:**
+        - Solução entra suavemente
+        - Passa por membrana de elastômero
+        - Baixo cisalhamento (preserva espuma)
+        - Espuma de alta qualidade
+
+        **Componentes críticos:**
+        - 🔴 **Membrana de elastômero** - Não pode ressecar
+        - 🔧 **Junta de vedação** - Vedação perfeita
+        - 📊 **Câmara de espuma** - Integridade estrutural
+        - 📏 **Defletor/Barragem** - Distribuição uniforme
+
+        **Principais problemas:**
+        - Ressecamento da membrana
+        - Perda de elasticidade
+        - Junta danificada
+        - Placa de orifício incompatível
+
+        **Manutenção típica:**
+        - Verificação da membrana (elasticidade)
+        - Substituição periódica da membrana (5-7 anos)
+        - Verificação de vedações
+
+        ---
+
+        ### **📏 Importância do Tamanho Específico**
+
+        **Por que o tamanho é CRÍTICO?**
+
+        1. **Placa de Orifício Correta:**
+           - Cada tamanho tem uma placa específica
+           - Placa errada = vazão errada
+           - Vazão errada = espuma inadequada
+           - Espuma inadequada = proteção comprometida
+
+        2. **Compatibilidade de Peças:**
+        - Selos de vidro têm tamanhos diferentes
+        - Membranas são específicas por modelo
+        - Defletores não são universais
+
+        3. **Especificações Técnicas:**
+        - Vazão nominal (L/min)
+        - Pressão de trabalho (bar)
+        - Taxa de aplicação (L/min/m²)
+        - Capacidade de descarga
+
+        **Exemplos de tamanhos comuns:**
+
+        **MCS:**
+        - MCS-17: 17 GPM (64 L/min)
+        - MCS-33: 33 GPM (125 L/min)
+        - MCS-50: 50 GPM (189 L/min)
+
+        **TF:**
+        - TF-22: 22 GPM (83 L/min)
+        - TF-44: 44 GPM (167 L/min)
+
+        **MLS:**
+        - MLS-30: 30 GPM (114 L/min)
+        - MLS-45: 45 GPM (170 L/min)
+
+        💡 **Como descobrir o tamanho:**
+        1. Placa de identificação na câmara
+        2. Projeto de instalação original
+        3. Manual do fabricante
+        4. Consultoria técnica especializada
+        """)
+
+    st.markdown("---")
+
+    # Requisitos legais
+    st.subheader("⚖️ Requisitos Legais e Normas")
+
+    with st.expander("📜 Normas e Legislação Aplicável"):
+        st.markdown("""
+        #### **Principais Normas:**
+
+        **NFPA 11 - Standard for Low-, Medium-, and High-Expansion Foam**
+        - 📅 Inspeções **semestrais** obrigatórias
+        - 🔧 Testes funcionais **anuais**
+        - 📋 Documentação obrigatória
+        - 🔍 Critérios de aprovação/reprovação
+
+        **NFPA 25 - Standard for the Inspection, Testing, and Maintenance of Water-Based Fire Protection Systems**
+        - ⏰ Frequências de inspeção
+        - 📊 Procedimentos de teste
+        - 📝 Registros obrigatórios
+
+        **NBR 15511 - Sistemas de Espuma**
+        - 🏭 Requisitos brasileiros
+        - 📋 Compatibilidade de equipamentos
+        - 🔧 Manutenção periódica
+
+        **IT 23 (Corpo de Bombeiros - SP)**
+        - 🚨 Sistemas de chuveiros automáticos
+        - 📍 Aplicação específica para cada risco
+        - ⏰ Prazos de adequação
+
+        ---
+
+        #### **Responsabilidades Legais:**
+
+        **Proprietário/Responsável pela Instalação:**
+        - ✅ Manter equipamentos em **condições de uso**
+        - ✅ Realizar **inspeções periódicas**
+        - ✅ Manter **registros documentados**
+        - ✅ Corrigir **não conformidades**
+        - ✅ Contratar empresa especializada para manutenção
+
+        **Empresa de Manutenção:**
+        - ✅ Executar serviços conforme normas
+        - ✅ Emitir laudos técnicos
+        - ✅ Usar peças originais/homologadas
+        - ✅ Responsabilidade técnica (ART/TRT)
+
+        **SESMT/Segurança:**
+        - ✅ Supervisionar programa de inspeções
+        - ✅ Auditar conformidade
+        - ✅ Reportar não conformidades críticas
+        - ✅ Manter documentação
+
+        ---
+
+        #### **Frequências Obrigatórias:**
+
+        | Tipo de Inspeção | Frequência | Responsável |
+        |-----------------|------------|-------------|
+        | Visual | Semestral | Interno |
+        | Funcional | Anual | Interno ou Externo |
+        | Teste Completo | Anual | Empresa Especializada |
+        | Manutenção Preventiva | Anual | Empresa Especializada |
+        | Substituição de Componentes | Conforme Vida Útil | Empresa Especializada |
+
+        ---
+
+        #### **Documentação Obrigatória:**
+
+        📁 **Este sistema gera automaticamente:**
+        - ✅ Registro de todas as inspeções
+        - ✅ Histórico completo de cada câmara
+        - ✅ Evidências fotográficas de NC
+        - ✅ Relatórios de conformidade
+        - ✅ Planos de ação para correções
+        - ✅ Rastreabilidade completa
+
+        💡 **Essencial para:**
+        - Auditorias internas e externas
+        - Fiscalizações do Corpo de Bombeiros
+        - Processos de certificação (ISO, etc.)
+        - Defesa em processos judiciais
+        - Renovação de AVCB/CLCB
+        """)
+
+    st.markdown("---")
+
+    # Critérios de aprovação/reprovação
+    st.subheader("🎯 Critérios de Aprovação e Reprovação")
+
+    with st.expander("✅ Quando Aprovar uma Câmara"):
+        st.markdown("""
+        **Uma câmara está APROVADA quando:**
+
+        ✅ **Estrutura Física:**
+        - Sem corrosão significativa
+        - Pintura em bom estado
+        - Suportes firmes e alinhados
+        - Identificação legível
+
+        ✅ **Componentes Internos:**
+        - Selo/Membrana/Tubo íntegro
+        - Juntas de vedação em boas condições
+        - Defletor/Barragem sem danos
+        - Câmara de espuma sem trincas
+
+        ✅ **Sistema Hidráulico:**
+        - Sem vazamentos visíveis
+        - Válvulas operando corretamente
+        - Conexões firmes
+        - Drenos livres e estanques
+
+        ✅ **Linhas e Orifícios:**
+        - Tomadas de solução desobstruídas
+        - Ejetores limpos
+        - **Placa de orifício compatível com modelo**
+        - Sem corrosão interna significativa
+
+        ✅ **Teste Funcional (se anual):**
+        - Fluxo de água/espuma adequado
+        - Linha estanque (sem vazamentos)
+        - Sistema funciona conforme especificação
+        - Qualidade da espuma adequada
+        """)
+
+    with st.expander("❌ Quando Reprovar uma Câmara"):
+        st.markdown("""
+        **Uma câmara deve ser REPROVADA quando:**
+
+        ❌ **Problemas CRÍTICOS (Interdição Imediata):**
+        - 🚨 Estrutura comprometida (risco de colapso)
+        - 🚨 Vazamento significativo
+        - 🚨 Não há fluxo de espuma
+        - 🚨 Placa de orifício completamente incompatível
+        - 🚨 Selo/Membrana completamente danificado
+
+        ⚠️ **Problemas GRAVES (Correção Urgente < 7 dias):**
+        - Corrosão avançada em componentes críticos
+        - Selo de vidro trincado/sujo (MCS)
+        - Membrana ressecada/danificada (MLS)
+        - Tubo de projeção com corrosão interna (TF)
+        - Defletor/Barragem danificado
+        - Junta de vedação comprometida
+        - Placa de orifício parcialmente obstruída
+
+        📋 **Problemas MODERADOS (Programar Correção < 30 dias):**
+        - Pintura descascada (corrosão superficial)
+        - Válvulas com operação difícil
+        - Drenos parcialmente obstruídos
+        - Identificação ilegível
+        - Tampa/Cobertura danificada
+
+        **IMPORTANTE:**
+        - Câmara com problema CRÍTICO → **INTERDITAR**
+        - Providencie **proteção alternativa temporária**
+        - Notifique **imediatamente** Corpo de Bombeiros
+        - Contrate empresa especializada URGENTE
+        """)
+
+    st.markdown("---")
+
+    # Perguntas frequentes
+    st.subheader("❓ Perguntas Frequentes")
+
+    with st.expander("📅 Com que frequência devo inspecionar?"):
+        st.markdown("""
+        **Frequência Obrigatória:**
+
+        - 📋 **Visual Semestral:** A cada 6 meses
+        - 🔧 **Funcional Anual:** 1 vez por ano
+        - 🚨 **Extraordinária:** Após incidentes
+
+        **Calendário Sugerido:**
+    Janeiro     → Visual Semestral
+    Julho       → Funcional Anual (substitui visual)
+
+        **Inspeções Extraordinárias:**
+        - Após acionamento real (incêndio)
+        - Após obras/modificações próximas
+        - Após eventos climáticos extremos
+        - Se houver suspeita de problema
+        - Antes/depois de paradas programadas
+
+        **Manutenção Especializada:**
+        - Anual por empresa certificada
+        - Substitui ou complementa funcional interna
+        - Emite laudo técnico
+        """)
+
+    with st.expander("🔧 Como fazer o teste funcional anual?"):
+        st.markdown("""
+        **Procedimento Completo:**
+
+        **1. Preparação (15 minutos):**
+        - Avise área de segurança/bombeiros
+        - Desligue alarmes se necessário
+        - Prepare recipiente para coletar espuma
+        - Separe cronômetro
+        - Prepare medidor de vazão (se tiver)
+
+        **2. Teste de Fluxo de Água (5 minutos):**
+        - Abra válvula lentamente
+        - Verifique se há fluxo
+        - Observe vazamentos
+        - Cronometre enchimento do recipiente
+        - Calcule vazão aproximada
+
+        **3. Teste de Espuma (10 minutos):**
+        - Adicione LGE (Líquido Gerador de Espuma)
+        - Proporcione conforme especificação (geralmente 3% ou 6%)
+        - Observe formação da espuma
+        - Verifique qualidade (expansão, drenagem)
+        - Confirme cobertura uniforme
+        - Teste drenagem de 25% em 2-4 minutos
+
+        **4. Verificação de Estanqueidade (5 minutos):**
+        - Inspecione todas as conexões
+        - Procure por vazamentos
+        - Verifique vedações
+        - Teste válvulas de drenagem
+
+        **5. Limpeza e Finalização (10 minutos):**
+        - Drene sistema completamente
+        - Limpe resíduos de espuma
+        - Feche válvulas
+        - Reative alarmes
+        - Documente resultados
+
+        **Critérios de Aprovação:**
+        - ✅ Vazão dentro de ±10% do nominal
+        - ✅ Espuma formada adequadamente
+        - ✅ Expansão conforme especificação
+        - ✅ Drenagem de 25% em 2-4 min
+        - ✅ Sem vazamentos
+        - ✅ Sistema responde rapidamente
+
+        **⚠️ Quando Reprovar:**
+        - ❌ Vazão < 90% do nominal
+        - ❌ Espuma não se forma adequadamente
+        - ❌ Vazamentos significativos
+        - ❌ Drenagem muito rápida ou muito lenta
+        - ❌ Sistema não responde
+
+        **💡 Dica Importante:**
+        Se não tem experiência em testes funcionais,
+        **CONTRATE EMPRESA ESPECIALIZADA**.
+        Teste mal feito pode danificar equipamento
+        ou dar falso positivo/negativo.
+        """)
+
+    with st.expander("🔍 Como saber se a placa de orifício está correta?"):
+        st.markdown("""
+        ### **Por que a Placa de Orifício é CRÍTICA?**
+
+        A placa de orifício é um componente pequeno, mas **ESSENCIAL**:
+
+        - 📏 Define a **vazão** do sistema
+        - 💧 Controla a **pressão** de descarga
+        - ☁️ Determina a **qualidade** da espuma
+        - 🎯 Garante a **eficiência** da proteção
+
+        **Se a placa estiver ERRADA:**
+        - 🚨 Vazão insuficiente = Proteção inadequada
+        - 🚨 Vazão excessiva = Dano ao equipamento
+        - 🚨 Pressão incorreta = Espuma de má qualidade
+        - 🚨 **RESULTADO: Sistema não protege como deveria!**
+
+        ---
+
+        ### **Como Verificar a Compatibilidade:**
+
+        **1. Identificação da Placa:**
+        - Procure por marcação gravada
+        - Geralmente em GPM ou L/min
+        - Pode ter código do fabricante
+        - Exemplo: "33 GPM" ou "125 LPM"
+
+        **2. Especificação da Câmara:**
+        - Verifique placa de identificação
+        - Ex: "MCS-33" = 33 GPM nominal
+        - Consulte manual do fabricante
+        - Projeto de instalação original
+
+        **3. Comparação:**
+    Câmara: MCS-33
+    Placa: 33 GPM
+    ✅ COMPATÍVEL!
+
+    Câmara: MCS-33
+    Placa: 17 GPM
+    ❌ INCOMPATÍVEL! (vazão 50% menor)
+
+    Câmara: MCS-33
+    Placa: Sem marcação visível
+    ⚠️ SUBSTITUIR por segurança
+
+        **4. Verificação Prática (Teste Funcional):**
+        - Meça vazão real durante teste
+        - Compare com especificação
+        - Margem aceitável: ±10%
+        - Se fora da margem → Placa errada
+
+        ---
+
+        ### **Tabela de Referência Rápida:**
+
+        | Modelo da Câmara | Vazão Nominal | Placa Correta |
+        |------------------|---------------|---------------|
+        | MCS-17 | 64 L/min | 17 GPM |
+        | MCS-33 | 125 L/min | 33 GPM |
+        | MCS-50 | 189 L/min | 50 GPM |
+        | TF-22 | 83 L/min | 22 GPM |
+        | TF-44 | 167 L/min | 44 GPM |
+        | MLS-30 | 114 L/min | 30 GPM |
+        | MLS-45 | 170 L/min | 45 GPM |
+
+        **💡 Conversão rápida:** 1 GPM ≈ 3,785 L/min
+
+        ---
+
+        ### **O que Fazer se a Placa Estiver Errada:**
+
+        **CRÍTICO - AÇÃO IMEDIATA:**
+
+        1. ✅ **Reprove a inspeção**
+        2. ✅ **Anexe foto** da placa incorreta
+        3. ✅ **Notifique** responsável pela manutenção
+        4. ✅ **Contrate** empresa especializada
+        5. ✅ **Substitua** por placa correta
+        6. ✅ **Teste** sistema após substituição
+        7. ✅ **Documente** a correção
+
+        **Até a correção:**
+        - 🚨 Sistema **NÃO está protegendo adequadamente**
+        - 📋 Considere **proteção alternativa temporária**
+        - 🔔 **Aumente frequência** de inspeções
+        - 📊 **Notifique** Corpo de Bombeiros se exigido
+
+        ---
+
+        ### **Fontes de Informação:**
+
+        **1. Placa de Identificação da Câmara:**
+        - Fixada no corpo da câmara
+        - Contém modelo e especificações
+
+        **2. Projeto Original:**
+        - Memorial de cálculo
+        - Especificações técnicas
+        - Desenhos de instalação
+
+        **3. Manual do Fabricante:**
+        - Especificações por modelo
+        - Tabelas de vazão
+        - Peças de reposição
+
+        **4. Consultoria Especializada:**
+        - Empresas de manutenção certificadas
+        - Fabricantes/representantes
+        - Engenheiros de proteção contra incêndio
+        """)
+
+    with st.expander("🔄 Qual a vida útil dos componentes?"):
+        st.markdown("""
+        ### **Expectativa de Vida Útil:**
+
+        **Componentes com Desgaste Regular:**
+
+        **Selo de Vidro (MCS):**
+        - 🕐 **Vida útil:** 5-10 anos
+        - 🔍 **Inspecionar:** Semestralmente
+        - 🔧 **Trocar se:** Trincado, sujo irremovível, riscado
+        - 💡 **Dica:** Limpe regularmente para prolongar vida
+
+        **Membrana de Elastômero (MLS):**
+        - 🕐 **Vida útil:** 5-7 anos
+        - 🔍 **Inspecionar:** Semestralmente
+        - 🔧 **Trocar se:** Ressecada, perdeu elasticidade, rasgada
+        - 💡 **Dica:** Vida útil varia com clima/temperatura
+
+        **Juntas de Vedação:**
+        - 🕐 **Vida útil:** 2-5 anos
+        - 🔍 **Inspecionar:** Semestralmente
+        - 🔧 **Trocar se:** Ressecada, endurecida, vazando
+        - 💡 **Dica:** Sempre troque ao abrir a câmara
+
+        **Tubo de Projeção (TF):**
+        - 🕐 **Vida útil:** 10-15 anos
+        - 🔍 **Inspecionar:** Anualmente (interno)
+        - 🔧 **Trocar se:** Corrosão interna significativa
+        - 💡 **Dica:** Qualidade da água afeta vida útil
+
+        **Defletor/Barragem:**
+        - 🕐 **Vida útil:** 10-20 anos
+        - 🔍 **Inspecionar:** Anualmente
+        - 🔧 **Trocar se:** Deformado, corroído, danificado
+        - 💡 **Dica:** Raramente precisa troca completa
+
+        **Válvulas:**
+        - 🕐 **Vida útil:** 10-15 anos
+        - 🔍 **Inspecionar:** Semestralmente
+        - 🔧 **Trocar se:** Travando, vazando, corroída
+        - 💡 **Dica:** Manutenção preventiva prolonga vida
+
+        **Estrutura/Corpo da Câmara:**
+        - 🕐 **Vida útil:** 20-30 anos
+        - 🔍 **Inspecionar:** Anualmente (estrutural)
+        - 🔧 **Trocar se:** Corrosão estrutural, trincas
+        - 💡 **Dica:** Pintura adequada prolonga muito
+
+        **Placa de Orifício:**
+        - 🕐 **Vida útil:** Indefinida se mantida
+        - 🔍 **Inspecionar:** Anualmente
+        - 🔧 **Trocar se:** Deformada, obstruída, errada
+        - 💡 **Dica:** Limpeza regular é essencial
+
+        ---
+
+        ### **Fatores que Afetam Vida Útil:**
+
+        **Reduzem a Vida Útil:**
+        - ❌ Ambiente corrosivo (marítimo, químico)
+        - ❌ Temperaturas extremas
+        - ❌ Falta de manutenção
+        - ❌ Qualidade de água ruim
+        - ❌ Exposição a intempéries
+        - ❌ Uso de peças não originais
+
+        **Prolongam a Vida Útil:**
+        - ✅ Manutenção preventiva regular
+        - ✅ Pintura de proteção adequada
+        - ✅ Ambiente controlado
+        - ✅ Tratamento de água
+        - ✅ Inspeções frequentes
+        - ✅ Uso de peças originais
+
+        ---
+
+        ### **Programa de Substituição Recomendado:**
+
+        **A cada 2 anos:**
+        - Juntas de vedação (preventivo)
+        - Lubrificação de válvulas
+
+        **A cada 5 anos:**
+        - Selo de vidro (MCS)
+        - Membrana (MLS)
+        - Revisão completa de válvulas
+
+        **A cada 10 anos:**
+        - Tubo de projeção (se corrosão)
+        - Defletor/Barragem (se desgastado)
+        - Repintura completa
+
+        **A cada 15-20 anos:**
+        - Considerar substituição completa
+        - Avaliar custo x benefício
+        - Verificar disponibilidade de peças
+
+        **💡 Importante:**
+        Estes são valores **médios/recomendados**.
+        A vida útil real depende de:
+        - Condições de operação
+        - Qualidade da manutenção
+        - Ambiente de instalação
+        - Frequência de acionamento
+
+        **Sempre consulte fabricante para recomendações específicas!**
+        """)
+
+    with st.expander("📸 Preciso tirar foto em TODAS as inspeções?"):
+        st.markdown("""
+        **NÃO - Apenas quando houver não conformidade.**
+
+        **Quando a foto é OBRIGATÓRIA:**
+        - ❌ Qualquer item marcado como **"Não Conforme"**
+        - 🚨 Para evidenciar o problema encontrado
+        - 📋 Obrigatório para auditoria e rastreabilidade
+        - ⚖️ Essencial para defesa legal
+
+        **Quando a foto é OPCIONAL:**
+        - ✅ Inspeção 100% conforme
+        - ⚠️ Item marcado como N/A
+        - 📊 Para documentação adicional
+
+        **Quando a foto é RECOMENDADA (mas não obrigatória):**
+        - 📍 Estado geral da câmara
+        - 🔧 Após manutenção/substituição de peças
+        - 📋 Placa de identificação (documentação)
+        - 🏷️ Número de série de componentes novos
+
+        ---
+
+        ### **Dicas para Fotos Eficientes:**
+
+        **Composição:**
+        - 🎯 Foque no **problema específico**
+        - 📏 Inclua **referência de tamanho** (régua, caneta)
+        - 🔦 **Ilumine bem** o local
+        - 📐 Tire de **múltiplos ângulos** se necessário
+        - 🏷️ Inclua placa de identificação quando possível
+
+        **Qualidade:**
+        - 📱 Qualidade média do celular já é suficiente
+        - 💾 Sistema aceita até 10MB por foto
+        - 🖼️ Formatos: JPG, JPEG, PNG
+        - 🔍 Foque bem antes de tirar
+        - ☀️ Evite contraluz
+
+        **O que Fotografar:**
+
+        **Para Corrosão:**
+        - Vista geral mostrando extensão
+        - Close-up da área afetada
+        - Detalhe da profundidade
+
+        **Para Trincas/Danos:**
+        - Vista geral da peça
+        - Close-up da trinca/dano
+        - Régua ao lado para dimensão
+
+        **Para Vazamentos:**
+        - Ponto de vazamento
+        - Área molhada/manchada
+        - Conexão/junta afetada
+
+        **Para Sujeira/Obstrução:**
+        - Estado atual
+        - Componente afetado
+        - Comparação com área limpa (se possível)
+
+        **Para Incompatibilidade:**
+        - Placa de identificação da câmara
+        - Marcação da placa de orifício
+        - Ambas juntas se possível
+
+        ---
+
+        ### **Erros Comuns a Evitar:**
+
+        ❌ **Foto muito escura**
+        → Use flash ou lanterna
+
+        ❌ **Foto tremida/desfocada**
+        → Apoie o celular, respire fundo
+
+        ❌ **Foto muito longe**
+        → Aproxime-se do problema
+
+        ❌ **Foto sem contexto**
+        → Mostre onde fica o problema
+
+        ❌ **Foto de ângulo ruim**
+        → Posicione-se adequadamente
+
+        ---
+
+        ### **Armazenamento e Segurança:**
+
+        **Sistema ISF IA:**
+        - ✅ Fotos salvas no Google Drive
+        - ✅ Backup automático
+        - ✅ Vinculadas à inspeção
+        - ✅ Acesso controlado
+        - ✅ Mantidas permanentemente
+
+        **Recomendações:**
+        - 📱 Tire backup local também
+        - 📁 Organize por câmara/data
+        - 🔒 Não compartilhe publicamente
+        - 📋 Mantenha por 5+ anos
+        """)
+
+    with st.expander("🆘 O que fazer quando encontro um problema crítico?"):
+        st.markdown("""
+        ### **Definição de Problema CRÍTICO:**
+
+        🚨 **É CRÍTICO quando:**
+        - Estrutura com risco de colapso
+        - Vazamento significativo incontrolável
+        - Sistema não funciona (sem fluxo)
+        - Placa de orifício completamente incompatível
+        - Componente essencial totalmente danificado
+        - Risco imediato à segurança
+
+        **EM RESUMO:** Se o sistema **NÃO protegeria** em caso de incêndio → É CRÍTICO
+
+        ---
+
+        ### **AÇÃO IMEDIATA (Primeiros 30 minutos):**
+
+        **1. INTERROMPA a inspeção** 🛑
+        - Não continue com outras câmaras
+        - Foque na situação crítica
+
+        **2. DOCUMENTE o problema** 📸
+        - Tire múltiplas fotos
+        - Anote detalhes
+        - Registre no sistema (marque como NC)
+
+        **3. AVISE imediatamente:** 📞
+        - ✅ Seu supervisor direto
+        - ✅ Responsável pela segurança (SESMT)
+        - ✅ Gerente da área protegida
+        - ✅ Corpo de Bombeiros (se legalmente exigido)
+
+        **4. SINALIZE o equipamento** ⚠️
+        - Coloque placa: "EQUIPAMENTO COM DEFEITO"
+        - Isole área se necessário
+        - Impeça uso/acionamento
+
+        ---
+
+        ### **CURTO PRAZO (Mesmo Dia):**
+
+        **5. AVALIE alternativas temporárias** 🔄
+
+        **Opções possíveis:**
+        - Extintores portáteis adicionais na área
+        - Brigada de incêndio em alerta
+        - Vigia de incêndio (ronda constante)
+        - Restrição de atividades de risco
+        - Isolamento de área crítica
+
+        **6. CONTATE empresa especializada** 🔧
+        - Empresa de manutenção certificada
+        - Solicite visita URGENTE
+        - Explique a criticidade
+        - Peça prazo de atendimento
+
+        **7. NOTIFIQUE autoridades** 📋
+        - Corpo de Bombeiros (se exigido por lei)
+        - Informe situação e prazo de correção
+        - Documente a notificação
+
+        ---
+
+        ### **MÉDIO PRAZO (Até Correção):**
+
+        **8. ACOMPANHE a correção** 👁️
+        - Cobre prazos da empresa
+        - Solicite cronograma detalhado
+        - Exija uso de peças originais
+        - Peça ART/TRT do serviço
+
+        **9. MANTENHA medidas temporárias** ⚠️
+        - Até sistema ser testado e aprovado
+        - Não remova proteções alternativas prematuramente
+
+        **10. TESTE após correção** ✅
+        - Realize teste funcional completo
+        - Não confie apenas no laudo da empresa
+        - Documente que sistema voltou a funcionar
+
+        ---
+
+        ### **Exemplos de Problemas CRÍTICOS:**
+
+        **Problema: Câmara trincada, vazando constantemente**
+
+        **Ações:**
+        1. ✅ Foto detalhada da trinca
+        2. ✅ Avisar SESMT/supervisor
+        3. ✅ Placa "NÃO FUNCIONA"
+        4. ✅ 10 extintores portáteis na área
+        5. ✅ Contatar fabricante/manutenção
+        6. ✅ Notificar Bombeiros
+        7. ✅ Prazo máximo: 48h para solução
+
+        ---
+
+        **Problema: Placa de orifício 50% menor que deveria**
+
+        **Ações:**
+        1. ✅ Foto da placa errada
+        2. ✅ Avisar gerência imediatamente
+        3. ✅ Solicitar substituição urgente
+        4. ✅ Placa correta: < 24h
+        5. ✅ Testar vazão após troca
+        6. ✅ Documentar correção
+
+        ---
+
+        **Problema: Selo de vidro completamente destruído**
+
+        **Ações:**
+        1. ✅ Foto dos cacos
+        2. ✅ Verificar se há reposição em estoque
+        3. ✅ Se não houver: medidas temporárias
+        4. ✅ Comprar selo original urgente
+        5. ✅ Instalação por técnico habilitado
+        6. ✅ Teste completo após instalação
+
+        ---
+
+        ### **Responsabilidades Legais:**
+
+        ⚖️ **IMPORTANTE:**
+        - Ignorar problema crítico = **Negligência**
+        - Não comunicar = **Omissão**
+        - Não corrigir rapidamente = **Imprudência**
+        - Sistema inoperante em incêndio = **Responsabilização**
+
+        **Documentar TUDO:**
+        - Data/hora da descoberta
+        - Quem foi avisado e quando
+        - Medidas tomadas
+        - Prazos de correção
+        - Comprovantes de notificações
+
+        **Esta documentação pode te proteger legalmente!**
+
+        ---
+
+        ### **Checklist de Ação em Emergência:**
+    ☐ Problema identificado e documentado
+    ☐ Fotos tiradas (múltiplos ângulos)
+    ☐ Supervisor avisado
+    ☐ SESMT avisado
+    ☐ Gerente da área avisado
+    ☐ Equipamento sinalizado
+    ☐ Medidas temporárias implementadas
+    ☐ Empresa de manutenção contatada
+    ☐ Prazo de correção definido
+    ☐ Bombeiros notificados (se exigido)
+    ☐ Correção acompanhada
+    ☐ Teste realizado após correção
+    ☐ Sistema aprovado e liberado
+    ☐ Documentação completa arquivada
+
+        **💡 Lembre-se:**
+        Câmara de espuma crítica inoperante =
+        **RISCO DE VIDA** + **RISCO PATRIMONIAL** + **RESPONSABILIDADE LEGAL**
+
+        **NÃO HESITE EM INTERDITAR E TOMAR MEDIDAS DRÁSTICAS!**
+        """)
+
+    st.markdown("---")
+
+    # Relatório consolidado
+    st.subheader("📊 Gerando Relatório Consolidado")
+
+    with st.expander("📄 Como Usar o Relatório PDF"):
+        st.markdown("""
+        ### **O que é o Relatório Consolidado?**
+
+        É um documento PDF profissional que **consolida TODAS as câmaras**
+        inspecionadas, com formato pronto para impressão e apresentação em auditorias.
+
+        ---
+
+        ### **O que o Relatório Inclui:**
+
+        **1. Resumo Geral (Primeira Página):**
+        - 📊 Total de câmaras no sistema
+        - ✅ Quantidade aprovadas
+        - ❌ Quantidade com pendências
+        - 📈 Estatísticas gerais
+
+        **2. Para Cada Câmara:**
+
+        **Cabeçalho Individual:**
+        - 🏷️ ID da câmara
+        - 📍 Localização
+        - 🔧 Modelo e tamanho
+        - 🏭 Marca
+        - 📅 Data da última inspeção
+        - 📅 Próxima inspeção prevista
+        - ✅/❌ Status geral (colorido)
+
+        **Dados Técnicos:**
+        - Tipo de inspeção (Visual/Funcional)
+        - Inspetor responsável
+        - Data de realização
+
+        **Checklist Completo:**
+        - ✓ Todos os itens verificados
+        - ✓ Resultado de cada item
+        - ✓ Identificação visual de NCs
+        - ✓ Tabela formatada e legível
+
+        **Plano de Ação:**
+        - 📋 Ações corretivas geradas automaticamente
+        - 🎯 Específicas para cada problema
+        - 📝 Orientações técnicas
+
+        **Evidências:**
+        - 📸 Link para fotos de não conformidades
+        - 🔗 Acesso direto ao Google Drive
+
+        ---
+
+        ### **Como Gerar o Relatório:**
+
+        **Passo 1:** Vá para aba **"📊 Relatório Consolidado"**
+
+        **Passo 2:** Revise as estatísticas mostradas na tela
+        - Total de câmaras
+        - Total de inspeções
+        - Aprovadas na última inspeção
+
+        **Passo 3:** Clique em **"📄 Gerar Relatório PDF Consolidado"**
+
+        **Passo 4:** Aguarde processamento (10-30 segundos)
+        - Sistema busca todas as inspeções
+        - Consolida dados
+        - Gera PDF formatado
+
+        **Passo 5:** Baixe o arquivo gerado
+        - Nome automático: `Relatorio_Camaras_Espuma_YYYYMMDD_HHMM.pdf`
+        - Salve em local seguro
+        - Faça backup
+
+        ---
+
+        ### **Para Que Usar o Relatório:**
+
+        **✅ Auditorias Internas:**
+        - Apresentação para gerência
+        - Reuniões de segurança
+        - Análise de conformidade
+
+        **✅ Auditorias Externas:**
+        - Fiscalização do Corpo de Bombeiros
+        - Auditorias de certificação (ISO, etc.)
+        - Inspeções de segurança
+        - Perícias técnicas
+
+        **✅ Gestão:**
+        - Planejamento de manutenções
+        - Orçamento de correções
+        - Histórico de conformidade
+        - Tomada de decisão
+
+        **✅ Documentação Legal:**
+        - Comprovação de inspeções
+        - Defesa em processos
+        - Renovação de AVCB/CLCB
+        - Atendimento a normas
+
+        ---
+
+        ### **Dicas para Apresentação:**
+
+        **Para Auditorias:**
+        - 📄 Imprima frente e verso
+        - 📎 Use pasta ou espiral
+        - 📋 Inclua capa com logo da empresa
+        - ✍️ Espaço para assinatura e carimbo
+
+        **Para Arquivo Digital:**
+        - 💾 Salve em pasta organizada
+        - 📁 Estrutura: `Relatorios/Camaras_Espuma/2025/`
+        - ☁️ Backup na nuvem
+        - 🔒 Controle de acesso
+
+        **Para Apresentações:**
+        - 📊 Destaque resumo geral
+        - 🎯 Foque em não conformidades
+        - 📈 Mostre evolução ao longo do tempo
+        - 💡 Apresente planos de ação
+
+        ---
+
+        ### **Frequência Recomendada:**
+
+        **Gere relatório:**
+        - 📅 **Mensalmente:** Para acompanhamento interno
+        - 📅 **Semestralmente:** Para auditorias regulares
+        - 📅 **Anualmente:** Para renovação de AVCB
+        - 🚨 **Sob demanda:** Para fiscalizações
+
+        ---
+
+        ### **Personalizações Futuras:**
+
+        💡 **Em breve no sistema:**
+        - Filtro por período
+        - Filtro por localização
+        - Comparativo entre períodos
+        - Gráficos de tendências
+        - Exportação para Excel
+
+        Por enquanto, o relatório inclui **todas as câmaras**
+        com suas **últimas inspeções**.
+        """)
+
+    st.markdown("---")
+
+    # Call-to-action
+    st.success("""
+    ### 🚀 Pronto para Começar?
+
+    **Siga este checklist rápido:**
+
+    ✅ **Já tem câmaras cadastradas?**
+    → Vá para aba **"📋 Realizar Inspeção"**
+
+    ❌ **Ainda não tem câmaras cadastradas?**
+    → Comece pela aba **"✍️ Cadastro Rápido"** para adicionar ao inventário
+
+    ⚠️ **Tamanho específico não está cadastrado?**
+    → Atualize o cadastro com **Cadastro Completo** antes de inspecionar
+
+    📚 **Dúvidas sobre algum item do checklist?**
+    → Revise a seção **"Entendendo os Tipos de Câmaras"** acima
+
+    ---
+
+    **Lembre-se:**
+    - Inspeções **SEMESTRAIS** são obrigatórias
+    - Testes **FUNCIONAIS ANUAIS** são críticos
+    - **Placa de orifício** incompatível = Sistema não funciona adequadamente
+
+    Este sistema facilita a conformidade e mantém sua documentação sempre em dia! ⚡
+    """)
+
+    # Footer informativo
+    st.markdown("---")
+    st.caption("""
+    📌 **Normas Aplicáveis:**
+    - NFPA 11 (Low, Medium, and High-Expansion Foam)
+    - NFPA 25 (Inspection, Testing, and Maintenance)
+    - NBR 15511 (Sistemas de Espuma)
+    - IT 23 (Chuveiros Automáticos - SP)
+
+    🔄 **Última Atualização das Instruções:** Janeiro/2025
+    📖 **Versão do Guia:** 1.0
+    """)
+
 def instru_mangueiras():
     """Instruções para Mangueiras e Abrigos"""
     st.header("📖 Guia de Uso - Sistema de Mangueiras e Abrigos de Incêndio")
