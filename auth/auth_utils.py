@@ -74,7 +74,7 @@ def normalize_dataframe_columns(df, expected_columns):
     
     return df
 
-@st.cache_data(ttl=600, show_spinner="Verificando permissões...")
+@st.cache_data(ttl=3600, show_spinner="Verificando permissões...")
 def get_users_data():
     """
     Carrega dados de usuários com tratamento robusto de erros e estrutura de colunas
@@ -179,33 +179,50 @@ def get_user_info() -> dict | None:
     user_entry = users_df[users_df['email'] == user_email]
     return user_entry.iloc[0].to_dict() if not user_entry.empty else None
 
+# --- NOVAS FUNÇÕES RÁPIDAS ---
+def get_current_user_info() -> dict | None:
+    """Retorna os dados do usuário logado diretamente da sessão. É super rápido."""
+    return st.session_state.get('user_data')
+
+def get_current_user_role() -> str:
+    """Retorna o 'role' do usuário da sessão."""
+    user_data = get_current_user_info()
+    return user_data.get('role', 'viewer') if user_data else 'viewer'
+# --- FIM DAS NOVAS FUNÇÕES ---
+
 def get_effective_user_status() -> str:
-    user_info = get_user_info()
-    if not user_info: return 'inativo'
+    user_info = get_current_user_info()  # <-- MUDANÇA AQUI
+    if not user_info:
+        return 'inativo'
     sheet_status = user_info.get('status', 'inativo')
     trial_end_date = user_info.get('trial_end_date')
-    if sheet_status != 'ativo': return sheet_status
+    if sheet_status != 'ativo':
+        return sheet_status
     if not pd.isna(trial_end_date) and isinstance(trial_end_date, date) and date.today() > trial_end_date:
         return 'trial_expirado'
     return sheet_status
 
 def is_on_trial() -> bool:
-    user_info = get_user_info()
-    if not user_info: return False
+    user_info = get_current_user_info()  # <-- MUDANÇA AQUI
+    if not user_info:
+        return False
     trial_end_date = user_info.get('trial_end_date')
-    if pd.isna(trial_end_date): return False
+    if pd.isna(trial_end_date):
+        return False
     return date.today() <= trial_end_date
 
 def get_effective_user_plan() -> str:
-    user_info = get_user_info()
-    if not user_info: return 'nenhum'
+    user_info = get_current_user_info()  # <-- MUDANÇA AQUI
+    if not user_info:
+        return 'nenhum'
     sheet_plan = user_info.get('plano', 'nenhum')
-    if is_on_trial(): return 'premium_ia'
+    if is_on_trial():
+        return 'premium_ia'
     return sheet_plan
 
 def get_user_role():
-    user_info = get_user_info()
-    return user_info.get('role', 'viewer') if user_info else 'viewer'
+    """Retorna o role do usuário logado - agora ultra rápido!"""
+    return get_current_user_role()  # <-- MUDANÇA AQUI
 
 def check_user_access(required_role="viewer"):
     """
@@ -243,23 +260,34 @@ def has_pro_features(): return get_effective_user_plan() in ['pro', 'premium_ia'
 def has_ai_features(): return get_effective_user_plan() == 'premium_ia'
 
 def setup_sidebar():
-    user_info = get_user_info()
+    user_info = get_current_user_info()  # <-- MUDANÇA AQUI: usa a função rápida
     effective_status = get_effective_user_status()
+    
     if effective_status != 'ativo':
-        if is_admin(): st.sidebar.warning("Visão de Administrador."); return False
-        if effective_status == 'inativo': st.sidebar.error("Sua conta não está ativa."); return False
+        if is_admin():
+            st.sidebar.warning("Visão de Administrador.")
+            return False
+        if effective_status == 'inativo':
+            st.sidebar.error("Sua conta não está ativa.")
+            return False
         return False
+    
     spreadsheet_id = user_info.get('spreadsheet_id')
     folder_id = user_info.get('folder_id')
+    
     if pd.isna(spreadsheet_id) or spreadsheet_id == '' or pd.isna(folder_id) or folder_id == '':
         if not is_superuser():
             st.sidebar.error("Erro no ambiente de dados. Contate o suporte.")
         return False
+    
+    # Limpa cache se o usuário mudou
     if st.session_state.get('current_user_email') != user_info['email']:
         st.cache_data.clear()
+    
     st.session_state['current_user_email'] = user_info['email']
     st.session_state['current_spreadsheet_id'] = spreadsheet_id
     st.session_state['current_folder_id'] = folder_id
+    
     if is_superuser():
         st.sidebar.success("👑 **Acesso Mestre**")
     elif is_on_trial():
@@ -269,6 +297,7 @@ def setup_sidebar():
     else:
         plano_atual = get_effective_user_plan().replace('_', ' ').title()
         st.sidebar.success(f"**Plano:** {plano_atual}")
+    
     return True
     
 def save_access_request(user_name, user_email, justification):
