@@ -2,44 +2,31 @@ import os
 import google.generativeai as genai
 import streamlit as st
 import logging
+from AI.api_key_manager import get_api_key_manager
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('api_load')
 
 def load_api():
+    """Carrega a API do Gemini com suporte a múltiplas chaves"""
     try:
-        # Tentar carregar a chave API de múltiplas fontes
-        api_key = None
+        # Obtém uma chave do gerenciador
+        key_manager = get_api_key_manager()
+        api_key = key_manager.get_next_key()
         
-        # 1. Tentar carregar de Streamlit secrets (produção)
-        try:
-            api_key = st.secrets["general"]["GOOGLE_API_KEY"]
-            logging.info("API key loaded from Streamlit secrets.")
-        except (KeyError, TypeError, AttributeError):
-            logging.info("API key not found in Streamlit secrets, trying environment variables.")
-        
-        # 2. Se não encontrou nos secrets, tentar carregar do arquivo .env (desenvolvimento)
         if not api_key:
-            # Load environment variables from .env file
-            # load_dotenv()  # Removido para Streamlit Cloud
-            api_key = os.getenv('GOOGLE_API_KEY')
-            if api_key:
-                logging.info("API key loaded from .env file.")
-
-        # 3. Verificar se uma chave foi encontrada
-        if not api_key:
-            error_msg = "Google API key not found. Please set the GOOGLE_API_KEY environment variable or in Streamlit secrets."
-            logging.error(error_msg)
+            error_msg = "Nenhuma chave API disponível"
+            logger.error(error_msg)
             st.error(error_msg)
             return None
 
-        # Configurar a API Gemini com a chave encontrada
+        # Configura a API Gemini com a chave selecionada
         genai.configure(api_key=api_key)
-        logging.info("API loaded successfully.")
+        logger.info(f"API Gemini configurada com chave {key_manager._mask_key(api_key)}")
+        
         return genai
 
     except Exception as e:
-        error_msg = f"Error loading API: {str(e)}"
-        logging.exception(error_msg)
+        error_msg = f"Erro ao carregar API: {str(e)}"
+        logger.exception(error_msg)
         st.error(error_msg)
         return None
