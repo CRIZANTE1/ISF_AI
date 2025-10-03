@@ -20,8 +20,247 @@ from gdrive.config import (
 )
 from config.page_config import set_page_config
 from utils.auditoria import log_action
+from AI.api_key_manager import get_api_key_manager
+from AI.api_Operation import PDFQA
 
 set_page_config()
+
+
+#Funções da ultima Tab -----------------------------------------------------------
+def show_api_key_management():
+    """Interface de gerenciamento de chaves API (apenas para desenvolvedor)"""
+    st.header("🔑 Gestão de Chaves API do Gemini")
+    
+    st.warning("⚠️ **Acesso Restrito:** Esta seção é visível apenas para o desenvolvedor/superusuário.")
+    
+    # Subtabs
+    subtab_stats, subtab_test = st.tabs(["📊 Estatísticas", "🧪 Testes"])
+    
+    with subtab_stats:
+        show_api_key_statistics()
+    
+    with subtab_test:
+        show_api_key_tests()
+
+def show_api_key_statistics():
+    """Mostra estatísticas de uso das chaves API"""
+    st.subheader("📊 Estatísticas de Chaves API do Gemini")
+    
+    try:
+        key_manager = get_api_key_manager()
+        stats = key_manager.get_statistics()
+        
+        # Métricas principais
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total de Chaves", stats['total_keys'])
+        col2.metric("Chaves Disponíveis", stats['available_keys'])
+        col3.metric("Chaves em Cooldown", stats['keys_in_cooldown'])
+        col4.metric("Estratégia", stats['strategy'])
+        
+        st.markdown("---")
+        
+        # Detalhes de uso
+        if stats['usage_count']:
+            st.markdown("### 📈 Uso Detalhado por Chave")
+            
+            usage_data = []
+            for i, key in enumerate(key_manager.keys, 1):
+                masked_key = key_manager._mask_key(key)
+                usage = stats['usage_count'].get(key, 0)
+                failures = stats['failure_count'].get(key, 0)
+                in_cooldown = "🔴 Sim" if key in key_manager.key_cooldown else "🟢 Não"
+                
+                # Calcula taxa de sucesso
+                total_requests = usage
+                success_rate = ((total_requests - failures) / total_requests * 100) if total_requests > 0 else 0
+                
+                usage_data.append({
+                    "Chave": f"Chave #{i}",
+                    "ID Mascarado": masked_key,
+                    "Usos Totais": usage,
+                    "Falhas": failures,
+                    "Taxa de Sucesso": f"{success_rate:.1f}%",
+                    "Em Cooldown": in_cooldown
+                })
+            
+            df_usage = pd.DataFrame(usage_data)
+            st.dataframe(df_usage, use_container_width=True, hide_index=True)
+            
+            # Gráfico de distribuição de uso
+            if len(usage_data) > 1:
+                st.markdown("### 📊 Distribuição de Uso")
+                
+                chart_data = pd.DataFrame({
+                    'Chave': [d['Chave'] for d in usage_data],
+                    'Usos': [d['Usos Totais'] for d in usage_data]
+                })
+                
+                chart = alt.Chart(chart_data).mark_bar().encode(
+                    x=alt.X('Chave:N', title='Chave API'),
+                    y=alt.Y('Usos:Q', title='Número de Usos'),
+                    color=alt.condition(
+                        alt.datum.Usos > 0,
+                        alt.value('#1f77b4'),
+                        alt.value('#d62728')
+                    ),
+                    tooltip=['Chave', 'Usos']
+                ).properties(
+                    height=300
+                )
+                
+                st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("ℹ️ Nenhuma chave foi utilizada ainda.")
+        
+        # Informações de cooldown
+        if stats['keys_in_cooldown'] > 0:
+            st.markdown("### ⏱️ Chaves em Cooldown")
+            cooldown_data = []
+            
+            for key, cooldown_until in key_manager.key_cooldown.items():
+                masked_key = key_manager._mask_key(key)
+                remaining_time = (cooldown_until - datetime.now()).total_seconds() / 60
+                
+                cooldown_data.append({
+                    "Chave": masked_key,
+                    "Disponível em": f"{remaining_time:.1f} minutos",
+                    "Horário de Liberação": cooldown_until.strftime("%H:%M:%S")
+                })
+            
+            st.dataframe(pd.DataFrame(cooldown_data), use_container_width=True, hide_index=True)
+        
+        # Botão para resetar estatísticas
+        st.markdown("---")
+        col_reset1, col_reset2 = st.columns([3, 1])
+        with col_reset2:
+            if st.button("🔄 Resetar Estatísticas", type="secondary"):
+                # Limpa contadores
+                key_manager.key_usage_count.clear()
+                key_manager.key_failures.clear()
+                key_manager.key_last_used.clear()
+                st.success("✅ Estatísticas resetadas!")
+                st.rerun()
+                
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar estatísticas: {e}")
+
+def show_api_key_tests():
+    """Interface de testes de chaves API"""
+    st.subheader("🧪 Testes de Rotação de Chaves API")
+    
+    st.info("💡 Use esta seção para testar o sistema de rotação de chaves e simular cenários de falha.")
+    
+    try:
+        key_manager = get_api_key_manager()
+        
+        # Informações básicas
+        st.write(f"**Total de chaves carregadas:** {len(key_manager.keys)}")
+        st.write(f"**Estratégia de rotação:** {key_manager.rotation_strategy}")
+        st.write(f"**Tentativas máximas:** {key_manager.max_retries}")
+        st.write(f"**Delay entre tentativas:** {key_manager.retry_delay}s")
+        
+        st.markdown("---")
+        
+        # Teste 1: Rotação básica
+        st.markdown("### 🔄 Teste 1: Rotação de Chaves")
+        st.write("Simula 10 requisições para observar o padrão de rotação das chaves.")
+        
+        num_tests = st.slider("Número de requisições a testar:", 5, 20, 10)
+        
+        if st.button("▶️ Executar Teste de Rotação", key="test_rotation"):
+            with st.spinner("Testando rotação..."):
+                rotation_results = []
+                
+                for i in range(num_tests):
+                    key = key_manager.get_next_key()
+                    masked = key_manager._mask_key(key)
+                    rotation_results.append({
+                        "Requisição": f"#{i+1}",
+                        "Chave Selecionada": masked,
+                        "Índice": key_manager.keys.index(key) + 1
+                    })
+                
+                st.dataframe(pd.DataFrame(rotation_results), use_container_width=True, hide_index=True)
+                st.success(f"✅ Teste concluído! {num_tests} chaves foram rotacionadas.")
+        
+        st.markdown("---")
+        
+        # Teste 2: Simulação de Rate Limit
+        st.markdown("### ⚠️ Teste 2: Simulação de Rate Limit")
+        st.write("Simula um erro de rate limit para colocar uma chave em cooldown.")
+        
+        col_sim1, col_sim2 = st.columns([2, 1])
+        
+        with col_sim1:
+            keys_list = [f"Chave #{i+1} ({key_manager._mask_key(k)})" for i, k in enumerate(key_manager.keys)]
+            selected_key_idx = st.selectbox("Selecione uma chave para simular falha:", range(len(keys_list)), format_func=lambda x: keys_list[x])
+        
+        with col_sim2:
+            if st.button("🚫 Simular Rate Limit", type="secondary"):
+                selected_key = key_manager.keys[selected_key_idx]
+                key_manager.report_key_failure(selected_key, "429 Too Many Requests - Rate limit exceeded")
+                
+                st.warning(f"⚠️ Rate limit simulado para: {key_manager._mask_key(selected_key)}")
+                st.info("A chave foi colocada em cooldown por 5 minutos.")
+                
+                # Mostra estatísticas atualizadas
+                stats = key_manager.get_statistics()
+                st.json(stats)
+                
+                st.rerun()
+        
+        st.markdown("---")
+        
+        # Teste 3: Teste de requisição real
+        st.markdown("### 🤖 Teste 3: Requisição Real à API")
+        st.write("Testa uma requisição real ao Gemini para validar uma chave específica.")
+        
+        test_prompt = st.text_input("Prompt de teste:", "Responda apenas: OK")
+        
+        if st.button("📡 Testar Requisição Real", type="primary"):
+            with st.spinner("Enviando requisição ao Gemini..."):
+                try:
+                    pdf_qa = PDFQA()
+                    
+                    # Tenta uma requisição simples
+                    response = pdf_qa.model.generate_content(test_prompt)
+                    
+                    if response and response.text:
+                        st.success("✅ Requisição bem-sucedida!")
+                        st.write(f"**Resposta da API:** {response.text}")
+                        
+                        # Mostra qual chave foi usada
+                        current_key = key_manager.keys[key_manager.current_key_index]
+                        st.info(f"🔑 Chave utilizada: {key_manager._mask_key(current_key)}")
+                    else:
+                        st.error("❌ Resposta vazia da API")
+                        
+                except Exception as e:
+                    st.error(f"❌ Erro na requisição: {str(e)}")
+                    
+                    # Mostra estatísticas após erro
+                    stats = key_manager.get_statistics()
+                    st.json(stats)
+        
+        st.markdown("---")
+        
+        # Teste 4: Limpar cooldowns manualmente
+        st.markdown("### 🔓 Teste 4: Gerenciamento de Cooldown")
+        
+        if key_manager.key_cooldown:
+            st.write(f"**Chaves atualmente em cooldown:** {len(key_manager.key_cooldown)}")
+            
+            if st.button("🔓 Remover Todos os Cooldowns", type="secondary"):
+                key_manager.key_cooldown.clear()
+                st.success("✅ Todos os cooldowns foram removidos!")
+                st.rerun()
+        else:
+            st.info("ℹ️ Nenhuma chave está em cooldown no momento.")
+            
+    except Exception as e:
+        st.error(f"❌ Erro ao executar testes: {e}")
+        st.exception(e)
+#-----------------------------------------------------------------------------------------------------------------------------------------------
 
 @st.cache_data(show_spinner=False)
 def load_sheets_config():
@@ -65,8 +304,13 @@ def provision_user_environment(user_email, user_name):
 def show_page():
     st.title("👑 Painel de Controle do Super Administrador")
 
-    tab_dashboard, tab_requests, tab_users, tab_audit, tab_support_admin = st.tabs([
-        "📊 Dashboard Global", "📬 Solicitações", "👤 Usuários e Planos", "🛡️ Auditoria", "🎫 Gerenciar Solicitações de Suporte"
+    tab_dashboard, tab_requests, tab_users, tab_audit, tab_support_admin, tab_api_keys = st.tabs([
+        "📊 Dashboard Global", 
+        "📬 Solicitações", 
+        "👤 Usuários e Planos", 
+        "🛡️ Auditoria", 
+        "🎫 Gerenciar Solicitações de Suporte",
+        "🔑 Gestão de API Keys"  
     ])
 
     try:
@@ -389,3 +633,9 @@ def show_page():
                                     st.rerun()
         except Exception as e:
             st.error(f"Erro ao carregar solicitações: {e}")
+
+
+    with tab_api_keys:
+            show_api_key_management()
+
+
