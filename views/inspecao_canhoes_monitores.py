@@ -75,16 +75,37 @@ def show_page():
                                         has_issues = True
                         
                         st.markdown("---")
+                        
                         photo_file = None
-                        if has_issues:
-                            st.warning("Uma ou mais não conformidades foram encontradas. Anexe uma foto como evidência.")
-                            photo_file = st.file_uploader("Anexar foto da não conformidade", type=["jpg", "jpeg", "png"])
+                        show_photo_uploader = has_issues or (inspection_type == "Teste Funcional (Anual)")
+
+                        if show_photo_uploader:
+                            # Define a mensagem com base na condição
+                            if inspection_type == "Teste Funcional (Anual)":
+                                if has_issues:
+                                    st.error("FOTO OBRIGATÓRIA: Anexe uma foto da não conformidade encontrada durante o teste.")
+                                else:
+                                    st.info("FOTO OBRIGATÓRIA: Para Testes Funcionais, anexe uma foto do equipamento em operação (ex: jato d'água).")
+                            else: # Apenas has_issues é verdadeiro
+                                st.warning("FOTO OBRIGATÓRIA: Uma ou mais não conformidades foram encontradas. Anexe uma foto como evidência.")
+                            
+                            photo_file = st.file_uploader(
+                                "Anexar evidência fotográfica",
+                                type=["jpg", "jpeg", "png"],
+                                key=f"photo_uploader_{selected_id}"
+                            )
 
                         submitted = st.form_submit_button("✅ Salvar Registro", type="primary", use_container_width=True)
 
                         if submitted:
+                            error_message = ""
                             if has_issues and not photo_file:
-                                st.error("É obrigatório anexar uma foto quando há não conformidades.")
+                                error_message = "É obrigatório anexar uma foto quando há não conformidades."
+                            elif inspection_type == "Teste Funcional (Anual)" and not photo_file:
+                                error_message = "É obrigatório anexar uma foto como evidência para o Teste Funcional."
+
+                            if error_message:
+                                st.error(error_message)
                             else:
                                 overall_status = "Reprovado com Pendências" if has_issues else "Aprovado"
                                 with st.spinner("Salvando..."):
