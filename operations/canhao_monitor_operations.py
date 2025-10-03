@@ -112,10 +112,9 @@ def save_canhao_monitor_inspection(equip_id, inspection_type, overall_status, re
 
 
 def save_canhao_monitor_action_log(equip_id, problem, action_taken, responsible, photo_file=None):
-    """Salva um registro de ação corretiva para um canhão monitor no log."""
+    """Salva um registro de ação corretiva para um canhão monitor no log específico."""
     try:
-        # AINDA NÃO TEMOS UMA PLANILHA DE LOG PARA CANHÕES, VAMOS USAR O LOG GERAL POR ENQUANTO
-        from gdrive.config import LOG_ACTIONS
+        from gdrive.config import LOG_CANHAO_MONITOR_SHEET_NAME 
         
         uploader = GoogleDriveUploader()
         
@@ -133,11 +132,10 @@ def save_canhao_monitor_action_log(equip_id, problem, action_taken, responsible,
             problem,
             action_taken,
             responsible,
-            None,  # id_substituto (não aplicável aqui)
             photo_link if photo_link else ""
         ]
         
-        uploader.append_data_to_sheet(LOG_ACTIONS, [data_row]) # Usando log de ações genérico
+        uploader.append_data_to_sheet(LOG_CANHAO_MONITOR_SHEET_NAME, [data_row]) # <-- CORREÇÃO AQUI
         log_action("REGISTROU_ACAO_CANHAO_MONITOR", f"ID: {equip_id}, Ação: {action_taken[:50]}...")
         return True
     except Exception as e:
