@@ -91,7 +91,7 @@ def show_page():
                 
                 **Ideal para:**
                 - ✅ Inspeções de rotina mensais
-                - ✅ Uso em campo com celular
+                - ✅ Uso em campo com celular ou tablet (ex)
                 - ✅ Verificações rápidas
                 - ✅ Captura automática de GPS
                 
