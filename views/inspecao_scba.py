@@ -121,15 +121,16 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
         
-    tab_test_scba, tab_manual_test, tab_quality_air, tab_manual_air, tab_visual_insp, tab_manual_scba = st.tabs([
-        "Teste de Equipamentos (IA)",
-        "Cadastro Manual de Teste",
-        "Laudo de Qualidade do Ar (IA)",
-        "Registro Manual de Qualidade do Ar",
-        "Inspeção Visual Periódica",
-        "Cadastro Manual de SCBA"
+    tab_instrucoes, tab_visual_insp, tab_test_scba, tab_manual_test, tab_quality_air, tab_manual_air, tab_manual_scba = st.tabs([
+        "📖 Como Usar",
+        "🔍 Inspeção Visual Periódica",
+        "🤖 Teste de Equipamentos (IA)",
+        "✍️ Cadastro Manual de Teste",
+        "💨 Laudo de Qualidade do Ar (IA)",
+        "📝 Registro Manual de Qualidade do Ar",
+        "➕ Cadastrar Novo SCBA"
     ])
-    
+        
     with tab_test_scba:
         st.header("Registrar Teste de SCBA com IA")
         
