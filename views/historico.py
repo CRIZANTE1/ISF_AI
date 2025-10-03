@@ -20,7 +20,8 @@ from gdrive.config import (
     LOG_ALARM_SHEET_NAME, HOSE_DISPOSAL_LOG_SHEET_NAME,
     MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, LOG_MULTIGAS_SHEET_NAME,
     CANHAO_MONITOR_INVENTORY_SHEET_NAME,      
-    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME     
+    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME,
+    LOG_CANHAO_MONITOR_SHEET_NAME 
 )
 # O dicionário ALL_COLUMNS foi movido para fora da função, tornando-se uma constante do módulo.
 ALL_COLUMNS = {
@@ -39,16 +40,13 @@ ALL_COLUMNS = {
     'responsavel_baixa': 'Responsável pela Baixa', 'numero_identificacao_substituto': 'ID Substituto',
     'observacoes': 'Observações', 'link_foto_evidencia': 'Evidência Fotográfica',
     'motivo': 'Motivo da Baixa', 'id_mangueira_substituta': 'Mangueira Substituta',
-    # Multigas
     'numero_serie': 'S/N', 'LEL_cilindro': 'LEL Cilindro', 'O2_cilindro': 'O2 Cilindro',
     'H2S_cilindro': 'H2S Cilindro', 'CO_cilindro': 'CO Cilindro', 'LEL_encontrado': 'LEL Encontrado',
     'O2_encontrado': 'O2 Encontrado', 'H2S_encontrado': 'H2S Encontrado', 'CO_encontrado': 'CO Encontrado',
     'tipo_teste': 'Tipo de Teste', 'resultado_teste': 'Resultado', 'responsavel_nome': 'Responsável',
     'responsavel_matricula': 'Matrícula', 'proxima_calibracao': 'Próx. Calibração',
-    'numero_certificado': 'Nº Certificado', 'link_certificado': 'Certificado', 'problema': 'Problema',
-    'data_inspecao': 'Data Inspeção', 'status_geral': 'Status', 'inspetor': 'Inspetor'
+    'numero_certificado': 'Nº Certificado', 'link_certificado': 'Certificado', 'problema': 'Problema'
 }
-# -----------------------------
 
 def format_dataframe_for_display(df, sheet_name):
     if df.empty:
@@ -81,7 +79,8 @@ def format_dataframe_for_display(df, sheet_name):
         MULTIGAS_INSPECTIONS_SHEET_NAME: ['data_teste', 'id_equipamento', 'tipo_teste', 'resultado_teste', 'plano_de_acao', 'proxima_calibracao', 'link_certificado'],
         LOG_MULTIGAS_SHEET_NAME: ['data_acao', 'id_equipamento', 'problema', 'acao_realizada', 'responsavel', 'link_foto_evidencia'],
         CANHAO_MONITOR_INVENTORY_SHEET_NAME: ['id_equipamento', 'localizacao', 'marca', 'modelo', 'data_cadastro'],
-        CANHAO_MONITOR_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_equipamento', 'tipo_inspecao', 'status_geral', 'plano_de_acao', 'inspetor']
+        CANHAO_MONITOR_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_equipamento', 'tipo_inspecao', 'status_geral', 'plano_de_acao', 'inspetor'],
+        LOG_CANHAO_MONITOR_SHEET_NAME: ['data_acao', 'id_equipamento', 'problema_original', 'acao_realizada', 'responsavel', 'link_foto_evidencia']
     }
 
     cols_to_show = SHEET_VIEW_COLUMNS.get(sheet_name, df.columns.tolist())
@@ -290,7 +289,9 @@ def show_page():
         st.header("Logs de Ações Corretivas")
         subtabs = st.tabs([
             "🔥 Extintores", "🧯 Abrigos", "💨 C. Autônomo", 
-            "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "🔔 Alarmes", "💨 Multigas"
+            "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "🔔 Alarmes", 
+            "🌊 Canhões Monitores", 
+            "💨 Multigas"
         ])
 
         with subtabs[0]: display_formatted_dataframe(LOG_ACTIONS)
@@ -299,7 +300,8 @@ def show_page():
         with subtabs[3]: display_formatted_dataframe(LOG_EYEWASH_SHEET_NAME)
         with subtabs[4]: display_formatted_dataframe(LOG_FOAM_CHAMBER_SHEET_NAME)
         with subtabs[5]: display_formatted_dataframe(LOG_ALARM_SHEET_NAME)
-        with subtabs[6]: display_formatted_dataframe(LOG_MULTIGAS_SHEET_NAME)
+        with subtabs[6]: display_formatted_dataframe(LOG_CANHAO_MONITOR_SHEET_NAME)
+        with subtabs[7]: display_formatted_dataframe(LOG_MULTIGAS_SHEET_NAME)
 
     with tab_disposals:
         st.header("🗑️ Registros de Baixas Definitivas")
