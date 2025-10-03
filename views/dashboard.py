@@ -104,6 +104,7 @@ def action_dialog_canhao_monitor(item_row):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
+            # <-- A CHAMADA PARA SALVAR O LOG JÁ ESTÁ AQUI -->
             log_saved = save_canhao_monitor_action_log(equipment_id, problem, action_taken, responsible, photo_evidence)
             
             if not log_saved:
@@ -131,7 +132,7 @@ def action_dialog_canhao_monitor(item_row):
                 st.rerun()
             else:
                 st.error("Log salvo, mas falha ao registrar a nova inspeção de regularização.")
-
+                
 
 def get_multigas_status_df(df_inventory, df_inspections):
     if df_inventory.empty:
