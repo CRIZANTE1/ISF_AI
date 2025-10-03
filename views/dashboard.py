@@ -33,8 +33,9 @@ from gdrive.config import (
     MULTIGAS_INSPECTIONS_SHEET_NAME,
     ALARM_INVENTORY_SHEET_NAME,
     ALARM_INSPECTIONS_SHEET_NAME,
-    LOG_ALARM_SHEET_NAME
-
+    LOG_ALARM_SHEET_NAME,
+    CANHAO_MONITOR_INVENTORY_SHEET_NAME,      
+    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME    
 )
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
@@ -49,6 +50,11 @@ from operations.multigas_operations import save_multigas_action_log
 from operations.alarm_operations import (
     save_alarm_action_log, get_alarm_status_df, save_alarm_inspection,
     CHECKLIST_QUESTIONS as ALARM_CHECKLIST
+)
+from operations.canhao_monitor_operations import (
+    save_canhao_monitor_action_log,
+    save_canhao_monitor_inspection,
+    CHECKLIST_VISUAL as CANHAO_CHECKLIST_VISUAL
 )
 from operations.dashboard_operations import load_all_dashboard_data, get_dashboard_summary_stats
 
@@ -76,6 +82,55 @@ def get_canhao_monitor_status_df(df_inspections):
     latest_inspections['status_dashboard'] = np.select(conditions, choices, default='🟢 OK')
     
     return latest_inspections
+
+@st.dialog("Registrar Ação Corretiva para Canhão Monitor")
+def action_dialog_canhao_monitor(item_row):
+    equipment_id = item_row['id_equipamento']
+    problem = item_row['plano_de_acao']
+    
+    st.write(f"**Equipamento ID:** `{equipment_id}`")
+    st.write(f"**Problema Identificado:** `{problem}`")
+    
+    action_taken = st.text_area("Descreva a ação corretiva realizada:")
+    responsible = st.text_input("Responsável pela ação:", value=get_user_display_name())
+    
+    st.markdown("---")
+    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
+    photo_evidence = st.file_uploader("Foto da Evidência", type=["jpg", "jpeg", "png"], key=f"photo_action_canhao_{equipment_id}")
+    
+    if st.button("Salvar Ação e Regularizar Status", type="primary"):
+        if not action_taken:
+            st.error("Por favor, descreva a ação realizada.")
+            return
+
+        with st.spinner("Registrando ação e regularizando status..."):
+            log_saved = save_canhao_monitor_action_log(equipment_id, problem, action_taken, responsible, photo_evidence)
+            
+            if not log_saved:
+                st.error("Falha ao salvar o log da ação. O status não foi atualizado.")
+                return
+
+            # Simula uma inspeção "Aprovada" para regularizar o status
+            mock_results = {}
+            for category, questions in CANHAO_CHECKLIST_VISUAL.items():
+                for question in questions:
+                    mock_results[question] = "Conforme"
+            
+            inspection_saved = save_canhao_monitor_inspection(
+                equip_id=equipment_id,
+                inspection_type="Visual Trimestral (Regularização)",
+                overall_status="Aprovado",
+                results_dict=mock_results,
+                photo_file=None,
+                inspector_name=get_user_display_name()
+            )
+            
+            if inspection_saved:
+                st.success("Ação registrada e status do equipamento regularizado com sucesso!")
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("Log salvo, mas falha ao registrar a nova inspeção de regularização.")
 
 
 def get_multigas_status_df(df_inventory, df_inspections):
@@ -970,10 +1025,10 @@ def show_page():
         st.cache_data.clear()
         st.rerun()
 
-    tab_help, tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms = st.tabs([
-    "📘 Como Usar","🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
-    "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás", "🔔 Alarmes"
-])
+    tab_help, tab_extinguishers, tab_hoses, tab_shelters, tab_scba, tab_eyewash, tab_foam, tab_multigas, tab_alarms, tab_canhoes = st.tabs([
+        "📘 Como Usar","🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos", "💨 C. Autônomo", 
+        "🚿 Chuveiros/Lava-Olhos", "☁️ Câmaras de Espuma", "💨 Multigás", "🔔 Alarmes", "🌊 Canhões Monitores"
+    ])
 
     location = streamlit_js_eval(js_expressions="""
         new Promise(function(resolve, reject) {
@@ -1705,3 +1760,73 @@ def show_page():
             st.error(f"Erro ao carregar os dados dos sistemas de alarme: {e}")
             import traceback
             st.error(f"Detalhes do erro: {traceback.format_exc()}")
+            
+
+    with tab_canhoes:
+        st.header("Dashboard de Canhões Monitores")
+        
+        df_inventory = load_sheet_data(CANHAO_MONITOR_INVENTORY_SHEET_NAME)
+        df_inspections = load_sheet_data(CANHAO_MONITOR_INSPECTIONS_SHEET_NAME)
+
+        if df_inspections.empty:
+            st.warning("Nenhuma inspeção de canhão monitor registrada.")
+        else:
+            dashboard_df = get_canhao_monitor_status_df(df_inspections)
+            
+            if not df_inventory.empty:
+                dashboard_df = pd.merge(
+                    dashboard_df, 
+                    df_inventory[['id_equipamento', 'localizacao', 'modelo']], 
+                    on='id_equipamento', 
+                    how='left'
+                )
+            else:
+                dashboard_df['localizacao'] = 'N/A'
+                dashboard_df['modelo'] = 'N/A'
+            
+            status_counts = dashboard_df['status_dashboard'].value_counts()
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("✅ Total de Canhões", len(dashboard_df))
+            col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
+            col3.metric("🟠 Com Pendências", status_counts.get("🟠 COM PENDÊNCIAS", 0))
+            col4.metric("🔴 Vencido", status_counts.get("🔴 VENCIDO", 0))
+            st.markdown("---")
+
+            st.subheader("Lista de Equipamentos e Status")
+            for _, row in dashboard_df.iterrows():
+                status = row['status_dashboard']
+                prox_inspecao = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_proxima_inspecao']) else "N/A"
+                localizacao = row.get('localizacao', 'Local não definido')
+                
+                expander_title = f"{status} | **ID:** {row['id_equipamento']} | **Local:** {localizacao} | **Próx. Inspeção:** {prox_inspecao}"
+                
+                with st.expander(expander_title):
+                    ultima_inspecao = pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y') if pd.notna(row['data_inspecao']) else "N/A"
+                    st.write(f"**Última inspeção:** {ultima_inspecao} por **{row['inspetor']}** ({row['tipo_inspecao']})")
+                    st.write(f"**Plano de Ação Sugerido:** {row.get('plano_de_acao', 'N/A')}")
+                    
+                    if status in ["🟠 COM PENDÊNCIAS", "🔴 VENCIDO"]:
+                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_canhao_{row['id_equipamento']}"):
+                            action_dialog_canhao_monitor(row.to_dict())
+    
+                    st.markdown("---")
+                    st.write("**Detalhes da Última Inspeção:**")
+                    try:
+                        results_json = row.get('resultados_json')
+                        if results_json and pd.notna(results_json):
+                            results = json.loads(results_json)
+                            non_conformities = {q: s for q, s in results.items() if s in ["Não Conforme", "Reprovado"]}
+                            
+                            if non_conformities:
+                                st.write("Itens não conformes encontrados:")
+                                st.table(pd.DataFrame.from_dict(non_conformities, orient='index', columns=['Status']))
+                            else:
+                                st.success("Todos os itens estavam conformes na última inspeção.")
+                        else:
+                            st.info("Nenhum detalhe de inspeção disponível.")
+                        
+                        photo_link = row.get('link_foto_nao_conformidade')
+                        display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
+
+                    except (json.JSONDecodeError, TypeError):
+                        st.error("Não foi possível carregar os detalhes da inspeção.")
