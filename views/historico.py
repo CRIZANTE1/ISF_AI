@@ -18,9 +18,10 @@ from gdrive.config import (
     LOG_ACTIONS, LOG_SHELTER_SHEET_NAME, LOG_SCBA_SHEET_NAME, LOG_EYEWASH_SHEET_NAME,
     LOG_FOAM_CHAMBER_SHEET_NAME, ALARM_INVENTORY_SHEET_NAME, ALARM_INSPECTIONS_SHEET_NAME, 
     LOG_ALARM_SHEET_NAME, HOSE_DISPOSAL_LOG_SHEET_NAME,
-    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, LOG_MULTIGAS_SHEET_NAME
+    MULTIGAS_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME, LOG_MULTIGAS_SHEET_NAME,
+    CANHAO_MONITOR_INVENTORY_SHEET_NAME,      
+    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME     
 )
-
 # O dicionário ALL_COLUMNS foi movido para fora da função, tornando-se uma constante do módulo.
 ALL_COLUMNS = {
     # Comuns
@@ -44,20 +45,17 @@ ALL_COLUMNS = {
     'O2_encontrado': 'O2 Encontrado', 'H2S_encontrado': 'H2S Encontrado', 'CO_encontrado': 'CO Encontrado',
     'tipo_teste': 'Tipo de Teste', 'resultado_teste': 'Resultado', 'responsavel_nome': 'Responsável',
     'responsavel_matricula': 'Matrícula', 'proxima_calibracao': 'Próx. Calibração',
-    'numero_certificado': 'Nº Certificado', 'link_certificado': 'Certificado', 'problema': 'Problema'
+    'numero_certificado': 'Nº Certificado', 'link_certificado': 'Certificado', 'problema': 'Problema',
+    'data_inspecao': 'Data Inspeção', 'status_geral': 'Status', 'inspetor': 'Inspetor'
 }
 # -----------------------------
 
 def format_dataframe_for_display(df, sheet_name):
-    """
-    Prepara o DataFrame para exibição, renomeando colunas e selecionando as mais importantes.
-    """
     if df.empty:
         return df
     
     df = df.copy()
 
-    # Este dicionário agora está definido fora, mas a função ainda pode acessá-lo.
     SHEET_VIEW_COLUMNS = {
         EXTINGUISHER_SHEET_NAME: ['data_servico', 'numero_identificacao', 'tipo_servico', 'aprovado_inspecao', 'plano_de_acao', 'link_relatorio_pdf'],
         HOSE_SHEET_NAME: ['id_mangueira', 'data_inspecao', 'data_proximo_teste', 'resultado', 'link_certificado_pdf'],
@@ -81,7 +79,9 @@ def format_dataframe_for_display(df, sheet_name):
         HOSE_DISPOSAL_LOG_SHEET_NAME: ['data_baixa', 'id_mangueira', 'motivo', 'responsavel', 'id_mangueira_substituta'],
         MULTIGAS_INVENTORY_SHEET_NAME: ['id_equipamento', 'marca', 'modelo', 'numero_serie', 'data_cadastro'],
         MULTIGAS_INSPECTIONS_SHEET_NAME: ['data_teste', 'id_equipamento', 'tipo_teste', 'resultado_teste', 'plano_de_acao', 'proxima_calibracao', 'link_certificado'],
-        LOG_MULTIGAS_SHEET_NAME: ['data_acao', 'id_equipamento', 'problema', 'acao_realizada', 'responsavel', 'link_foto_evidencia']
+        LOG_MULTIGAS_SHEET_NAME: ['data_acao', 'id_equipamento', 'problema', 'acao_realizada', 'responsavel', 'link_foto_evidencia'],
+        CANHAO_MONITOR_INVENTORY_SHEET_NAME: ['id_equipamento', 'localizacao', 'marca', 'modelo', 'data_cadastro'],
+        CANHAO_MONITOR_INSPECTIONS_SHEET_NAME: ['data_inspecao', 'id_equipamento', 'tipo_inspecao', 'status_geral', 'plano_de_acao', 'inspetor']
     }
 
     cols_to_show = SHEET_VIEW_COLUMNS.get(sheet_name, df.columns.tolist())
@@ -265,6 +265,7 @@ def show_page():
             "🔥 Extintores", "💧 Mangueiras", "🧯 Abrigos (Cadastro)", "📋 Abrigos (Inspeções)",
             "💨 SCBA (Testes)", "🩺 SCBA (Inspeções)", "🚿 C/LO (Cadastro)", "🚿 C/LO (Inspeções)", 
             "☁️ Câmaras (Cadastro)", "☁️ Câmaras (Inspeções)", "🔔 Alarmes (Cadastro)", "🔔 Alarmes (Inspeções)",
+            "🌊 Canhões (Cadastro)", "🌊 Canhões (Inspeções)",  # <-- NOVAS ABAS
             "💨 Multigas (Cadastro)", "💨 Multigas (Inspeções)"
         ])
 
@@ -280,8 +281,10 @@ def show_page():
         with subtabs[9]: display_formatted_dataframe(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
         with subtabs[10]: display_formatted_dataframe(ALARM_INVENTORY_SHEET_NAME)
         with subtabs[11]: display_formatted_dataframe(ALARM_INSPECTIONS_SHEET_NAME)
-        with subtabs[12]: display_formatted_dataframe(MULTIGAS_INVENTORY_SHEET_NAME)
-        with subtabs[13]: display_formatted_dataframe(MULTIGAS_INSPECTIONS_SHEET_NAME)
+        with subtabs[12]: display_formatted_dataframe(CANHAO_MONITOR_INVENTORY_SHEET_NAME)
+        with subtabs[13]: display_formatted_dataframe(CANHAO_MONITOR_INSPECTIONS_SHEET_NAME)
+        with subtabs[14]: display_formatted_dataframe(MULTIGAS_INVENTORY_SHEET_NAME)
+        with subtabs[15]: display_formatted_dataframe(MULTIGAS_INSPECTIONS_SHEET_NAME)
 
     with tab_logs:
         st.header("Logs de Ações Corretivas")
