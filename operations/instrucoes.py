@@ -5,11 +5,16 @@ import pandas as pd
 
 
 def instru_dash():
+    """Instruções para o Dashboard"""
+    st.header("📖 Guia de Uso - Dashboard")
+    st.info("Instruções do Dashboard serão adicionadas em breve.")
+
 
 
   
 def instru_extinguisher():
-  st.header("📖 Guia de Uso - Sistema de Inspeção de Extintores")
+  
+    st.header("📖 Guia de Uso - Sistema de Inspeção de Extintores")
             
             # Alerta de priorização
             st.success(
@@ -298,8 +303,13 @@ def instru_extinguisher():
 
 
   
-def instru_scba():  
+def instru_scba():
+    """Instruções para SCBA"""
+    st.header("📖 Guia de Uso - Conjuntos Autônomos (SCBA)")
+    st.info("Instruções de SCBA serão adicionadas em breve.")
 
 
-
-def instru_multigas():  
+def instru_multigas():
+    """Instruções para Multigás"""
+    st.header("📖 Guia de Uso - Detectores Multigás")
+    st.info("Instruções de Multigás serão adicionadas em breve.")
