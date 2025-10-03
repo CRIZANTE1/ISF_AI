@@ -11,7 +11,7 @@ if current_dir not in sys.path:
 from auth.auth_utils import (
     is_user_logged_in, setup_sidebar, get_user_email, get_users_data,
     get_effective_user_status, get_effective_user_plan, get_user_role, 
-    is_admin, is_superuser
+    is_admin, is_superuser, get_user_info
 )
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from utils.auditoria import log_action
@@ -79,15 +79,24 @@ def main():
             
             st.session_state['user_logged_in'] = True
 
-        # Carrega dados do usuário
-        try:
-            users_df = get_users_data()
-            user_email = get_user_email()
-        except Exception as e:
-            st.error(f"Erro ao carregar dados do usuário: {e}")
-            show_logout_button()
-            st.stop()
+        # <-- MODIFICAÇÃO INICIA AQUI -->
+        # Carrega e armazena os dados do usuário na sessão APENAS UMA VEZ
+        if 'user_data' not in st.session_state:
+            with st.spinner("Carregando perfil e permissões..."):
+                user_info = get_user_info()
+                if user_info is None:
+                    # Usuário não encontrado no banco - cria temporário para validação
+                    st.session_state.user_data = {
+                        'email': get_user_email(), 
+                        'status': 'not_in_database'
+                    }
+                else:
+                    st.session_state.user_data = user_info
 
+        # A partir daqui, use os dados da sessão
+        user_email = st.session_state.user_data.get('email')
+
+        # Lógica de autorização simplificada
         is_authorized = False
         user_status = None
         
@@ -97,10 +106,8 @@ def main():
                 is_authorized = True
                 user_status = "superuser"
             # Usuário comum deve estar na lista de usuários autorizados
-            elif not users_df.empty and user_email in users_df['email'].values:
-                user_row = users_df[users_df['email'] == user_email].iloc[0]
-                user_status = user_row.get('status', 'inativo')
-                
+            elif st.session_state.user_data.get('status') != 'not_in_database':
+                user_status = st.session_state.user_data.get('status', 'inativo')
                 # Considera autorizado se estiver na planilha (independente do status)
                 # O status será verificado depois para determinar o tipo de acesso
                 is_authorized = True
@@ -108,6 +115,7 @@ def main():
                 # Usuário NÃO está na planilha - não autorizado
                 is_authorized = False
                 user_status = "not_in_database"
+        # <-- MODIFICAÇÃO TERMINA AQUI -->
 
         # Só registra ACCESS_DENIED_UNAUTHORIZED se realmente não autorizado
         if not is_authorized:
@@ -119,7 +127,6 @@ def main():
             show_user_header()
             demo_page.show_page()
             st.stop()
-
 
         
         effective_status = get_effective_user_status()
