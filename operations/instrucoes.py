@@ -1,100 +1,687 @@
 import streamlit as st
 
 
-def mostrar_instrucoes_abrigos():
-    """
-    Esta função contém o trecho de código fornecido com a indentação corrigida.
-    O conteúdo inicial de texto foi encapsulado em um st.markdown para ser um código válido.
-    """
-    
-    st.markdown("""
-    **Clique em cada expansor** para ver detalhes completos
-    
-    **⚠️ Se algo estiver errado:**
-    - Você pode editar depois via Dashboard
-    - Ou cadastrar manualmente apenas os abrigos com erro
-    
+def instru_mangueiras():
+    """Instruções para Mangueiras e Abrigos"""
+    st.header("📖 Guia de Uso - Sistema de Mangueiras e Abrigos de Incêndio")
+
+    # Alerta de priorização
+    st.success(
+        "⚡ **Recomendação:** Para cadastro de múltiplas mangueiras de uma vez, "
+        "use o **Processamento por IA com PDF**! Para cadastros individuais, use o **Cadastro Manual**."
+    )
+
+    st.markdown("---")
+
+    # Comparação de métodos - MANGUEIRAS
+    st.subheader("🎯 Gestão de Mangueiras - Escolha o Melhor Método")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("""
+        ### 🤖 Processamento por IA
+        **📄 PARA MÚLTIPLAS MANGUEIRAS**
+
+        **Tempo:** ~2-3 minutos (processo completo)
+
+        **Ideal para:**
+        - 📋 Certificados de teste hidrostático
+        - 🏢 Relatórios de empresas terceirizadas
+        - 📊 Processar 10, 20, 50+ mangueiras de uma vez
+        - 📄 Manter PDF anexado ao registro
+
+        **Como funciona:**
+        1. Faça upload do certificado PDF
+        2. IA extrai todos os dados automaticamente
+        3. Revise a tabela com todas as mangueiras
+        4. Confirme e salve tudo de uma vez
+        5. PDF fica anexado aos registros
+
+        **Vantagens:**
+        - 🤖 IA processa tudo sozinha
+        - ⚡ Múltiplas mangueiras em segundos
+        - 📄 Certificado anexado
+        - 📅 Calcula próximo teste automaticamente
+        - 🎯 Identifica aprovadas/reprovadas/condenadas
+
+        **Requer:** Plano Premium IA
+        """)
+
+    with col2:
+        st.markdown("""
+        ### ✍️ Cadastro Manual
+        **🆕 PARA MANGUEIRAS INDIVIDUAIS**
+
+        **Tempo:** ~1-2 minutos por mangueira
+
+        **Ideal para:**
+        - 🆕 Cadastrar mangueira nova individual
+        - 🔧 Mangueiras de reposição
+        - ✏️ Correções pontuais
+        - 📝 Quando não tem certificado PDF
+
+        **Como funciona:**
+        1. Preencha os dados básicos
+        2. Selecione diâmetro, tipo e comprimento
+        3. Informe ano de fabricação
+        4. Opcionalmente, empresa fornecedora
+        5. Salve - Pronto! ✅
+
+        **Vantagens:**
+        - 🚀 Rápido para 1 mangueira
+        - 📝 Controle total dos dados
+        - 🆕 Não precisa de certificado
+        - ⚙️ Campos pré-definidos facilitam
+
+        **Disponível em:** Todos os planos Pro e Premium IA
+        """)
+
+    st.markdown("---")
+
+    # Comparação de métodos - ABRIGOS
+    st.subheader("🧯 Gestão de Abrigos - Escolha o Melhor Método")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        ### 🤖 Inventário por IA
+        **📄 PARA MÚLTIPLOS ABRIGOS**
+
+        **Tempo:** ~2-3 minutos (lote completo)
+
+        **Ideal para:**
+        - 📋 Inventários completos em PDF
+        - 🏢 Levantamentos de empresas
+        - 📊 Cadastrar 5, 10, 20+ abrigos
+        - 🗂️ Primeira implantação
+
+        **Como funciona:**
+        1. Upload do inventário PDF
+        2. IA extrai todos os abrigos
+        3. Revise ID, local e itens
+        4. Salve tudo de uma vez
+
+        **Vantagens:**
+        - 🤖 IA identifica itens automaticamente
+        - ⚡ Múltiplos abrigos em minutos
+        - 📊 Mantém estrutura organizada
+
+        **Requer:** Plano Premium IA
+        """)
+
+    with col2:
+        st.markdown("""
+        ### ➕ Cadastro Manual
+        **🆕 PARA ABRIGO INDIVIDUAL**
+
+        **Tempo:** ~2-4 minutos por abrigo
+
+        **Ideal para:**
+        - 🆕 Abrigo novo individual
+        - 📝 Não tem inventário PDF
+        - ✏️ Correções de dados
+        - 🔧 Atualizações pontuais
+
+        **Como funciona:**
+        1. Informe ID e localização
+        2. Selecione itens padrão
+        3. Adicione itens personalizados
+        4. Defina quantidades
+        5. Salve o abrigo
+
+        **Vantagens:**
+        - 📋 Lista de itens padrão
+        - ➕ Adicione itens customizados
+        - 🎯 Controle total do inventário
+
+        **Disponível em:** Todos os planos
+        """)
+
+    with col3:
+        st.markdown("""
+        ### 🔍 Inspeção de Abrigo
+        **📅 USO PERIÓDICO**
+
+        **Tempo:** ~3-5 minutos por abrigo
+
+        **Ideal para:**
+        - 📅 Inspeções mensais obrigatórias
+        - ✅ Verificação de conformidade
+        - 🔧 Identificar itens faltantes
+        - 📊 Manter histórico
+
+        **Como funciona:**
+        1. Selecione o abrigo
+        2. Checklist item por item
+        3. Marque OK/Avariado/Faltando
+        4. Verifique condições gerais
+        5. Salve a inspeção
+
+        **Vantagens:**
+        - 📋 Checklist guiado
+        - 🎯 Baseado no inventário real
+        - 🔔 Identifica pendências
+        - 📊 Histórico rastreável
+        """)
+
+    st.markdown("---")
+
+    # Fluxo de trabalho recomendado
+    st.subheader("🎯 Fluxo de Trabalho Recomendado")
+
+    st.info("""
+    **Para Máxima Eficiência, Siga Esta Ordem:**
+
+    ### 🔧 MANGUEIRAS:
+
+    1️⃣ **Recebeu Certificado de TH com Múltiplas Mangueiras?**
+    → Use **"Inspeção de Mangueiras com IA"** (IA processa tudo!)
+
+    2️⃣ **Comprou 1 ou 2 Mangueiras Novas?**
+    → Use **"Cadastro Manual de Mangueiras"** (mais rápido para poucas)
+
+    3️⃣ **Primeira Implantação do Sistema?**
+    → Use **Cadastro Manual** uma a uma OU peça inventário em PDF para IA processar
+
     ---
-    
-    #### **Passo 5: Confirme e Salve Tudo** 💾
-    
-    1. Revise todos os abrigos
-    2. Clique em **"💾 Confirmar e Salvar Abrigos"**
-    3. Sistema salva **todos de uma vez**
-    4. 🎉 Pronto! Inventário completo cadastrado!
-    
-    **O que acontece após salvar:**
-    - ✅ Todos os abrigos salvos na planilha
-    - 📊 Aparecem no Dashboard
-    - 🔍 Prontos para inspeção
-    - 📋 Checklist gerado automaticamente baseado no inventário
-    
-    ---
-    
-    #### **💡 Dicas para IA processar melhor:**
-    
-    **✅ FAÇA:**
-    - Use PDFs com texto (não imagens escaneadas)
-    - Mantenha estrutura clara (ID → Local → Itens)
-    - Liste itens em bullets ou numerados
-    - Use nomes claros (ex: "Mangueira 1½\"" ao invés de "Mang.")
-    
-    **❌ EVITE:**
-    - PDFs muito complexos ou desorganizados
-    - Imagens escaneadas de baixa qualidade
-    - Documentos sem estrutura clara
-    - Múltiplos formatos misturados
+
+    ### 🧯 ABRIGOS:
+
+    1️⃣ **Tem Inventário Completo em PDF?**
+    → Use **"Cadastro de Abrigos com IA"** (múltiplos de uma vez!)
+
+    2️⃣ **Cadastrar 1 Abrigo Novo?**
+    → Use **"Cadastro Manual"** no expansível da aba de inspeção
+
+    3️⃣ **Fazer Inspeção Mensal?**
+    → Use **"Inspeção de Abrigos"** (checklist guiado!)
     """)
+
+    st.markdown("---")
+
+    # Guia detalhado - MANGUEIRAS
+    st.subheader("💧 Guia Completo: Gestão de Mangueiras")
+
+    with st.expander("📋 Tipos de Teste e Validade", expanded=True):
+        st.markdown("""
+        ### 🔬 Teste Hidrostático de Mangueiras
+
+        **O que é?**
+        - Teste obrigatório que verifica a integridade da mangueira
+        - Mangueira é submetida a alta pressão de água
+        - Identifica vazamentos, pontos fracos e desgaste
+
+        ---
+
+        ### ⏰ Frequência Obrigatória
+
+        **Norma NBR 12779:**
+        - ✅ **Teste a cada 12 meses** (anual obrigatório)
+        - ⚠️ Sistema calcula automaticamente o próximo vencimento
+        - 🚨 Mangueira com teste vencido não pode ser usada
+
+        **Quando fazer teste extraordinário:**
+        - Após qualquer reparo ou recondicionamento
+        - Após exposição a produtos químicos
+        - Se houver suspeita de dano interno
+        - Após longos períodos sem uso (>2 anos)
+
+        ---
+
+        ### 🎯 Resultados Possíveis
+
+        **✅ APROVADA:**
+        - Suportou a pressão de teste sem vazamentos
+        - Está apta para uso por mais 12 meses
+        - Sistema agenda próximo teste automaticamente
+
+        **⚠️ REPROVADA:**
+        - Apresentou vazamento ou falha no teste
+        - **NÃO pode ser usada** até reparo
+        - Deve ser reparada e testada novamente
+        - Se não for possível reparar → CONDENAR
+
+        **🗑️ CONDENADA:**
+        - Falha estrutural irreparável
+        - Deve ser **descartada imediatamente**
+        - Substituir por mangueira nova
+        - Sistema não agenda próximo teste (item baixado)
+
+        ---
+
+        ### 📊 Pressões de Teste por Tipo
+
+        | Tipo | Pressão de Trabalho | Pressão de Teste |
+        |------|---------------------|------------------|
+        | Tipo 1 | 980 kPa (10 kgf/cm²) | 1.960 kPa (20 kgf/cm²) |
+        | Tipo 2 | 1.370 kPa (14 kgf/cm²) | 2.740 kPa (28 kgf/cm²) |
+        | Tipo 3 | 1.520 kPa (15,5 kgf/cm²) | 3.040 kPa (31 kgf/cm²) |
+        | Tipo 4 | 1.960 kPa (20 kgf/cm²) | 3.920 kPa (40 kgf/cm²) |
+        | Tipo 5 | 2.740 kPa (28 kgf/cm²) | 5.480 kPa (56 kgf/cm²) |
+        """)
+
+    with st.expander("🤖 Como Usar o Processamento por IA"):
+        st.markdown("""
+        ### 📄 Passo a Passo: Processamento de Certificado PDF
+
+        #### **Passo 1: Prepare o Certificado** 📋
+
+        **Formatos aceitos:**
+        - ✅ PDF de empresas certificadas de teste hidrostático
+        - ✅ Certificados padrão do mercado
+        - ✅ Relatórios técnicos com dados estruturados
+
+        **O certificado deve conter:**
+        - ID/número de cada mangueira
+        - Marca e especificações (diâmetro, tipo, comprimento)
+        - Data do teste
+        - Resultado (Aprovado/Reprovado/Condenado)
+        - Empresa executante e responsável técnico
+
+        ---
+
+        #### **Passo 2: Faça o Upload** 📤
+
+        1. Vá para aba **"Inspeção de Mangueiras com IA"**
+        2. Clique em **"Choose file"** ou arraste o PDF
+        3. Aguarde o upload completar
+        4. Clique em **"🔎 Analisar Certificado com IA"**
+
+        ---
+
+        #### **Passo 3: Aguarde o Processamento** 🤖
+
+        **A IA fará automaticamente:**
+        - 📖 Leitura completa do certificado
+        - 🔍 Identificação de todas as mangueiras
+        - 📊 Extração dos dados técnicos
+        - 📅 Cálculo da próxima data de teste
+        - ✅ Classificação de resultado
+
+        **Tempo médio:** 20-40 segundos
+
+        💡 **Dica:** Quanto melhor a qualidade do PDF, melhor a precisão!
+
+        ---
+
+        #### **Passo 4: Revise os Dados Extraídos** 🔍
+
+        Sistema mostrará uma **tabela** com todos os dados:
+
+        | Campo | O que verificar |
+        |-------|----------------|
+        | **ID Mangueira** | ID correto e único |
+        | **Marca** | Fabricante correto |
+        | **Diâmetro** | Em polegadas (1, 1½, 2, 2½, 3) |
+        | **Tipo** | Tipo correto (1 a 5) |
+        | **Comprimento** | Em metros (15, 20, 25, 30) |
+        | **Ano Fabricação** | Ano realista |
+        | **Data Inspeção** | Data do teste hidrostático |
+        | **Próximo Teste** | Deve ser +12 meses (se aprovada) |
+        | **Resultado** | Aprovado/Reprovado/Condenado |
+        | **Empresa** | Nome da empresa certificadora |
+        | **Responsável** | Nome do responsável técnico |
+
+        **⚠️ Se houver erro:**
+        - Você pode editar depois via Dashboard
+        - Ou processar novamente com PDF melhor qualidade
+
+        ---
+
+        #### **Passo 5: Confirme e Salve** 💾
+
+        1. Revise todos os dados na tabela
+        2. Clique em **"💾 Confirmar e Salvar Registros"**
+        3. Aguarde o salvamento em lote
+        4. 🎉 Pronto! Todas as mangueiras salvas de uma vez!
+
+        **O sistema automaticamente:**
+        - ✅ Salva todas as mangueiras na planilha
+        - 📄 Anexa o PDF do certificado ao registro
+        - 📅 Agenda próximos testes (se aprovadas)
+        - 🚨 Marca mangueiras condenadas como inativas
+        - 📊 Atualiza o Dashboard
+        - 🔔 Gera alertas de vencimento
+
+        ---
+
+        #### **📊 Exemplo Prático**
+
+        **Certificado com 25 mangueiras:**
+        - ⏱️ Processamento por IA: ~3 minutos (tudo)
+        - ⏱️ Cadastro manual: ~50 minutos (2min × 25)
+
+        **💰 Economia de tempo: ~94%!**
+        """)
+
+    with st.expander("✍️ Como Usar o Cadastro Manual de Mangueiras"):
+        st.markdown("""
+        ### 📝 Passo a Passo: Cadastro Manual
+
+        #### **Quando usar o cadastro manual?**
+
+        ✅ **Use quando:**
+        - Comprou 1 ou 2 mangueiras novas
+        - Não tem certificado de teste ainda
+        - Precisa fazer cadastro inicial rápido
+        - Quer corrigir dados de uma mangueira específica
+
+        ❌ **NÃO use quando:**
+        - Tem certificado PDF com 5+ mangueiras (use IA!)
+        - Precisa cadastrar inventário completo (use IA!)
+
+        ---
+
+        #### **Passo 1: Acesse o Formulário** 📋
+
+        1. Vá para aba **"Cadastro Manual de Mangueiras"**
+        2. Formulário já estará pronto para preenchimento
+
+        ---
+
+        #### **Passo 2: Preencha os Dados Obrigatórios** ✏️
+
+        **🏷️ ID da Mangueira (OBRIGATÓRIO):**
+        - Identificação única da mangueira
+        - Exemplos: MG-001, MANG-A-15, H2-025
+        - **Importante:** Não pode haver ID duplicado!
+
+        **📝 Marca/Fabricante:**
+        - Nome do fabricante da mangueira
+        - Exemplos: Mangotex, Boa Vista, Taurus
+
+        **📏 Diâmetro (polegadas):**
+        - Selecione da lista: 1, 1½, 2, 2½, 3
+        - Mais comum: **1½** (residencial/comercial)
+        - Industrial: **2½** ou **3**
+
+        **🔢 Tipo:**
+        - Selecione de 1 a 5 (quanto maior, mais resistente)
+        - Tipo 1: Uso leve
+        - Tipo 2-3: Uso médio (mais comum)
+        - Tipo 4-5: Uso pesado/industrial
+
+        **📐 Comprimento (metros):**
+        - Selecione: 15, 20, 25, 30 metros
+        - Mais comum: **15m** ou **30m**
+
+        **📅 Ano de Fabricação:**
+        - Ano em que a mangueira foi fabricada
+        - Sistema valida: entre 30 anos atrás e ano atual
+        - **Importante:** Mangueiras >10 anos requerem atenção especial
+
+        ---
+
+        #### **Passo 3: Dados Opcionais** ➕
+
+        **🏢 Empresa Fornecedora (Opcional):**
+        - Nome da empresa que forneceu a mangueira
+        - Útil para rastreabilidade e garantia
+
+        ---
+
+        #### **Passo 4: Cadastre!** 🚀
+
+        1. Revise todos os dados preenchidos
+        2. Clique em **"Cadastrar Nova Mangueira"**
+        3. Aguarde a confirmação
+        4. ✅ Mangueira cadastrada com sucesso!
+
+        **O que acontece após cadastrar:**
+        - Mangueira aparece no Dashboard
+        - Status inicial: "Pendente" (sem teste ainda)
+        - Sistema aguarda primeiro teste hidrostático
+        - Você pode cadastrar outra mangueira (formulário limpa automaticamente)
+
+        ---
+
+        #### **⚠️ Erros Comuns e Soluções**
+
+        **"ID da Mangueira já existe"**
+        - ✅ Escolha outro ID único
+        - ✅ Verifique se não cadastrou antes
+        - ✅ Use padrão: MG-001, MG-002, etc.
+
+        **"Dados não salvaram"**
+        - ✅ Verifique conexão com internet
+        - ✅ Confirme que preencheu ID (obrigatório)
+        - ✅ Tente novamente após alguns segundos
+
+        ---
+
+        #### **💡 Dicas para Cadastro Eficiente**
+
+        **Crie um padrão de ID:**    MG-001, MG-002, MG-003...
+    ou
+    MANG-15M-001, MANG-15M-002... (inclui comprimento)
+    ou
+    H2-A-001, H2-A-002... (H2 = 2½", A = Área A)
+
+        **Organize por setor/área:**
+        - Use prefixos: ADM-001, PROD-001, EST-001
+        - Facilita localização física
+        - Ajuda em inspeções por área
+
+        **Mantenha planilha auxiliar:**
+        - Excel com IDs, locais e datas de compra
+        - Ajuda a não duplicar IDs
+        - Facilita planejamento de testes
+        """)
+
+    st.markdown("---")
+
+    # Guia detalhado - ABRIGOS
+    st.subheader("🧯 Guia Completo: Gestão de Abrigos de Emergência")
+
+    with st.expander("📋 O que são Abrigos e Por que Inspecionar?", expanded=True):
+        st.markdown("""
+        ### 🧯 O que é um Abrigo de Emergência?
+
+        **Definição:**
+        - Caixa ou armário instalado na parede
+        - Contém equipamentos de combate a incêndio
+        - Geralmente pintado de vermelho
+        - Identificado com placa/sinalização
+
+        **Componentes típicos:**
+        - 💧 Mangueiras de incêndio (1½" ou 2½")
+        - 🚿 Esguichos reguláveis
+        - 🔧 Chaves de mangueira e hidrante
+        - 🔌 Adaptadores e redutores
+        - 📦 Derivantes (divisores de linha)
+
+        ---
+
+        ### ⚖️ Por que Inspecionar Regularmente?
+
+        **Requisitos legais:**
+        - ✅ NBR 13714: Inspeção **mensal** obrigatória
+        - ✅ NR-23: Manutenção dos equipamentos de combate
+        - ✅ Código de Incêndio estadual
+
+        **Riscos de não inspecionar:**
+        - 🚨 Equipamento faltante na hora da emergência
+        - 🔴 Mangueiras danificadas ou ressecadas
+        - ⚠️ Acessórios incompatíveis ou errados
+        - 📋 Multas em fiscalização do Corpo de Bombeiros
+        - 💼 Responsabilização civil e criminal
+
+        **Benefícios da inspeção:**
+        - ✅ Conformidade legal garantida
+        - 🔒 Segurança dos ocupantes
+        - 📊 Rastreabilidade completa
+        - 🔧 Identificação precoce de problemas
+        - 💰 Economia com reparos preventivos
+
+        ---
+
+        ### 📅 Frequência de Inspeção
+
+        **Mensal (Obrigatório):**
+        - Verificação visual de todos os itens
+        - Conferência de quantidades
+        - Estado de conservação
+        - Lacre de segurança
+        - Sinalização
+
+        **Extraordinária (Quando Necessário):**
+        - Após uso do abrigo em emergência
+        - Após manutenção ou substituição de itens
+        - Após identificação de violação
+        - Antes de auditorias/fiscalizações
+        """)
+
+    with st.expander("🤖 Como Usar o Cadastro de Abrigos por IA"):
+        st.markdown("""
+        ### 📄 Passo a Passo: Cadastro em Lote com IA
+
+        #### **Passo 1: Prepare o Inventário PDF** 📋
+
+        **Formato ideal do documento:**
+        - ✅ Inventário completo em PDF
+        - ✅ Lista de abrigos com IDs
+        - ✅ Localização de cada abrigo
+        - ✅ Itens e quantidades por abrigo
+
+        **Estrutura recomendada do PDF:**
+    ABRIGO: ABR-01
+    Local: Corredor A - Térreo
+    Itens:
+    - Mangueira 1½": 2 unidades
+    - Esguicho 1½": 1 unidade
+    - Chave de mangueira: 1 unidade
+
+    ABRIGO: ABR-02
+    Local: Escada B - 1º Andar
+    Itens:
+    - Mangueira 2½": 1 unidade
+    ...
+
+        ---
+
+        #### **Passo 2: Faça o Upload** 📤
+
+        1. Vá para aba **"Cadastro de Abrigos com IA"**
+        2. Clique em **"Choose file"** ou arraste o PDF
+        3. Aguarde upload completar
+        4. Clique em **"🔎 Analisar Inventário com IA"**
+
+        ---
+
+        #### **Passo 3: IA Processa o Documento** 🤖
+
+        **A IA extrairá automaticamente:**
+        - 🏷️ ID de cada abrigo
+        - 📍 Localização descrita
+        - 📦 Lista completa de itens
+        - 🔢 Quantidade de cada item
+        - 🏢 Cliente/Unidade (se mencionado)
+
+        **Tempo:** 30-60 segundos
+
+        ---
+
+        #### **Passo 4: Revise os Dados** 🔍
+
+        Sistema mostra **expansores** com cada abrigo:
+    ▼ ABRIGO ID: ABR-01 | Cliente: Empresa X
+      Local: Corredor A - Térreo
+      Itens:
+      {
+        "Mangueira 1½\"": 2,
+        "Esguicho 1½\"": 1,
+        "Chave de mangueira": 1
+      }
+
+        **Clique em cada expansor** para ver detalhes completos
+
+        **⚠️ Se algo estiver errado:**
+        - Você pode editar depois via Dashboard
+        - Ou cadastrar manualmente apenas os abrigos com erro
+
+        ---
+
+        #### **Passo 5: Confirme e Salve Tudo** 💾
+
+        1. Revise todos os abrigos
+        2. Clique em **"💾 Confirmar e Salvar Abrigos"**
+        3. Sistema salva **todos de uma vez**
+        4. 🎉 Pronto! Inventário completo cadastrado!
+
+        **O que acontece após salvar:**
+        - ✅ Todos os abrigos salvos na planilha
+        - 📊 Aparecem no Dashboard
+        - 🔍 Prontos para inspeção
+        - 📋 Checklist gerado automaticamente baseado no inventário
+
+        ---
+
+        #### **💡 Dicas para IA processar melhor:**
+
+        **✅ FAÇA:**
+        - Use PDFs com texto (não imagens escaneadas)
+        - Mantenha estrutura clara (ID → Local → Itens)
+        - Liste itens em bullets ou numerados
+        - Use nomes claros (ex: "Mangueira 1½\"" ao invés de "Mang.")
+
+        **❌ EVITE:**
+        - PDFs muito complexos ou desorganizados
+        - Imagens escaneadas de baixa qualidade
+        - Documentos sem estrutura clara
+        - Múltiplos formatos misturados
+        """)
 
     with st.expander("➕ Como Usar o Cadastro Manual de Abrigos"):
         st.markdown("""
         ### 📝 Passo a Passo: Cadastro Individual
-        
+
         #### **Quando usar cadastro manual?**
-        
+
         ✅ **Use quando:**
         - Instalou 1 abrigo novo
         - Não tem inventário em PDF
         - Precisa fazer cadastro rápido
         - Quer controlar item por item
-        
+
         ---
-        
+
         #### **Passo 1: Acesse o Formulário** 📋
-        
+
         1. Vá para aba **"Inspeção de Abrigos"**
         2. No topo, clique em **"➕ Cadastrar Novo Abrigo Manualmente"**
         3. Expansor abrirá com o formulário
-        
+
         ---
-        
+
         #### **Passo 2: Dados Básicos** ✏️
-        
+
         **🏷️ ID do Abrigo (OBRIGATÓRIO):**
         - Identificação única do abrigo
         - Exemplos: ABR-01, ABRIGO-A-1, CECI-02
         - **Importante:** Não pode duplicar ID!
-        
+
         **🏢 Cliente/Unidade:**
         - Nome da empresa/unidade
         - Campo preenchido automaticamente (se houver)
         - Pode editar se necessário
-        
+
         **📍 Localização (OBRIGATÓRIO):**
         - Descrição detalhada do local
         - Exemplos:
           - "Corredor A - Térreo - Próximo à recepção"
           - "Escada B - 2º Andar - Saída de emergência"
           - "Garagem - Subsolo - Pilar 15"
-        
+
         **💡 Dica:** Quanto mais específico, melhor para localizar!
-        
+
         ---
-        
+
         #### **Passo 3: Inventário de Itens** 📦
-        
+
         **Seção 1: Itens Padrão**
-        
+
         Sistema mostra lista de itens comuns:
         - Mangueira de 1½"
         - Mangueira de 2½"
@@ -106,54 +693,54 @@ def mostrar_instrucoes_abrigos():
         - Derivante/Divisor
         - Redutor
         - Adaptador
-        
+
         **Para cada item:**
         1. Veja o nome do item
         2. Digite a **quantidade** (0 se não tiver)
         3. Apenas itens com quantidade > 0 serão salvos
-        
+
         **Seção 2: Item Personalizado**
-        
+
         Se tiver item não listado:
         1. Digite o **nome do item** (ex: "Mangueira de 3 polegadas")
         2. Digite a **quantidade**
         3. Sistema incluirá no inventário
-        
+
         **💡 Dica:** Pode adicionar múltiplos itens personalizados salvando e cadastrando novamente!
-        
+
         ---
-        
+
         #### **Passo 4: Cadastre o Abrigo** 🚀
-        
+
         1. Revise todos os dados
         2. Verifique se marcou pelo menos 1 item com quantidade > 0
         3. Clique em **"Cadastrar Novo Abrigo"**
         4. Aguarde confirmação
         5. ✅ Abrigo cadastrado com sucesso!
-        
+
         **O que acontece após cadastrar:**
         - Abrigo aparece na lista de seleção
         - Pronto para ser inspecionado
         - Checklist gerado automaticamente
         - Inventário salvo como JSON
-        
+
         ---
-        
+
         #### **⚠️ Validações do Sistema**
-        
+
         Sistema valida automaticamente:
         - ✅ ID é obrigatório e único
         - ✅ Localização é obrigatória
         - ✅ Pelo menos 1 item com quantidade > 0
-        
+
         **Mensagens de erro comuns:**
-        
+
         **"ID do Abrigo é obrigatório"**
         → Preencha o campo ID
-        
+
         **"Localização é obrigatória"**
         → Descreva onde o abrigo está instalado
-        
+
         **"É necessário adicionar pelo menos um item"**
         → Marque quantidade > 0 em algum item
         """)
@@ -161,116 +748,116 @@ def mostrar_instrucoes_abrigos():
     with st.expander("🔍 Como Realizar Inspeção de Abrigos"):
         st.markdown("""
         ### 📋 Passo a Passo: Inspeção Mensal
-        
+
         #### **Preparação para Inspeção** 🧰
-        
+
         **Antes de começar:**
         - 📱 Celular/tablet com acesso ao sistema
         - 🔦 Lanterna (se necessário)
         - 📋 Checklist mental dos itens
         - 🔑 Chave do abrigo (se for trancado)
-        
+
         ---
-        
+
         #### **Passo 1: Selecione o Abrigo** 🔍
-        
+
         1. Vá para aba **"Inspeção de Abrigos"**
         2. Role até **"Inspeção de Abrigo Existente"**
         3. No dropdown, selecione o abrigo
         4. Sistema carregará o inventário cadastrado
-        
+
         ---
-        
+
         #### **Passo 2: Inspecione Item por Item** 📦
-        
+
         **Para cada item do inventário:**
-        
+
         Sistema mostra:
         - 📦 **Nome do item**
         - 🔢 **Quantidade prevista** (cadastrada)
-        
+
         Você deve marcar:
-        
+
         **Status (escolha um):**
         - ✅ **OK** - Item presente, em bom estado, quantidade correta
         - ⚠️ **Avariado** - Item presente, mas danificado/desgastado
         - ❌ **Faltando** - Item ausente ou quantidade menor que prevista
-        
+
         **Observação (opcional mas recomendada):**
         - Descreva o problema se status ≠ OK
         - Exemplos:
           - "Mangueira com ressecamento visível"
           - "Falta 1 esguicho (previsto 2, encontrado 1)"
           - "Chave de mangueira enferrujada"
-        
+
         ---
-        
+
         #### **Passo 3: Condições Gerais** 🔍
-        
+
         Após verificar todos os itens, inspecione:
-        
+
         **🔒 Lacre de segurança intacto?**
         - Sim → Abrigo não foi violado
         - Não → Lacre rompido, danificado ou ausente
-        
+
         **🪧 Sinalização visível e correta?**
         - Sim → Placa presente, legível e bem posicionada
         - Não → Placa ausente, ilegível ou escondida
-        
+
         **🚪 Acesso desobstruído?**
         - Sim → Nada bloqueando o abrigo
         - Não → Objetos, móveis ou entulho na frente
-        
+
         ---
-        
+
         #### **Passo 4: Salve a Inspeção** 💾
-        
+
         1. Revise todas as respostas
         2. Clique em **"✅ Salvar Inspeção"**
         3. Sistema calcula status geral automaticamente:
            - 🟢 **Aprovado** - Tudo OK
            - 🔴 **Reprovado com Pendências** - Algum item não conforme
-        
+
         4. 🎉 Inspeção salva com sucesso!
-        
+
         ---
-        
+
         #### **🤖 O que o Sistema Faz Automaticamente**
-        
+
         **Após salvar:**
         - ✅ Registra inspeção no histórico
         - 📅 Agenda próxima inspeção (30 dias)
         - 🚨 Gera alerta se houver pendências
         - 📊 Atualiza Dashboard
         - 🔔 Notifica sobre itens faltantes/avariados
-        
+
         **Se aprovado (tudo OK):**
         - 🎈 Balões de comemoração!
         - Status verde no Dashboard
-        
+
         **Se reprovado (pendências):**
         - 📋 Gera plano de ação automaticamente
         - Sugere correções
         - Prioriza itens críticos
-        
+
         ---
-        
+
         #### **💡 Dicas para Inspeção Eficiente**
-        
+
         **Organize por área:**
         - Inspecione todos os abrigos de uma área de uma vez
         - Crie rota lógica para economizar tempo
-        
+
         **Padronize o dia:**
         - Faça sempre no mesmo dia do mês (ex: todo dia 1º)
         - Cria rotina e não esquece
-        
+
         **Tire fotos (opcional mas bom):**
         - Foto do abrigo fechado
         - Foto do abrigo aberto mostrando itens
         - Foto de não conformidades
         - Anexe no sistema ou guarde para auditoria
-        
+
         **Aja imediatamente em problemas críticos:**
         - Item faltante essencial → Repor HOJE
         - Lacre violado → Investigar HOJE
@@ -285,32 +872,32 @@ def mostrar_instrucoes_abrigos():
     with st.expander("💧 Posso usar a mesma mangueira por quantos anos?"):
         st.markdown("""
         **Não há prazo de validade fixo para mangueiras**, mas:
-        
+
         ### 📋 Critérios de Substituição
-        
+
         **Substitua quando:**
         - ❌ **Reprovada no teste hidrostático** 2x seguidas
         - 🗑️ **Condenada** em teste (vazamento irreparável)
         - 👴 **Idade > 10 anos** (mesmo aprovada, considere substituir)
         - 👁️ **Desgaste visível** (ressecamento, rachaduras, deformações)
         - 🔧 **Custo de reparo > 70%** do valor de nova
-        
+
         ### ⏰ Vida Útil Esperada
-        
+
         **Com manutenção adequada:**
         - 🟢 **Uso interno protegido:** 8-12 anos
         - 🟡 **Uso externo coberto:** 5-8 anos
         - 🔴 **Uso externo exposto:** 3-5 anos
-        
+
         **Fatores que reduzem vida útil:**
         - ☀️ Exposição direta ao sol
         - 🌡️ Temperaturas extremas
         - 🧪 Contato com produtos químicos
         - 🚗 Tráfego de veículos sobre a mangueira
         - 📦 Armazenamento inadequado
-        
+
         ### 💡 Dica de Ouro
-        
+
         **Não espere falhar no teste!**
         - Inspecione visualmente a cada 3 meses
         - Substitua preventivamente se >8 anos
@@ -321,143 +908,161 @@ def mostrar_instrucoes_abrigos():
     with st.expander("🤖 A IA sempre extrai os dados corretamente?"):
         st.markdown("""
         ### 🎯 Taxa de Acerto da IA
-        
+
         **Em documentos bem estruturados:**
         - ✅ **95-98%** de precisão
         - ✅ Raramente erra dados críticos (ID, resultado)
         - ✅ Pode confundir campos menos importantes
-        
+
         **Em documentos problemáticos:**
         - ⚠️ **70-85%** de precisão
         - ⚠️ Pode errar quantidades ou datas
         - ⚠️ Pode misturar dados entre equipamentos
-        
+
         ---
-        
+
         ### 🔍 Como Garantir Melhor Precisão
-        
+
         **✅ FAÇA:**
         1. Use PDFs nativos (gerados digitalmente)
         2. Mantenha estrutura clara e organizada
         3. **SEMPRE revise os dados** antes de salvar
         4. Corrija erros manualmente na tabela de revisão
-        
+
         **❌ EVITE:**
         1. PDFs escaneados de baixa qualidade
         2. Documentos manuscritos ou rascunhos
         3. Certificados muito antigos ou fora de padrão
         4. Salvar sem revisar (confiança cega na IA)
-        
+
         ---
-        
+
         ### ⚠️ Importante: Sempre Revise!
-        
+
         **A IA é uma FERRAMENTA de AUXÍLIO, não substitui revisão humana.**
-        
+
         **Passo crítico:**
         1. IA extrai os dados (economiza 90% do tempo)
         2. **VOCÊ revisa** a tabela (gasta 10% do tempo)
         3. Corrige erros se necessário
         4. **Só então salva**
-        
+
         **💡 Mesmo com 5% de erro, você economiza 85% do tempo!**
         """)
 
     with st.expander("🧯 Quantos abrigos preciso ter no meu prédio?"):
         st.markdown("""
         ### 📏 Cálculo de Quantidade de Abrigos
-        
-        **Regra geral (NBR 13714):** Quantidade de Abrigos = Área Total / Raio de Alcance² **Raio de alcance depende da classe de risco:**
+
+        **Regra geral (NBR 13714):**
+    Quantidade de Abrigos = Área Total / Raio de Alcance²
+
+        **Raio de alcance depende da classe de risco:**
         - 🟢 **Risco Leve:** Raio de 30m → 1 abrigo a cada ~2.800m²
         - 🟡 **Risco Médio:** Raio de 25m → 1 abrigo a cada ~1.960m²
         - 🔴 **Risco Alto:** Raio de 20m → 1 abrigo a cada ~1.250m²
-        
+
         ---
-        
+
         ### 🏢 Exemplos Práticos
-        
+
         **Prédio Comercial (Risco Leve):**
         - 5.000m² de área
         - Raio: 30m
         - **Mínimo:** 2 abrigos
         - **Recomendado:** 3 abrigos (1 por andar se tiver 3+ andares)
-        
+
         **Indústria (Risco Médio):**
         - 8.000m² de galpão
         - Raio: 25m
         - **Mínimo:** 5 abrigos
         - **Recomendado:** 6-8 abrigos estrategicamente posicionados
-        
+
         **Depósito Químico (Risco Alto):**
         - 3.000m²
         - Raio: 20m
         - **Mínimo:** 3 abrigos
         - **Recomendado:** 4-5 abrigos + extintores adicionais
-        
+
         ---
-        
+
         ### 📍 Posicionamento Estratégico
-        
+
         **Locais obrigatórios:**
         - ✅ Próximo a **saídas de emergência**
         - ✅ Em **rotas de fuga**
         - ✅ Próximo a **escadas** (em prédios)
         - ✅ Em **corredores principais**
         - ✅ Áreas de **maior circulação**
-        
+
         **Evite:**
         - ❌ Cantos escondidos
         - ❌ Atrás de portas
         - ❌ Áreas com obstrução frequente
         - ❌ Locais de difícil acesso
-        
+
         ---
-        
+
         ### 💡 Consultoria Profissional
-        
+
         **Recomendamos:**
         - Consultar **Projeto de Prevenção contra Incêndio (PPCI)**
         - Contratar **engenheiro de segurança** para cálculo preciso
         - Seguir **exigências do Corpo de Bombeiros** da sua região
-        
+
         **Cada estado/município pode ter regras específicas!**
         """)
 
     with st.expander("📊 Como faço backup dos meus dados?"):
         st.markdown("""
         ### ☁️ Backup Automático
-        
+
         **Seus dados estão seguros!**
-        
+
+        **Sistema faz backup automaticamente:**
+        - ✅ Google Sheets → Backup automático do Google
+        - ✅ Versionamento automático (últimas 30 versões)
+        - ✅ Google Drive → Certificados e PDFs salvos
+        - ✅ Redundância em múltiplos data centers
+
         ---
-        
+
         ### 💾 Como Fazer Backup Manual (Recomendado Mensal)
-        
+
         **Opção 1: Exportar Planilha**
         1. Acesse sua planilha no Google Sheets
         2. Menu: **Arquivo → Fazer download → Excel (.xlsx)**
         3. Salve em local seguro (computador + nuvem)
-        
+
         **Opção 2: Gerar Relatórios PDF**
         1. Use o sistema para gerar relatórios mensais
         2. Salve os PDFs em pasta organizada
-        3. Estrutura sugerida: **Opção 3: Cópia da Planilha**
+        3. Estrutura sugerida:
+    Backup_ISF_IA/
+    ├── 2024/
+    │   ├── 01_Janeiro/
+    │   │   ├── Relatorio_Mangueiras_Jan2024.pdf
+    │   │   ├── Relatorio_Abrigos_Jan2024.pdf
+    │   ├── 02_Fevereiro/
+    │   ...
+
+        **Opção 3: Cópia da Planilha**
         1. Acesse sua planilha no Google Sheets
         2. Menu: **Arquivo → Fazer uma cópia**
         3. Nomeie: "BACKUP_2024_12_31_Mangueiras"
         4. Guarde em pasta separada no Drive
-        
+
         ---
-        
+
         ### 🔒 Segurança dos Dados
-        
+
         **Proteções do sistema:**
         - 🔐 Acesso via login Google (seguro)
         - 👥 Cada usuário vê apenas seus dados
         - 📝 Log de auditoria de todas as ações
         - 🚫 Impossível deletar dados acidentalmente
         - ♻️ Histórico preservado permanentemente
-        
+
         **Conformidade:**
         - ✅ LGPD (Lei Geral de Proteção de Dados)
         - ✅ Dados armazenados no Brasil (Google Cloud BR)
@@ -469,49 +1074,49 @@ def mostrar_instrucoes_abrigos():
     # Call-to-action
     st.success("""
     ### 🚀 Pronto para Começar?
-    
+
     **Escolha sua situação:**
-    
+
     #### 💧 Para MANGUEIRAS:
-    
+
     ✅ **Tenho certificado PDF com várias mangueiras**
     → Vá para **"Inspeção de Mangueiras com IA"** e deixe a IA fazer o trabalho!
-    
+
     ✅ **Preciso cadastrar 1 ou 2 mangueiras**
     → Use **"Cadastro Manual de Mangueiras"** - rápido e fácil!
-    
+
     ---
-    
+
     #### 🧯 Para ABRIGOS:
-    
+
     ✅ **Tenho inventário completo em PDF**
     → Use **"Cadastro de Abrigos com IA"** e processe tudo de uma vez!
-    
+
     ✅ **Preciso cadastrar 1 abrigo**
     → Vá para **"Inspeção de Abrigos"** → Expansível de cadastro manual
-    
+
     ✅ **Já tenho abrigos cadastrados e quero inspecionar**
     → Use **"Inspeção de Abrigos"** com checklist guiado!
-    
+
     ---
-    
-    **💡 Lembre-se:** 
+
+    **💡 Lembre-se:**
     - Mangueiras: Teste hidrostático **ANUAL** obrigatório
     - Abrigos: Inspeção **MENSAL** obrigatória
-    
+
     O sistema automatiza tudo e mantém você sempre em conformidade! ⚡
     """)
 
     # Footer informativo
     st.markdown("---")
     st.caption("""
-    📌 **Normas Aplicáveis:**  
-    - NBR 12779 (Mangueiras de incêndio)  
-    - NBR 13714 (Sistemas de hidrantes e mangotinhos)  
-    - NR-23 (Proteção contra incêndios)  
-    
-    🔄 **Última Atualização das Instruções:** Dezembro/2024  
-    📖 **Versão do Guia:** 1.0  
+    📌 **Normas Aplicáveis:**
+    - NBR 12779 (Mangueiras de incêndio)
+    - NBR 13714 (Sistemas de hidrantes e mangotinhos)
+    - NR-23 (Proteção contra incêndios)
+
+    🔄 **Última Atualização das Instruções:** Dezembro/2024
+    📖 **Versão do Guia:** 1.0
     """)
 
 
