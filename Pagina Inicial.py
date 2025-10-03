@@ -23,7 +23,7 @@ try:
         administracao, dashboard, resumo_gerencial, inspecao_extintores, 
         inspecao_mangueiras, inspecao_scba, inspecao_chuveiros,
         inspecao_camaras_espuma, inspecao_multigas, historico, inspecao_alarmes,
-        utilitarios, demo_page, trial_expired_page
+        utilitarios, demo_page, trial_expired_page, inspecao_canhoes_monitores
     )
     
     # Import condicional do perfil_usuario
@@ -51,6 +51,7 @@ PAGES = {
     "Inspeção de Câmaras de Espuma": inspecao_camaras_espuma.show_page, 
     "Inspeção Multigás": inspecao_multigas.show_page,
     "Inspeção de Alarmes": inspecao_alarmes.show_page,
+    "Inspeção de Canhões Monitores": inspecao_canhoes_monitores.show_page,
     "Histórico e Logs": historico.show_page, 
     "Utilitários": utilitarios.show_page, 
     "Super Admin": administracao.show_page,
@@ -171,7 +172,7 @@ def main():
                     page_options.extend([
                         "Dashboard", "Histórico e Logs", "Inspeção de Extintores", "Inspeção de Mangueiras", 
                         "Inspeção de SCBA", "Inspeção de Chuveiros/LO", "Inspeção de Câmaras de Espuma", 
-                        "Inspeção Multigás", "Inspeção de Alarmes", "Utilitários"
+                        "Inspeção Multigás", "Inspeção de Alarmes", "Inspeção de Canhões Monitores", "Utilitários"
                     ])
             
             # Adiciona "Meu Perfil" apenas se o módulo estiver disponível
@@ -194,6 +195,7 @@ def main():
                 "Inspeção de Câmaras de Espuma": "cloud-rain-heavy",
                 "Inspeção Multigás": "wind",
                 "Inspeção de Alarmes": "bell",
+                "Inspeção de Canhões Monitores": "water",
                 "Utilitários": "tools", 
                 "Super Admin": "person-badge",
                 "Meu Perfil": "person-circle"
