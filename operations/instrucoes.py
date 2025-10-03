@@ -1,6 +1,346 @@
 import streamlit as st
 
 
+def instru_eyewash():
+    """Instruções para o Dashboard de Chuveiros e Lava-Olhos"""
+    st.header("📖 Guia de Uso - Sistema de Inspeção de Chuveiros e Lava-Olhos")
+    
+    # Alerta de importância
+    st.info(
+        "🚨 **Importante:** Chuveiros e lava-olhos de emergência são equipamentos críticos. Inspeções periódicas são um **requisito normativo** para garantir seu funcionamento em uma emergência."
+    )
+    
+    st.markdown("---")
+    
+    # Comparação de métodos
+    st.subheader("🎯 Métodos Disponíveis de Inspeção")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 📋 Inspeção Completa (Checklist)
+        **⚡ RECOMENDADO PARA ROTINA**
+        
+        **Tempo:** ~3-5 minutos por equipamento
+        
+        **Ideal para:**
+        - ✅ Inspeções periódicas obrigatórias (semanais/mensais)
+        - ✅ Auditorias e fiscalizações (NR 20, Bombeiros)
+        - ✅ Verificação completa de todos os itens
+        - ✅ Documentação detalhada para conformidade
+        
+        **Como funciona:**
+        1. Selecione o equipamento no sistema.
+        2. Responda ao checklist completo.
+        3. Marque Conforme/Não Conforme/N/A.
+        4. Tire fotos se houver não conformidades.
+        5. Sistema salva e calcula a próxima inspeção.
+        
+        **Vantagens:**
+        - 📋 Checklist completo e estruturado
+        - 🔍 Cobertura total de itens críticos
+        - 📸 Registro fotográfico obrigatório para NCs
+        - 📅 Cálculo automático de vencimentos
+        - 📊 Histórico completo e rastreável
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### ➕ Cadastro de Equipamento
+        **🆕 PARA NOVOS EQUIPAMENTOS**
+        
+        **Tempo:** ~2 minutos (rápido) ou ~5 minutos (completo)
+        
+        **Ideal para:**
+        - 🆕 Novos equipamentos instalados
+        - 📝 Atualização de inventário
+        - 🔧 Após substituições ou manutenções
+        
+        **Dois métodos disponíveis:**
+        
+        **1. Cadastro Completo:**
+        - Todos os dados técnicos
+        - Especificações detalhadas
+        - Informações de instalação
+        - Observações adicionais
+        
+        **2. Cadastro Rápido:**
+        - Apenas dados essenciais
+        - ID e localização
+        - Tipo e marca comum
+        - Ideal para inventário inicial
+        
+        **Vantagens:**
+        - 🚀 Cadastro rápido disponível
+        - 📝 Opção completa para detalhes
+        - 🏷️ Marcas comuns pré-cadastradas
+        - ⚡ Interface intuitiva
+        """)
+    
+    st.markdown("---")
+    
+    # Fluxo de trabalho recomendado
+    st.subheader("🎯 Fluxo de Trabalho Recomendado")
+    
+    st.info("""
+    **Para Máxima Eficiência, Siga Esta Ordem:**
+    
+    1️⃣ **Primeira Vez no Sistema?**
+    → Cadastre todos os equipamentos usando **Cadastro Rápido** ou **Cadastro Completo**.
+    
+    2️⃣ **Inspeção Periódica Obrigatória?**
+    → Use **Realizar Inspeção** com o checklist completo.
+    
+    3️⃣ **Novos Equipamentos Instalados?**
+    → Use **Cadastrar Novo Equipamento** antes de realizar a primeira inspeção.
+    """)
+    
+    st.markdown("---")
+    
+    # Guia detalhado de inspeção
+    st.subheader("📋 Guia Completo: Inspeção com Checklist")
+    
+    with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
+        st.markdown("""
+        #### **Antes de Começar:**
+        - 📱 Tenha um **celular ou tablet** para tirar fotos se necessário.
+        - 🔦 Verifique se há **boa iluminação** no local.
+        - 🪣 Tenha um balde ou acesso a um ralo para o teste de ativação.
+        - 📊 Tenha acesso ao **histórico do equipamento** (o sistema mostra automaticamente).
+        
+        ---
+        
+        #### **Passo 1: Selecione o Equipamento** 🔍
+        
+        1. Vá para a aba **"📋 Realizar Inspeção"**.
+        2. No menu dropdown, selecione o equipamento a ser inspecionado.
+        3. O sistema mostrará automaticamente:
+           - 📍 **Localização** do equipamento
+           - 📊 **Status atual** e data da última inspeção
+           - ⏰ **Data de vencimento** da próxima inspeção
+        
+        💡 **Dica:** Se o equipamento não aparecer na lista, primeiro cadastre-o nas abas de cadastro.
+        
+        ---
+        
+        #### **Passo 2: Responda ao Checklist Completo** ✅
+        
+        O checklist é baseado em requisitos normativos e está dividido em categorias:
+        
+        **🔧 1. Condições Físicas do Equipamento**
+        - Estrutura sem danos, corrosão ou vazamentos?
+        - Pintura e identificação em bom estado?
+        - Ausência de obstruções físicas?
+        
+        **💧 2. Sistema Hidráulico**
+        - Válvulas operando corretamente (abertura em 1 segundo)?
+        - Conexões sem vazamentos?
+        - Pressão da água parece adequada durante o teste?
+        
+        **🚰 3. Funcionalidade e Testes**
+        - Chuveiro aciona e fornece fluxo contínuo?
+        - Lava-olhos aciona e os jatos são suaves e simétricos?
+        - Tampas protetoras dos bocais (se houver) abrem automaticamente?
+        
+        **📍 4. Acessibilidade e Sinalização (NR 26)**
+        - O caminho até o equipamento está totalmente desobstruído?
+        - A sinalização de segurança está visível e em bom estado?
+        - O local é bem iluminado?
+        - Localizado a no máximo 10 segundos de caminhada do risco?
+        
+        **Para cada pergunta, marque:**
+        - ✅ **Conforme** - Item está OK
+        - ❌ **Não Conforme** - Item tem problema
+        - ⚠️ **N/A** - Não se aplica a este equipamento
+        
+        ---
+        
+        #### **Passo 3: Registre Não Conformidades (Se Houver)** 📸
+        
+        **Quando marcar algum item como "Não Conforme":**
+        
+        1. O sistema **automaticamente exigirá** uma foto.
+        2. Você verá um aviso: *"Foi encontrada X não conformidade(s)"*.
+        3. Use o campo de upload para anexar uma foto clara como evidência.
+        
+        ⚠️ **IMPORTANTE:** Não é possível salvar uma inspeção com não conformidades SEM foto! Isso é crucial para a rastreabilidade e para comprovar a necessidade de manutenção.
+        
+        ---
+        
+        #### **Passo 4: Revise e Salve** 💾
+        
+        1. Revise todas as respostas do checklist.
+        2. Verifique se as fotos (se houver) foram anexadas.
+        3. Clique em **"✅ Salvar Inspeção"**.
+        4. O sistema irá confirmar o salvamento e agendar a próxima inspeção.
+        
+        ---
+        """)
+    
+    st.markdown("---")
+    
+    # Requisitos legais
+    st.subheader("⚖️ Requisitos Legais e Normas")
+    
+    with st.expander("📜 Normas e Legislação Aplicável", expanded=True):
+        st.markdown("""
+        #### **Principais Normas e Regulamentações:**
+        
+        **NR 20 - Segurança e Saúde no Trabalho com Inflamáveis e Combustíveis**
+        - **Exigência Legal:** Determina a obrigatoriedade da instalação de chuveiros e lava-olhos em áreas onde trabalhadores possam ser atingidos por produtos químicos ou inflamáveis.
+        - **Fiscalização:** O não cumprimento é uma infração grave perante o Ministério do Trabalho.
+        
+        **ABNT NBR 16291:2014 - Chuveiro e lava-olhos de emergência — Requisitos gerais**
+        - **Norma Técnica Brasileira:** Define os requisitos para instalação, desempenho (vazão, pressão), materiais e testes dos equipamentos.
+        - **Principais Pontos:** Localização (rota desobstruída), altura de instalação e diâmetro do fluxo de água.
+        
+        **ANSI/ISEA Z358.1-2014 - Emergency Eyewash and Shower Equipment**
+        - **Padrão Internacional de Referência:** É a norma mais completa e utilizada mundialmente, servindo de base para a NBR 16291.
+        - **Requisitos Críticos:**
+            - ⏱️ **Localização:** A no máximo 10 segundos de caminhada do risco.
+            - 🌡️ **Temperatura da Água:** Deve ser "morna" (entre 16°C e 38°C).
+            - 💧 **Ativação Semanal:** Recomenda a ativação funcional de todos os equipamentos semanalmente para verificar o fluxo e limpar a tubulação.
+            -  yıllık **Inspeção Anual:** Exige uma inspeção completa anual para conformidade total com a norma.
+
+        **NR 26 - Sinalização de Segurança**
+        - **Obrigatoriedade:** Exige a sinalização clara da localização dos equipamentos de segurança, incluindo chuveiros e lava-olhos.
+        
+        **IT do Corpo de Bombeiros (São Paulo e outros estados)**
+        - **Fiscalização para AVCB:** Para a obtenção ou renovação do AVCB (Auto de Vistoria do Corpo de Bombeiros) em plantas de risco (especialmente as regidas pela NR 20), o Corpo de Bombeiros verifica a existência, o acesso desobstruído e as condições de funcionamento dos equipamentos de segurança exigidos por outras normas. A falta ou o mau estado podem ser um impeditivo para a liberação do alvará.
+        
+        ---
+        
+        #### **Documentação Obrigatória:**
+        
+        📁 **Este sistema gera automaticamente a documentação necessária para:**
+        - ✅ Comprovar as inspeções periódicas em auditorias do Ministério do Trabalho (NR 20).
+        - ✅ Evidenciar a manutenção e o bom estado dos equipamentos para o Corpo de Bombeiros.
+        - ✅ Manter um histórico detalhado para processos de certificação (ISO 45001, etc.).
+        - ✅ Fornecer defesa documentada em caso de acidentes.
+        """)
+    
+    st.markdown("---")
+    
+    # Critérios de aprovação/reprovação
+    st.subheader("🎯 Critérios de Aprovação e Reprovação")
+    
+    with st.expander("✅ Quando Aprovar um Equipamento"):
+        st.markdown("""
+        **Um equipamento está APROVADO quando atende aos requisitos essenciais:**
+        
+        ✅ **Acesso e Sinalização:** Caminho livre, sinalização clara e visível (NR 26).
+        ✅ **Acionamento:** Válvula de acionamento rápido (em 1 segundo ou menos) e que permanece aberta sem o uso das mãos.
+        ✅ **Fluxo de Água:** O fluxo é contínuo, com volume e pressão adequados (água limpa).
+        ✅ **Componentes:** Bocais do lava-olhos limpos, com tampas de proteção funcionando; crivo do chuveiro sem incrustações.
+        ✅ **Estrutura:** Sem corrosão significativa, vazamentos ou danos estruturais.
+        """)
+    
+    with st.expander("❌ Quando Reprovar um Equipamento"):
+        st.markdown("""
+        **Um equipamento deve ser REPROVADO e necessita de ação corretiva quando:**
+        
+        ❌ **Problemas CRÍTICOS (Ação Imediata e Interdição):**
+        - 🚨 **Não há fluxo de água** ou o fluxo é insignificante.
+        - 🚨 A **válvula não aciona** ou não permanece aberta.
+        - 🚨 O **acesso está completamente bloqueado**.
+        - 🚨 A água está visivelmente **contaminada** (ferrugem, detritos).
+        
+        ⚠️ **Problemas GRAVES (Correção Urgente < 7 dias):**
+        - Vazamento significativo na tubulação ou nas válvulas.
+        - Pressão da água muito baixa, incapaz de lavar eficazmente.
+        - Jatos do lava-olhos irregulares ou que podem ferir os olhos.
+        - Corrosão avançada que compromete a integridade do equipamento.
+        - Ausência total de sinalização.
+        
+        📋 **Problemas MODERADOS (Programar Correção < 30 dias):**
+        - Pintura descascada com corrosão superficial.
+        - Tampas protetoras dos bocais ausentes ou danificadas.
+        - Obstrução parcial do acesso que pode ser removida.
+        """)
+    
+    st.markdown("---")
+    
+    # Perguntas frequentes
+    st.subheader("❓ Perguntas Frequentes")
+    
+    with st.expander("📅 Com que frequência devo inspecionar?"):
+        st.markdown("""
+        As normas de referência estabelecem uma rotina clara:
+        
+        - 🏃 **SEMANALMENTE:** Ativação funcional. É uma verificação rápida para garantir que há fluxo de água e limpar a linha de sedimentos. Embora o sistema peça uma inspeção completa mensal, recomendamos fortemente realizar esta ativação visual toda semana.
+        
+        - 📋 **MENSALMENTE:** Inspeção visual e funcional registrada. É o que você faz neste sistema. Garante uma verificação documentada de todos os componentes.
+        
+        -  yıllık **ANUALMENTE:** Inspeção completa de conformidade com a norma (NBR 16291 / ANSI Z358.1), geralmente realizada por equipe técnica qualificada para verificar vazão, temperatura e todos os requisitos de instalação.
+        
+        O sistema está configurado para um ciclo de **30 dias**, garantindo a conformidade com a inspeção documentada mensal.
+        """)
+    
+    with st.expander("💧 Como testar se o fluxo de água está adequado?"):
+        st.markdown("""
+        Você não precisa de equipamentos complexos para a inspeção mensal. Use uma avaliação visual baseada nos requisitos das normas:
+        
+        **Para CHUVEIROS:**
+        - **Vazão Mínima:** 75,7 litros/minuto (NBR 16291).
+        - **Teste Visual:** Ao acionar, o fluxo deve ser abundante e formar um cone de água que cubra completamente uma pessoa. O centro do cone deve estar a pelo menos 40 cm de qualquer obstrução.
+        
+        **Para LAVA-OLHOS:**
+        - **Vazão Mínima:** 1,5 litros/minuto (NBR 16291).
+        - **Teste Visual:** Os jatos de ambos os bocais devem ser suaves, simétricos, formar arcos e ter altura suficiente para lavar ambos os olhos simultaneamente. A água não deve sair com pressão que possa ferir os olhos.
+        
+        **Duração do Teste:** Para a verificação mensal, acione por tempo suficiente para garantir que a água saia limpa e o fluxo seja constante (geralmente 15-30 segundos). A norma exige que o equipamento seja capaz de fornecer fluxo por **15 minutos contínuos**.
+        """)
+    
+    # Outras FAQs permanecem as mesmas
+    with st.expander("📸 Preciso tirar foto em TODAS as inspeções?"):
+        st.markdown("""
+        **NÃO - Apenas quando houver não conformidade.**
+        
+        **Quando a foto é OBRIGATÓRIA:**
+        - ❌ Qualquer item marcado como **"Não Conforme"**
+        - 🚨 Para evidenciar o problema encontrado
+        - 📋 Obrigatório para auditoria e rastreabilidade
+        """)
+
+    with st.expander("🔧 O que fazer quando encontro um problema?"):
+        st.markdown("""
+        **Fluxo de Ação Recomendado:**
+        
+        **1. Durante a Inspeção:**
+        - ✅ Marque como **"Não Conforme"** no checklist.
+        - 📸 Tire **foto** evidenciando o problema.
+        - 💾 **Salve** a inspeção no sistema para registrar a falha.
+        
+        **2. Após a Inspeção:**
+        - 🚨 Para problemas **CRÍTICOS**, interdite o equipamento com uma placa e comunique a manutenção e a segurança do trabalho **IMEDIATAMENTE**.
+        - 📧 Notifique formalmente o setor responsável pela manutenção sobre todas as não conformidades encontradas.
+        - 📊 Acompanhe o status da correção no Dashboard do sistema.
+        - ✅ Realize uma **nova inspeção completa** após a manutenção para garantir que o problema foi resolvido.
+        """)
+        
+    st.markdown("---")
+    
+    # Call-to-action
+    st.success("""
+    ### 🚀 Pronto para Começar?
+    
+    **Siga este checklist rápido:**
+    
+    ✅ **Já tem equipamentos cadastrados?**
+    → Vá para aba **"📋 Realizar Inspeção"**.
+    
+    ❌ **Ainda não tem nenhum equipamento cadastrado?**
+    → Comece pela aba **"✍️ Cadastro Rápido"** para adicionar ao inventário.
+    
+    📚 **Dúvidas sobre algum item do checklist?**
+    → Revise a seção **"Critérios de Aprovação e Reprovação"** acima.
+    
+    ---
+    
+    **Lembre-se:** Manter os registros de inspeção em dia é a sua melhor evidência de conformidade com a NR 20 e outras normas de segurança. ⚡
+    """)
+    
 def instru_alarms():
     """Instruções para Sistemas de Alarme de Emergência"""
     st.header("📖 Guia de Uso - Gestão de Sistemas de Alarme de Emergência")
@@ -2918,564 +3258,6 @@ def instru_mangueiras():
     🔄 **Última Atualização das Instruções:** Dezembro/2024
     📖 **Versão do Guia:** 1.0
     """)
-
-
-def instru_eyewash():
-    """Instruções para o Dashboard"""
-    st.header("📖 Guia de Uso - Sistema de Inspeção de Chuveiros e Lava-Olhos")
-    
-    # Alerta de importância
-    st.info(
-        "🚨 **Importante:** Chuveiros de emergência e lava-olhos são equipamentos críticos de segurança. "
-        "Inspeções mensais são essênciais para o funcionamento correto do equipamento"
-    )
-    
-    st.markdown("---")
-    
-    # Comparação de métodos
-    st.subheader("🎯 Métodos Disponíveis de Inspeção")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        ### 📋 Inspeção Completa (Checklist)
-        **⚡ RECOMENDADO PARA ROTINA**
-        
-        **Tempo:** ~3-5 minutos por equipamento
-        
-        **Ideal para:**
-        - ✅ Inspeções mensais obrigatórias
-        - ✅ Auditorias e fiscalizações
-        - ✅ Verificação completa de todos os itens
-        - ✅ Documentação detalhada
-        
-        **Como funciona:**
-        1. Selecione o equipamento no sistema
-        2. Responda ao checklist completo
-        3. Marque Conforme/Não Conforme/N/A
-        4. Tire fotos se houver não conformidades
-        5. Sistema salva e calcula próxima inspeção
-        
-        **Vantagens:**
-        - 📋 Checklist completo e estruturado
-        - 🔍 Cobertura total de itens críticos
-        - 📸 Registro fotográfico obrigatório para NCs
-        - 📅 Cálculo automático de vencimentos
-        - 📊 Histórico completo rastreável
-        """)
-    
-    with col2:
-        st.markdown("""
-        ### ➕ Cadastro de Equipamento
-        **🆕 PARA NOVOS EQUIPAMENTOS**
-        
-        **Tempo:** ~2 minutos (rápido) ou ~5 minutos (completo)
-        
-        **Ideal para:**
-        - 🆕 Novos equipamentos instalados
-        - 📝 Atualização de inventário
-        - 🔧 Após substituições ou manutenções
-        
-        **Dois métodos disponíveis:**
-        
-        **1. Cadastro Completo:**
-        - Todos os dados técnicos
-        - Especificações detalhadas
-        - Informações de instalação
-        - Observações adicionais
-        
-        **2. Cadastro Rápido:**
-        - Apenas dados essenciais
-        - ID e localização
-        - Tipo e marca comum
-        - Ideal para inventário inicial
-        
-        **Vantagens:**
-        - 🚀 Cadastro rápido disponível
-        - 📝 Opção completa para detalhes
-        - 🏷️ Marcas comuns pré-cadastradas
-        - ⚡ Interface intuitiva
-        """)
-    
-    st.markdown("---")
-    
-    # Fluxo de trabalho recomendado
-    st.subheader("🎯 Fluxo de Trabalho Recomendado")
-    
-    st.info("""
-    **Para Máxima Eficiência, Siga Esta Ordem:**
-    
-    1️⃣ **Primeira Vez no Sistema?**
-    → Cadastre todos os equipamentos usando **Cadastro Rápido** ou **Cadastro Completo**
-    
-    2️⃣ **Inspeção Mensal Obrigatória?**
-    → Use **Realizar Inspeção** com o checklist completo
-    
-    3️⃣ **Novos Equipamentos Instalados?**
-    → Use **Cadastrar Novo Equipamento** antes de inspecionar
-    """)
-    
-    st.markdown("---")
-    
-    # Guia detalhado de inspeção
-    st.subheader("📋 Guia Completo: Inspeção com Checklist")
-    
-    with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
-        st.markdown("""
-        #### **Antes de Começar:**
-        - 📱 Tenha um **celular ou tablet** para tirar fotos se necessário
-        - 🔦 Verifique se há **boa iluminação** no local
-        - 🧰 Leve ferramentas básicas para testar acionamento
-        - 📊 Tenha acesso ao **histórico do equipamento** (sistema mostra automaticamente)
-        
-        ---
-        
-        #### **Passo 1: Selecione o Equipamento** 🔍
-        
-        1. Vá para a aba **"📋 Realizar Inspeção"**
-        2. No menu dropdown, selecione o equipamento a ser inspecionado
-        3. O sistema mostrará automaticamente:
-           - 📍 **Localização** do equipamento
-           - 📊 **Status atual** e última inspeção
-           - ⏰ **Data de vencimento** da próxima inspeção
-        
-        💡 **Dica:** Se o equipamento não aparecer na lista, primeiro cadastre-o nas abas de cadastro.
-        
-        ---
-        
-        #### **Passo 2: Responda ao Checklist Completo** ✅
-        
-        O checklist está dividido em **categorias técnicas**:
-        
-        **🔧 1. Condições Físicas do Equipamento**
-        - Estrutura sem danos, corrosão ou vazamentos?
-        - Pintura e identificação em bom estado?
-        - Ausência de obstruções físicas?
-        
-        **💧 2. Sistema Hidráulico**
-        - Válvulas operando corretamente?
-        - Conexões sem vazamentos?
-        - Pressão da água adequada?
-        
-        **🚰 3. Funcionalidade e Testes**
-        - Chuveiro aciona corretamente?
-        - Lava-olhos funciona sem obstruções?
-        - Fluxo de água adequado?
-        - Tampa protetora (se houver) em bom estado?
-        
-        **📍 4. Acessibilidade e Sinalização**
-        - Equipamento facilmente acessível?
-        - Sinalização visível e em bom estado?
-        - Área ao redor livre de obstáculos?
-        - Iluminação adequada no local?
-        
-        **Para cada pergunta, marque:**
-        - ✅ **Conforme** - Item está OK
-        - ❌ **Não Conforme** - Item tem problema
-        - ⚠️ **N/A** - Não se aplica a este equipamento
-        
-        ---
-        
-        #### **Passo 3: Registre Não Conformidades (Se Houver)** 📸
-        
-        **Quando marcar algum item como "Não Conforme":**
-        
-        1. O sistema **automaticamente exigirá** uma foto
-        2. Você verá um aviso: *"Foram encontradas X não conformidades"*
-        3. Use o campo de upload para anexar foto como evidência
-        
-        **Opções de foto:**
-        - 📷 **Tirar foto na hora** (mais rápido, qualidade menor)
-        - 📁 **Enviar da galeria** (melhor qualidade, mais detalhes)
-        
-        **Boas práticas para fotos:**
-        - 🔦 Ilumine bem o problema
-        - 📏 Mostre contexto (onde fica o problema)
-        - 🎯 Foque no item não conforme
-        - 📐 Tire de ângulos que evidenciem o problema
-        
-        ⚠️ **IMPORTANTE:** Não é possível salvar inspeção com não conformidades SEM foto!
-        
-        ---
-        
-        #### **Passo 4: Revise e Salve** 💾
-        
-        1. Revise todas as respostas do checklist
-        2. Verifique se as fotos (se houver) foram anexadas
-        3. Clique em **"✅ Salvar Inspeção"**
-        4. Aguarde a confirmação de salvamento
-        5. 🎉 Sistema mostrará mensagem de sucesso!
-        
-        **O sistema automaticamente:**
-        - ✅ Calcula a **próxima data de inspeção** (30 dias)
-        - 📊 Atualiza o **status do equipamento**
-        - 📝 Registra no **histórico completo**
-        - 🔔 Gera **alertas** se houver problemas críticos
-        
-        ---
-        
-        #### **⚡ Dicas para Inspeções Mais Eficientes:**
-        
-        **Preparação:**
-        - 📋 Planeje uma **rota lógica** para inspecionar todos os equipamentos
-        - 🗺️ Agrupe equipamentos por **área/setor** para economizar tempo
-        - 🔋 Garanta que seu celular/tablet tenha **bateria suficiente**
-        
-        **Durante a inspeção:**
-        - 💧 **Teste sempre o acionamento** - não confie apenas na aparência
-        - 🕐 Faça inspeções no **mesmo dia do mês** para criar rotina
-        - 📸 Tire fotos **antes de corrigir** qualquer problema simples
-        - 📝 Seja **específico** nas observações
-        
-        **Após a inspeção:**
-        - 🔧 Corrija **imediatamente** problemas simples (ex: limpar bocais)
-        - 🚨 Reporte **urgentemente** problemas críticos (ex: sem água)
-        - 📊 Revise o **relatório gerencial** para ver status geral
-        - 📅 Agende correções para **não conformidades** identificadas
-        
-        ---
-        
-        #### **❓ Problemas Comuns e Soluções:**
-        
-        **"Equipamento não aparece na lista"**
-        - ✅ Verifique se foi cadastrado nas abas de cadastro
-        - ✅ Use **Cadastro Rápido** para adicionar ao sistema
-        - ✅ Confirme se está no ambiente/empresa correto
-        
-        **"Não consigo anexar foto"**
-        - ✅ Verifique o formato (JPG, JPEG, PNG)
-        - ✅ Reduza o tamanho da foto se muito grande (>10MB)
-        - ✅ Tente usar "Tirar foto" em vez de "Enviar da galeria"
-        - ✅ Verifique sua conexão com a internet
-        
-        **"Inspeção não salva"**
-        - ✅ Verifique se respondeu TODAS as perguntas
-        - ✅ Confirme se anexou foto quando há não conformidades
-        - ✅ Verifique sua conexão com a internet
-        - ✅ Tente novamente após alguns segundos
-        
-        **"Como sei se o equipamento está vencido?"**
-        - ✅ O sistema mostra automaticamente na lista de seleção
-        - ✅ Equipamentos vencidos aparecem destacados
-        - ✅ Veja o Dashboard para visão geral de vencimentos
-        - ✅ Relatórios mensais listam todos os vencidos
-        """)
-    
-    st.markdown("---")
-    
-    # Requisitos legais
-    st.subheader("⚖️ Requisitos Legais e Normas")
-    
-    with st.expander("📜 Normas e Legislação Aplicável"):
-        st.markdown("""
-        #### **Principais Normas:**
-        
-        **NBR 16071:2020** - Chuveiros de emergência e lava-olhos
-        - 📅 Inspeções **mensais** obrigatórias
-        - 🔧 Testes de acionamento periódicos
-        - 📋 Registro documental obrigatório
-        - 💧 Requisitos de pressão e vazão
-        
-        **ANSI/ISEA Z358.1-2014** - Emergency Eyewash and Shower Equipment
-        - 🚿 Padrões internacionais de referência
-        - ⏱️ Requisitos de tempo de resposta
-        - 🌡️ Temperatura da água (16-38°C)
-        - 📏 Distâncias máximas de acesso
-        
-        **NR-32** - Segurança em Serviços de Saúde (quando aplicável)
-        - 🏥 Requisitos específicos para área da saúde
-        - 📍 Localização estratégica
-        - 🚨 Sinalização obrigatória
-        
-        ---
-        
-        #### **Responsabilidades Legais:**
-        
-        **Empregador/Responsável pela Instalação:**
-        - ✅ Garantir equipamentos em **condições de uso**
-        - ✅ Realizar **inspeções periódicas** (mensais)
-        - ✅ Manter **registros documentados**
-        - ✅ Corrigir **não conformidades** identificadas
-        - ✅ Treinar colaboradores no **uso correto**
-        
-        **SESMT/Segurança do Trabalho:**
-        - ✅ Supervisionar programa de inspeções
-        - ✅ Auditar conformidade legal
-        - ✅ Reportar não conformidades críticas
-        - ✅ Manter documentação atualizada
-        
-        ---
-        
-        #### **Documentação Obrigatória:**
-        
-        📁 **Este sistema gera automaticamente:**
-        - ✅ Registro de todas as inspeções realizadas
-        - ✅ Histórico completo de cada equipamento
-        - ✅ Evidências fotográficas de não conformidades
-        - ✅ Relatórios mensais de conformidade
-        - ✅ Planos de ação para correções
-        - ✅ Rastreabilidade completa (quem, quando, onde)
-        
-        💡 **Esta documentação é essencial para:**
-        - Auditorias internas e externas
-        - Fiscalizações do Ministério do Trabalho
-        - Processos de certificação (ISO, etc.)
-        - Defesa em processos trabalhistas
-        """)
-    
-    st.markdown("---")
-    
-    # Critérios de aprovação/reprovação
-    st.subheader("🎯 Critérios de Aprovação e Reprovação")
-    
-    with st.expander("✅ Quando Aprovar um Equipamento"):
-        st.markdown("""
-        **Um equipamento está APROVADO quando:**
-        
-        ✅ **Estrutura Física:**
-        - Sem danos, corrosão ou desgaste significativo
-        - Pintura e identificação legíveis
-        - Suportes e fixações firmes
-        
-        ✅ **Sistema Hidráulico:**
-        - Válvulas operam sem esforço excessivo
-        - Sem vazamentos visíveis
-        - Conexões firmes e sem corrosão
-        
-        ✅ **Funcionalidade:**
-        - Acionamento imediato (< 1 segundo)
-        - Fluxo de água adequado
-        - Cobertura completa (chuveiro)
-        - Jatos centralizados (lava-olhos)
-        
-        ✅ **Acessibilidade:**
-        - Caminho livre de obstáculos
-        - Sinalização visível
-        - Iluminação adequada
-        - Distância conforme norma (< 10 segundos de caminhada)
-        """)
-    
-    with st.expander("❌ Quando Reprovar um Equipamento"):
-        st.markdown("""
-        **Um equipamento deve ser REPROVADO quando:**
-        
-        ❌ **Problemas CRÍTICOS (ação imediata):**
-        - 🚨 Não há fluxo de água
-        - 🚨 Válvula não aciona ou trava
-        - 🚨 Vazamento significativo
-        - 🚨 Acesso completamente bloqueado
-        - 🚨 Estrutura comprometida (risco de queda)
-        
-        ⚠️ **Problemas GRAVES (correção urgente):**
-        - Pressão insuficiente
-        - Acionamento difícil ou lento
-        - Bocais parcialmente obstruídos
-        - Corrosão avançada
-        - Sinalização ausente ou ilegível
-        
-        📋 **Problemas MODERADOS (programar correção):**
-        - Pintura descascada (sem corrosão)
-        - Tampa protetora danificada
-        - Acesso parcialmente obstruído
-        - Iluminação deficiente
-        - Sinalização desbotada
-        
-        **IMPORTANTE:** 
-        - Equipamento com problema CRÍTICO deve ser **interditado** imediatamente
-        - Providencie equipamento **substituto temporário** se necessário
-        - Notifique **imediatamente** o responsável pela manutenção
-        """)
-    
-    st.markdown("---")
-    
-    # Perguntas frequentes
-    st.subheader("❓ Perguntas Frequentes")
-    
-    with st.expander("📅 Com que frequência devo inspecionar?"):
-        st.markdown("""
-        **Frequência Obrigatória: MENSAL**
-        
-        - 📋 Inspeções **mensais**
-        - 📅 Recomenda-se fazer no **mesmo dia de cada mês**
-        - 🔔 O sistema alerta quando a inspeção está vencida
-        
-        **Inspeções Adicionais:**
-        - 🔧 Após qualquer manutenção
-        - 🏗️ Após obras ou modificações próximas
-        - 🚨 Após qualquer incidente/acidente
-        - ☔ Após eventos climáticos extremos (tempestades, etc.)
-        
-        **Prazos de vencimento:**
-        - ⏰ 30 dias após última inspeção
-        - 🚨 Sistema mostra equipamentos vencidos em destaque
-        """)
-    
-    with st.expander("💧 Como testar se o fluxo de água está adequado?"):
-        st.markdown("""
-        **Testes Práticos Recomendados:**
-        
-        **Para CHUVEIROS:**
-        - 🚿 Acione por **15-20 segundos completos**
-        - 💧 Verifique se a água cobre **área de 50-60 cm de diâmetro**
-        - 📏 A 1,5-2m de altura do piso
-        - 🎯 Jatos devem ser **uniformes** (não falhados)
-        
-        **Para LAVA-OLHOS:**
-        - 👀 Acione e observe os **dois jatos simultâneos**
-        - 🎯 Jatos devem ser **suaves e convergentes**
-        - 📐 Altura ideal: **10-15 cm** acima da bacia
-        - ⏱️ Fluxo contínuo por **pelo menos 15 minutos** (teste completo)
-        
-        **Teste de PRESSÃO (opcional):**
-        - 📊 Use manômetro para medir pressão
-        - ✅ Ideal: 2,5 a 4,0 bar (chuveiro)
-        - ✅ Ideal: 0,3 a 1,0 bar (lava-olhos)
-        
-        💡 **Importante:** Sempre deixe a água escoar até sair **limpa** antes de avaliar.
-        """)
-    
-    with st.expander("📸 Preciso tirar foto em TODAS as inspeções?"):
-        st.markdown("""
-        **NÃO - Apenas quando houver não conformidade.**
-        
-        **Quando a foto é OBRIGATÓRIA:**
-        - ❌ Qualquer item marcado como **"Não Conforme"**
-        - 🚨 Para evidenciar o problema encontrado
-        - 📋 Obrigatório para auditoria e rastreabilidade
-        
-        **Quando a foto é OPCIONAL:**
-        - ✅ Inspeção 100% conforme
-        - ⚠️ Item marcado como N/A
-        - 📊 Para documentação adicional (boas práticas)
-        
-        **Dicas para fotos eficientes:**
-        - 🎯 Foque no **problema específico**
-        - 📏 Inclua **referência de tamanho** (ex: régua)
-        - 🔦 Ilumine bem o local
-        - 📐 Tire de **múltiplos ângulos** se necessário
-        
-        **Resolução recomendada:**
-        - 📱 Qualidade média do celular já é suficiente
-        - 💾 Sistema aceita até 10MB por foto
-        - 🖼️ Formatos: JPG, JPEG, PNG
-        """)
-    
-    with st.expander("🔧 O que fazer quando encontro um problema?"):
-        st.markdown("""
-        **Fluxo de Ação Recomendado:**
-        
-        **1. Durante a Inspeção:**
-        - ✅ Marque como **"Não Conforme"** no checklist
-        - 📸 Tire **foto** evidenciando o problema
-        - 📝 Descreva em **observações** se necessário
-        - 💾 **Salve** a inspeção no sistema
-        
-        **2. Classificação de Urgência:**
-        
-        **🚨 CRÍTICO (Ação Imediata - Mesmo Dia):**
-        - Sem fluxo de água
-        - Válvula travada
-        - Acesso totalmente bloqueado
-        - Estrutura com risco de queda
-        
-        **⚠️ URGENTE (Até 7 dias):**
-        - Pressão muito baixa
-        - Vazamento significativo
-        - Acionamento difícil
-        - Sinalização ausente
-        
-        **📋 IMPORTANTE (Até 30 dias):**
-        - Pintura danificada
-        - Iluminação deficiente
-        - Obstrução parcial de acesso
-        
-        **3. Após a Inspeção:**
-        - 🔔 O sistema gera **automaticamente** um plano de ação
-        - 📧 Notifique o **responsável pela manutenção**
-        - 📊 Acompanhe no **Dashboard** até correção
-        - ✅ Faça **nova inspeção** após correção
-        
-        **4. Registro de Correção:**
-        - Use a aba **"Histórico e Logs"** para registrar ações tomadas
-        - Anexe foto **após a correção** como evidência
-        - Sistema mantém **rastreabilidade completa**
-        """)
-    
-    with st.expander("🆕 Como cadastrar um equipamento novo?"):
-        st.markdown("""
-        **Você tem DUAS opções de cadastro:**
-        
-        ---
-        
-        **🚀 Opção 1: CADASTRO RÁPIDO**
-        *(Use para adicionar rapidamente ao inventário)*
-        
-        1. Vá para aba **"✍️ Cadastro Rápido"**
-        2. Preencha apenas:
-           - ID do equipamento (ex: CLO-001)
-           - Localização (ex: Laboratório - Setor A)
-           - Tipo (Chuveiro / Lava-olhos / Combinado)
-           - Marca (lista pré-definida ou digite)
-        3. Clique em **"Cadastrar Rápido"**
-        4. ✅ Pronto! Equipamento já está no sistema
-        
-        **Tempo:** ~1-2 minutos
-        
-        ---
-        
-        **📋 Opção 2: CADASTRO COMPLETO**
-        *(Use quando tiver todas as informações técnicas)*
-        
-        1. Vá para aba **"➕ Cadastrar Novo Equipamento (Completo)"**
-        2. Preencha todos os campos:
-           - **Básico:** ID e localização (obrigatórios)
-           - **Técnico:** Marca, modelo, tamanho
-           - **Instalação:** Data de instalação
-           - **Especificações:** Pressão, vazão, etc.
-           - **Observações:** Informações adicionais
-        3. Clique em **"➕ Cadastrar Equipamento Completo"**
-        4. ✅ Equipamento cadastrado com todos os detalhes
-        
-        **Tempo:** ~3-5 minutos
-        
-        ---
-        
-        **💡 Qual escolher?**
-        
-        - 🚀 **Rápido:** Para fazer inventário inicial de muitos equipamentos
-        - 📋 **Completo:** Quando tiver projeto/documentação técnica
-        - ✏️ **Dica:** Use rápido primeiro, depois edite para completar dados
-        
-        **Depois de cadastrar:**
-        - ✅ Equipamento aparece na lista de inspeções
-        - 📊 É incluído nos relatórios e dashboards
-        - 🔔 Sistema começa a monitorar vencimentos
-        """)
-    
-    st.markdown("---")
-    
-    # Call-to-action
-    st.success("""
-    ### 🚀 Pronto para Começar?
-    
-    **Siga este checklist rápido:**
-    
-    ✅ **Já tem equipamentos cadastrados?**
-    → Vá para aba **"📋 Realizar Inspeção"**
-    
-    ❌ **Ainda não tem nenhum equipamento cadastrado?**
-    → Comece pela aba **"✍️ Cadastro Rápido"** para adicionar ao inventário
-    
-    📚 **Dúvidas sobre algum item do checklist?**
-    → Revise a seção **"Critérios de Aprovação e Reprovação"** acima
-    
-    ---
-    
-    **Lembre-se:** Inspeções mensais são OBRIGATÓRIAS por norma. 
-    Este sistema facilita a conformidade e mantém sua documentação sempre em dia! ⚡
-    """)
-
 
 
 def instru_dash():
