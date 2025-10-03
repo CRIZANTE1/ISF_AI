@@ -47,7 +47,7 @@ def show_page():
     ])
 
     with tab_instrucoes:
-        mostrar_instrucoes_abrigos()
+        instru_mangueiras()
 
     with tab_hoses:
         st.header("Registrar Teste Hidrostático de Mangueiras")
