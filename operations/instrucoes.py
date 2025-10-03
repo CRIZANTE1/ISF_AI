@@ -1,6 +1,10 @@
 import streamlit as st
 
 
+def instru_eyewash():
+    """Instruções para o Dashboard"""
+    st.header("📘 Guia em breve)
+
 def instru_dash():
     """Instruções para o Dashboard"""
     st.header("📘 Guia Completo da Dashboard")
