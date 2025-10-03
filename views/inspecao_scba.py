@@ -130,7 +130,234 @@ def show_page():
         "📝 Registro Manual de Qualidade do Ar",
         "➕ Cadastrar Novo SCBA"
     ])
+
+
+    with tab_instrucoes:
+        st.header("📖 Guia de Uso - Sistema de Conjuntos Autônomos (SCBA)")
         
+        # Alerta de priorização
+        st.success(
+            "⚡ **Recomendação:** Para inspeções regulares, use a **Inspeção Visual Periódica**! "
+            "É completa, guiada e não requer upload de arquivos."
+        )
+        
+        st.markdown("---")
+        
+        # Comparação de métodos
+        st.subheader("🎯 Escolha o Melhor Método para Sua Situação")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            ### 🔍 Inspeção Visual
+            **⚡ PARA USO REGULAR - RECOMENDADA**
+            
+            **Tempo:** ~5-10 minutos por SCBA
+            
+            **Ideal para:**
+            - ✅ Inspeções mensais obrigatórias
+            - ✅ Verificações antes do uso
+            - ✅ Inspeções após treinamento
+            - ✅ Checklist completo e guiado
+            
+            **Como funciona:**
+            1. Selecione o SCBA da lista
+            2. Realize os 3 testes funcionais
+            3. Faça a inspeção visual de cada componente
+            4. Sistema gera status automático
+            5. Salve - Pronto! ✅
+            
+            **O que inclui:**
+            - 🧪 Teste de Estanqueidade
+            - 🔔 Teste do Alarme Sonoro
+            - 😷 Teste de Vedação da Máscara
+            - 👁️ Inspeção Visual Completa
+            - 📋 Checklist de 13+ itens
+            
+            **Vantagens:**
+            - ⚡ Rápida e eficiente
+            - 📋 Guiada passo a passo
+            - 🤖 Avaliação automática
+            - 📊 Rastreabilidade completa
+            """)
+        
+        with col2:
+            st.markdown("""
+            ### 🤖 Testes Posi3 (IA)
+            **🔬 INTELIGÊNCIA ARTIFICIAL**
+            
+            **Tempo:** ~2-3 minutos (múltiplos SCBAs)
+            
+            **Ideal para:**
+            - 📅 Testes anuais obrigatórios
+            - 🏢 Serviços de empresas certificadas
+            - 📄 Processar relatórios Posi3 USB
+            - 📋 Registro de laudos técnicos
+            
+            **Como funciona:**
+            1. Receba relatório Posi3 da empresa
+            2. Faça upload do PDF
+            3. IA extrai todos os dados automaticamente
+            4. Revise os testes extraídos
+            5. Confirme e salve com PDF anexado
+            
+            **Vantagens:**
+            - 🤖 IA processa tudo sozinha
+            - 📄 PDF fica anexado ao registro
+            - 📊 Múltiplos equipamentos de uma vez
+            - ⏱️ Economiza tempo de digitação
+            - 🔬 Dados técnicos precisos
+            
+            **Requer:** Plano Premium IA
+            """)
+        
+        with col3:
+            st.markdown("""
+            ### 💨 Qualidade do Ar
+            **🧪 ANÁLISE DE COMPRESSOR**
+            
+            **Tempo:** ~2-3 minutos
+            
+            **Ideal para:**
+            - 📅 Análise trimestral obrigatória
+            - 🏭 Laudo do compressor
+            - 🔬 Análise laboratorial
+            - 📋 Conformidade NBR 12543
+            
+            **Como funciona:**
+            - **Com IA:** Upload do laudo PDF
+            - **Manual:** Digite resultado e cilindros
+            
+            Sistema registra para todos os cilindros analisados automaticamente.
+            
+            **Vantagens:**
+            - 🤖 IA extrai dados do laudo (Premium IA)
+            - 📄 PDF anexado ao registro
+            - 🔢 Registra múltiplos cilindros de uma vez
+            - 📊 Rastreabilidade do ar comprimido
+            """)
+        
+        st.markdown("---")
+        
+        # Fluxo de trabalho recomendado
+        st.subheader("🎯 Fluxo de Trabalho Recomendado")
+        
+        st.info("""
+        **Para Máxima Eficiência, Siga Esta Ordem:**
+        
+        1️⃣ **Inspeções Mensais/Pré-uso** → Use **"Inspeção Visual Periódica"** (mais completa!)
+        
+        2️⃣ **Recebeu Relatório Posi3 Anual** → Use **"Teste de Equipamentos (IA)"** (IA processa)
+        
+        3️⃣ **Recebeu Laudo de Qualidade do Ar** → Use **"Laudo de Qualidade do Ar (IA)"**
+        
+        4️⃣ **Cadastrar SCBA Novo** → Use **"Cadastrar Novo SCBA"**
+        """)
+        
+        st.markdown("---")
+        
+        # Perguntas frequentes
+        st.subheader("❓ Perguntas Frequentes")
+        
+        with st.expander("🔍 Qual a diferença entre Inspeção Visual e Teste Posi3?"):
+            st.markdown("""
+            **Inspeção Visual Periódica:**
+            - 📅 Feita **mensalmente** ou antes de cada uso
+            - 👤 **Você mesmo faz** no local
+            - ⏱️ Tempo: 5-10 minutos
+            - 🔧 **Testes básicos** (estanqueidade, alarme, vedação)
+            - 👁️ Verificação visual de componentes
+            - 💰 Custo: Zero
+            - 🎯 Objetivo: Verificar se está **seguro para uso**
+            
+            **Teste Posi3 Anual:**
+            - 📅 Feito **anualmente** (obrigatório)
+            - 🏢 **Empresa especializada** faz em laboratório
+            - ⏱️ Equipamento fica fora alguns dias
+            - 🔬 **Testes de precisão** com equipamento Posi3 USB
+            - 📋 Gera laudo técnico com validade
+            - 💰 Custo: R$ 150-300 por equipamento
+            - 🎯 Objetivo: **Certificação oficial** de conformidade
+            
+            **Analogia:**
+            - Inspeção Visual = Você verificar o carro antes de viajar
+            - Teste Posi3 = Revisão anual na concessionária com certificado
+            
+            **Ambos são obrigatórios e complementares!**
+            """)
+        
+        with st.expander("⏰ Com que frequência devo fazer cada inspeção?"):
+            st.markdown("""
+            **Calendário Obrigatório:**
+            
+            📅 **Mensal:**
+            - Inspeção Visual Periódica completa
+            - Todos os 3 testes funcionais
+            - Checklist visual de todos os componentes
+            
+            📅 **Antes de Cada Uso (Situações Críticas):**
+            - Inspeção Visual simplificada
+            - Teste de vedação da máscara
+            - Verificação rápida de pressão
+            
+            📅 **Anual:**
+            - Teste Posi3 por empresa certificada
+            - Laudos técnicos com validade de 1 ano
+            
+            📅 **Trimestral:**
+            - Análise de Qualidade do Ar (compressor)
+            - Laudo laboratorial dos cilindros
+            
+            📅 **Extraordinária:**
+            - Após quedas ou impactos
+            - Após exposição a produtos químicos
+            - Após longos períodos sem uso
+            - Quando houver qualquer suspeita de problema
+            
+            **💡 Dica:** Configure lembretes mensais no sistema!
+            """)
+        
+        with st.expander("😷 Como faço a limpeza e manutenção básica do SCBA?"):
+            st.markdown("""
+            ### **Limpeza Após Cada Uso**
+            - 🧼 Lave a **máscara facial** com água morna e sabão neutro
+            - 💦 Enxágue abundantemente em **água corrente**
+            - 🌬️ Seque naturalmente em local arejado e à sombra
+            - 🚫 Não utilize solventes, álcool, cloro ou produtos abrasivos
+            - ✅ Se necessário, aplique desinfetante aprovado pelo fabricante
+    
+            ### **Cuidados Semanais**
+            - 🔎 Verifique a integridade de mangueiras e conexões
+            - 📊 Confirme a pressão do cilindro
+            - 👓 Inspecione visor/lente contra riscos, rachaduras ou manchas
+            - ⚙️ Teste a válvula de demanda (inalação/exalação suave)
+    
+            ### **Manutenção Mensal**
+            - 🧰 Realize inspeção funcional completa:
+                - Teste de estanqueidade
+                - Teste de alarme sonoro
+                - Teste de vedação da máscara
+            - 📝 Registre os resultados no sistema para rastreabilidade
+            - 🔄 Troque filtros ou componentes conforme manual do fabricante
+    
+            ### **Armazenamento Correto**
+            - 📦 Guarde o SCBA em armário fechado, limpo e seco
+            - 🌡️ Evite calor excessivo, umidade e exposição direta ao sol
+            - 🪛 Mantenha pressão residual no cilindro (~30 bar)
+            - 🧯 Nunca armazene próximo a óleo, graxa ou contaminantes
+            - 🚫 Não deixe o equipamento jogado no chão ou sujeito a impactos
+    
+            ### **Boas Práticas**
+            - 👥 Apenas pessoal treinado deve higienizar e inspecionar
+            - 📋 Registre cada inspeção e limpeza em planilha ou sistema
+            - ⏰ Nunca ultrapasse os prazos de inspeção periódica
+            - 💡 Crie rotina: limpeza e checklist sempre após cada uso
+            """)
+
+
+
+    
     with tab_test_scba:
         st.header("Registrar Teste de SCBA com IA")
         
