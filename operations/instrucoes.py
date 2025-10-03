@@ -1,8 +1,49 @@
 import streamlit as st
 
 
-import streamlit as st
+def instru_canhoes_monitores():
+    """Instruções para a página de Canhões Monitores."""
+    st.header("📖 Guia de Uso - Inspeção de Canhões Monitores")
+    st.info(
+        "Esta seção é dedicada à inspeção, teste e cadastro de canhões monitores, "
+        "seguindo as recomendações da norma **NFPA 25**."
+    )
 
+    st.subheader("🎯 Tipos de Atividades e Frequências")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        #### 📋 Inspeção Visual (Trimestral)
+        **Frequência:** A cada 3 meses
+        
+        **Objetivo:**
+        - Verificar a integridade física do equipamento.
+        - Identificar corrosão, danos, vazamentos ou obstruções.
+        - Garantir que todos os componentes operacionais estão em bom estado.
+        - Assegurar que o acesso ao equipamento está desobstruído.
+        """)
+    with col2:
+        st.markdown("""
+        #### 🌊 Teste Funcional (Anual)
+        **Frequência:** A cada 12 meses
+        
+        **Objetivo:**
+        - Operar o equipamento em todo o seu curso de movimento.
+        - Testar o fluxo de água para verificar o alcance e a forma do jato.
+        - Garantir que não há vazamentos sob pressão.
+        - Verificar o funcionamento dos sistemas de travamento.
+        """)
+
+    st.markdown("---")
+    st.subheader("🚀 Fluxo de Trabalho Recomendado")
+    st.markdown("""
+    1.  **Primeiro Uso:** Vá para a aba **"➕ Cadastrar Novo Canhão"** para adicionar todos os seus canhões monitores ao sistema.
+    2.  **Rotina Trimestral:** Use a aba **"📋 Realizar Inspeção / Teste"**, selecione a opção **"Inspeção Visual (Trimestral)"** e preencha o checklist.
+    3.  **Rotina Anual:** Use a aba **"📋 Realizar Inspeção / Teste"**, selecione a opção **"Teste Funcional (Anual)"**. Este teste já inclui todos os itens da inspeção visual.
+    4.  **Não Conformidades:** Se qualquer item for marcado como "Não Conforme" ou "Reprovado", o sistema **exigirá uma foto** como evidência.
+    5.  **Acompanhamento:** Utilize a **Dashboard** principal para monitorar os status (OK, Vencido, Com Pendências) e os prazos das próximas atividades.
+    """)
+    
 def instru_eyewash():
     """Instruções para o Dashboard de Chuveiros e Lava-Olhos"""
     st.header("📖 Guia de Uso - Sistema de Inspeção de Chuveiros e Lava-Olhos")
