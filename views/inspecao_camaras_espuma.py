@@ -21,6 +21,7 @@ from gdrive.config import (
     FOAM_CHAMBER_INSPECTIONS_SHEET_NAME  
 )
 from reports.foam_chamber_report import generate_foam_chamber_consolidated_report  
+from operations.instrucoes import instru_foam_chamber
 
 
 set_page_config()
@@ -33,12 +34,17 @@ def show_page():
         st.warning("Você não tem permissão para acessar esta página.")
         return
 
-    tab_inspection, tab_register, tab_manual_register, tab_report = st.tabs([
+    tab_instructions, tab_inspection, tab_register, tab_manual_register, tab_report = st.tabs([
+    "📖 Como Usar",
     "📋 Realizar Inspeção", 
     "➕ Cadastrar Nova Câmara (Completo)", 
     "✍️ Cadastro Rápido de Câmara",
     "📊 Relatório Consolidado"  
     ])
+    
+    # E ADICIONAR logo após a definição das tabs (antes do "with tab_inspection:"):
+    with tab_instructions:
+        instru_foam_chamber()
 
     with tab_inspection:
         st.header("Realizar Inspeção Periódica")
