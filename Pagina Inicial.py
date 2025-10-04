@@ -154,7 +154,7 @@ def main():
             try:
                 logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'logo.png')
                 logo = Image.open(logo_path)
-                st.image(logo, width=200)
+                st.image(logo, use_container_width=True)
             except FileNotFoundError:
                 pass  # Ignora silenciosamente se não houver logo
             except Exception as e:
