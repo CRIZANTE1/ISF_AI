@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+from PIL import Image
 import sys
 import os
 
@@ -79,13 +80,11 @@ def main():
             
             st.session_state['user_logged_in'] = True
 
-        # <-- MODIFICAÇÃO INICIA AQUI -->
         # Carrega e armazena os dados do usuário na sessão APENAS UMA VEZ
         if 'user_data' not in st.session_state:
             with st.spinner("Carregando perfil e permissões..."):
                 user_info = get_user_info()
                 if user_info is None:
-                    # Usuário não encontrado no banco - cria temporário para validação
                     st.session_state.user_data = {
                         'email': get_user_email(), 
                         'status': 'not_in_database'
@@ -93,7 +92,6 @@ def main():
                 else:
                     st.session_state.user_data = user_info
 
-        # A partir daqui, use os dados da sessão
         user_email = st.session_state.user_data.get('email')
 
         # Lógica de autorização simplificada
@@ -101,25 +99,18 @@ def main():
         user_status = None
         
         if user_email is not None:
-            # Superuser sempre tem acesso
             if is_superuser():
                 is_authorized = True
                 user_status = "superuser"
-            # Usuário comum deve estar na lista de usuários autorizados
             elif st.session_state.user_data.get('status') != 'not_in_database':
                 user_status = st.session_state.user_data.get('status', 'inativo')
-                # Considera autorizado se estiver na planilha (independente do status)
-                # O status será verificado depois para determinar o tipo de acesso
                 is_authorized = True
             else:
-                # Usuário NÃO está na planilha - não autorizado
                 is_authorized = False
                 user_status = "not_in_database"
-        # <-- MODIFICAÇÃO TERMINA AQUI -->
 
         # Só registra ACCESS_DENIED_UNAUTHORIZED se realmente não autorizado
         if not is_authorized:
-            # Registra apenas UMA VEZ por sessão
             if 'unauthorized_logged' not in st.session_state:
                 log_action("ACCESS_DENIED_UNAUTHORIZED", f"Tentativa de acesso pelo email: {user_email}")
                 st.session_state['unauthorized_logged'] = True
@@ -128,7 +119,6 @@ def main():
             demo_page.show_page()
             st.stop()
 
-        
         effective_status = get_effective_user_status()
 
         # Usuário com trial expirado
@@ -151,9 +141,7 @@ def main():
             st.warning("🔒 Sua conta está atualmente inativa. Por favor, entre em contato com o suporte para reativá-la.")
             show_logout_button()
             st.stop()
-        
 
-        
         # Mostra cabeçalho do usuário
         show_user_header()
         
@@ -162,6 +150,16 @@ def main():
 
         # Configura navegação lateral
         with st.sidebar:
+            # === LOGO NO TOPO DA SIDEBAR ===
+            try:
+                logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'logo.png')
+                logo = Image.open(logo_path)
+                st.image(logo, use_container_width=True)
+            except FileNotFoundError:
+                pass  # Ignora silenciosamente se não houver logo
+            except Exception as e:
+                st.caption(f"Erro ao carregar logo: {e}")
+            
             st.markdown("---")
             
             # Obtém informações do usuário
@@ -231,15 +229,12 @@ def main():
 
         # Lógica de renderização de páginas
         try:
-            # Lógica especial para "Meu Perfil" - sempre permite acesso se disponível
             if selected_page == "Meu Perfil" and PERFIL_DISPONIVEL:
                 PAGES[selected_page]()
-            # Verifica se ambiente está carregado ou se é admin acessando Super Admin
             elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
                 if selected_page in PAGES:
                     PAGES[selected_page]()
                 else:
-                    # Fallback para primeira página disponível
                     if page_options: 
                         first_available_page = page_options[0]
                         if first_available_page in PAGES:
@@ -249,7 +244,6 @@ def main():
                     else:
                         st.error("Nenhuma página disponível para seu perfil.")
             else:
-                # Mensagens para ambiente não carregado
                 if is_admin(): 
                     st.info("👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
                 else: 
