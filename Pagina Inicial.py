@@ -154,9 +154,19 @@ def main():
             try:
                 logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'logo.png')
                 logo = Image.open(logo_path)
-                st.image(logo, use_container_width=True)
+                
+                # Redimensiona
+                max_width = 180
+                ratio = max_width / logo.width
+                new_height = int(logo.height * ratio)
+                logo_resized = logo.resize((max_width, new_height))
+                
+                # Centraliza com colunas
+                col1, col2, col3 = st.columns([1, 3, 1])
+                with col2:
+                    st.image(logo_resized, width='content')
             except FileNotFoundError:
-                pass  # Ignora silenciosamente se não houver logo
+                pass
             except Exception as e:
                 st.caption(f"Erro ao carregar logo: {e}")
             
