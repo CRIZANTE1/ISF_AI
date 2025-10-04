@@ -136,7 +136,9 @@ inspecoes_chuveiros_lava_olhos:
   - data_inspecao    
   - id_equipamento
   - status_geral
+  - plano_de_acao # Adicionado para consistência
   - resultados_json
+  - link_foto_nao_conformidade # Adicionado para consistência
   - inspetor
   - data_proxima_inspecao
 
@@ -175,12 +177,14 @@ inspecoes_camaras_espuma:
   - link_foto_nao_conformidade
   - inspetor
   - data_proxima_inspecao
+
 log_acoes_camaras_espuma:
   - data_acao
   - id_camara
   - problema_original
   - acao_realizada
   - responsavel
+
 multigas_inventario:
   - id_equipamento
   - marca
@@ -191,6 +195,7 @@ multigas_inventario:
   - O2_cilindro
   - H2S_cilindro
   - CO_cilindro
+
 inspecoes_multigas:
   - data_teste
   - hora_teste
@@ -208,6 +213,7 @@ inspecoes_multigas:
   - link_certificado
   - observacoes
   - plano_de_acao
+
 log_multigas:
   - data_acao
   - id_equipamento
@@ -215,12 +221,14 @@ log_multigas:
   - acao_realizada
   - responsavel
   - link_foto_evidencia
+
 alarmes_inventario:
   - id_sistema
   - localizacao
   - marca
   - modelo
   - data_cadastro
+
 alarmes_inspecoes:
   - data_inspecao
   - id_sistema
@@ -230,6 +238,7 @@ alarmes_inspecoes:
   - link_foto_nao_conformidade
   - inspetor
   - data_proxima_inspecao
+
 log_alarmes:
   - data_acao
   - id_sistema
@@ -265,4 +274,31 @@ log_baixas_extintores:
   - responsavel_baixa
   - numero_identificacao_substituto
   - observacoes
+  - link_foto_evidencia
+  
+# Adicionado com base nos arquivos do projeto
+canhoes_monitores_inventario:
+  - id_equipamento
+  - localizacao
+  - marca
+  - modelo
+  - data_cadastro
+  
+inspecoes_canhoes_monitores:
+  - data_inspecao
+  - id_equipamento
+  - tipo_inspecao
+  - status_geral
+  - plano_de_acao
+  - resultados_json
+  - link_foto_nao_conformidade
+  - inspetor
+  - data_proxima_inspecao
+
+log_canhoes_monitores:
+  - data_acao
+  - id_equipamento
+  - problema_original
+  - acao_realizada
+  - responsavel
   - link_foto_evidencia
