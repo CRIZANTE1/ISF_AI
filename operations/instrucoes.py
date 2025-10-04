@@ -3556,6 +3556,8 @@ def instru_mangueiras():
     """)
 
 
+import streamlit as st
+
 def instru_dash():
     """Instruções para o Dashboard"""
     st.header("📘 Guia Completo da Dashboard")
@@ -3597,7 +3599,7 @@ def instru_dash():
         st.markdown("""
         ### 📋 Equipamentos Monitorados
         
-        A dashboard rastreia **8 categorias** de equipamentos:
+        A dashboard rastreia **9 categorias** de equipamentos:
         
         1. 🔥 **Extintores** - Inspeções e manutenções N1/N2/N3
         2. 💧 **Mangueiras** - Testes hidrostáticos
@@ -3607,6 +3609,7 @@ def instru_dash():
         6. ☁️ **Câmaras de Espuma** - Inspeções periódicas
         7. 💨 **Multigás** - Calibrações e bump tests
         8. 🔔 **Alarmes** - Inspeções de sistemas
+        9. 🌊 **Canhões Monitores** - Inspeções visuais e funcionais
         """)
     
     # ===================================================================
@@ -3678,12 +3681,10 @@ def instru_dash():
     
     with st.expander("📌 Passo 1: Escolha a Aba do Equipamento", expanded=True):
         st.markdown("""
-        **No topo da página, você verá 9 abas:**
+        **No topo da página, você verá 10 abas:**
         
-        ```
         📘 Como Usar | 🔥 Extintores | 💧 Mangueiras | 🧯 Abrigos | 💨 C. Autônomo | 
-        🚿 Chuveiros/Lava-Olhos | ☁️ Câmaras de Espuma | 💨 Multigás | 🔔 Alarmes
-        ```
+        🚿 Chuveiros/Lava-Olhos | ☁️ Câmaras de Espuma | 💨 Multigás | 🔔 Alarmes | 🌊 Canhões Monitores
         
         **Dica:** Clique na aba correspondente ao tipo de equipamento que deseja monitorar.
         
@@ -3715,9 +3716,7 @@ def instru_dash():
         
         **Logo abaixo das métricas, você encontra filtros:**
         
-        ```
         Filtrar por Status:  [🟢 OK] [🔴 VENCIDO] [🟠 NÃO CONFORME] [🔵 PENDENTE]
-        ```
         
         **Como usar:**
         1. Por padrão, **todos os status** estão selecionados
@@ -3736,9 +3735,7 @@ def instru_dash():
         
         Cada equipamento aparece como uma **linha expansível**:
         
-        ```
         🟠 ID: EXT-001 | Tipo: ABC | Status: NÃO CONFORME | Local: ✅ Corredor A
-        ```
         
         **Clique na linha** para expandir e ver:
         
@@ -3856,6 +3853,10 @@ def instru_dash():
         ### 💨 Multigás
         - Relatórios de calibração disponíveis na aba de inspeção
         
+        ### 🌊 Canhões Monitores
+        - Relatório consolidado de inspeções
+        - Informações técnicas e status atual
+        
         ---
         
         ### 📝 Como Gerar um Relatório:
@@ -3959,6 +3960,27 @@ def instru_dash():
             - 💨 **Qualidade do Ar**
               - Rastreia validade de laudos
               - Alerta sobre vencimentos
+            """)
+        
+        with st.expander("🌊 Recursos dos Canhões Monitores"):
+            st.markdown("""
+            **Funcionalidades Exclusivas:**
+            
+            - 💦 **Tipos de Inspeções**
+              - Visual trimestral
+              - Funcional anual com teste de água
+              
+            - 📋 **Checklist Específico para Modelo**
+              - Validação de componentes específicos
+              - Verificação de placa de orifício
+              
+            - 📅 **Cálculo Automático de Prazos**
+              - Próxima inspeção visual (3 meses)
+              - Próximo teste funcional (12 meses)
+              
+            - 📷 **Evidências Fotográficas**
+              - Fotos de problemas identificados
+              - Registro dos testes funcionais realizados
             """)
     
     with col2:
@@ -4215,9 +4237,7 @@ def instru_dash():
         - 🔄 **Substituído** por outro equipamento
         - Confira no "Histórico e Logs" para ver o que aconteceu
         
-        ---
-        
-        ### **P: Como faço backup dos dados?**
+        --- ### **P: Como faço backup dos dados?**
         
         **R:** Os dados estão automaticamente salvos no Google Sheets e Drive.
         - Sistema faz backup automático na nuvem
@@ -4424,24 +4444,25 @@ def instru_dash():
         #### 🎯 KPIs Principais para Monitorar
         
         **1. Taxa de Conformidade**
-        ```
+        
         Conformidade = (Equipamentos OK / Total de Equipamentos) × 100
-        ```
+        
         - **Meta:** Mínimo 95%
         - **Ideal:** 98-100%
         - **Crítico:** Abaixo de 90%
         
         **2. Tempo Médio de Resposta**
-        ```
+        
         Tempo = Data de Correção - Data de Identificação
-        ```
+        
         - **Meta:** Máximo 7 dias
         - **Ideal:** 1-3 dias
         - **Crítico:** Acima de 15 dias
         
         **3. Taxa de Reincidência**
-        ```        Reincidência = (Problemas Repetidos / Total de Problemas) × 100
-        ```
+        
+        Reincidência = (Problemas Repetidos / Total de Problemas) × 100
+        
         - **Meta:** Máximo 5%
         - **Ideal:** 0-2%
         - **Crítico:** Acima de 10%
@@ -4515,7 +4536,6 @@ def instru_dash():
         
         #### 🔥 Exemplo Prático - Extintores:
         
-        ```
         📱 Aba "Inspeção de Extintores"
            ↓ (Inspetor usa QR Code ou manual)
            
@@ -4532,7 +4552,6 @@ def instru_dash():
            ↓ (Histórico preservado)
            
         📄 Relatório mensal inclui tudo
-        ```
         
         ---
         
