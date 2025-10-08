@@ -11,11 +11,11 @@ def get_extinguisher_inspection_prompt():
     **Para cada extintor (cada linha da tabela), extraia os seguintes campos NA ORDEM EXATA:**
 
     1.  `numero_identificacao`: Extraia da coluna "N° DO CILINDRO / RECIPIENTE". Este é o campo chave.
-    2.  `numero_selo_inmetro`: Extraia da coluna "N° SELO INMETRO".
+    2.  `numero_selo_inmetro`: Extraia da coluna "N° SELO INMETRO / CASA DA MOEDA".
     3.  `tipo_agente`: Extraia da coluna "Tipo" ou "TIPO".
     4.  `capacidade`: Extraia da coluna "CAPAC. CARGA" ou do tipo (ex: "PQS 4,5KG").
     5.  `marca_fabricante`: Extraia da coluna "FABRIC. OU MARCA".
-    6.  `ano_fabricacao`: Extraia da coluna "ANO FABRIC.".
+    6.  `ano_fabricacao`: Extraia da coluna "ANO FABRIC formate ex: 10 para 2010.".
     7.  `tipo_servico`: **CAMPO ESSENCIAL.** Determine o tipo de serviço com a seguinte prioridade:
         *   **Primeiro**, verifique se a coluna "MANUTENÇÃO NÍVEL" existe. Se o valor for '3', retorne "Manutenção Nível 3".
         *   **Se não for 3**, verifique se o valor é '2'. Se sim, retorne "Manutenção Nível 2".
