@@ -566,15 +566,44 @@ def get_consolidated_status_df(df_full, df_locais):
         
         latest_record_info = ext_df.iloc[-1]
         
-        
+        # Busca as últimas datas de cada tipo de serviço
         last_insp_date = ext_df['data_servico'].max()
         last_maint2_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 2']['data_servico'].max()
         last_maint3_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 3']['data_servico'].max()
         
-        next_insp = (last_insp_date + relativedelta(months=1)) if pd.notna(last_insp_date) else pd.NaT
-        next_maint2 = (last_maint2_date + relativedelta(months=12)) if pd.notna(last_maint2_date) else pd.NaT
-        next_maint3 = (last_maint3_date + relativedelta(years=5)) if pd.notna(last_maint3_date) else pd.NaT
+        # ✅ CORREÇÃO: Calcula próximos vencimentos considerando a hierarquia
+        # Nível 3 renova TUDO (vale por 1, 2 e 3)
+        # Nível 2 renova 1 e 2 (mas não o 3)
+        # Inspeção renova apenas o 1
         
+        # Próxima inspeção mensal (Nível 1)
+        # Usa a data mais recente entre inspeção, N2 ou N3 (todos renovam o N1)
+        dates_that_renew_inspection = [last_insp_date, last_maint2_date, last_maint3_date]
+        valid_dates_inspection = [d for d in dates_that_renew_inspection if pd.notna(d)]
+        if valid_dates_inspection:
+            most_recent_inspection_renewal = max(valid_dates_inspection)
+            next_insp = most_recent_inspection_renewal + relativedelta(months=1)
+        else:
+            next_insp = pd.NaT
+        
+        # Próxima Manutenção Nível 2
+        # Usa a data mais recente entre N2 ou N3 (N3 também renova o N2)
+        dates_that_renew_n2 = [last_maint2_date, last_maint3_date]
+        valid_dates_n2 = [d for d in dates_that_renew_n2 if pd.notna(d)]
+        if valid_dates_n2:
+            most_recent_n2_renewal = max(valid_dates_n2)
+            next_maint2 = most_recent_n2_renewal + relativedelta(months=12)
+        else:
+            next_maint2 = pd.NaT
+        
+        # Próxima Manutenção Nível 3
+        # Apenas o próprio N3 renova o N3
+        if pd.notna(last_maint3_date):
+            next_maint3 = last_maint3_date + relativedelta(years=5)
+        else:
+            next_maint3 = pd.NaT
+        
+        # Determina o próximo vencimento mais crítico
         vencimentos = [d for d in [next_insp, next_maint2, next_maint3] if pd.notna(d)]
         if not vencimentos: 
             continue
