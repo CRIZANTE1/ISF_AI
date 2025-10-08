@@ -302,7 +302,7 @@ def save_inspection_batch(inspections_list):
     try:
         rows = []
         for inspection in inspections_list:
-            # Função auxiliar para conversão segura
+            # Função auxiliar para conversão segura (igual à save_inspection)
             def to_safe_string(value):
                 if pd.isna(value) or value is None:
                     return None
@@ -316,34 +316,34 @@ def save_inspection_batch(inspections_list):
             lat_str = str(lat).replace('.', ',') if lat is not None else None
             lon_str = str(lon).replace('.', ',') if lon is not None else None
             
-            # Monta linha na ORDEM EXATA das colunas da planilha
+            # Monta linha na ORDEM EXATA das colunas (IGUAL à função save_inspection)
             row = [
-                to_safe_string(inspection.get('numero_identificacao')),
-                to_safe_string(inspection.get('numero_selo_inmetro')),
-                to_safe_string(inspection.get('tipo_agente')),
-                to_safe_string(inspection.get('capacidade')),
-                to_safe_string(inspection.get('marca_fabricante')),
-                to_safe_string(inspection.get('ano_fabricacao')),
-                to_safe_string(inspection.get('tipo_servico')),
-                to_safe_string(inspection.get('data_servico')),
-                to_safe_string(inspection.get('inspetor_responsavel')),
-                to_safe_string(inspection.get('empresa_executante')),
-                to_safe_string(inspection.get('data_proxima_inspecao')),
-                to_safe_string(inspection.get('data_proxima_manutencao_2_nivel')),
-                to_safe_string(inspection.get('data_proxima_manutencao_3_nivel')),
-                to_safe_string(inspection.get('data_ultimo_ensaio_hidrostatico')),
-                to_safe_string(inspection.get('aprovado_inspecao')),
-                to_safe_string(inspection.get('observacoes_gerais')),
-                to_safe_string(inspection.get('plano_de_acao')),
-                to_safe_string(inspection.get('link_relatorio_pdf')),
-                lat_str,
-                lon_str,
-                to_safe_string(inspection.get('link_foto_nao_conformidade'))
+                to_safe_string(inspection.get('numero_identificacao')),           # 1
+                to_safe_string(inspection.get('numero_selo_inmetro')),            # 2
+                to_safe_string(inspection.get('tipo_agente')),                    # 3
+                to_safe_string(inspection.get('capacidade')),                     # 4
+                to_safe_string(inspection.get('marca_fabricante')),               # 5
+                to_safe_string(inspection.get('ano_fabricacao')),                 # 6
+                to_safe_string(inspection.get('tipo_servico')),                   # 7
+                to_safe_string(inspection.get('data_servico')),                   # 8
+                to_safe_string(inspection.get('inspetor_responsavel')),           # 9
+                to_safe_string(inspection.get('empresa_executante')),             # 10
+                to_safe_string(inspection.get('data_proxima_inspecao')),          # 11
+                to_safe_string(inspection.get('data_proxima_manutencao_2_nivel')),# 12
+                to_safe_string(inspection.get('data_proxima_manutencao_3_nivel')),# 13
+                to_safe_string(inspection.get('data_ultimo_ensaio_hidrostatico')),# 14
+                to_safe_string(inspection.get('aprovado_inspecao')),              # 15
+                to_safe_string(inspection.get('observacoes_gerais')),             # 16
+                to_safe_string(inspection.get('plano_de_acao')),                  # 17
+                to_safe_string(inspection.get('link_relatorio_pdf')),             # 18
+                lat_str,                                                           # 19
+                lon_str,                                                           # 20
+                to_safe_string(inspection.get('link_foto_nao_conformidade'))      # 21
             ]
             
             rows.append(row)
         
-        # ✅ Cria uploader dentro da função
+        # Cria uploader dentro da função
         uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, rows)
         
@@ -359,8 +359,6 @@ def save_inspection_batch(inspections_list):
         import traceback
         st.error(traceback.format_exc())
         return False, 0
-
-
 
 def save_new_location(location_id, description):
     """
