@@ -75,7 +75,7 @@ def show_page():
     
     with tab_batch:
         st.header("Processar Relatório de Manutenção em Lote")
-
+        
         # Check for AI features for this tab
         if not has_ai_features():
             show_upgrade_callout("Processamento de PDF com IA")
@@ -87,7 +87,9 @@ def show_page():
             st.info("O sistema analisará o PDF, buscará o histórico de cada equipamento e atualizará as datas de vencimento.")
             st.session_state.setdefault('batch_step', 'start')
             st.session_state.setdefault('processed_data', None)
+            
             uploaded_pdf = st.file_uploader("Escolha o relatório PDF", type=["pdf"], key="batch_pdf_uploader")
+            
             if uploaded_pdf and st.button("🔎 Analisar Dados do PDF com IA"):
                 with st.spinner("Analisando o documento e cruzando com o histórico..."):
                     extracted_list = process_extinguisher_pdf(uploaded_pdf)
@@ -96,31 +98,95 @@ def show_page():
                         for item in extracted_list:
                             item = clean_and_prepare_ia_data(item)
                             if isinstance(item, dict):
-                                last_record = find_last_record(df_extintores, item.get('numero_identificacao'), 'numero_identificacao')
-                                existing_dates = {k: last_record.get(k) for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']} if last_record is not None else {}
-                                updated_dates = calculate_next_dates(item.get('data_servico'), item.get('tipo_servico', 'Inspeção'), existing_dates)
-                                final_item = {**item, **updated_dates, 'plano_de_acao': generate_action_plan(item)}
+                                # Busca último registro
+                                last_record = find_last_record(
+                                    df_extintores, 
+                                    item.get('numero_identificacao'), 
+                                    'numero_identificacao'
+                                )
+                                
+                                # Preserva datas existentes
+                                existing_dates = {
+                                    k: last_record.get(k) 
+                                    for k in ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 
+                                             'data_proxima_manutencao_3_nivel', 'data_ultimo_ensaio_hidrostatico']
+                                } if last_record is not None else {}
+                                
+                                # Calcula novas datas
+                                updated_dates = calculate_next_dates(
+                                    item.get('data_servico'), 
+                                    item.get('tipo_servico', 'Inspeção'), 
+                                    existing_dates
+                                )
+                                
+                                # ✅ CORREÇÃO: Monta dicionário na ORDEM EXATA das colunas
+                                final_item = {
+                                    'numero_identificacao': item.get('numero_identificacao'),
+                                    'numero_selo_inmetro': item.get('numero_selo_inmetro'),
+                                    'tipo_agente': item.get('tipo_agente'),
+                                    'capacidade': item.get('capacidade'),
+                                    'marca_fabricante': item.get('marca_fabricante'),
+                                    'ano_fabricacao': item.get('ano_fabricacao'),
+                                    'tipo_servico': item.get('tipo_servico'),
+                                    'data_servico': item.get('data_servico'),
+                                    'inspetor_responsavel': item.get('inspetor_responsavel'),
+                                    'empresa_executante': item.get('empresa_executante'),
+                                    'data_proxima_inspecao': updated_dates.get('data_proxima_inspecao'),
+                                    'data_proxima_manutencao_2_nivel': updated_dates.get('data_proxima_manutencao_2_nivel'),
+                                    'data_proxima_manutencao_3_nivel': updated_dates.get('data_proxima_manutencao_3_nivel'),
+                                    'data_ultimo_ensaio_hidrostatico': updated_dates.get('data_ultimo_ensaio_hidrostatico'),
+                                    'aprovado_inspecao': item.get('aprovado_inspecao'),
+                                    'observacoes_gerais': item.get('observacoes_gerais'),
+                                    'plano_de_acao': generate_action_plan(item),
+                                    'link_relatorio_pdf': None,
+                                    'latitude': None,
+                                    'longitude': None,
+                                    'link_foto_nao_conformidade': None
+                                }
+                                
                                 processed_list.append(final_item)
+                        
                         st.session_state.processed_data = processed_list
                         st.session_state.batch_step = 'confirm'
                         st.rerun()
-                    else: st.error("Não foi possível extrair dados do arquivo.")
-
+                    else: 
+                        st.error("Não foi possível extrair dados do arquivo.")
+            
             if st.session_state.batch_step == 'confirm' and st.session_state.processed_data:
                 st.subheader("Confira os Dados e Confirme o Registro")
                 st.dataframe(pd.DataFrame(st.session_state.processed_data))
+                
                 if st.button("💾 Confirmar e Salvar no Sistema", type="primary"):
                     with st.spinner("Preparando e salvando dados..."):
                         uploader = GoogleDriveUploader()
-                        pdf_link = uploader.upload_file(uploaded_pdf, f"Relatorio_Manutencao_{date.today().isoformat()}_{uploaded_pdf.name}") if any(r.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"] for r in st.session_state.processed_data) else None
-                        inspection_rows = []
+                        
+                        # Upload do PDF se for manutenção
+                        pdf_link = None
+                        if any(r.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"] 
+                               for r in st.session_state.processed_data):
+                            pdf_link = uploader.upload_file(
+                                uploaded_pdf, 
+                                f"Relatorio_Manutencao_{date.today().isoformat()}_{uploaded_pdf.name}"
+                            )
+                        
+                        # ✅ CORREÇÃO: Usa save_inspection_batch que garante a ordem correta
                         for record in st.session_state.processed_data:
-                            record['link_relatorio_pdf'] = pdf_link if record.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"] else None
-                            inspection_rows.append(list(record.values())) # Garanta que a ordem e colunas correspondem
-                            log_action("SALVOU_INSPECAO_EXTINTOR_LOTE", f"ID: {record.get('numero_identificacao')}, Status: {record.get('aprovado_inspecao')}")
-                        uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, inspection_rows)
-                        st.success("Registros salvos com sucesso!"); st.balloons()
-                        st.session_state.batch_step = 'start'; st.session_state.processed_data = None; st.cache_data.clear(); st.rerun()
+                            # Adiciona link do PDF se necessário
+                            if record.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"]:
+                                record['link_relatorio_pdf'] = pdf_link
+                        
+                        # Salva usando a função correta
+                        success, count = save_inspection_batch(st.session_state.processed_data)
+                        
+                        if success:
+                            st.success(f"✅ {count} registros salvos com sucesso!")
+                            st.balloons()
+                            st.session_state.batch_step = 'start'
+                            st.session_state.processed_data = None
+                            st.cache_data.clear()
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar registros. Verifique os logs.")
 
     with tab_qr:
         st.header("Verificação Rápida de Equipamento")
