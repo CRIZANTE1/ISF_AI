@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.extinguisher_operations import (
     process_extinguisher_pdf, calculate_next_dates, save_inspection, 
     generate_action_plan, clean_and_prepare_ia_data, save_new_extinguisher,
-    update_extinguisher_location  
+    update_extinguisher_location, save_inspection_batch 
 )
 from operations.history import find_last_record, load_sheet_data
 from operations.qr_inspection_utils import decode_qr_from_image
