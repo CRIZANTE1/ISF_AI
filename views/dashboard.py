@@ -1090,28 +1090,27 @@ def show_page():
                             st.cache_data.clear()
                             st.rerun()
                         elif num_regularized == 0:
-                            # A mensagem de sucesso/aviso já é mostrada dentro da função
                             pass
-                        else: # num_regularized == -1
+                        else:
                             st.error("A operação de regularização falhou. Verifique os logs.")
                             
-
+    
         with st.expander("📄 Gerar Relatório Mensal..."):
             show_monthly_report_interface()
         st.markdown("---")
         
         df_full_history = load_sheet_data("extintores")
         df_locais = load_sheet_data("locais") 
-
+    
         if df_full_history.empty:
             st.warning("Ainda não há registros de inspeção para exibir."); return
-
+    
         with st.spinner("Analisando o status de todos os extintores..."):
             dashboard_df = get_consolidated_status_df(df_full_history, df_locais)
         
         if dashboard_df.empty:
             st.warning("Não foi possível gerar o dashboard ou não há equipamentos ativos."); return
-
+    
         status_counts = dashboard_df['status_atual'].value_counts()
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("✅ Total Ativo", len(dashboard_df))
@@ -1142,14 +1141,32 @@ def show_page():
                     col_venc1.metric("Inspeção Mensal", value=row['prox_venc_inspecao'])
                     col_venc2.metric("Manutenção Nível 2", value=row['prox_venc_maint2'])
                     col_venc3.metric("Manutenção Nível 3", value=row['prox_venc_maint3'])
-
+    
                     st.caption(f"Último Selo INMETRO registrado: {row.get('numero_selo_inmetro', 'N/A')}")
+                    
+                    # ✅ ADIÇÃO: Exibe a foto de não conformidade se houver
+                    st.markdown("---")
+                    st.subheader("📸 Evidências Fotográficas")
+                    
+                    # Busca o último registro completo do extintor para pegar a foto
+                    ext_id = row['numero_identificacao']
+                    ext_history = df_full_history[df_full_history['numero_identificacao'] == ext_id].sort_values('data_servico', ascending=False)
+                    
+                    if not ext_history.empty:
+                        latest_full_record = ext_history.iloc[0]
+                        photo_link = latest_full_record.get('link_foto_nao_conformidade')
+                        
+                        if photo_link and pd.notna(photo_link) and str(photo_link).strip() != '':
+                            display_drive_image(photo_link, caption="Foto da Não Conformidade", width=400)
+                        else:
+                            st.info("Nenhuma foto de não conformidade registrada para este equipamento.")
+                    else:
+                        st.info("Sem histórico fotográfico disponível.")
                     
                     if row['status_atual'] != 'OK':
                         st.markdown("---")
-                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_ext_{index}", width='stretch'):
+                        if st.button("✍️ Registrar Ação Corretiva", key=f"action_ext_{index}", use_container_width=True):
                             action_form(row.to_dict(), df_full_history, location)
-                            
                            
 
     with tab_hoses:
