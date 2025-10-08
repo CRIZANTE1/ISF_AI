@@ -10,7 +10,7 @@ logger = logging.getLogger('api_operation')
 class PDFQA:
     def __init__(self):
         load_api()  # Carrega a API
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.5-pro')
         self.key_manager = get_api_key_manager()
 
     def ask_gemini(self, pdf_files, question):
@@ -164,4 +164,5 @@ class PDFQA:
             st.error(f"❌ Erro inesperado: {str(e)}")
             st.exception(e)
             return None, 0
+
 
