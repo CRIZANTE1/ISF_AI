@@ -302,39 +302,48 @@ def save_inspection_batch(inspections_list):
     try:
         rows = []
         for inspection in inspections_list:
-            # Reutiliza a lógica de conversão do save_inspection
+            # Função auxiliar para conversão segura
+            def to_safe_string(value):
+                if pd.isna(value) or value is None:
+                    return None
+                if isinstance(value, (pd.Timestamp, date)):
+                    return value.strftime('%Y-%m-%d')
+                return str(value)
+            
+            # Trata coordenadas GPS com vírgula como separador decimal (padrão BR)
             lat = inspection.get('latitude')
             lon = inspection.get('longitude')
             lat_str = str(lat).replace('.', ',') if lat is not None else None
             lon_str = str(lon).replace('.', ',') if lon is not None else None
             
+            # Monta linha na ORDEM EXATA das colunas da planilha
             row = [
-                str(v) if v is not None else None 
-                for v in [
-                    inspection.get('numero_identificacao'),
-                    inspection.get('numero_selo_inmetro'),
-                    inspection.get('tipo_agente'),
-                    inspection.get('capacidade'),
-                    inspection.get('marca_fabricante'),
-                    inspection.get('ano_fabricacao'),
-                    inspection.get('tipo_servico'),
-                    inspection.get('data_servico'),
-                    inspection.get('inspetor_responsavel'),
-                    inspection.get('empresa_executante'),
-                    inspection.get('data_proxima_inspecao'),
-                    inspection.get('data_proxima_manutencao_2_nivel'),
-                    inspection.get('data_proxima_manutencao_3_nivel'),
-                    inspection.get('data_ultimo_ensaio_hidrostatico'),
-                    inspection.get('aprovado_inspecao'),
-                    inspection.get('observacoes_gerais'),
-                    inspection.get('plano_de_acao'),
-                    inspection.get('link_relatorio_pdf'),
-                ]
-            ] + [lat_str, lon_str, str(inspection.get('link_foto_nao_conformidade')) if inspection.get('link_foto_nao_conformidade') else None]
+                to_safe_string(inspection.get('numero_identificacao')),
+                to_safe_string(inspection.get('numero_selo_inmetro')),
+                to_safe_string(inspection.get('tipo_agente')),
+                to_safe_string(inspection.get('capacidade')),
+                to_safe_string(inspection.get('marca_fabricante')),
+                to_safe_string(inspection.get('ano_fabricacao')),
+                to_safe_string(inspection.get('tipo_servico')),
+                to_safe_string(inspection.get('data_servico')),
+                to_safe_string(inspection.get('inspetor_responsavel')),
+                to_safe_string(inspection.get('empresa_executante')),
+                to_safe_string(inspection.get('data_proxima_inspecao')),
+                to_safe_string(inspection.get('data_proxima_manutencao_2_nivel')),
+                to_safe_string(inspection.get('data_proxima_manutencao_3_nivel')),
+                to_safe_string(inspection.get('data_ultimo_ensaio_hidrostatico')),
+                to_safe_string(inspection.get('aprovado_inspecao')),
+                to_safe_string(inspection.get('observacoes_gerais')),
+                to_safe_string(inspection.get('plano_de_acao')),
+                to_safe_string(inspection.get('link_relatorio_pdf')),
+                lat_str,
+                lon_str,
+                to_safe_string(inspection.get('link_foto_nao_conformidade'))
+            ]
             
             rows.append(row)
         
-        # ✅ CORREÇÃO: Cria uploader dentro da função
+        # ✅ Cria uploader dentro da função
         uploader = GoogleDriveUploader()
         uploader.append_data_to_sheet(EXTINGUISHER_SHEET_NAME, rows)
         
