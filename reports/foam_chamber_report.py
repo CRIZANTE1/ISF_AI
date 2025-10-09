@@ -512,9 +512,9 @@ def _generate_chamber_section(row, chamber_number):
         
         html += f"""
         <div class="photo-section">
-            <h4>Registro Fotográfico da Não Conformidade</h4>
+            <h4>Registro Fotográfico</h4>
             <div class="photo-container">
-                <img src="{photo_url}" alt="Evidência fotográfica de não conformidade" class="evidence-photo" />
+                <img src="{photo_url}" alt="Evidência fotográfica" class="evidence-photo" />
             </div>
             <p class="photo-caption">Figura {chamber_number}: Registro fotográfico realizado durante a inspeção do equipamento {row['id_camara']} em {data_inspecao}</p>
         </div>
