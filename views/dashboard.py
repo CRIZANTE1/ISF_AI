@@ -1534,7 +1534,7 @@ def show_page():
                                     
                                     st.markdown("---")
                                     photo_link = row.get('link_foto_nao_conformidade')
-                                    display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
+                                    display_drive_image(photo_link, caption="Foto", width=300)
                             
                                 except (json.JSONDecodeError, TypeError) as e:
                                     st.error(f"Não foi possível carregar os detalhes da inspeção: {e}")
