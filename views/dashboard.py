@@ -20,7 +20,6 @@ from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_use
 from config.page_config import set_page_config
 from operations.instrucoes import instru_dash
 from operations.extinguisher_operations import batch_regularize_monthly_inspections
-from operations.eyewash_operations import CHECKLIST_QUESTIONS
 from gdrive.config import (
     HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME,
     LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
@@ -44,7 +43,11 @@ from reports.reports_pdf import generate_shelters_html
 from operations.photo_operations import upload_evidence_photo
 from reports.monthly_report_ui import show_monthly_report_interface
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
-from operations.eyewash_operations import save_eyewash_inspection, save_eyewash_action_log
+from operations.eyewash_operations import (
+    save_eyewash_inspection, 
+    save_eyewash_action_log,
+    CHECKLIST_QUESTIONS as EYEWASH_CHECKLIST
+)
 from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
 from operations.multigas_operations import save_multigas_action_log
 from operations.alarm_operations import (
