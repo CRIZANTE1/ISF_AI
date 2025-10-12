@@ -100,10 +100,10 @@ Este é um sistema web desenvolvido com Streamlit para revolucionar o processo d
 - **Validação**: Custom validation rules, Data integrity checks
 
 ### **Banco de Dados & Armazenamento**
-- **Principal**: Google Sheets (API v4)
-- **Arquivos**: Google Drive (API v3)
-- **Backup**: Automatic cloud backup
-- **Estrutura**: Normalized data structure, YAML configurations
+- **Banco de Dados Principal**: Supabase (PostgreSQL) para armazenamento de dados relacional, seguro e escalável.
+- **Armazenamento de Arquivos**: Supabase Storage para hospedar arquivos de evidência (fotos, PDFs) com acesso via URL pública.
+- **Backup**: Gerenciado automaticamente pela plataforma Supabase.
+- **Estrutura**: Schema SQL definido e gerenciado via migrações do Supabase.
 
 ### **Autenticação & Segurança**
 - **Auth Provider**: Google OIDC
@@ -131,10 +131,8 @@ ISF_IA/
 │   └── __init__.py
 ├── 📁 config/                      # Configurações do Sistema
 │   ├── page_config.py              # Configuração de páginas
-│   └── sheets_config.yaml          # Estrutura das planilhas
-├── 📁 gdrive/                      # Integração Google Drive/Sheets
-│   ├── config.py                   # Configurações das APIs
-│   └── gdrive_upload.py            # Upload e manipulação
+
+
 ├── 📁 operations/                  # Lógica de Negócio
 │   ├── corrective_actions.py       # Ações corretivas
 │   ├── extinguisher_operations.py  # Operações de extintores
@@ -195,37 +193,25 @@ cd isf_ia
 pip install -r requirements.txt
 ```
 
-### **3. Configure as APIs do Google**
+### **3. Configure as Variáveis de Ambiente (secrets.toml)**
 
-#### **Google Sheets & Drive API**
-1. Acesse o [Google Cloud Console](https://console.cloud.google.com/)
-2. Crie um novo projeto ou selecione um existente
-3. Ative as APIs: Google Sheets API, Google Drive API
-4. Crie credenciais de conta de serviço
-5. Baixe o arquivo JSON das credenciais
+Crie um arquivo `.streamlit/secrets.toml` e adicione as credenciais do Supabase e do Google Gemini:
 
-#### **Google Gemini AI**
-1. Acesse [Google AI Studio](https://aistudio.google.com/)
-2. Gere uma API Key
-3. Configure as permissões necessárias
-
-### **4. Configure o arquivo secrets.toml**
 ```toml
-[connections.gsheets]
-# Cole aqui o conteúdo do arquivo JSON das credenciais do Google
+# .streamlit/secrets.toml
 
-[google_drive]
-matrix_sheets_id = "ID_da_planilha_matriz"
-central_drive_folder_id = "ID_da_pasta_central"
+[supabase]
+url = "https://<SEU_PROJETO_ID>.supabase.co"
+key = "<SUA_CHAVE_ANON>"
 
 [general]
 GOOGLE_API_KEY = "sua_api_key_do_gemini"
 
 [superuser]
 admin_email = "seu_email_admin@gmail.com"
-spreadsheet_id = "ID_planilha_teste"
-folder_id = "ID_pasta_teste"
 ```
+
+### **4. Execute a Aplicação**
 
 ### **5. Execute a Aplicação**
 ```bash
@@ -297,8 +283,7 @@ streamlit run "Pagina Inicial.py"
 ## 🛠️ API e Integrações
 
 ### **APIs Integradas**
-- **Google Sheets API v4**: Banco de dados principal
-- **Google Drive API v3**: Armazenamento de arquivos
+- **Supabase API**: Para todas as operações de banco de dados e armazenamento.
 - **Google Generative AI**: Processamento com IA
 - **Browser APIs**: Geolocalização, câmera, QR Code
 

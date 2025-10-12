@@ -1,55 +1,34 @@
-streamlit-option-menu
+# requirements.txt (REFATORADO)
 
+# Core do Streamlit e UI
 streamlit>=1.28.0
-folium>=0.14.0
-streamlit-folium>=0.15.0
-
-# ========================
-# Manipulação de Dados e Datas
-# ========================
-pandas>=2.0.0
-numpy>=1.24.0
-openpyxl>=3.1.0
-python-dateutil
-
-# ========================
-# Google APIs & Autenticação
-# ========================
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
-google-generativeai
-authlib
-msal
-
-# Comunicação HTTP (para baixar imagens)
-# ========================
-requests 
-# ========================
-
-
-# Processamento de Imagem e QR Code
-# ========================
-opencv-python-headless # Já inclui o detector de QR Code
-qrcode[pil] # Adiciona qrcode e sua dependência Pillow
-segno
-Pillow
-
-# ========================
-# Visualização (Opcional, mas bom ter)
-# ========================
-plotly>=5.18.0
-
-streamlit-js-eval 
-weasyprint
-PyYAML
+streamlit-option-menu
 streamlit-lottie
+streamlit-js-eval 
 
-
-mercadopago==2.2.1
+# Backend e Banco de Dados
+supabase # <- NOVA DEPENDÊNCIA
 fastapi==0.104.1
 uvicorn==0.24.0
-pydantic==2.4.2
-python-dotenv==1.0.0
-httpx==0.25.0
+
+# Manipulação de Dados e Datas
+pandas>=2.0.0
+numpy>=1.24.0
+python-dateutil
+
+# Geração de PDF e QR Code
+weasyprint
+qrcode[pil]
+Pillow
+
+# Outras Utilitários
+requests 
+PyYAML
 jinja2>=3.1.2
+
+# Autenticação (manter se ainda usa o login MSAL)
+msal
+authlib
+
+# IA do Google (ainda necessário para o Gemini)
+google-generativeai

@@ -256,14 +256,7 @@ def show_api_key_tests():
         st.error(f"❌ Erro ao executar testes: {e}")
         st.exception(e)
 
-def provision_user_environment(user_email, user_name):
-    # ATENÇÃO: Esta função cria PLANILHAS E PASTAS NO GOOGLE DRIVE.
-    # Se você está migrando 100% para o Supabase, esta função se torna OBSOLETA.
-    # O "ambiente" do usuário agora é apenas sua linha na tabela 'usuarios'.
-    # Vou deixar a função comentada como referência.
-    st.info(f"Provisionamento de ambiente para {user_name} agora é automático no Supabase.")
-    log_action("PROVISIONOU_AMBIENTE_USUARIO_SUPABASE", f"Email: {user_email}")
-    return True, None, None # Retorna sucesso, mas sem IDs de planilha/pasta
+
 
 def show_page():
     st.title(" Painel de Controle do Super Administrador")
@@ -404,37 +397,35 @@ def show_page():
                         role = cols[0].selectbox("Atribuir Perfil:", ["editor", "viewer"], key=f"role_{index}")
                         
                         if cols[1].button("Aprovar e Iniciar Trial", key=f"approve_{index}", type="primary"):
-                            with st.spinner(f"Provisionando ambiente para {request['nome_usuario']}..."):
-                                success, _, _ = provision_user_environment(request['email_usuario'], request['nome_usuario'])
-                                if success:
-                                    today = date.today()
-                                    trial_end = today + timedelta(days=14)
-                                    
-                                    # PARA: Cria um dicionário para o novo usuário
-                                    new_user_record = {
-                                        'email': request['email_usuario'],
-                                        'nome': request['nome_usuario'],
-                                        'role': role,
-                                        'plano': 'premium_ia',
-                                        'status': 'ativo',
-                                        'data_cadastro': today.isoformat(),
-                                        'trial_end_date': trial_end.isoformat()
-                                    }
-                                    
-                                    # PARA: Insere o novo usuário no Supabase
-                                    db_client.append_data("usuarios", new_user_record)
-                                    
-                                    # PARA: Atualiza o status da solicitação no Supabase
-                                    db_client.update_data(
-                                        "solicitacoes_acesso", 
-                                        {'status': 'Aprovado'}, 
-                                        'id', 
-                                        request['id'] # Usa a chave primária da tabela
-                                    )
-                                    
-                                    log_action("APROVOU_ACESSO_COM_TRIAL", f"Email: {request['email_usuario']}")
-                                    # ... (lógica de notificação permanece) ...
-                                    st.rerun()
+                            with st.spinner(f"Aprovando {request['nome_usuario']}..."):
+                                today = date.today()
+                                trial_end = today + timedelta(days=14)
+                                
+                                # PARA: Cria um dicionário para o novo usuário
+                                new_user_record = {
+                                    'email': request['email_usuario'],
+                                    'nome': request['nome_usuario'],
+                                    'role': role,
+                                    'plano': 'premium_ia',
+                                    'status': 'ativo',
+                                    'data_cadastro': today.isoformat(),
+                                    'trial_end_date': trial_end.isoformat()
+                                }
+                                
+                                # PARA: Insere o novo usuário no Supabase
+                                db_client.append_data("usuarios", new_user_record)
+                                
+                                # PARA: Atualiza o status da solicitação no Supabase
+                                db_client.update_data(
+                                    "solicitacoes_acesso", 
+                                    {'status': 'Aprovado'}, 
+                                    'id', 
+                                    request['id'] # Usa a chave primária da tabela
+                                )
+                                
+                                log_action("APROVOU_ACESSO_COM_TRIAL", f"Email: {request['email_usuario']}")
+                                # ... (lógica de notificação permanece) ...
+                                st.rerun()
 
                         if cols[2].button("Rejeitar", key=f"reject_{index}"):
                             # PARA: Atualiza o status da solicitação no Supabase
