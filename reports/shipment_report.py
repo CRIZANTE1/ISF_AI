@@ -4,27 +4,36 @@ import base64
 import requests
 import io
 from weasyprint import HTML
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import TH_SHIPMENT_LOG_SHEET_NAME, EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME
-
-
+from supabase.client import get_supabase_client
+from operations.photo_operations import display_drive_image
 
 def log_shipment(df_selected_items, item_type, bulletin_number):
-    """Salva o log dos itens enviados na planilha correspondente."""
-    uploader = GoogleDriveUploader()
+    """Salva o log dos itens enviados na tabela correspondente do Supabase."""
+    db_client = get_supabase_client()
     today_iso = date.today().isoformat()
     current_year = date.today().year
+    
+    records_to_save = []
     if item_type == 'Mangueiras':
-        sheet_name = TH_SHIPMENT_LOG_SHEET_NAME
+        table_name = "log_remessa_mangueiras"
         id_column = 'id_mangueira'
     elif item_type == 'Extintores':
-        sheet_name = EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME
+        table_name = "log_remessa_extintores"
         id_column = 'numero_identificacao'
     else:
         return
+
     for _, row in df_selected_items.iterrows():
-        data_row = [today_iso, row[id_column], current_year, bulletin_number]
-        uploader.append_data_to_sheet(sheet_name, data_row)
+        record = {
+            "data_remessa": today_iso,
+            "id_equipamento": row[id_column],
+            "ano_remessa": current_year,
+            "numero_boletim": bulletin_number
+        }
+        records_to_save.append(record)
+    
+    if records_to_save:
+        db_client.append_data(table_name, records_to_save)
 
 def select_extinguishers_for_maintenance(df_extinguishers, df_shipment_log):
     """Seleciona ~50% dos extintores para manutenção."""
@@ -59,21 +68,6 @@ def select_hoses_for_th(df_hoses, df_shipment_log):
     num_to_select = max(1, len(eligible) // 2)
     return eligible.head(num_to_select)
 
-# --- Funções de Geração de HTML e PDF ---
-
-def get_image_base64_from_drive(file_id):
-    """Baixa uma imagem do Google Drive e a converte para uma string Base64."""
-    url = f'https://drive.google.com/uc?export=download&id={file_id}'
-    try:
-        response = requests.get(url, timeout=15)
-        if response.status_code == 200:
-            encoded_string = base64.b64encode(response.content).decode('utf-8')
-            content_type = response.headers.get('Content-Type', 'image/png')
-            return f"data:{content_type};base64,{encoded_string}"
-        return None
-    except requests.exceptions.RequestException:
-        return None
-
 def generate_pdf_from_html(html_content):
     """Converte uma string HTML em um objeto de bytes de PDF usando WeasyPrint."""
     pdf_bytes = io.BytesIO()
@@ -86,9 +80,8 @@ def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info,
     """
     today = date.today().strftime('%d/%m/%Y')
     
-    logo_file_id = "1AABdw4iGBJ7tsQ7fR1WGTP5cML3Jlfx_"
-    logo_base64 = get_image_base64_from_drive(logo_file_id)
-    logo_html = f'<img src="{logo_base64}" alt="Logo VIBRA">' if logo_base64 else '<h2>VIBRA ENERGIA S.A</h2>'
+    logo_url = "YOUR_SUPABASE_PUBLIC_LOGO_URL" # TODO: Replace with actual Supabase public URL
+    logo_html = f'<img src="{logo_url}" alt="Logo VIBRA" style="max-width: 150px; max-height: 70px;">'
 
     styles = """
     <style>

@@ -1,12 +1,18 @@
+# auth/auth_utils.py (REFATORADO)
+
 import streamlit as st
 import pandas as pd
 from datetime import date, datetime, timedelta
 import pytz
 
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import USERS_SHEET_NAME, ACCESS_REQUESTS_SHEET_NAME
+# DE: from gdrive.gdrive_upload import GoogleDriveUploader
+# DE: from gdrive.config import USERS_SHEET_NAME, ACCESS_REQUESTS_SHEET_NAME
+# PARA: Importações refatoradas
+from operations.history import load_sheet_data # Usamos a função genérica que agora usa Supabase
+from supabase.client import get_supabase_client
+from utils.github_notifications import notify_new_access_request
 
-
+# ... (as funções is_oidc_available, is_user_logged_in, is_superuser, etc. permanecem as mesmas) ...
 def is_oidc_available():
     try: return hasattr(st.user, 'is_logged_in')
     except Exception: return False
@@ -37,120 +43,29 @@ def get_user_email() -> str | None:
         return None
     except Exception: return None
 
-def normalize_dataframe_columns(df, expected_columns):
-    """
-    Normaliza um DataFrame para ter as colunas esperadas, preenchendo com valores padrão
-    """
-    if df.empty:
-        # Se o DataFrame está vazio, cria com as colunas esperadas
-        return pd.DataFrame(columns=expected_columns)
-    
-    # Adiciona colunas faltantes com valores padrão
-    for col in expected_columns:
-        if col not in df.columns:
-            if col == 'email':
-                df[col] = ''
-            elif col == 'nome':
-                df[col] = 'Nome não informado'
-            elif col == 'role':
-                df[col] = 'viewer'
-            elif col == 'plano':
-                df[col] = 'basico'
-            elif col == 'status':
-                df[col] = 'inativo'
-            elif col in ['spreadsheet_id', 'folder_id']:
-                df[col] = ''
-            elif col == 'data_cadastro':
-                df[col] = date.today().isoformat()
-            elif col == 'trial_end_date':
-                df[col] = None
-            elif col in ['telefone', 'empresa', 'cargo']:
-                df[col] = ''
-            else:
-                df[col] = ''
-    
-    # Reordena as colunas para corresponder à ordem esperada
-    df = df[expected_columns]
-    
-    return df
-
-@st.cache_data(ttl=3600, show_spinner="Verificando permissões...")
+@st.cache_data(ttl=300, show_spinner="Verificando permissões...")
 def get_users_data():
     """
-    Carrega dados de usuários com tratamento robusto de erros e estrutura de colunas
+    Carrega dados de usuários com tratamento robusto de erros, agora do Supabase.
     """
-    # Estrutura esperada da planilha de usuários
-    expected_columns = [
-        'email', 'nome', 'role', 'plano', 'status', 
-    'spreadsheet_id', 'folder_id', 'data_cadastro', 'trial_end_date',
-    'telefone', 'empresa', 'cargo'
-    ]
-    
     try:
-        uploader = GoogleDriveUploader(is_matrix=True)
-        users_data = uploader.get_data_from_sheet(USERS_SHEET_NAME)
+        # PARA: A lógica complexa de leitura e normalização foi substituída por uma única chamada.
+        df = load_sheet_data("usuarios")
         
-        if not users_data:
-            st.warning("Planilha de usuários não encontrada ou vazia.")
-            return pd.DataFrame(columns=expected_columns)
-        
-        if len(users_data) < 2:
-            st.warning("Planilha de usuários não contém dados (apenas cabeçalho).")
-            return pd.DataFrame(columns=expected_columns)
-        
-        # Pega o cabeçalho (primeira linha) e os dados (resto)
-        header = users_data[0]
-        data_rows = users_data[1:]
-        
-        # Remove linhas completamente vazias
-        data_rows = [row for row in data_rows if any(cell for cell in row if str(cell).strip())]
-        
-        if not data_rows:
-            st.warning("Planilha de usuários não contém dados válidos.")
-            return pd.DataFrame(columns=expected_columns)
-        
-        # Ajusta o número de colunas nos dados para corresponder ao cabeçalho
-        max_columns = len(header)
-        normalized_rows = []
-        
-        for row in data_rows:
-            # Garante que a linha tenha o mesmo número de colunas do cabeçalho
-            normalized_row = list(row)
-            
-            # Se a linha tem menos colunas, preenche com strings vazias
-            while len(normalized_row) < max_columns:
-                normalized_row.append('')
-            
-            # Se a linha tem mais colunas, trunca
-            normalized_row = normalized_row[:max_columns]
-            
-            normalized_rows.append(normalized_row)
-        
-        # Cria o DataFrame inicial
-        df = pd.DataFrame(normalized_rows, columns=header)
-        
-        # Limpa e normaliza os dados
-        for col in df.columns:
-            if col in ['email', 'role', 'plano', 'status']:
-                df[col] = df[col].astype(str).str.lower().str.strip()
-        
-        # Trata a coluna de trial_end_date se existir
-        if 'trial_end_date' in df.columns:
-            df['trial_end_date'] = pd.to_datetime(df['trial_end_date'], errors='coerce').dt.date
-        
-        # Normaliza o DataFrame para ter a estrutura esperada
-        df = normalize_dataframe_columns(df, expected_columns)
-        
-        # Remove linhas com email vazio (linhas inválidas)
-        df = df[df['email'].str.len() > 0]
+        if not df.empty:
+            # Converte colunas de data que vêm como string do Supabase
+            if 'data_cadastro' in df.columns:
+                df['data_cadastro'] = pd.to_datetime(df['data_cadastro'], errors='coerce').dt.date
+            if 'trial_end_date' in df.columns:
+                df['trial_end_date'] = pd.to_datetime(df['trial_end_date'], errors='coerce').dt.date
         
         return df
         
     except Exception as e:
         st.error(f"Erro crítico ao carregar dados de usuários: {e}")
-        st.info("Criando DataFrame vazio com estrutura padrão...")
-        return pd.DataFrame(columns=expected_columns)
+        return pd.DataFrame()
 
+# ... (a função get_user_info e as demais funções que dependem de get_users_data não precisam de mudanças) ...
 def get_user_info() -> dict | None:
     """
     Retorna o registro do usuário. Se for o superusuário, "fabrica" o registro
@@ -179,6 +94,55 @@ def get_user_info() -> dict | None:
     user_entry = users_df[users_df['email'] == user_email]
     return user_entry.iloc[0].to_dict() if not user_entry.empty else None
 
+def save_access_request(user_name, user_email, justification):
+    """Salva uma solicitação de acesso na tabela 'solicitacoes_acesso' do Supabase."""
+    try:
+        sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
+        timestamp = datetime.now(sao_paulo_tz).strftime('%Y-%m-%d %H:%M:%S')
+        
+        # PARA: Usa o cliente Supabase e um dicionário
+        db_client = get_supabase_client()
+        
+        # Verifica se já existe solicitação pendente
+        df_requests = db_client.get_data("solicitacoes_acesso")
+        if not df_requests.empty:
+            if not df_requests[(df_requests['email_usuario'] == user_email) & (df_requests['status'] == 'Pendente')].empty:
+                st.warning("Você já possui uma solicitação de acesso pendente.")
+                return False
+        
+        # PARA: Cria um dicionário em vez de uma lista
+        request_record = {
+            "timestamp_solicitacao": timestamp,
+            "nome_usuario": user_name,
+            "email_usuario": user_email,
+            "tipo_solicitacao": "Solicitação de Trial",
+            "justificativa": justification,
+            "status": "Pendente"
+        }
+        
+        # PARA: Usa o método append_data
+        db_client.append_data("solicitacoes_acesso", request_record)
+        
+        # A lógica de notificação permanece a mesma
+        try:
+            admin_email = st.secrets.get("superuser", {}).get("admin_email")
+            if admin_email:
+                notify_new_access_request(
+                    admin_email=admin_email,
+                    user_email=user_email,
+                    user_name=user_name,
+                    justification=justification or "Nenhuma justificativa fornecida"
+                )
+                st.info(" O administrador foi notificado sobre sua solicitação.")
+        except Exception as notification_error:
+            print(f"Aviso: Falha ao enviar notificação para admin: {notification_error}")
+        
+        return True
+        
+    except Exception as e:
+        st.error(f"Ocorreu um erro ao enviar sua solicitação: {e}")
+        return False
+        
 # --- NOVAS FUNÇÕES RÁPIDAS ---
 def get_current_user_info() -> dict | None:
     """Retorna os dados do usuário logado diretamente da sessão. É super rápido."""
@@ -300,48 +264,6 @@ def setup_sidebar():
     
     return True
     
-def save_access_request(user_name, user_email, justification):
-    try:
-        sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
-        timestamp = datetime.now(sao_paulo_tz).strftime('%Y-%m-%d %H:%M:%S')
-        request_row = [timestamp, user_name, user_email, "Solicitação de Trial", justification, "Pendente"]
-        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-        
-        # Verifica se já existe solicitação pendente
-        requests_data = matrix_uploader.get_data_from_sheet(ACCESS_REQUESTS_SHEET_NAME)
-        if requests_data and len(requests_data) > 1:
-            df_requests = pd.DataFrame(requests_data[1:], columns=requests_data[0])
-            if not df_requests[(df_requests['email_usuario'] == user_email) & (df_requests['status'] == 'Pendente')].empty:
-                st.warning("Você já possui uma solicitação de acesso pendente.")
-                return False
-        
-        # Salva a solicitação
-        matrix_uploader.append_data_to_sheet(ACCESS_REQUESTS_SHEET_NAME, [request_row])
-        
-        try:
-            from utils.github_notifications import notify_new_access_request
-            
-            # Busca email do admin dos secrets
-            admin_email = st.secrets.get("superuser", {}).get("admin_email")
-            
-            if admin_email:
-                notify_new_access_request(
-                    admin_email=admin_email,
-                    user_email=user_email,
-                    user_name=user_name,
-                    justification=justification or "Nenhuma justificativa fornecida"
-                )
-                st.info("📧 O administrador foi notificado sobre sua solicitação.")
-            
-        except Exception as notification_error:
-            # Se a notificação falhar, não impede o salvamento da solicitação
-            print(f"Aviso: Falha ao enviar notificação para admin: {notification_error}")
-        
-        return True
-        
-    except Exception as e:
-        st.error(f"Ocorreu um erro ao enviar sua solicitação: {e}")
-        return False
 
 # Função de diagnóstico para ajudar a identificar problemas
 def diagnose_users_sheet():

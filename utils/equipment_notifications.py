@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Imports condicionais mais robustos
 STREAMLIT_AVAILABLE = False
-GDRIVE_AVAILABLE = False
 
 try:
     import streamlit as st
@@ -29,9 +28,9 @@ except ImportError:
         def __init__(self):
             self._data = {
                 "app": {"url": os.environ.get("APP_URL", "https://isnpecoessmaia.streamlit.app")},
-                "google_drive": {
-                    "matrix_sheets_id": os.environ.get("MATRIX_SHEETS_ID", ""),
-                    "central_drive_folder_id": os.environ.get("CENTRAL_DRIVE_FOLDER_ID", "")
+                "supabase": {
+                    "url": os.environ.get("SUPABASE_URL", ""),
+                    "key": os.environ.get("SUPABASE_KEY", "")
                 }
             }
         
@@ -55,121 +54,8 @@ except ImportError:
     
     st = MockSt()
 
-try:
-    from google.oauth2 import service_account
-    from googleapiclient.discovery import build
-    
-    # Imports específicos do projeto
-    from gdrive.gdrive_upload import GoogleDriveUploader
-    from gdrive.config import (
-        EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, SCBA_SHEET_NAME,
-        EYEWASH_INVENTORY_SHEET_NAME, MULTIGAS_INVENTORY_SHEET_NAME,
-        FOAM_CHAMBER_INVENTORY_SHEET_NAME, MULTIGAS_INSPECTIONS_SHEET_NAME
-    )
-    GDRIVE_AVAILABLE = True
-    logger.info("Google Drive APIs carregadas com sucesso")
-    
-except ImportError as e:
-    logger.warning(f"Google Drive não disponível - usando fallback: {e}")
-    
-    # Implementação completa do fallback
-    class MockGoogleDriveUploader:
-        def __init__(self, is_matrix=False):
-            self.is_matrix = is_matrix
-            self.spreadsheet_id = None
-            self.sheets_service = None
-            
-            if is_matrix:
-                self.spreadsheet_id = os.environ.get('MATRIX_SHEETS_ID')
-                logger.info(f"Usando planilha matriz: {self.spreadsheet_id}")
-            
-            # Inicializar serviço real se credenciais estiverem disponíveis
-            self._init_real_service()
-        
-        def _init_real_service(self):
-            """Tenta inicializar o serviço real do Google Sheets"""
-            try:
-                credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
-                if not credentials_json:
-                    logger.error("GOOGLE_CREDENTIALS não encontrado no ambiente")
-                    return
-                
-                credentials_dict = json.loads(credentials_json)
-                
-                from google.oauth2 import service_account
-                from googleapiclient.discovery import build
-                
-                credentials = service_account.Credentials.from_service_account_info(
-                    credentials_dict,
-                    scopes=['https://www.googleapis.com/auth/spreadsheets']
-                )
-                
-                self.sheets_service = build('sheets', 'v4', credentials=credentials)
-                logger.info("Serviço Google Sheets inicializado com sucesso no fallback")
-                
-            except Exception as e:
-                logger.error(f"Erro ao inicializar serviço Google Sheets: {e}")
-                self.sheets_service = None
-
-        def get_data_from_sheet(self, sheet_name):
-            """Busca dados da planilha usando o serviço real se disponível"""
-            if not self.sheets_service or not self.spreadsheet_id:
-                logger.warning(f"Serviço não disponível para buscar dados de {sheet_name}")
-                return []
-            
-            try:
-                range_name = f"{sheet_name}!A:Z"
-                result = self.sheets_service.spreadsheets().values().get(
-                    spreadsheetId=self.spreadsheet_id,
-                    range=range_name
-                ).execute()
-                
-                data = result.get('values', [])
-                logger.info(f"Dados carregados de {sheet_name}: {len(data)} linhas")
-                return data
-                
-            except Exception as e:
-                logger.error(f"Erro ao buscar dados de {sheet_name}: {e}")
-                return []
-
-        def append_data_to_sheet(self, sheet_name, data):
-            """Adiciona dados à planilha usando o serviço real se disponível"""
-            if not self.sheets_service or not self.spreadsheet_id:
-                logger.warning(f"Serviço não disponível para adicionar dados em {sheet_name}")
-                return False
-            
-            try:
-                if not isinstance(data, list):
-                    data = []
-                if data and not isinstance(data[0], list):
-                    data = [data]
-                
-                body = {'values': data}
-                result = self.sheets_service.spreadsheets().values().append(
-                    spreadsheetId=self.spreadsheet_id,
-                    range=f"{sheet_name}!A:A",
-                    valueInputOption='USER_ENTERED',
-                    insertDataOption='INSERT_ROWS',
-                    body=body
-                ).execute()
-                
-                logger.info(f"Dados adicionados a {sheet_name} com sucesso")
-                return True
-                
-            except Exception as e:
-                logger.error(f"Erro ao adicionar dados em {sheet_name}: {e}")
-                return False
-
-    GoogleDriveUploader = MockGoogleDriveUploader
-    
-    # Mock constants
-    EXTINGUISHER_SHEET_NAME = "extintores"
-    HOSE_SHEET_NAME = "mangueiras"
-    SCBA_SHEET_NAME = "conjuntos_autonomos"
-    EYEWASH_INVENTORY_SHEET_NAME = "chuveiros_lava_olhos"
-    MULTIGAS_INVENTORY_SHEET_NAME = "multigas_inventario"
-    FOAM_CHAMBER_INVENTORY_SHEET_NAME = "camaras_espuma_inventario"
-    MULTIGAS_INSPECTIONS_SHEET_NAME = "inspecoes_multigas"
+# PARA: Importa o cliente Supabase
+from supabase.client import get_supabase_client
 
 def get_notification_handler():
     """Carrega o handler de notificações com import dinâmico"""
@@ -186,26 +72,26 @@ def get_notification_handler():
                     # Prepara dados JSON para a coluna de dados
                     notification_data = {**kwargs}
                     
-                    # Linha para adicionar na planilha
-                    notification_row = [
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # timestamp
-                        notification_type,                             # tipo_notificacao
-                        recipient_email,                               # email_destinatario
-                        recipient_name,                               # nome_destinatario
-                        json.dumps(notification_data, ensure_ascii=False, default=str),  # dados_json
-                        'pendente'                                    # status
-                    ]
+                    # Linha para adicionar na tabela
+                    notification_record = {
+                        "timestamp": datetime.now().isoformat(),  # timestamp
+                        "type": notification_type,                             # tipo_notificacao
+                        "email": recipient_email,                               # email_destinatario
+                        "name": recipient_name,                               # nome_destinatario
+                        "data": json.dumps(notification_data, ensure_ascii=False, default=str),  # dados_json
+                        "status": 'pendente'                                    # status
+                    }
                     
-                    # Adiciona à planilha matriz
-                    matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                    success = matrix_uploader.append_data_to_sheet('notificacoes_pendentes', [notification_row])
+                    # Adiciona à tabela de notificações pendentes no Supabase
+                    db_client = get_supabase_client()
+                    response = db_client.append_data('notificacoes_pendentes', notification_record)
                     
-                    if success:
+                    if response:
                         logger.info(f"Notificação '{notification_type}' adicionada à fila para {recipient_email}")
                     else:
                         logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
                         
-                    return success
+                    return bool(response)
                     
                 except Exception as e:
                     logger.error(f"Erro ao adicionar notificação à fila: {e}")
@@ -234,26 +120,26 @@ def get_notification_handler():
                     # Prepara dados JSON para a coluna de dados
                     notification_data = {**kwargs}
                     
-                    # Linha para adicionar na planilha
-                    notification_row = [
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # timestamp
-                        notification_type,                             # tipo_notificacao
-                        recipient_email,                               # email_destinatario
-                        recipient_name,                               # nome_destinatario
-                        json.dumps(notification_data, ensure_ascii=False, default=str),  # dados_json
-                        'pendente'                                    # status
-                    ]
+                    # Linha para adicionar na tabela
+                    notification_record = {
+                        "timestamp": datetime.now().isoformat(),  # timestamp
+                        "type": notification_type,                             # tipo_notificacao
+                        "email": recipient_email,                               # email_destinatario
+                        "name": recipient_name,                               # nome_destinatario
+                        "data": json.dumps(notification_data, ensure_ascii=False, default=str),  # dados_json
+                        "status": 'pendente'                                    # status
+                    }
                     
-                    # Adiciona à planilha matriz
-                    matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                    success = matrix_uploader.append_data_to_sheet('notificacoes_pendentes', [notification_row])
+                    # Adiciona à tabela de notificações pendentes no Supabase
+                    db_client = get_supabase_client()
+                    response = db_client.append_data('notificacoes_pendentes', notification_record)
                     
-                    if success:
+                    if response:
                         logger.info(f"Notificação '{notification_type}' adicionada à fila para {recipient_email}")
                     else:
                         logger.error(f"Falha ao adicionar notificação à fila para {recipient_email}")
                         
-                    return success
+                    return bool(response)
                     
                 except Exception as e:
                     logger.error(f"Erro ao adicionar notificação à fila: {e}")
@@ -269,103 +155,27 @@ def get_notification_handler():
         return FallbackGitHubNotificationHandler()
 
 def get_users_data():
-    """Carrega dados de usuários com import dinâmico"""
+    """Carrega dados de usuários do Supabase."""
+    logger.info("Carregando usuários do Supabase.")
     try:
-        if STREAMLIT_AVAILABLE:
-            from auth.auth_utils import get_users_data as _get_users
-            result = _get_users()
-            logger.info(f"Usuários carregados via auth_utils: {len(result) if not result.empty else 0}")
-            return result
-    except ImportError:
-        pass
-    
-    # Fallback para GitHub Actions
-    logger.info("Carregando usuários diretamente da planilha matriz")
-    
-    try:
-        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-        users_data = matrix_uploader.get_data_from_sheet("usuarios")
-
-        if not users_data or len(users_data) < 2:
-            logger.warning("Planilha de usuários vazia ou sem dados")
-            return pd.DataFrame()
-
-        # Log dos dados brutos para debug
-        headers = users_data[0]
-        logger.info(f"Cabeçalhos brutos encontrados ({len(headers)}): {headers}")
+        db_client = get_supabase_client()
+        df = db_client.get_data("usuarios")
         
-        # Limpa cabeçalhos vazios e normaliza
-        clean_headers = []
-        for i, header in enumerate(headers):
-            if header and str(header).strip():
-                clean_headers.append(str(header).strip())
-            else:
-                clean_headers.append(f"coluna_vazia_{i}")
-        
-        logger.info(f"Cabeçalhos limpos ({len(clean_headers)}): {clean_headers}")
-        
-        # Verifica se há dados
-        data_rows = users_data[1:]
-        if not data_rows:
-            logger.warning("Nenhuma linha de dados encontrada")
+        if df.empty:
+            logger.warning("Tabela de usuários vazia.")
             return pd.DataFrame()
         
-        # Log do primeiro registro para debug
-        first_row = data_rows[0] if data_rows else []
-        logger.info(f"Primeira linha de dados ({len(first_row)}): {first_row}")
+        # Converte colunas de data que vêm como string do Supabase
+        if 'data_cadastro' in df.columns:
+            df['data_cadastro'] = pd.to_datetime(df['data_cadastro'], errors='coerce').dt.date
+        if 'trial_end_date' in df.columns:
+            df['trial_end_date'] = pd.to_datetime(df['trial_end_date'], errors='coerce').dt.date
         
-        # Normaliza os dados - garante que todas as linhas tenham o mesmo número de colunas
-        normalized_data = []
-        num_columns = len(clean_headers)
-        
-        for i, row in enumerate(data_rows):
-            # Garante que a linha seja uma lista
-            if not isinstance(row, list):
-                row = list(row) if row else []
-            
-            # Completa com strings vazias se a linha tiver menos colunas
-            if len(row) < num_columns:
-                row = row + [''] * (num_columns - len(row))
-            # Trunca se a linha tiver mais colunas
-            elif len(row) > num_columns:
-                row = row[:num_columns]
-            
-            # Converte todos os valores para string para evitar problemas de tipo
-            normalized_row = [str(cell).strip() if cell is not None else '' for cell in row]
-            normalized_data.append(normalized_row)
-        
-        logger.info(f"Dados normalizados: {len(normalized_data)} linhas com {num_columns} colunas cada")
-        
-        # Cria o DataFrame
-        df = pd.DataFrame(normalized_data, columns=clean_headers)
-        logger.info(f"DataFrame criado com sucesso: {len(df)} usuários carregados")
-        
-        # Log das colunas disponíveis para debug
-        logger.info(f"Colunas da planilha de usuários: {list(df.columns)}")
-        
-        # Remove linhas completamente vazias
-        df = df.dropna(how='all')
-        df = df[df.astype(str).apply(lambda x: x.str.strip().str.len().sum(), axis=1) > 0]
-        
-        logger.info(f"Após limpeza: {len(df)} usuários válidos")
-        
-        # Log de alguns dados para verificação (apenas colunas importantes)
-        if not df.empty:
-            important_cols = []
-            for col in ['email', 'nome', 'status', 'spreadsheet_id']:
-                if col in df.columns:
-                    important_cols.append(col)
-            
-            if important_cols:
-                sample_data = df[important_cols].head(2).to_dict('records')
-                logger.info(f"Amostra de dados importantes: {sample_data}")
-        
+        logger.info(f"DataFrame de usuários carregado: {len(df)} registros.")
         return df
         
     except Exception as e:
-        logger.error(f"Erro ao carregar usuários: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+        logger.error(f"Erro ao carregar usuários do Supabase: {e}")
         return pd.DataFrame()
 
 class EquipmentNotificationSystem:
@@ -403,19 +213,14 @@ class EquipmentNotificationSystem:
         target_date = date.today() + timedelta(days=days_ahead)
 
         try:
-            logger.info(f"Verificando equipamentos vencendo para planilha {user_spreadsheet_id}")
+            logger.info(f"Verificando equipamentos vencendo para usuário com spreadsheet_id {user_spreadsheet_id}")
             
-            # Cria uploader para planilha do usuário
-            user_uploader = GoogleDriveUploader(is_matrix=False)
-            user_uploader.spreadsheet_id = user_spreadsheet_id
+            db_client = get_supabase_client()
             
             # Verifica extintores
             try:
-                extinguisher_data = user_uploader.get_data_from_sheet(EXTINGUISHER_SHEET_NAME)
-                if extinguisher_data and len(extinguisher_data) > 1:
-                    df_ext = pd.DataFrame(extinguisher_data[1:], columns=extinguisher_data[0])
-                    
-                    # Converte datas e verifica vencimentos
+                df_ext = db_client.get_data("extintores")
+                if not df_ext.empty:
                     date_columns = ['data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel']
                     for col in date_columns:
                         if col in df_ext.columns:
@@ -441,10 +246,8 @@ class EquipmentNotificationSystem:
             
             # Verifica mangueiras
             try:
-                hose_data = user_uploader.get_data_from_sheet(HOSE_SHEET_NAME)
-                if hose_data and len(hose_data) > 1:
-                    df_hose = pd.DataFrame(hose_data[1:], columns=hose_data[0])
-                    
+                df_hose = db_client.get_data("mangueiras")
+                if not df_hose.empty:
                     if 'data_proximo_teste' in df_hose.columns:
                         df_hose['data_proximo_teste'] = pd.to_datetime(df_hose['data_proximo_teste'], errors='coerce').dt.date
                         expiring_hoses = df_hose[
@@ -468,10 +271,8 @@ class EquipmentNotificationSystem:
             
             # Verifica SCBAs
             try:
-                scba_data = user_uploader.get_data_from_sheet(SCBA_SHEET_NAME)
-                if scba_data and len(scba_data) > 1:
-                    df_scba = pd.DataFrame(scba_data[1:], columns=scba_data[0])
-                    
+                df_scba = db_client.get_data("conjuntos_autonomos")
+                if not df_scba.empty:
                     if 'data_validade' in df_scba.columns:
                         df_scba['data_validade'] = pd.to_datetime(df_scba['data_validade'], errors='coerce').dt.date
                         expiring_scba = df_scba[
@@ -495,16 +296,11 @@ class EquipmentNotificationSystem:
             
             # Verifica detectores multigás
             try:
-                multigas_data = user_uploader.get_data_from_sheet(MULTIGAS_INVENTORY_SHEET_NAME)
-                if multigas_data and len(multigas_data) > 1:
-                    df_multi = pd.DataFrame(multigas_data[1:], columns=multigas_data[0])
-                    
-                    # Busca calibrações na aba de inspeções
+                df_multi = db_client.get_data("inventario_multigas")
+                if not df_multi.empty:
                     try:
-                        inspections_data = user_uploader.get_data_from_sheet(MULTIGAS_INSPECTIONS_SHEET_NAME)
-                        if inspections_data and len(inspections_data) > 1:
-                            df_insp = pd.DataFrame(inspections_data[1:], columns=inspections_data[0])
-                            
+                        df_insp = db_client.get_data("inspecoes_multigas")
+                        if not df_insp.empty:
                             if 'proxima_calibracao' in df_insp.columns:
                                 df_insp['proxima_calibracao'] = pd.to_datetime(df_insp['proxima_calibracao'], errors='coerce').dt.date
                                 expiring_calibrations = df_insp[
@@ -531,7 +327,6 @@ class EquipmentNotificationSystem:
         except Exception as e:
             logger.error(f"Erro geral ao buscar equipamentos vencendo: {e}")
         
-        # Ordena por dias restantes (mais urgente primeiro)
         expiring_equipment.sort(key=lambda x: x['dias_restantes'])
         
         logger.info(f"Total de equipamentos vencendo encontrados: {len(expiring_equipment)}")
@@ -542,17 +337,14 @@ class EquipmentNotificationSystem:
         pending_issues = []
 
         try:
-            logger.info(f"Verificando pendências para planilha {user_spreadsheet_id}")
+            logger.info(f"Verificando pendências para usuário com spreadsheet_id {user_spreadsheet_id}")
             
-            user_uploader = GoogleDriveUploader(is_matrix=False)
-            user_uploader.spreadsheet_id = user_spreadsheet_id
+            db_client = get_supabase_client()
             
             # Verifica extintores reprovados sem ações corretivas
             try:
-                extinguisher_data = user_uploader.get_data_from_sheet(EXTINGUISHER_SHEET_NAME)
-                if extinguisher_data and len(extinguisher_data) > 1:
-                    df_ext = pd.DataFrame(extinguisher_data[1:], columns=extinguisher_data[0])
-                    
+                df_ext = db_client.get_data("extintores")
+                if not df_ext.empty:
                     if 'aprovado_inspecao' in df_ext.columns:
                         failed_extinguishers = df_ext[
                             (df_ext['aprovado_inspecao'].str.lower().isin(['não', 'nao', 'reprovado', 'r'])) &
@@ -574,10 +366,8 @@ class EquipmentNotificationSystem:
             
             # Verifica mangueiras reprovadas/condenadas
             try:
-                hose_data = user_uploader.get_data_from_sheet(HOSE_SHEET_NAME)
-                if hose_data and len(hose_data) > 1:
-                    df_hose = pd.DataFrame(hose_data[1:], columns=hose_data[0])
-                    
+                df_hose = db_client.get_data("mangueiras")
+                if not df_hose.empty:
                     if 'resultado' in df_hose.columns:
                         failed_hoses = df_hose[
                             df_hose['resultado'].str.lower().isin(['reprovado', 'condenada', 'r', 'c'])
@@ -615,8 +405,6 @@ class EquipmentNotificationSystem:
         except Exception as e:
             logger.error(f"Erro geral ao buscar pendências: {e}")
         
-        # Ordena por prioridade (Crítica > Alta > Média)
-        priority_order = {'Crítica': 0, 'Alta': 1, 'Média': 2}
         pending_issues.sort(key=lambda x: priority_order.get(x['prioridade'], 3))
         
         logger.info(f"Total de pendências encontradas: {len(pending_issues)}")
@@ -626,25 +414,20 @@ class EquipmentNotificationSystem:
         """Função principal para enviar notificações periódicas para todos os usuários ativos"""
         try:
             logger.info(f"Iniciando envio de notificações periódicas de equipamentos (dias de antecedência: {days_notice})")
-            logger.info(f"GDRIVE_AVAILABLE: {GDRIVE_AVAILABLE}")
             logger.info(f"STREAMLIT_AVAILABLE: {STREAMLIT_AVAILABLE}")
             
-            # Carrega usuários ativos
             users_df = get_users_data()
             if users_df.empty:
-                logger.info("Nenhum usuário encontrado na planilha")
+                logger.info("Nenhum usuário encontrado na tabela")
                 return
             
             logger.info(f"Total de usuários carregados: {len(users_df)}")
             
-            # Filtra usuários ativos com planilhas
-            # Verifica se as colunas necessárias existem (busca por nomes similares)
             available_columns = [col.lower() for col in users_df.columns]
             logger.info(f"Colunas disponíveis (lowercase): {available_columns}")
             
-            # Mapeia colunas por busca flexível
             status_col = None
-            spreadsheet_col = None
+            spreadsheet_col = None # This column is no longer needed
             email_col = None
             nome_col = None
             
@@ -652,45 +435,37 @@ class EquipmentNotificationSystem:
                 col_lower = col.lower()
                 if 'status' in col_lower:
                     status_col = col
-                elif 'spreadsheet' in col_lower or 'planilha' in col_lower:
-                    spreadsheet_col = col
                 elif 'email' in col_lower or 'e-mail' in col_lower:
                     email_col = col
                 elif 'nome' in col_lower or 'name' in col_lower:
                     nome_col = col
             
-            logger.info(f"Colunas mapeadas - Status: {status_col}, Spreadsheet: {spreadsheet_col}, Email: {email_col}, Nome: {nome_col}")
+            logger.info(f"Colunas mapeadas - Status: {status_col}, Email: {email_col}, Nome: {nome_col}")
             
-            if not status_col or not spreadsheet_col or not email_col:
+            if not status_col or not email_col:
                 logger.error(f"Colunas obrigatórias não encontradas:")
                 logger.error(f"  - Status: {'✓' if status_col else '✗'}")
-                logger.error(f"  - Spreadsheet: {'✓' if spreadsheet_col else '✗'}")
                 logger.error(f"  - Email: {'✓' if email_col else '✗'}")
                 logger.info(f"Colunas disponíveis: {list(users_df.columns)}")
                 return
             
-            # Filtra usuários ativos usando as colunas encontradas
             try:
                 active_users = users_df[
-                    (users_df[status_col].astype(str).str.lower().str.strip() == 'ativo') & 
-                    (users_df[spreadsheet_col].notna()) & 
-                    (users_df[spreadsheet_col].astype(str).str.strip() != '') &
+                    (users_df[status_col].astype(str).str.lower().str.strip() == 'ativo') &
                     (users_df[email_col].notna()) & 
                     (users_df[email_col].astype(str).str.strip() != '')
                 ]
             except Exception as e:
                 logger.error(f"Erro ao filtrar usuários ativos: {e}")
                 logger.info("Tentando filtro mais simples...")
-                # Fallback para filtro mais simples
                 active_users = users_df[
-                    (users_df[email_col].notna()) & 
-                    (users_df[spreadsheet_col].notna())
+                    (users_df[email_col].notna())
                 ]
             
-            logger.info(f"Usuários ativos com planilhas: {len(active_users)}")
+            logger.info(f"Usuários ativos: {len(active_users)}")
             
             if active_users.empty:
-                logger.info("Nenhum usuário ativo com planilha encontrado")
+                logger.info("Nenhum usuário ativo encontrado")
                 return
             
             notifications_sent = 0
@@ -699,28 +474,19 @@ class EquipmentNotificationSystem:
                 try:
                     user_email = str(user.get(email_col, '')).strip()
                     user_name = str(user.get(nome_col, user_email)).strip()
-                    spreadsheet_id = str(user.get(spreadsheet_col, '')).strip()
                     
-                    # Validações básicas
                     if not user_email or '@' not in user_email:
                         logger.warning(f"Email inválido para usuário na linha {idx}: '{user_email}'")
                         continue
                     
-                    if not spreadsheet_id:
-                        logger.warning(f"spreadsheet_id vazio para usuário {user_email}")
-                        continue
+                    logger.info(f"Processando notificações para {user_email}")
                     
-                    logger.info(f"Processando notificações para {user_email} (planilha: {spreadsheet_id})")
-                    
-                    # Busca equipamentos vencendo
-                    expiring_equipment = self.get_user_expiring_equipment(spreadsheet_id, days_notice)
+                    expiring_equipment = self.get_user_expiring_equipment(user_email, days_notice)
                     logger.info(f"Equipamentos vencendo para {user_email}: {len(expiring_equipment)}")
                     
-                    # Busca pendências
-                    pending_issues = self.get_user_pending_issues(spreadsheet_id)
+                    pending_issues = self.get_user_pending_issues(user_email)
                     logger.info(f"Pendências para {user_email}: {len(pending_issues)}")
                     
-                    # Envia notificação se houver vencimentos
                     if expiring_equipment:
                         success = self.notify_equipment_expiring(
                             user_email=user_email,
@@ -734,7 +500,6 @@ class EquipmentNotificationSystem:
                         else:
                             logger.error(f"Falha ao enviar notificação de vencimentos para {user_email}")
                     
-                    # Envia notificação se houver pendências
                     if pending_issues:
                         success = self.notify_pending_issues(
                             user_email=user_email,
@@ -762,7 +527,6 @@ class EquipmentNotificationSystem:
             raise
 
 
-# Instância global
 equipment_notification_system = EquipmentNotificationSystem()
 
 def send_weekly_equipment_notifications():

@@ -16,7 +16,6 @@ from auth.auth_utils import (
 )
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
-from gdrive.config import EYEWASH_INVENTORY_SHEET_NAME
 from operations.instrucoes import instru_eyewash
 
 set_page_config()
@@ -24,12 +23,10 @@ set_page_config()
 def show_page():
     st.title("🚿 Gestão de Chuveiros e Lava-Olhos de Emergência")
 
-    # Check if user has at least viewer permissions
     if not check_user_access("viewer"):
         st.warning("Você não tem permissão para acessar esta página.")
         return
         
-    # ADICIONAR ESTA NOVA ABA NO INÍCIO
     tab_instrucoes, tab_inspection, tab_register, tab_quick_register = st.tabs([
         "📖 Como Usar",
         "📋 Realizar Inspeção", 
@@ -44,12 +41,11 @@ def show_page():
 
         st.header("Realizar Inspeção Periódica")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para realizar inspeções.")
             st.info("Os dados abaixo são somente para visualização.")
         else:
-            df_inventory = load_sheet_data(EYEWASH_INVENTORY_SHEET_NAME)
+            df_inventory = load_sheet_data("inventario_chuveiros_lava_olhos")
             
             if df_inventory.empty:
                 st.warning("Nenhum equipamento cadastrado. Vá para as abas de cadastro para começar.")
@@ -104,11 +100,9 @@ def show_page():
                                     else:
                                         st.error("Ocorreu um erro ao salvar a inspeção.")
 
-    # --- ABA DE CADASTRO COMPLETO ---
     with tab_register:
         st.header("Cadastrar Novo Chuveiro / Lava-Olhos (Completo)")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novos equipamentos.")
         else:        
@@ -123,7 +117,6 @@ def show_page():
                 new_brand = col3.text_input("Marca")
                 new_model = col4.text_input("Modelo")
                 
-                # Informações adicionais
                 st.markdown("---")
                 st.subheader("Especificações Técnicas (Opcional)")
                 
@@ -155,11 +148,9 @@ def show_page():
                                     st.info(f"Observações registradas: {additional_notes}")
                                 st.cache_data.clear()
 
-    # --- NOVA ABA DE CADASTRO RÁPIDO ---
     with tab_quick_register:
         st.header("Cadastro Rápido de Equipamento")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novos equipamentos.")
         else:
@@ -171,13 +162,11 @@ def show_page():
                 quick_id = st.text_input("ID do Equipamento*", placeholder="CLO-001")
                 quick_location = st.text_input("Localização*", placeholder="Laboratório - Setor A")
                 
-                # Tipo pré-definido
                 quick_type = st.selectbox(
                     "Tipo de Equipamento",
                     ["Chuveiro de Emergência", "Lava-Olhos", "Chuveiro + Lava-Olhos Combinado"]
                 )
                 
-                # Marca comum
                 common_brands = ["", "HAWS", "BRADLEY", "SPEAKMAN", "GUARDIAN", "ENWARE", "OUTRO"]
                 quick_brand = st.selectbox("Marca (opcional)", common_brands)
                 
@@ -193,7 +182,6 @@ def show_page():
                     if not quick_id or not quick_location:
                         st.error("ID e Localização são obrigatórios.")
                     else:
-                        # Usa o tipo selecionado como modelo se não houver marca específica
                         model_to_use = quick_type if not final_brand else ""
                         
                         with st.spinner("Cadastrando..."):
@@ -201,5 +189,3 @@ def show_page():
                                 st.success(f"Equipamento '{quick_id}' ({quick_type}) cadastrado rapidamente!")
                                 st.balloons()
                                 st.cache_data.clear()
-                            else:
-                                st.error("Erro ao cadastrar. Verifique se o ID já não existe.")

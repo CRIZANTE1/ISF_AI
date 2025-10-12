@@ -13,31 +13,26 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from auth.auth_utils import (
     get_user_display_name, check_user_access, can_edit, has_ai_features
 )
-from gdrive.config import (
-    EXTINGUISHER_SHEET_NAME, HOSE_SHEET_NAME, 
-    EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME, TH_SHIPMENT_LOG_SHEET_NAME
-)
+from operations.history import load_sheet_data
 from reports.shipment_report import (
     generate_shipment_html_and_pdf, log_shipment, 
     select_extinguishers_for_maintenance, select_hoses_for_th
 )
 from config.page_config import set_page_config 
-from gdrive.gdrive_upload import GoogleDriveUploader
 from utils.auditoria import log_action
 
 set_page_config()
 
 @st.cache_data(ttl=300)
 def load_all_data():
-    uploader = GoogleDriveUploader()
-    ext_data = uploader.get_data_from_sheet(EXTINGUISHER_SHEET_NAME)
-    df_ext = pd.DataFrame(ext_data[1:], columns=ext_data[0]) if ext_data and len(ext_data) > 1 else pd.DataFrame()
-    log_ext_data = uploader.get_data_from_sheet(EXTINGUISHER_SHIPMENT_LOG_SHEET_NAME)
-    df_log_ext = pd.DataFrame(log_ext_data[1:], columns=log_ext_data[0]) if log_ext_data and len(log_ext_data) > 1 else pd.DataFrame()
-    hose_data = uploader.get_data_from_sheet(HOSE_SHEET_NAME)
-    df_hose = pd.DataFrame(hose_data[1:], columns=hose_data[0]) if hose_data and len(hose_data) > 1 else pd.DataFrame()
-    log_hose_data = uploader.get_data_from_sheet(TH_SHIPMENT_LOG_SHEET_NAME)
-    df_log_hose = pd.DataFrame(log_hose_data[1:], columns=log_hose_data[0]) if log_hose_data and len(log_hose_data) > 1 else pd.DataFrame()
+    ext_data = load_sheet_data("extintores")
+    df_ext = pd.DataFrame(ext_data) if not ext_data.empty else pd.DataFrame()
+    log_ext_data = load_sheet_data("log_remessa_extintores")
+    df_log_ext = pd.DataFrame(log_ext_data) if not log_ext_data.empty else pd.DataFrame()
+    hose_data = load_sheet_data("mangueiras")
+    df_hose = pd.DataFrame(hose_data) if not hose_data.empty else pd.DataFrame()
+    log_hose_data = load_sheet_data("log_remessa_mangueiras")
+    df_log_hose = pd.DataFrame(log_hose_data) if not log_hose_data.empty else pd.DataFrame()
     return {
         "extinguishers": df_ext, "extinguishers_log": df_log_ext,
         "hoses": df_hose, "hoses_log": df_log_hose
@@ -55,7 +50,6 @@ def image_to_bytes(img: Image.Image):
 def show_page():
     st.title("🛠️ Utilitários do Sistema")
 
-    # Check if user has at least viewer permissions
     if not check_user_access("viewer"):
         st.warning("Você não tem permissão para acessar esta página.")
         return
@@ -79,7 +73,6 @@ def show_page():
         else:
             st.info("Esta seção permite cadastrar rapidamente novos equipamentos no sistema.")
             
-            # Interface para cadastro rápido de equipamentos
             equipment_type = st.selectbox("Tipo de Equipamento", [
                 "Selecione...", 
                 "Extintor", 
@@ -173,7 +166,6 @@ def show_page():
     with tab_shipment:
         st.header("Gerar Boletim de Remessa para Manutenção/Teste")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você não tem permissão para gerar boletins de remessa.")
             st.info("Somente usuários com nível 'editor' ou superior podem utilizar esta funcionalidade.")

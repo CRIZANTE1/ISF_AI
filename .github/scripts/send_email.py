@@ -11,8 +11,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from jinja2 import Template
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+from supabase import create_client, Client # PARA: Nova importação
 
 EMAIL_TEMPLATES = {
     'access_approved': {
@@ -361,7 +360,7 @@ EMAIL_TEMPLATES = {
         
         <div class="footer">
             <p>Esta é uma notificação automática do sistema de gestão ISF IA.</p>
-        </div>
+        }
     </div>
 </body>
 </html>
@@ -497,7 +496,7 @@ EMAIL_TEMPLATES = {
         </div>
         
         <div class="footer">
-            <p>Este é um convite automático do sistema ISF IA.</p>
+            <p>Este é uma notificação automática do sistema ISF IA.</p>
             <p>Você recebeu este email porque tentou acessar nossa plataforma em <strong>{{recipient_email}}</strong>.</p>
             <p>Se não foi você, por favor ignore este email.</p>
         </div>
@@ -509,52 +508,35 @@ EMAIL_TEMPLATES = {
 
 }
 
-def get_google_sheets_service():
-    """Inicializa serviço do Google Sheets"""
-    credentials_json = os.environ['GOOGLE_CREDENTIALS']
-    credentials_dict = json.loads(credentials_json)
-    
-    credentials = service_account.Credentials.from_service_account_info(
-        credentials_dict,
-        scopes=['https://www.googleapis.com/auth/spreadsheets']
-    )
-    
-    return build('sheets', 'v4', credentials=credentials)
-
-def get_pending_notifications(sheets_service, spreadsheet_id):
-    """Busca notificações pendentes na planilha"""
+# PARA: Nova função para conectar ao Supabase usando variáveis de ambiente
+def get_supabase_client_for_script() -> Client:
+    """Inicializa o cliente Supabase para uso em scripts de backend."""
     try:
-        range_name = "notificacoes_pendentes!A:F"
-        result = sheets_service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id,
-            range=range_name
-        ).execute()
-        
-        values = result.get('values', [])
-        if not values or len(values) < 2:
-            return []
-        
-        # Converte para lista de dicionários
-        headers = values[0]
-        notifications = []
-        
-        for i, row in enumerate(values[1:], 2):  # i=2 para linha da planilha
-            if len(row) >= 6 and row[5] == 'pendente':
-                notification_data = {
-                    'row_index': i,
-                    'timestamp': row[0],
-                    'type': row[1], 
-                    'email': row[2],
-                    'name': row[3],
-                    'data': row[4],
-                    'status': row[5]
-                }
-                notifications.append(notification_data)
-        
-        return notifications
-        
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise ValueError("Credenciais SUPABASE_URL ou SUPABASE_KEY não encontradas no ambiente.")
+        return create_client(url, key)
     except Exception as e:
-        print(f"❌ Erro ao buscar notificações: {e}")
+        print(f"❌ Erro ao inicializar cliente Supabase: {e}")
+        return None
+
+# PARA: Função reescrita para buscar notificações do Supabase
+def get_pending_notifications(supabase_client: Client) -> list:
+    """Busca notificações pendentes da tabela do Supabase."""
+    try:
+        response = supabase_client.table("notificacoes_pendentes").select("*").eq("status", "pendente").execute()
+        if response.data:
+            # A API retorna dicionários, então não é preciso converter.
+            # Renomeamos 'id' para 'row_index' para manter compatibilidade com o resto do código.
+            notifications = []
+            for item in response.data:
+                item['row_index'] = item['id']
+                notifications.append(item)
+            return notifications
+        return []
+    except Exception as e:
+        print(f"❌ Erro ao buscar notificações do Supabase: {e}")
         return []
 
 def send_email(smtp_config, recipient_email, subject, body_html):
@@ -590,25 +572,18 @@ def send_email(smtp_config, recipient_email, subject, body_html):
         print(f"❌ Erro ao enviar email para {recipient_email}: {e}")
         return False
 
-def update_notification_status(sheets_service, spreadsheet_id, row_index, status):
-    """Atualiza status da notificação na planilha"""
+# PARA: Função reescrita para atualizar o status no Supabase
+def update_notification_status(supabase_client: Client, notification_id: int, status: str) -> bool:
+    """Atualiza o status de uma notificação na tabela do Supabase."""
     try:
-        range_name = f"notificacoes_pendentes!F{row_index}"
-        body = {'values': [[status]]}
-        
-        sheets_service.spreadsheets().values().update(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption='RAW',
-            body=body
-        ).execute()
-        
+        supabase_client.table("notificacoes_pendentes").update({"status": status}).eq("id", notification_id).execute()
         return True
     except Exception as e:
-        print(f"❌ Erro ao atualizar status: {e}")
+        print(f"❌ Erro ao atualizar status no Supabase: {e}")
         return False
 
-def process_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+# PARA: A função process_notification agora recebe o cliente Supabase
+def process_notification(notification, smtp_config, supabase_client):
     """Processa uma notificação individual"""
     
     notification_type = notification['type']
@@ -663,20 +638,22 @@ def process_notification(notification, smtp_config, sheets_service, spreadsheet_
     # Envia email
     success = send_email(smtp_config, recipient_email, subject, body_html)
     
+    notification_id = notification['id'] # Usa o 'id' da tabela
+    
     if success:
-        # Marca como enviado na planilha
-        update_notification_status(sheets_service, spreadsheet_id, notification['row_index'], 'enviado')
+        # Marca como enviado na tabela
+        update_notification_status(supabase_client, notification_id, 'enviado')
         print(f"✅ Notificação {notification_type} processada para {recipient_email}")
     else:
         # Marca como erro
-        update_notification_status(sheets_service, spreadsheet_id, notification['row_index'], 'erro')
+        update_notification_status(supabase_client, notification_id, 'erro')
         print(f"❌ Falha ao processar notificação {notification_type} para {recipient_email}")
     
     return success
 
 def main():
     """Função principal"""
-    print("🔄 Iniciando processamento de notificações...")
+    print(" Iniciando processamento de notificações...")
     
     # Configuração SMTP
     smtp_config = {
@@ -688,27 +665,30 @@ def main():
         'from_name': os.environ['FROM_NAME']
     }
     
-    # Serviços Google
-    sheets_service = get_google_sheets_service()
-    spreadsheet_id = os.environ['MATRIX_SHEETS_ID']
-    
-    # Busca notificações pendentes
-    notifications = get_pending_notifications(sheets_service, spreadsheet_id)
+    # PARA: Inicializa o cliente Supabase
+    supabase_client = get_supabase_client_for_script()
+    if not supabase_client:
+        print("❌ Falha na conexão com o Supabase. Abortando.")
+        return
+
+    # Busca notificações pendentes do Supabase
+    notifications = get_pending_notifications(supabase_client)
     
     if not notifications:
         print("✅ Nenhuma notificação pendente encontrada.")
         return
     
-    print(f"📧 Encontradas {len(notifications)} notificações pendentes.")
+    print(f" Encontradas {len(notifications)} notificações pendentes.")
     
     # Processa cada notificação
     processed = 0
     for notification in notifications:
         try:
-            if process_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+            # PARA: Passa o cliente Supabase para a função
+            if process_notification(notification, smtp_config, supabase_client):
                 processed += 1
         except Exception as e:
-            print(f"❌ Erro ao processar notificação: {e}")
+            print(f"❌ Erro ao processar notificação ID {notification.get('id')}: {e}")
     
     print(f"✅ Processamento concluído: {processed}/{len(notifications)} enviadas com sucesso.")
 

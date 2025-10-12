@@ -11,8 +11,6 @@ from streamlit_js_eval import streamlit_js_eval
 from operations.photo_operations import display_drive_image
 from reports.alarm_report import generate_alarm_inspection_html
 
-
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations.history import load_sheet_data, find_last_record
 from auth.login_page import show_login_page, show_user_header, show_logout_button
@@ -20,22 +18,6 @@ from auth.auth_utils import can_edit, setup_sidebar, is_admin, can_view, get_use
 from config.page_config import set_page_config
 from operations.instrucoes import instru_dash
 from operations.extinguisher_operations import batch_regularize_monthly_inspections
-from gdrive.config import (
-    HOSE_SHEET_NAME, SHELTER_SHEET_NAME, INSPECTIONS_SHELTER_SHEET_NAME,
-    LOG_SHELTER_SHEET_NAME, SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME,
-    EYEWASH_INSPECTIONS_SHEET_NAME,
-    FOAM_CHAMBER_INVENTORY_SHEET_NAME,
-    FOAM_CHAMBER_INSPECTIONS_SHEET_NAME,
-    HOSE_DISPOSAL_LOG_SHEET_NAME,
-    LOG_FOAM_CHAMBER_SHEET_NAME,
-    MULTIGAS_INVENTORY_SHEET_NAME, 
-    MULTIGAS_INSPECTIONS_SHEET_NAME,
-    ALARM_INVENTORY_SHEET_NAME,
-    ALARM_INSPECTIONS_SHEET_NAME,
-    LOG_ALARM_SHEET_NAME,
-    CANHAO_MONITOR_INVENTORY_SHEET_NAME,      
-    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME    
-)
 from reports.reports_pdf import generate_shelters_html
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
 from operations.corrective_actions import save_corrective_action
@@ -61,11 +43,7 @@ from operations.canhao_monitor_operations import (
 )
 from operations.dashboard_operations import load_all_dashboard_data, get_dashboard_summary_stats
 
-
-
 set_page_config()
-
-
 
 def get_canhao_monitor_status_df(df_inspections):
     if df_inspections.empty:
@@ -107,14 +85,12 @@ def action_dialog_canhao_monitor(item_row):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
-            # <-- A CHAMADA PARA SALVAR O LOG JÁ ESTÁ AQUI -->
             log_saved = save_canhao_monitor_action_log(equipment_id, problem, action_taken, responsible, photo_evidence)
             
             if not log_saved:
                 st.error("Falha ao salvar o log da ação. O status não foi atualizado.")
                 return
 
-            # Simula uma inspeção "Aprovada" para regularizar o status
             mock_results = {}
             for category, questions in CANHAO_CHECKLIST_VISUAL.items():
                 for question in questions:
@@ -136,16 +112,12 @@ def action_dialog_canhao_monitor(item_row):
             else:
                 st.error("Log salvo, mas falha ao registrar a nova inspeção de regularização.")
                 
-
 def get_multigas_status_df(df_inventory, df_inspections):
     if df_inventory.empty:
         return pd.DataFrame()
 
-    # Começa com o inventário
     dashboard_df = df_inventory.copy()
 
-    # Se não houver inspeções, define todos como pendentes e retorna
-    # Esta parte garante que a estrutura de colunas seja sempre a mesma
     if df_inspections.empty:
         dashboard_df['status_calibracao'] = '🔵 PENDENTE'
         dashboard_df['status_bump_test'] = '🔵 PENDENTE'
@@ -155,47 +127,38 @@ def get_multigas_status_df(df_inventory, df_inspections):
         dashboard_df['link_certificado'] = None
         return dashboard_df
 
-    # Converte a coluna de data para o formato datetime uma única vez
     df_inspections['data_teste'] = pd.to_datetime(df_inspections['data_teste'], errors='coerce')
 
-    # Cria as colunas de resultados no DataFrame principal com valores padrão
     dashboard_df['proxima_calibracao'] = pd.NaT
     dashboard_df['link_certificado'] = None
     dashboard_df['resultado_ultimo_bump_test'] = 'N/A'
     dashboard_df['data_ultimo_bump_test'] = pd.NaT
 
-    # Itera sobre cada equipamento do inventário para encontrar seus últimos testes
     for index, row in dashboard_df.iterrows():
         equip_id = row['id_equipamento']
-        # Filtra as inspeções apenas para o equipamento atual
         equip_inspections = df_inspections[df_inspections['id_equipamento'] == equip_id]
 
         if not equip_inspections.empty:
-            # Encontra a última calibração anual
             calibrations = equip_inspections[equip_inspections['tipo_teste'] == 'Calibração Anual']
             if not calibrations.empty:
                 last_calib = calibrations.sort_values('data_teste', ascending=False).iloc[0]
                 dashboard_df.loc[index, 'proxima_calibracao'] = last_calib.get('proxima_calibracao')
                 dashboard_df.loc[index, 'link_certificado'] = last_calib.get('link_certificado')
 
-            # Encontra o último bump test (qualquer teste que não seja calibração anual)
             bump_tests = equip_inspections[equip_inspections['tipo_teste'] != 'Calibração Anual']
             if not bump_tests.empty:
                 last_bump = bump_tests.sort_values('data_teste', ascending=False).iloc[0]
                 dashboard_df.loc[index, 'resultado_ultimo_bump_test'] = last_bump.get('resultado_teste')
                 dashboard_df.loc[index, 'data_ultimo_bump_test'] = last_bump.get('data_teste')
 
-    # Agora que os dados estão consolidados, calcula os status
     today = pd.Timestamp(date.today())
     
-    # Status da Calibração
     dashboard_df['proxima_calibracao'] = pd.to_datetime(dashboard_df['proxima_calibracao'], errors='coerce')
     dashboard_df['status_calibracao'] = np.where(
         dashboard_df['proxima_calibracao'].isna(), '🔵 PENDENTE',
         np.where(dashboard_df['proxima_calibracao'] < today, '🔴 VENCIDO', '🟢 OK')
     )
 
-    # Status do Bump Test
     dashboard_df['status_bump_test'] = np.where(
         dashboard_df['resultado_ultimo_bump_test'].isin(['N/A', None, '']), '🔵 PENDENTE',
         np.where(dashboard_df['resultado_ultimo_bump_test'] == 'Reprovado', '🟠 REPROVADO', '🟢 OK')
@@ -222,15 +185,12 @@ def get_foam_chamber_status_df(df_inspections):
     
     return latest_inspections
 
-
 def get_eyewash_status_df(df_inspections):
     if df_inspections.empty:
         return pd.DataFrame()
 
-    # Garante que a coluna de data é do tipo datetime
     df_inspections['data_inspecao'] = pd.to_datetime(df_inspections['data_inspecao'], errors='coerce')
     
-    # Pega o último registro para cada equipamento
     latest_inspections = df_inspections.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_equipamento', keep='first').copy()
     
     today = pd.Timestamp(date.today())
@@ -282,16 +242,13 @@ def get_hose_status_df(df_hoses, df_disposals):
     if df_hoses.empty:
         return pd.DataFrame()
     
-    # Garante que as colunas de data existam e sejam do tipo datetime
     for col in ['data_inspecao', 'data_proximo_teste']:
         if col not in df_hoses.columns:
             df_hoses[col] = pd.NaT
         df_hoses[col] = pd.to_datetime(df_hoses[col], errors='coerce')
 
-    # Pega apenas o último registro de cada mangueira
     latest_hoses = df_hoses.sort_values('data_inspecao', ascending=False).drop_duplicates(subset='id_mangueira', keep='first').copy()
     
-    # Remove mangueiras que já foram baixadas
     if not df_disposals.empty and 'id_mangueira' in df_disposals.columns:
         disposed_ids = df_disposals['id_mangueira'].astype(str).unique()
         latest_hoses = latest_hoses[~latest_hoses['id_mangueira'].astype(str).isin(disposed_ids)]
@@ -310,8 +267,8 @@ def get_hose_status_df(df_hoses, df_disposals):
     is_rejected = latest_hoses['resultado'].str.contains('|'.join(rejection_keywords), na=False)
 
     conditions = [
-        is_rejected,  # 1. Prioridade máxima: se o resultado for negativo
-        (latest_hoses['data_proximo_teste'] < today) # 2. Segunda prioridade: se a data estiver vencida
+        is_rejected,
+        (latest_hoses['data_proximo_teste'] < today)
     ]
     choices = ['🟠 REPROVADA', '🔴 VENCIDO']
     latest_hoses['status'] = np.select(conditions, choices, default='🟢 OK')
@@ -334,7 +291,6 @@ def get_hose_status_df(df_hoses, df_disposals):
 def action_dialog_multigas(item_row):
     equipment_id = item_row['id_equipamento']
     
-    # Determine the problem based on status
     problem = []
     if item_row['status_calibracao'] != '🟢 OK':
         problem.append(f"Calibração: {item_row['status_calibracao']}")
@@ -380,7 +336,6 @@ def disposal_dialog_extinguisher(item_row):
     
     st.markdown("---")
     
-    # Motivos de condenação predefinidos
     condemnation_options = [
         "Casco danificado irreparavelmente",
         "Falha no teste hidrostático",
@@ -400,15 +355,12 @@ def disposal_dialog_extinguisher(item_row):
     else:
         final_reason = condemnation_reason
     
-    # Campo obrigatório para substituto
     st.markdown("### Extintor Substituto (OBRIGATÓRIO)")
     st.info("Para manter a proteção, é obrigatório informar o extintor que substituirá este equipamento.")
     substitute_id = st.text_input("ID do Extintor Substituto:", help="Digite o ID do novo extintor que será instalado no local")
     
-    # Observações adicionais
     observations = st.text_area("Observações Adicionais (opcional):", help="Detalhes técnicos, recomendações, etc.")
     
-    # Foto de evidência
     st.markdown("### Evidência Fotográfica")
     st.write("Anexe uma foto do equipamento condenado como evidência:")
     
@@ -422,7 +374,6 @@ def disposal_dialog_extinguisher(item_row):
     
     st.markdown("---")
     
-    # Confirmação final
     st.markdown("### Confirmação Final")
     confirm_disposal = st.checkbox("✅ Confirmo que este equipamento deve ser BAIXADO DEFINITIVAMENTE do sistema")
     confirm_substitute = st.checkbox("✅ Confirmo que o equipamento substituto será instalado imediatamente")
@@ -469,22 +420,21 @@ def dispose_hose_dialog(hose_id):
     
     if st.button("Confirmar Baixa", type="primary"):
         with st.spinner("Registrando..."):
-            log_row = [
-                date.today().isoformat(),
-                hose_id,
-                reason,
-                get_user_display_name(),
-                substitute_id if substitute_id else None
-            ]
+            log_row = {
+                "data_baixa": date.today().isoformat(),
+                "id_mangueira": hose_id,
+                "motivo": reason,
+                "responsavel": get_user_display_name(),
+                "id_substituta": substitute_id if substitute_id else None
+            }
             try:
-                uploader = GoogleDriveUploader()
-                uploader.append_data_to_sheet(HOSE_DISPOSAL_LOG_SHEET_NAME, [log_row])
+                db_client = get_supabase_client()
+                db_client.append_data("baixas_mangueiras", log_row)
                 st.success(f"Baixa da mangueira {hose_id} registrada com sucesso!")
                 st.cache_data.clear()
                 st.rerun()
             except Exception as e:
                 st.error(f"Ocorreu um erro ao registrar a baixa: {e}")
-
 
 
 def get_shelter_status_df(df_shelters_registered, df_inspections):
@@ -569,18 +519,10 @@ def get_consolidated_status_df(df_full, df_locais):
         
         latest_record_info = ext_df.iloc[-1]
         
-        # Busca as últimas datas de cada tipo de serviço
         last_insp_date = ext_df['data_servico'].max()
         last_maint2_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 2']['data_servico'].max()
         last_maint3_date = ext_df[ext_df['tipo_servico'] == 'Manutenção Nível 3']['data_servico'].max()
         
-        # ✅ CORREÇÃO: Calcula próximos vencimentos considerando a hierarquia
-        # Nível 3 renova TUDO (vale por 1, 2 e 3)
-        # Nível 2 renova 1 e 2 (mas não o 3)
-        # Inspeção renova apenas o 1
-        
-        # Próxima inspeção mensal (Nível 1)
-        # Usa a data mais recente entre inspeção, N2 ou N3 (todos renovam o N1)
         dates_that_renew_inspection = [last_insp_date, last_maint2_date, last_maint3_date]
         valid_dates_inspection = [d for d in dates_that_renew_inspection if pd.notna(d)]
         if valid_dates_inspection:
@@ -589,8 +531,6 @@ def get_consolidated_status_df(df_full, df_locais):
         else:
             next_insp = pd.NaT
         
-        # Próxima Manutenção Nível 2
-        # Usa a data mais recente entre N2 ou N3 (N3 também renova o N2)
         dates_that_renew_n2 = [last_maint2_date, last_maint3_date]
         valid_dates_n2 = [d for d in dates_that_renew_n2 if pd.notna(d)]
         if valid_dates_n2:
@@ -599,14 +539,11 @@ def get_consolidated_status_df(df_full, df_locais):
         else:
             next_maint2 = pd.NaT
         
-        # Próxima Manutenção Nível 3
-        # Apenas o próprio N3 renova o N3
         if pd.notna(last_maint3_date):
             next_maint3 = last_maint3_date + relativedelta(years=5)
         else:
             next_maint3 = pd.NaT
         
-        # Determina o próximo vencimento mais crítico
         vencimentos = [d for d in [next_insp, next_maint2, next_maint3] if pd.notna(d)]
         if not vencimentos: 
             continue
@@ -680,18 +617,16 @@ def action_dialog_alarm(item_row):
                 st.error("Falha ao salvar o log da ação. O status não foi atualizado.")
                 return
 
-            # Simulação de inspeção com todos os itens conformes para regularização
             mock_results = {}
             for category, questions in ALARM_CHECKLIST.items():
                 for question in questions:
                     mock_results[question] = "Conforme"
             
-            # Salva nova inspeção com status aprovado
             inspection_saved = save_alarm_inspection(
                 system_id=system_id,
                 overall_status="Aprovado",
                 results_dict=mock_results,
-                photo_file=None,  # Sem foto pois é uma regularização
+                photo_file=None,
                 inspector_name=get_user_display_name()
             )
             
@@ -725,7 +660,6 @@ def action_dialog_foam_chamber(item_row):
             if not log_saved:
                 st.error("Falha ao salvar o log da ação."); return
 
-            # Salva uma nova inspeção "Visual" aprovada para regularizar o status
             mock_results = {q: "Conforme" for q_list in CHECKLIST_QUESTIONS.values() for q in q_list}
             inspection_saved = save_foam_chamber_inspection(
                 chamber_id=chamber_id,
@@ -775,7 +709,7 @@ def action_dialog_eyewash(item_row):
                 equipment_id=equipment_id,
                 overall_status="Aprovado",
                 results_dict=mock_results,
-                photo_file=None, # Não há foto de não conformidade, pois está tudo OK
+                photo_file=None,
                 inspector_name=get_user_display_name()
             )
             
@@ -827,7 +761,7 @@ def action_dialog_shelter(shelter_id, problem):
                 return
 
             
-            df_shelters = load_sheet_data(SHELTER_SHEET_NAME)
+            df_shelters = load_sheet_data("abrigos")
             shelter_inventory_row = df_shelters[df_shelters['id_abrigo'] == shelter_id]
             
             if shelter_inventory_row.empty:
@@ -867,7 +801,6 @@ def action_form(item, df_full_history, location):
     st.write(f"**Equipamento ID:** `{item['numero_identificacao']}`")
     st.write(f"**Problema Identificado:** `{item['plano_de_acao']}`")
     
-    # Seletor de tipo de ação
     st.markdown("### Tipo de Ação")
     action_type = st.radio(
         "Selecione o tipo de ação:",
@@ -878,11 +811,9 @@ def action_form(item, df_full_history, location):
     st.markdown("---")
     
     if action_type == "🗑️ Baixa Definitiva":
-        # === SEÇÃO DE BAIXA DEFINITIVA ===
         st.warning("⚠️ **ATENÇÃO:** Você está registrando a **BAIXA DEFINITIVA** deste extintor")
         st.error("Esta ação é **IRREVERSÍVEL** e remove o equipamento permanentemente do inventário ativo.")
         
-        # Motivos de condenação predefinidos
         condemnation_options = [
             "Casco danificado irreparavelmente",
             "Falha no teste hidrostático",
@@ -902,15 +833,12 @@ def action_form(item, df_full_history, location):
         else:
             final_reason = condemnation_reason
         
-        # Campo obrigatório para substituto
         st.markdown("#### Extintor Substituto (OBRIGATÓRIO)")
         st.info("Para manter a proteção, é obrigatório informar o extintor que substituirá este equipamento.")
         substitute_id = st.text_input("ID do Extintor Substituto:", help="Digite o ID do novo extintor que será instalado no local")
         
-        # Observações adicionais
         observations = st.text_area("Observações Adicionais (opcional):", help="Detalhes técnicos, recomendações, etc.")
         
-        # Foto de evidência obrigatória
         st.markdown("#### Evidência Fotográfica (OBRIGATÓRIA)")
         st.write("Anexe uma foto do equipamento condenado como evidência:")
         
@@ -922,12 +850,10 @@ def action_form(item, df_full_history, location):
         else:
             photo_evidence = st.file_uploader("Selecione a foto", type=["jpg", "jpeg", "png"], key=f"disposal_upload_{item['numero_identificacao']}")
         
-        # Confirmação final
         st.markdown("#### Confirmação Final")
         confirm_disposal = st.checkbox("✅ Confirmo que este equipamento deve ser BAIXADO DEFINITIVAMENTE do sistema")
         confirm_substitute = st.checkbox("✅ Confirmo que o equipamento substituto será instalado imediatamente")
         
-        # Botão de baixa
         disposal_disabled = not (confirm_disposal and confirm_substitute and substitute_id and photo_evidence)
         
         if st.button("🗑️ CONFIRMAR BAIXA DEFINITIVA", type="primary", disabled=disposal_disabled):
@@ -960,11 +886,9 @@ def action_form(item, df_full_history, location):
                     st.error("❌ Falha ao registrar a baixa. Tente novamente.")
     
     else:
-        # === SEÇÃO DE AÇÃO CORRETIVA/SUBSTITUIÇÃO (CÓDIGO ORIGINAL) ===
         acao_realizada = st.text_area("Descreva a ação corretiva realizada:")
         responsavel_acao = st.text_input("Responsável pela ação:", value=get_user_display_name())
         
-        # Campo de substituto aparece baseado no tipo de ação
         id_substituto = None
         if action_type == "🔄 Substituição":
             st.markdown("#### Equipamento Substituto (OBRIGATÓRIO)")
@@ -990,7 +914,6 @@ def action_form(item, df_full_history, location):
             else:
                 photo_evidence = camera_photo
         
-        # Validação específica para substituição
         action_disabled = False
         if action_type == "🔄 Substituição" and not id_substituto:
             st.error("Para substituição, é obrigatório informar o ID do equipamento substituto.")
@@ -1003,7 +926,6 @@ def action_form(item, df_full_history, location):
                 st.error("Por favor, descreva a ação realizada.")
                 return
                 
-            # Validação de local para substituições
             original_record = find_last_record(df_full_history, item['numero_identificacao'], 'numero_identificacao')
             if id_substituto:
                 df_locais = load_sheet_data("locais")
@@ -1050,8 +972,6 @@ def action_form(item, df_full_history, location):
 
 def show_page():
 
-    
-        
     st.title("Situação Atual dos Equipamentos de Emergência")
       
     if st.button("Limpar Cache e Recarregar Dados"):
@@ -1147,11 +1067,9 @@ def show_page():
     
                     st.caption(f"Último Selo INMETRO registrado: {row.get('numero_selo_inmetro', 'N/A')}")
                     
-                    # ✅ ADIÇÃO: Exibe a foto de não conformidade se houver
                     st.markdown("---")
                     st.subheader("📸 Evidências Fotográficas")
                     
-                    # Busca o último registro completo do extintor para pegar a foto
                     ext_id = row['numero_identificacao']
                     ext_history = df_full_history[df_full_history['numero_identificacao'] == ext_id].sort_values('data_servico', ascending=False)
                     
@@ -1175,8 +1093,8 @@ def show_page():
     with tab_hoses:
         st.header("Dashboard de Mangueiras de Incêndio")
         
-        df_hoses_history = load_sheet_data(HOSE_SHEET_NAME)
-        df_disposals = load_sheet_data(HOSE_DISPOSAL_LOG_SHEET_NAME) 
+        df_hoses_history = load_sheet_data("mangueiras")
+        df_disposals = load_sheet_data("baixas_mangueiras") 
 
         if df_hoses_history.empty:
             st.warning("Ainda não há registros de inspeção de mangueiras para exibir no dashboard.")
@@ -1188,13 +1106,12 @@ def show_page():
             col1.metric("✅ Total Ativas", len(dashboard_df_hoses))
             col2.metric("🟢 OK", status_counts.get("🟢 OK", 0))
             col3.metric("🔴 VENCIDO", status_counts.get("🔴 VENCIDO", 0))
-            col4.metric("🟠 REPROVADA", status_counts.get("🟠 REPROVADA", 0)) # Nova métrica
+            col4.metric("🟠 REPROVADA", status_counts.get("🟠 REPROVADA", 0))
             
             st.markdown("---")
             
             st.subheader("Lista de Mangueiras Ativas")
             
-            # Itera sobre o dataframe para adicionar o botão de ação
             for _, row in dashboard_df_hoses.iterrows():
                 if row['status'] == '🟠 REPROVADA':
                     with st.container(border=True):
@@ -1226,9 +1143,9 @@ def show_page():
     with tab_shelters:
         st.header("Dashboard de Status dos Abrigos de Emergência")
         
-        df_shelters_registered = load_sheet_data(SHELTER_SHEET_NAME)
-        df_inspections_history = load_sheet_data(INSPECTIONS_SHELTER_SHEET_NAME)
-        df_action_log = load_sheet_data(LOG_SHELTER_SHEET_NAME)
+        df_shelters_registered = load_sheet_data("abrigos")
+        df_inspections_history = load_sheet_data("inspecoes_abrigos")
+        df_action_log = load_sheet_data("log_acoes_abrigos")
 
         if df_shelters_registered.empty:
             st.warning("Nenhum abrigo de emergência cadastrado.")
@@ -1311,11 +1228,9 @@ def show_page():
     with tab_scba:
         st.header("Dashboard de Status dos Conjuntos Autônomos")
         
-        # Carrega os dados diretamente como DataFrames
-        df_scba_main = load_sheet_data(SCBA_SHEET_NAME)
-        df_scba_visual = load_sheet_data(SCBA_VISUAL_INSPECTIONS_SHEET_NAME)
+        df_scba_main = load_sheet_data("conjuntos_autonomos")
+        df_scba_visual = load_sheet_data("inspecoes_scba")
 
-        # A VERIFICAÇÃO AGORA USA .empty
         if df_scba_main.empty:
             st.warning("Nenhum teste de equipamento (Posi3) registrado.")
         else:
@@ -1363,17 +1278,14 @@ def show_page():
                                 </style>
                                 """, unsafe_allow_html=True)
 
-                                # 1. Testes Funcionais (agora dentro de colunas menores)
                                 st.markdown("<p class='small-font' style='font-weight: bold;'>Testes Funcionais</p>", unsafe_allow_html=True)
                                 testes = results.get("Testes Funcionais", {})
                                 if testes:
                                     cols_testes = st.columns(len(testes))
                                     for i, (teste, resultado) in enumerate(testes.items()):
                                         icon = "✅" if resultado == "Aprovado" else "❌"
-                                        # Usando markdown para controlar o tamanho
                                         cols_testes[i].markdown(f"<p class='small-font'><b>{teste}</b><br>{icon} {resultado}</p>", unsafe_allow_html=True)
                                 
-                                # 2. Checklist Visual
                                 st.markdown("<p class='small-font' style='font-weight: bold; margin-top: 10px;'>Checklist Visual</p>", unsafe_allow_html=True)
                                 col_cilindro, col_mascara = st.columns(2)
 
@@ -1405,7 +1317,7 @@ def show_page():
     with tab_eyewash:
         st.header("Dashboard de Chuveiros e Lava-Olhos")
         
-        df_eyewash_history = load_sheet_data(EYEWASH_INSPECTIONS_SHEET_NAME)
+        df_eyewash_history = load_sheet_data("inspecoes_chuveiros_lava_olhos")
         
         if df_eyewash_history.empty:
             st.warning("Nenhuma inspeção de chuveiro/lava-olhos registrada.")
@@ -1441,7 +1353,6 @@ def show_page():
                         results_json = row.get('resultados_json')
                         if results_json and pd.notna(results_json):
                             results = json.loads(results_json)
-                            # Filtra apenas os itens que não estão conformes para destacar o problema
                             non_conformities = {q: status for q, status in results.items() if str(status).upper() == "NÃO CONFORME"}
                             
                             if non_conformities:
@@ -1462,8 +1373,8 @@ def show_page():
     with tab_foam:
         st.header("Dashboard de Câmaras de Espuma")
         
-        df_foam_inventory = load_sheet_data(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
-        df_foam_history = load_sheet_data(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
+        df_foam_inventory = load_sheet_data("inventario_camaras_espuma")
+        df_foam_history = load_sheet_data("inspecoes_camaras_espuma")
         
         if df_foam_history.empty:
             st.warning("Nenhuma inspeção de câmara de espuma registrada.")
@@ -1546,15 +1457,14 @@ def show_page():
 
     with tab_multigas:
         st.header("Dashboard de Detectores Multigás")
-        df_inventory = load_sheet_data(MULTIGAS_INVENTORY_SHEET_NAME)
-        df_inspections = load_sheet_data(MULTIGAS_INSPECTIONS_SHEET_NAME)
+        df_inventory = load_sheet_data("inventario_multigas")
+        df_inspections = load_sheet_data("inspecoes_multigas")
 
         if df_inventory.empty:
             st.warning("Nenhum detector multigás cadastrado.")
         else:
             dashboard_df = get_multigas_status_df(df_inventory, df_inspections)
             
-            # --- LÓGICA DE MÉTRICAS ATUALIZADA ---
             total_equip = len(dashboard_df)
             calib_ok = (dashboard_df['status_calibracao'] == '🟢 OK').sum()
             bump_ok = (dashboard_df['status_bump_test'] == '🟢 OK').sum()
@@ -1568,11 +1478,9 @@ def show_page():
             st.subheader("Lista de Detectores e Status")
             for _, row in dashboard_df.iterrows():
                 
-                # --- LÓGICA DE EXIBIÇÃO ATUALIZADA ---
                 status_calibracao = row['status_calibracao']
                 status_bump = row['status_bump_test']
                 
-                # Define um ícone de status geral (a pior condição prevalece)
                 geral_icon = "🟢"
                 if "🔴" in status_calibracao or "🟠" in status_bump:
                     geral_icon = "🔴" if "🔴" in status_calibracao else "🟠"
@@ -1604,12 +1512,10 @@ def show_page():
                         elif status_bump == '🔵 PENDENTE':
                              st.info(f"**Ação:** Realizar novo teste de resposta.")
 
-                    # Botão de ação
                     if geral_icon != "🟢":
                         if st.button("✍️ Registrar Ação Corretiva", key=f"action_multigas_{row['id_equipamento']}"):
                             action_dialog_multigas(row.to_dict())
 
-                    # Opcional: Mostrar detalhes da última calibração (se houver)
                     if pd.notna(row.get('link_certificado')):
                         st.markdown(f"**[🔗 Ver Último Certificado de Calibração]({row.get('link_certificado')})**")
 
@@ -1620,23 +1526,18 @@ def show_page():
         st.header("Dashboard de Sistemas de Alarme")
         
         try:
-            # Carrega os dados com cache individual (já tem cache do load_sheet_data)
-            df_alarm_inspections = load_sheet_data(ALARM_INSPECTIONS_SHEET_NAME)
-            df_alarm_inventory = load_sheet_data(ALARM_INVENTORY_SHEET_NAME)
+            df_alarm_inspections = load_sheet_data("inspecoes_alarmes")
+            df_alarm_inventory = load_sheet_data("inventario_alarmes")
             
-            # Debug: mostra quantos registros foram encontrados
             if df_alarm_inspections.empty and df_alarm_inventory.empty:
                 st.warning("Nenhum sistema de alarme ou inspeção cadastrada.")
                 st.info("Cadastre sistemas de alarme na aba 'Alarmes' do menu principal.")
             elif df_alarm_inspections.empty:
                 st.warning("Nenhuma inspeção de sistema de alarme registrada.")
             else:
-                # --- SEÇÃO DE RELATÓRIO COM OPÇÃO MENSAL/SEMESTRAL ---
                 with st.expander("📄 Gerar Relatório de Inspeções", expanded=False):
-                    # Converte a coluna de data para o formato datetime
                     df_alarm_inspections['data_inspecao_dt'] = pd.to_datetime(df_alarm_inspections['data_inspecao'], errors='coerce')
     
-                    # Seletor de tipo de relatório
                     col_type, col_rest = st.columns([1, 3])
                     with col_type:
                         report_type = st.radio(
@@ -1649,7 +1550,6 @@ def show_page():
                         today = datetime.now()
                         
                         if report_type == "📅 Mensal":
-                            # Filtros para mês e ano
                             col1, col2 = st.columns(2)
                             
                             with col1:
@@ -1667,7 +1567,6 @@ def show_page():
                             
                             selected_month_number = months.index(selected_month_name) + 1
     
-                            # Filtra os dados pelo mês e ano selecionados
                             inspections_selected = df_alarm_inspections[
                                 (df_alarm_inspections['data_inspecao_dt'].dt.year == selected_year) &
                                 (df_alarm_inspections['data_inspecao_dt'].dt.month == selected_month_number)
@@ -1692,7 +1591,6 @@ def show_page():
                                     key="dashboard_alarm_report_semester"
                                 )
                             
-                            # Define os meses do semestre selecionado
                             if "1º" in selected_semester:
                                 semester_months = [1, 2, 3, 4, 5, 6]
                                 semester_num = 1
@@ -1700,7 +1598,6 @@ def show_page():
                                 semester_months = [7, 8, 9, 10, 11, 12]
                                 semester_num = 2
                             
-                            # Filtra os dados pelo semestre e ano selecionados
                             inspections_selected = df_alarm_inspections[
                                 (df_alarm_inspections['data_inspecao_dt'].dt.year == selected_year) &
                                 (df_alarm_inspections['data_inspecao_dt'].dt.month.isin(semester_months))
@@ -1744,10 +1641,8 @@ def show_page():
                 
                 st.markdown("---")
                 
-                # Dashboard principal dos alarmes
                 dashboard_df = get_alarm_status_df(df_alarm_inspections)
                 
-                # Se tiver dados de inventário, faz merge para obter localização e modelo
                 if not df_alarm_inventory.empty:
                     dashboard_df = pd.merge(
                         dashboard_df, 
@@ -1788,7 +1683,6 @@ def show_page():
                             if results_json and pd.notna(results_json):
                                 results = json.loads(results_json)
                                 
-                                # Filtra apenas os itens que não estão conformes para destacar o problema
                                 non_conformities = {q: status for q, status in results.items() if status == "Não Conforme"}
                                 
                                 if non_conformities:
@@ -1799,7 +1693,6 @@ def show_page():
                             else:
                                 st.info("Nenhum detalhe de inspeção disponível.")
                             
-                            # Exibe a foto da não conformidade, se houver
                             photo_link = row.get('link_foto_nao_conformidade')
                             display_drive_image(photo_link, caption="Foto da Não Conformidade", width=300)
         
@@ -1815,8 +1708,8 @@ def show_page():
     with tab_canhoes:
         st.header("Dashboard de Canhões Monitores")
         
-        df_inventory = load_sheet_data(CANHAO_MONITOR_INVENTORY_SHEET_NAME)
-        df_inspections = load_sheet_data(CANHAO_MONITOR_INSPECTIONS_SHEET_NAME)
+        df_inventory = load_sheet_data("inventario_canhoes_monitores")
+        df_inspections = load_sheet_data("inspecoes_canhoes_monitores")
 
         if df_inspections.empty:
             st.warning("Nenhuma inspeção de canhão monitor registrada.")

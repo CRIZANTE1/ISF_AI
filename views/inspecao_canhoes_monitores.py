@@ -8,7 +8,6 @@ from operations.canhao_monitor_operations import (
 )
 from auth.auth_utils import get_user_display_name, can_edit
 from operations.history import load_sheet_data
-from gdrive.config import CANHAO_MONITOR_INVENTORY_SHEET_NAME
 from operations.instrucoes import instru_canhoes_monitores
 
 def show_page():
@@ -29,7 +28,7 @@ def show_page():
         if not can_edit():
             st.warning("Você precisa de permissões de edição para realizar inspeções.")
         else:
-            df_inventory = load_sheet_data(CANHAO_MONITOR_INVENTORY_SHEET_NAME)
+            df_inventory = load_sheet_data("inventario_canhoes_monitores")
             
             if df_inventory.empty:
                 st.warning("Nenhum canhão monitor cadastrado. Cadastre um na aba 'Cadastrar Novo Canhão'.")
@@ -80,13 +79,12 @@ def show_page():
                         show_photo_uploader = has_issues or (inspection_type == "Teste Funcional (Anual)")
 
                         if show_photo_uploader:
-                            # Define a mensagem com base na condição
                             if inspection_type == "Teste Funcional (Anual)":
                                 if has_issues:
                                     st.error("FOTO OBRIGATÓRIA: Anexe uma foto da não conformidade encontrada durante o teste.")
                                 else:
                                     st.info("FOTO OBRIGATÓRIA: Para Testes Funcionais, anexe uma foto do equipamento em operação (ex: jato d'água).")
-                            else: # Apenas has_issues é verdadeiro
+                            else:
                                 st.warning("FOTO OBRIGATÓRIA: Uma ou mais não conformidades foram encontradas. Anexe uma foto como evidência.")
                             
                             photo_file = st.file_uploader(

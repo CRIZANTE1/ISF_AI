@@ -1,47 +1,40 @@
+# operations/history.py (REFATORADO)
+
 import streamlit as st
 import pandas as pd
+import logging
 import sys
 import os
-import logging
 
-# Garante que o app encontre a pasta gdrive
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import EXTINGUISHER_SHEET_NAME
+from supabase.client import get_supabase_client # PARA: Importa o novo cliente
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300) # TTL reduzido, pois o banco de dados é mais rápido
 def load_sheet_data(sheet_name):
     """
-    Carrega dados de uma aba específica do Google Sheets e os converte em um DataFrame do Pandas.
-    Esta é uma função de utilidade central.
+    Carrega dados de uma tabela específica do Supabase e os converte em um DataFrame.
+    Esta função agora atua como um wrapper para o cliente Supabase.
+    O nome 'sheet_name' foi mantido para minimizar refatoração em outras partes do código.
     """
     try:
-        uploader = GoogleDriveUploader()
-        data = uploader.get_data_from_sheet(sheet_name)
+        # PARA: Usa o cliente Supabase para buscar os dados
+        db_client = get_supabase_client()
+        df = db_client.get_data(sheet_name) # 'sheet_name' agora é o nome da tabela
         
-        if not data or len(data) < 2:
-            st.info(f"Os dados ainda não foram adicionados")
-            return pd.DataFrame()
+        if df.empty:
+            st.info(f"Nenhum dado encontrado para '{sheet_name}'.")
             
-        headers = data[0]
-        rows = data[1:]
-        
-        # Garante que todas as linhas tenham o mesmo número de colunas do cabeçalho
-        num_columns = len(headers)
-        cleaned_rows = []
-        for row in rows:
-            # Completa a linha com 'None' se ela for mais curta que o cabeçalho
-            row.extend([None] * (num_columns - len(row)))
-            cleaned_rows.append(row[:num_columns])
-
-        df = pd.DataFrame(cleaned_rows, columns=headers)
         return df
 
     except Exception as e:
-        st.error(f"Erro ao carregar dados da planilha '{sheet_name}': {e}")
+        st.error(f"Erro ao carregar dados da tabela '{sheet_name}': {e}")
         return pd.DataFrame()
-        
 
+# ==============================================================================
+# AS FUNÇÕES ABAIXO (find_last_record, etc.) NÃO PRECISAM DE MUDANÇAS
+# pois elas já operam sobre DataFrames, que é o que load_sheet_data agora retorna.
+# Esta é a grande vantagem desta abordagem de refatoração.
+# ==============================================================================
 
 def find_last_record(df, search_value, column_name):
     """
@@ -458,6 +451,3 @@ def validate_dataframe_for_search(df, column_name, search_value):
         
     except Exception as e:
         return False, f"Erro na validação: {str(e)}"
-
-
-

@@ -12,16 +12,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # Imports necessários para o novo fluxo
 from operations.shelter_operations import save_shelter_inventory, save_shelter_inspection
 from operations.hose_operations import save_new_hose
-from gdrive.gdrive_upload import GoogleDriveUploader
+from supabase.client import get_supabase_client
+from operations.photo_operations import upload_evidence_photo
 from AI.api_Operation import PDFQA
-from gdrive.config import SHELTER_SHEET_NAME, HOSE_SHEET_NAME, AUDIT_LOG_SHEET_NAME
 from operations.history import load_sheet_data 
 from utils.prompts import get_hose_inspection_prompt, get_shelter_inventory_prompt
 from auth.auth_utils import (
     get_user_display_name, get_user_email, get_user_role,
     check_user_access, can_edit, has_ai_features
 )
-from utils.auditoria import get_sao_paulo_time_str, log_action
+from utils.auditoria import log_action
 from config.page_config import set_page_config
 from operations.instrucoes import instru_mangueiras
 
@@ -89,69 +89,50 @@ def show_page():
                 
                 if st.button("💾 Confirmar e Salvar Registros", type="primary", use_container_width=True):
                     with st.spinner("Salvando registros em lote..."):
-                        uploader = GoogleDriveUploader()
+                        db_client = get_supabase_client()
                         pdf_name = f"Certificado_Mangueiras_{date.today().isoformat()}_{st.session_state.hose_uploaded_pdf.name}"
-                        pdf_link = uploader.upload_file(st.session_state.hose_uploaded_pdf, novo_nome=pdf_name)
+                        pdf_link = upload_evidence_photo(st.session_state.hose_uploaded_pdf, pdf_name, "certificados")
                         
                         if not pdf_link:
                             st.error("Falha ao fazer o upload do certificado. Os dados não foram salvos.")
                             st.stop()
 
-                        hose_rows = []
-                        audit_log_rows = []
+                        hose_records = []
 
                         for record in st.session_state.hose_processed_data:
                             
-                            # Trata a data de inspeção
                             inspection_date_val = record.get('data_inspecao')
                             inspection_date_str = pd.to_datetime(inspection_date_val).strftime('%Y-%m-%d') if pd.notna(inspection_date_val) else date.today().isoformat()
                             
-                            # Trata a data do próximo teste
                             next_test_date_val = record.get('data_proximo_teste')
                             if pd.notna(next_test_date_val):
-                                # Se a IA forneceu uma data, use-a
                                 next_test_date_str = pd.to_datetime(next_test_date_val).strftime('%Y-%m-%d')
                             elif record.get('resultado', '').lower() in ['condenada', 'reprovado']:
-                                # Se a mangueira foi condenada/reprovada, não há próximo teste
                                 next_test_date_str = None
                             else:
-                                # Fallback: calcula a data se não foi fornecida e a mangueira foi aprovada
                                 next_test_date_str = (pd.to_datetime(inspection_date_str).date() + relativedelta(years=1)).isoformat()
                             
-
-                            hose_row = [
-                                record.get('id_mangueira'),
-                                record.get('marca'),
-                                record.get('diametro'),
-                                record.get('tipo'),
-                                record.get('comprimento'),
-                                record.get('ano_fabricacao'),
-                                inspection_date_str,
-                                next_test_date_str,
-                                record.get('resultado'),
-                                pdf_link,
-                                get_user_display_name(),
-                                record.get('empresa_executante'),
-                                record.get('inspetor_responsavel')
-                            ]
-                            hose_rows.append(hose_row)
-
-                            audit_log_row = [
-                                get_sao_paulo_time_str(),
-                                get_user_email() or "não logado",
-                                get_user_role(),
-                                "SALVOU_INSPECAO_MANGUEIRA_LOTE",
-                                f"ID: {record.get('id_mangueira')}, Resultado: {record.get('resultado')}",
-                                st.session_state.get('current_unit_name', 'N/A')
-                            ]
-                            audit_log_rows.append(audit_log_row)
+                            hose_record = {
+                                'id_mangueira': record.get('id_mangueira'),
+                                'marca': record.get('marca'),
+                                'diametro': record.get('diametro'),
+                                'tipo': record.get('tipo'),
+                                'comprimento': record.get('comprimento'),
+                                'ano_fabricacao': record.get('ano_fabricacao'),
+                                'data_inspecao': inspection_date_str,
+                                'data_proximo_teste': next_test_date_str,
+                                'resultado': record.get('resultado'),
+                                'link_certificado_pdf': pdf_link,
+                                'registrado_por': get_user_display_name(),
+                                'empresa_executante': record.get('empresa_executante'),
+                                'resp_tecnico_certificado': record.get('inspetor_responsavel')
+                            }
+                            hose_records.append(hose_record)
 
                         try:
-                            uploader.append_data_to_sheet(HOSE_SHEET_NAME, hose_rows)
-                            matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                            matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
+                            db_client.append_data("mangueiras", hose_records)
 
-                            st.success(f"{len(hose_rows)} registros de mangueiras salvos com sucesso!")
+                            st.success(f"{len(hose_records)} registros de mangueiras salvos com sucesso!")
                             st.balloons()
                             
                             st.session_state.hose_step = 'start'
@@ -166,7 +147,6 @@ def show_page():
     with tab_manual_hose:
         st.header("Cadastrar Nova Mangueira Manualmente")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novas mangueiras.")
             st.info("Os dados abaixo são somente para visualização.")
@@ -178,18 +158,15 @@ def show_page():
                 
                 col1, col2 = st.columns(2)
                 
-                # Primeira linha
                 hose_id = col1.text_input("ID da Mangueira (Obrigatório)*")
                 marca = col2.text_input("Marca/Fabricante")
                 
-                # Segunda linha
                 diametro_options = ["1", "1 1/2", "2", "2 1/2", "3"]
                 diametro = col1.selectbox("Diâmetro (polegadas)", diametro_options)
                 
                 tipo_options = ["1", "2", "3", "4", "5"]
                 tipo = col2.selectbox("Tipo", tipo_options)
                 
-                # Terceira linha
                 comprimento_options = ["15", "20", "25", "30"]
                 comprimento = col1.selectbox("Comprimento (metros)", comprimento_options)
                 
@@ -201,10 +178,8 @@ def show_page():
                 
                 st.markdown("---")
                 
-                # Opcional - dados da empresa que forneceu
                 empresa_executante = st.text_input("Empresa Fornecedora (opcional)")
                 
-                # Botão de envio
                 submitted = st.form_submit_button("Cadastrar Nova Mangueira", type="primary", use_container_width=True)
                 
                 if submitted:
@@ -229,14 +204,11 @@ def show_page():
     with tab_shelters:
         st.header("Cadastrar Abrigos de Emergência com IA")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar abrigos.")
-        # Check for AI features
         elif not has_ai_features():
             st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou cadastre manualmente na aba 'Inspeção de Abrigos'.", icon="🚀")
         else:
-            # Gerenciamento de estado para a aba de abrigos
             st.session_state.setdefault('shelter_step', 'start')
             st.session_state.setdefault('shelter_processed_data', None)
             st.session_state.setdefault('shelter_uploaded_pdf', None)
@@ -268,7 +240,6 @@ def show_page():
             if st.session_state.shelter_step == 'confirm' and st.session_state.shelter_processed_data:
                 st.subheader("2. Confira os Dados Extraídos e Salve no Sistema")
                 
-                # Exibe preview dos abrigos extraídos
                 for abrigo in st.session_state.shelter_processed_data:
                     with st.expander(f"**Abrigo ID:** {abrigo.get('id_abrigo')} | **Cliente:** {abrigo.get('cliente')}"):
                         st.write(f"**Local:** {abrigo.get('local', 'N/A')}")
@@ -277,47 +248,26 @@ def show_page():
                 if st.button("💾 Confirmar e Salvar Abrigos", type="primary", use_container_width=True):
                     with st.spinner("Salvando registros dos abrigos em lote..."):
                         try:
-                            # Prepara todas as linhas para salvamento em lote
-                            shelter_rows = []
-                            audit_log_rows = []
+                            shelter_records = []
                             
                             for record in st.session_state.shelter_processed_data:
-                                # Converte o dicionário de itens para JSON
                                 items_json_string = json.dumps(record.get('itens', {}), ensure_ascii=False)
                                 
-                                # Prepara linha do abrigo
-                                shelter_row = [
-                                    record.get('id_abrigo'),
-                                    record.get('cliente'),
-                                    record.get('local', 'N/A'),  # Garante um valor padrão
-                                    items_json_string
-                                ]
-                                shelter_rows.append(shelter_row)
-                                
-                                # Prepara linha de auditoria
-                                audit_log_row = [
-                                    get_sao_paulo_time_str(),
-                                    get_user_email() or "não logado",
-                                    get_user_role(),
-                                    "SALVOU_ABRIGO_LOTE",
-                                    f"ID: {record.get('id_abrigo')}, Cliente: {record.get('cliente')}",
-                                    st.session_state.get('current_unit_name', 'N/A')
-                                ]
-                                audit_log_rows.append(audit_log_row)
+                                shelter_record = {
+                                    'id_abrigo': record.get('id_abrigo'),
+                                    'cliente': record.get('cliente'),
+                                    'local': record.get('local', 'N/A'),
+                                    'itens_json': items_json_string
+                                }
+                                shelter_records.append(shelter_record)
                             
-                            # Salva todos os abrigos de uma vez
-                            uploader = GoogleDriveUploader()
-                            uploader.append_data_to_sheet(SHELTER_SHEET_NAME, shelter_rows)
-                            
-                            # Salva logs de auditoria de uma vez
-                            matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                            matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, audit_log_rows)
+                            db_client = get_supabase_client()
+                            db_client.append_data("abrigos", shelter_records)
                             
                             total_count = len(st.session_state.shelter_processed_data)
                             st.success(f"✅ {total_count} abrigo(s) salvo(s) com sucesso em lote!")
                             st.balloons()
                             
-                            # Limpar o estado para um novo upload
                             st.session_state.shelter_step = 'start'
                             st.session_state.shelter_processed_data = None
                             st.session_state.shelter_uploaded_pdf = None
@@ -326,32 +276,13 @@ def show_page():
                             
                         except Exception as e:
                             st.error(f"❌ Erro ao salvar abrigos em lote: {e}")
-                            import traceback
-                            st.error(traceback.format_exc())
-                            
-                            # Log do erro para auditoria
-                            try:
-                                error_log_row = [
-                                    get_sao_paulo_time_str(),
-                                    get_user_email() or "não logado",
-                                    get_user_role(),
-                                    "ERRO_SALVAMENTO_ABRIGO_LOTE",
-                                    f"Erro: {str(e)[:200]}",
-                                    st.session_state.get('current_unit_name', 'N/A')
-                                ]
-                                matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                                matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, [error_log_row])
-                            except:
-                                pass  # Falha silenciosa no log de erro
 
     with tab_shelters_insp:
         st.header("Realizar Inspeção de um Abrigo de Emergência")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para realizar inspeções de abrigos.")
         else:
-            # Cadastro Manual de Abrigos
             with st.expander("➕ Cadastrar Novo Abrigo Manualmente", expanded=False):
                 st.info("Use este formulário para cadastrar um novo abrigo sem necessidade de processamento por IA.")
                 
@@ -368,7 +299,6 @@ def show_page():
                     st.subheader("Inventário de Itens")
                     st.markdown("Adicione os itens que compõem o abrigo e suas quantidades:")
                     
-                    # Definir itens padrão comuns em abrigos
                     standard_items = [
                         "Mangueira de 1½\"", 
                         "Mangueira de 2½\"",
@@ -382,10 +312,8 @@ def show_page():
                         "Adaptador"
                     ]
                     
-                    # Interface para adicionar novos itens dentro do formulário
                     inventory_items = {}
                     
-                    # Seção de itens pré-definidos
                     st.markdown("**Selecione os itens padrão:**")
                     for item in standard_items:
                         col1, col2 = st.columns([3, 1])
@@ -404,7 +332,6 @@ def show_page():
                     if custom_item and custom_qty > 0:
                         inventory_items[custom_item] = custom_qty
                     
-                    # Botão para salvar o abrigo
                     submitted = st.form_submit_button("Cadastrar Novo Abrigo", type="primary", use_container_width=True)
                     
                     if submitted:
@@ -413,18 +340,15 @@ def show_page():
                         elif not inventory_items:
                             st.error("É necessário adicionar pelo menos um item ao inventário.")
                         else:
-                            # Salvar o abrigo no sistema
                             if save_shelter_inventory(shelter_id, client, local, inventory_items):
                                 st.success(f"Abrigo '{shelter_id}' cadastrado com sucesso!")
                                 st.cache_data.clear()
                                 st.balloons()
             
-            # Inspeção de Abrigos
             st.markdown("---")
             st.subheader("Inspeção de Abrigo Existente")
             
-            # Carregar a lista de abrigos cadastrados
-            df_shelters = load_sheet_data(SHELTER_SHEET_NAME)
+            df_shelters = load_sheet_data("abrigos")
             
             if df_shelters.empty:
                 st.warning("Nenhum abrigo cadastrado. Por favor, cadastre um abrigo utilizando o formulário acima primeiro.")
@@ -433,7 +357,6 @@ def show_page():
                 selected_shelter_id = st.selectbox("Selecione o Abrigo para Inspecionar", shelter_ids)
 
                 if selected_shelter_id != "Selecione um abrigo...":
-                    # Encontrar o inventário do abrigo selecionado
                     shelter_data = df_shelters[df_shelters['id_abrigo'] == selected_shelter_id].iloc[0]
                     try:
                         items_dict = json.loads(shelter_data['itens_json'])
@@ -453,7 +376,6 @@ def show_page():
                             with cols[0]:
                                 st.write(f"**{item}** (Previsto: {expected_qty})")
                             with cols[1]:
-                                # Usando uma chave única para cada widget
                                 status = st.radio("Status", ["OK", "Avariado", "Faltando"], key=f"status_{item}_{selected_shelter_id}", horizontal=True, label_visibility="collapsed")
                             with cols[2]:
                                 obs = st.text_input("Obs.", key=f"obs_{item}_{selected_shelter_id}", label_visibility="collapsed")
@@ -485,4 +407,3 @@ def show_page():
                                     st.cache_data.clear()
                                 else:
                                     st.error("Ocorreu um erro ao salvar a inspeção.")
-

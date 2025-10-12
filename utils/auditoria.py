@@ -1,10 +1,17 @@
+# utils/auditoria.py (REFATORADO)
 
 import streamlit as st
 from datetime import datetime
 import pytz
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import AUDIT_LOG_SHEET_NAME
+import logging
+
+# DE: from gdrive.gdrive_upload import GoogleDriveUploader
+# DE: from gdrive.config import AUDIT_LOG_SHEET_NAME
+# PARA:
+from supabase.client import get_supabase_client
 from auth.auth_utils import get_user_email, get_user_role
+
+logger = logging.getLogger(__name__)
 
 def get_sao_paulo_time_str():
     """Retorna o timestamp atual formatado para São Paulo."""
@@ -13,55 +20,41 @@ def get_sao_paulo_time_str():
 
 def log_action(action: str, details: str = "", target_uo: str = None):
     """
-    Registra uma ação de usuário no log de auditoria global.
-
-    Args:
-        action (str): Um identificador curto para a ação (ex: "LOGIN_SUCCESS").
-        details (str, optional): Detalhes adicionais sobre a ação.
-        target_uo (str, optional): A UO na qual a ação foi realizada. Se não fornecida,
-                                   tenta pegar da session_state.
+    Registra uma ação de usuário no log de auditoria do Supabase.
     """
     try:
-        # Pega os dados do usuário e da sessão
         user_email = get_user_email() or "não logado"
         user_role = get_user_role()
-        timestamp = get_sao_paulo_time_str() 
+        # PARA: Envia o objeto datetime completo para o Supabase, que gerenciará o fuso horário
+        timestamp = datetime.now(pytz.timezone("America/Sao_Paulo")).isoformat()
         
-        # Se a UO não for passada como argumento, tenta pegá-la da sessão
         if target_uo is None:
             target_uo = st.session_state.get('current_unit_name', 'N/A')
 
-        # Monta a linha de dados para o log
-        log_row = [
-            timestamp,
-            user_email,
-            user_role,
-            action,
-            details,
-            target_uo
-        ]
+        # PARA: Monta um dicionário com os dados do log
+        log_record = {
+            "timestamp": timestamp,
+            "user_email": user_email,
+            "user_role": user_role,
+            "action": action,
+            "details": details,
+            "target_uo": target_uo
+        }
 
-        # Usa o uploader no modo 'matrix' para escrever na planilha global
-        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-        matrix_uploader.append_data_to_sheet(AUDIT_LOG_SHEET_NAME, log_row)
+        # PARA: Usa o cliente Supabase para inserir o registro
+        db_client = get_supabase_client()
+        db_client.append_data("log_auditoria", log_record)
 
     except Exception as e:
-        # Em caso de falha no log, apenas exibe um aviso no console/log do Streamlit
-        # para não quebrar a aplicação principal.
-        print(f"ALERTA: Falha ao registrar a ação de auditoria. Erro: {e}")
-        # Opcionalmente, pode também mostrar na interface do Streamlit em debug
+        logger.error(f"ALERTA: Falha ao registrar a ação de auditoria no Supabase. Erro: {e}")
+        # Evita que a aplicação quebre se o log falhar
         if st.secrets.get("debug_mode", False):
-            st.error(f"⚠️ Erro no log de auditoria: {e}")
-            
+            st.toast(f"⚠️ Erro no log de auditoria: {e}", icon="")
+
 def log_action_with_geo(action, details, latitude=None, longitude=None):
     """
     Versão estendida do log_action que inclui informação de geolocalização.
-    
-    Args:
-        action: Tipo de ação
-        details: Detalhes da ação
-        latitude: Latitude (opcional)
-        longitude: Longitude (opcional)
+    (Sem mudanças na lógica interna)
     """
     geo_info = ""
     if latitude and longitude:

@@ -2,7 +2,7 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
-from datetime import datetime  # ✅ ADICIONAR
+from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -16,10 +16,6 @@ from auth.auth_utils import (
 )
 from config.page_config import set_page_config
 from operations.history import load_sheet_data  
-from gdrive.config import (
-    FOAM_CHAMBER_INVENTORY_SHEET_NAME,
-    FOAM_CHAMBER_INSPECTIONS_SHEET_NAME  
-)
 from reports.foam_chamber_report import generate_foam_chamber_consolidated_report  
 from operations.instrucoes import instru_foam_chamber
 
@@ -29,7 +25,6 @@ set_page_config()
 def show_page():
     st.title("☁️ Gestão de Câmaras de Espuma")
 
-    # Check if user has at least viewer permissions
     if not check_user_access("viewer"):
         st.warning("Você não tem permissão para acessar esta página.")
         return
@@ -42,19 +37,17 @@ def show_page():
     "📊 Relatório Consolidado"  
     ])
     
-    # E ADICIONAR logo após a definição das tabs (antes do "with tab_inspection:"):
     with tab_instructions:
         instru_foam_chamber()
 
     with tab_inspection:
         st.header("Realizar Inspeção Periódica")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para realizar inspeções.")
             st.info("Os dados abaixo são somente para visualização.")
         else:
-            df_inventory = load_sheet_data(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
+            df_inventory = load_sheet_data("inventario_camaras_espuma")
             
             if df_inventory.empty:
                 st.warning("Nenhuma câmara de espuma cadastrada. Vá para as abas de cadastro para começar.")
@@ -66,12 +59,10 @@ def show_page():
                     chamber_data = df_inventory[df_inventory['id_camara'] == selected_chamber_id].iloc[0]
                     location = chamber_data.get('localizacao', 'N/A')
                     model = chamber_data.get('modelo', 'N/A')
-                    specific_size = chamber_data.get('tamanho_especifico', 'Não informado')  # ✅ NOVO
+                    specific_size = chamber_data.get('tamanho_especifico', 'Não informado')
                     
-                    # ✅ MODIFICADO: Exibe o tamanho específico
                     st.info(f"**Localização:** {location} | **Modelo:** {model} | **Tamanho:** {specific_size}")
                     
-                    # Alerta visual se o tamanho não estiver cadastrado
                     if not specific_size or specific_size == 'Não informado' or specific_size.strip() == '':
                         st.warning("⚠️ **ATENÇÃO:** O tamanho específico desta câmara não foi cadastrado. Não será possível verificar a compatibilidade da placa de orifício durante a inspeção.")
                     
@@ -112,18 +103,16 @@ def show_page():
                         
                         st.markdown("---")
 
-                        # Determina se deve mostrar o uploader de foto
                         show_photo_uploader = has_issues or (inspection_type == "Funcional Anual")
                         photo_file = None
 
                         if show_photo_uploader:
-                            # Define a mensagem com base na condição
                             if inspection_type == "Funcional Anual":
                                 if has_issues:
                                     st.error("FOTO OBRIGATÓRIA: Anexe uma foto da não conformidade encontrada durante o teste funcional.")
                                 else:
                                     st.info("FOTO OBRIGATÓRIA: Para Testes Funcionais Anuais, anexe uma foto do equipamento durante o teste (ex: geração de espuma, verificação de fluxo).")
-                            else:  # Apenas has_issues é verdadeiro
+                            else:
                                 st.warning("FOTO OBRIGATÓRIA: Uma ou mais não conformidades foram encontradas. Anexe uma foto como evidência.")
                             
                             photo_file = st.file_uploader(
@@ -164,7 +153,6 @@ def show_page():
     with tab_register:
         st.header("Cadastrar Nova Câmara de Espuma (Completo)")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novas câmaras.")
         else:
@@ -180,7 +168,6 @@ def show_page():
                 new_model = col3.selectbox("**Modelo da Câmara (Obrigatório)**", options=model_options)
                 new_brand = col4.text_input("Marca")
                 
-                # ✅ NOVO CAMPO
                 col5, col6 = st.columns(2)
                 new_specific_size = col5.text_input(
                     "**Tamanho Específico (Obrigatório)**", 
@@ -188,7 +175,6 @@ def show_page():
                     help="Informe o tamanho/modelo completo da câmara para verificação de compatibilidade da placa de orifício"
                 )
                 
-                # Informações adicionais
                 st.markdown("---")
                 st.subheader("Informações Complementares (Opcional)")
                 
@@ -213,7 +199,6 @@ def show_page():
     with tab_manual_register:
         st.header("Cadastro Rápido de Câmara")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novas câmaras.")
         else:
@@ -225,7 +210,6 @@ def show_page():
                 quick_id = st.text_input("ID da Câmara*", placeholder="CE-001")
                 quick_location = st.text_input("Localização*", placeholder="Tanque TQ-101")
                 
-                # Modelo com opções mais diretas
                 st.markdown("**Tipo de Câmara:**")
                 chamber_type = st.radio(
                     "Selecione o tipo",
@@ -233,14 +217,12 @@ def show_page():
                     horizontal=False
                 )
                 
-                # Campo de tamanho específico
                 quick_size = st.text_input(
                     "Tamanho/Modelo Específico*", 
                     placeholder="Ex: MCS-17, MCS-33, TF-22",
                     help="Essencial para verificar compatibilidade da placa de orifício"
                 )
                 
-                # Marca comum pré-preenchida
                 quick_brand = st.selectbox(
                     "Marca (opcional)", 
                     ["", "ANSUL", "TYCO", "KIDDE", "FLAMEX", "OUTRO"],
@@ -264,8 +246,6 @@ def show_page():
                                 st.success(f"Câmara '{quick_id}' ({quick_size}) cadastrada rapidamente!")
                                 st.balloons()
                                 st.cache_data.clear()
-                            else:
-                                st.error("Erro ao cadastrar. Verifique se o ID já não existe.")
 
     with tab_report:
         st.header("📊 Relatório Consolidado de Câmaras de Espuma")
@@ -296,14 +276,13 @@ def show_page():
         
         
         with st.spinner("Carregando dados das inspeções..."):
-            inspections_df = load_sheet_data(FOAM_CHAMBER_INSPECTIONS_SHEET_NAME)
-            inventory_df = load_sheet_data(FOAM_CHAMBER_INVENTORY_SHEET_NAME)
+            inspections_df = load_sheet_data("inspecoes_camaras_espuma")
+            inventory_df = load_sheet_data("inventario_camaras_espuma")
         
         if inspections_df.empty:
             st.warning("⚠️ Nenhuma inspeção de câmara de espuma foi realizada ainda.")
             st.info("Realize inspeções na aba 'Realizar Inspeção' para gerar o relatório.")
         else:
-            # Estatísticas rápidas
             total_chambers = len(inspections_df['id_camara'].unique())
             total_inspections = len(inspections_df)
             
@@ -311,7 +290,6 @@ def show_page():
             col1.metric("Total de Câmaras", total_chambers)
             col2.metric("Total de Inspeções", total_inspections)
             
-            # Última inspeção de cada câmara
             inspections_df['data_inspecao'] = pd.to_datetime(inspections_df['data_inspecao'])
             latest = inspections_df.sort_values('data_inspecao').groupby('id_camara').tail(1)
             approved = len(latest[latest['status_geral'] == 'Aprovado'])
@@ -319,7 +297,6 @@ def show_page():
             
             st.markdown("---")
             
-            # Botão para gerar PDF
             col1, col2, col3 = st.columns([1, 2, 1])
             
             with col2:
@@ -330,7 +307,6 @@ def show_page():
                         if pdf_file:
                             st.success("✅ Relatório gerado com sucesso!")
                             
-                            # Botão de download
                             current_date = datetime.now().strftime('%Y%m%d_%H%M')
                             filename = f"Relatorio_Camaras_Espuma_{current_date}.pdf"
                             
@@ -341,5 +317,3 @@ def show_page():
                                 mime="application/pdf",
                                 use_container_width=True
                             )
-                        
-     

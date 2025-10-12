@@ -1,40 +1,24 @@
+# operations/scba_operations.py (REFATORADO)
+
 import streamlit as st
 import json
 from datetime import date
 from dateutil.relativedelta import relativedelta
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME, LOG_SCBA_SHEET_NAME
+import pandas as pd # Adicionado para verificação
+from supabase.client import get_supabase_client # PARA: Nova importação
+from auth.auth_utils import get_user_display_name
 from utils.auditoria import log_action
 
-def save_scba_inspection(record, pdf_link, user_name):
-    """
-    Salva um novo registro de inspeção de conjunto autônomo na planilha.
-    """
+def save_scba_inspection(record: dict, pdf_link: str, user_name: str) -> bool:
+    """Salva um novo registro de teste Posi3 de SCBA no Supabase."""
     try:
-        uploader = GoogleDriveUploader()
+        db_client = get_supabase_client()
         
-        data_row = [
-            record.get('data_teste'),
-            record.get('data_validade'),
-            record.get('numero_serie_equipamento'),
-            record.get('marca'),
-            record.get('modelo'),
-            record.get('numero_serie_mascara'),
-            record.get('numero_serie_segundo_estagio'),
-            record.get('resultado_final'),
-            record.get('vazamento_mascara_resultado'),
-            record.get('vazamento_mascara_valor'),
-            record.get('vazamento_pressao_alta_resultado'),
-            record.get('vazamento_pressao_alta_valor'),
-            record.get('pressao_alarme_resultado'),
-            record.get('pressao_alarme_valor'),
-            pdf_link,
-            user_name,
-            record.get('empresa_executante'),
-            record.get('responsavel_tecnico')
-        ]
+        # O registro já vem como um dicionário. Adicionamos os campos que faltam.
+        record['link_relatorio_pdf'] = pdf_link
+        record['inspetor_responsavel'] = user_name
         
-        uploader.append_data_to_sheet(SCBA_SHEET_NAME, data_row)
+        db_client.append_data("conjuntos_autonomos", record)
         log_action("SALVOU_INSPECAO_SCBA", f"ID: {record.get('numero_serie_equipamento')}, Resultado: {record.get('resultado_final')}")
         return True
 
@@ -42,101 +26,79 @@ def save_scba_inspection(record, pdf_link, user_name):
         st.error(f"Erro ao salvar inspeção do SCBA {record.get('numero_serie_equipamento')}: {e}")
         return False
 
-
-def save_scba_visual_inspection(equipment_id, overall_status, results_dict, inspector_name):
-    """
-    Salva o resultado de uma inspeção visual periódica de SCBA na planilha.
-    """
+def save_scba_visual_inspection(equipment_id: str, overall_status: str, results_dict: dict, inspector_name: str) -> bool:
+    """Salva o resultado de uma inspeção visual periódica de SCBA no Supabase."""
     try:
-        uploader = GoogleDriveUploader()
+        db_client = get_supabase_client()
         today = date.today()
-        next_inspection_date = (today + relativedelta(months=3)).isoformat()
+        next_inspection_date = (today + relativedelta(months=3))
         
-        results_json = json.dumps(results_dict, ensure_ascii=False)
-
-        data_row = [
-            today.isoformat(),
-            equipment_id,
-            overall_status,
-            results_json,
-            inspector_name,
-            next_inspection_date
-        ]
+        # PARA: Cria um dicionário em vez de uma lista
+        inspection_record = {
+            "data_inspecao": today.isoformat(),
+            "numero_serie_equipamento": equipment_id,
+            "status_geral": overall_status,
+            "resultados_json": json.dumps(results_dict, ensure_ascii=False), # Supabase aceita JSON diretamente
+            "inspetor": inspector_name,
+            "data_proxima_inspecao": next_inspection_date.isoformat()
+        }
         
-        uploader.append_data_to_sheet(SCBA_VISUAL_INSPECTIONS_SHEET_NAME, data_row)
+        db_client.append_data("inspecoes_scba", inspection_record)
         log_action("SALVOU_INSPECAO_VISUAL_SCBA", f"ID: {equipment_id}, Status: {overall_status}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar inspeção visual do SCBA {equipment_id}: {e}")
         return False
-        
-def save_scba_action_log(equipment_id, problem, action_taken, responsible):
-    """
-    Salva um registro de ação corretiva para um SCBA no log.
-    """
+
+def save_scba_action_log(equipment_id: str, problem: str, action_taken: str, responsible: str) -> bool:
+    """Salva um registro de ação corretiva para um SCBA no Supabase."""
     try:
-        uploader = GoogleDriveUploader()
-        data_row = [
-            date.today().isoformat(),
-            equipment_id,
-            problem,
-            action_taken,
-            responsible
-        ]
-        uploader.append_data_to_sheet(LOG_SCBA_SHEET_NAME, data_row)
+        db_client = get_supabase_client()
+        
+        log_record = {
+            "data_acao": date.today().isoformat(),
+            "numero_serie_equipamento": equipment_id,
+            "problema_original": problem,
+            "acao_realizada": action_taken,
+            "responsavel": responsible
+        }
+        
+        db_client.append_data("log_scba", log_record)
         return True
     except Exception as e:
         st.error(f"Erro ao salvar log de ação para o SCBA {equipment_id}: {e}")
-        return False     
-        
-def save_manual_scba(scba_data):
-    """
-    Salva um novo SCBA manualmente cadastrado.
-    
-    Args:
-        scba_data (dict): Dados do SCBA
-    
-    Returns:
-        bool: True se bem-sucedido, False caso contrário
-    """
+        return False
+
+def save_manual_scba(scba_data: dict) -> bool:
+    """Salva um novo SCBA manualmente cadastrado no Supabase."""
     try:
-        uploader = GoogleDriveUploader()
+        db_client = get_supabase_client()
         
         # Verificar se o número de série já existe
-        scba_records = uploader.get_data_from_sheet(SCBA_SHEET_NAME)
-        if scba_records and len(scba_records) > 1:
-            df = pd.DataFrame(scba_records[1:], columns=scba_records[0])
-            if 'numero_serie_equipamento' in df.columns and scba_data['numero_serie_equipamento'] in df['numero_serie_equipamento'].values:
-                st.error(f"Erro: SCBA com número de série '{scba_data['numero_serie_equipamento']}' já existe.")
-                return False
+        df_scba = db_client.get_data("conjuntos_autonomos")
+        if not df_scba.empty and scba_data['numero_serie_equipamento'] in df_scba['numero_serie_equipamento'].values:
+            st.error(f"Erro: SCBA com número de série '{scba_data['numero_serie_equipamento']}' já existe.")
+            return False
         
-        # Criar linha para a planilha
-        # Importante: a ordem dos campos deve corresponder à ordem das colunas na planilha
         today = date.today()
-        validade = today + timedelta(days=365)  # Validade padrão de 1 ano
+        validade = today + relativedelta(years=1)
         
-        data_row = [
-            scba_data.get('data_teste', today.isoformat()),
-            validade.isoformat(),  # data_validade
-            scba_data['numero_serie_equipamento'],
-            scba_data['marca'],
-            scba_data['modelo'],
-            scba_data.get('numero_serie_mascara', 'N/A'),
-            scba_data.get('numero_serie_segundo_estagio', 'N/A'),
-            "APTO PARA USO",  # resultado_final padrão para registro manual
-            "Aprovado",  # vazamento_mascara_resultado
-            "N/A",  # vazamento_mascara_valor
-            "Aprovado",  # vazamento_pressao_alta_resultado
-            "N/A",  # vazamento_pressao_alta_valor
-            "Aprovado",  # pressao_alarme_resultado
-            "N/A",  # pressao_alarme_valor
-            None,  # link_relatorio_pdf
-            get_user_display_name(),  # inspetor_responsavel
-            scba_data.get('empresa_executante', "Cadastro Manual"),
-            scba_data.get('resp_tecnico', "N/A")
-        ]
+        # Cria o registro completo para o novo SCBA
+        record = {
+            'data_teste': scba_data.get('data_teste', today.isoformat()),
+            'data_validade': validade.isoformat(),
+            'numero_serie_equipamento': scba_data['numero_serie_equipamento'],
+            'marca': scba_data.get('marca'),
+            'modelo': scba_data.get('modelo'),
+            'numero_serie_mascara': scba_data.get('numero_serie_mascara'),
+            'numero_serie_segundo_estagio': scba_data.get('numero_serie_segundo_estagio'),
+            'resultado_final': "APTO PARA USO",
+            'vazamento_mascara_resultado': "Aprovado",
+            'inspetor_responsavel': get_user_display_name(),
+            'empresa_executante': scba_data.get('empresa_executante', "Cadastro Manual")
+        }
         
-        uploader.append_data_to_sheet(SCBA_SHEET_NAME, [data_row])
+        db_client.append_data("conjuntos_autonomos", record)
         log_action("CADASTROU_SCBA_MANUAL", f"S/N: {scba_data['numero_serie_equipamento']}")
         return True
         

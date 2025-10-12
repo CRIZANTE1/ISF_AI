@@ -6,8 +6,9 @@ import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from operations.scba_operations import save_scba_inspection, save_scba_visual_inspection
-from gdrive.gdrive_upload import GoogleDriveUploader
+from operations.scba_operations import save_scba_inspection, save_scba_visual_inspection, save_manual_scba
+from supabase.client import get_supabase_client
+from operations.photo_operations import upload_evidence_photo
 from AI.api_Operation import PDFQA
 from utils.prompts import get_scba_inspection_prompt, get_air_quality_prompt 
 from auth.auth_utils import (
@@ -15,7 +16,6 @@ from auth.auth_utils import (
 )
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
-from gdrive.config import SCBA_SHEET_NAME, SCBA_VISUAL_INSPECTIONS_SHEET_NAME
 from utils.auditoria import log_action
 from operations.instrucoes import instru_scba
 
@@ -23,89 +23,31 @@ from operations.instrucoes import instru_scba
 set_page_config()
 pdf_qa = PDFQA()
 
-def save_manual_scba(scba_data):
-    """
-    Salva um novo SCBA manualmente cadastrado.
-    
-    Args:
-        scba_data (dict): Dados do SCBA
-    
-    Returns:
-        bool: True se bem-sucedido, False caso contrário
-    """
-    try:
-        uploader = GoogleDriveUploader()
-        
-        # Verificar se o número de série já existe
-        scba_records = uploader.get_data_from_sheet(SCBA_SHEET_NAME)
-        if scba_records and len(scba_records) > 1:
-            df = pd.DataFrame(scba_records[1:], columns=scba_records[0])
-            if 'numero_serie_equipamento' in df.columns and scba_data['numero_serie_equipamento'] in df['numero_serie_equipamento'].values:
-                st.error(f"Erro: SCBA com número de série '{scba_data['numero_serie_equipamento']}' já existe.")
-                return False
-        
-        # Criar linha para a planilha
-        # Importante: a ordem dos campos deve corresponder à ordem das colunas na planilha
-        today = date.today()
-        validade = today + timedelta(days=365)  # Validade padrão de 1 ano
-        
-        data_row = [
-            scba_data.get('data_teste', today.isoformat()),
-            validade.isoformat(),  # data_validade
-            scba_data['numero_serie_equipamento'],
-            scba_data['marca'],
-            scba_data['modelo'],
-            scba_data.get('numero_serie_mascara', 'N/A'),
-            scba_data.get('numero_serie_segundo_estagio', 'N/A'),
-            "APTO PARA USO",  # resultado_final padrão para registro manual
-            "Aprovado",  # vazamento_mascara_resultado
-            "N/A",  # vazamento_mascara_valor
-            "Aprovado",  # vazamento_pressao_alta_resultado
-            "N/A",  # vazamento_pressao_alta_valor
-            "Aprovado",  # pressao_alarme_resultado
-            "N/A",  # pressao_alarme_valor
-            None,  # link_relatorio_pdf
-            get_user_display_name(),  # inspetor_responsavel
-            scba_data.get('empresa_executante', "Cadastro Manual"),
-            scba_data.get('resp_tecnico', "N/A")
-        ]
-        
-        uploader.append_data_to_sheet(SCBA_SHEET_NAME, [data_row])
-        log_action("CADASTROU_SCBA_MANUAL", f"S/N: {scba_data['numero_serie_equipamento']}")
-        return True
-        
-    except Exception as e:
-        st.error(f"Erro ao salvar SCBA: {e}")
-        return False
-
 def save_manual_air_quality_record(air_data):
     """
     Salva um registro manual de qualidade do ar.
     """
     try:
-        uploader = GoogleDriveUploader()
+        db_client = get_supabase_client()
         
-        # Para cada cilindro mencionado, cria um registro
         cilindros = [c.strip() for c in air_data['cilindros_text'].split(',') if c.strip()]
         
         if not cilindros:
             st.error("É necessário informar pelo menos um número de série de cilindro.")
             return False
             
+        records = []
         for cilindro_sn in cilindros:
-            # Cria uma linha com os dados do laudo
-            data_row = [None] * 18  # Preenche as primeiras 18 colunas com None
-            data_row[2] = cilindro_sn  # Coluna C: numero_serie_equipamento
+            record = {
+                'numero_serie_equipamento': cilindro_sn,
+                'data_ensaio_ar': air_data['data_ensaio'],
+                'resultado_ensaio_ar': air_data['resultado_geral'],
+                'observacoes_ensaio_ar': air_data.get('observacoes', 'Registro manual'),
+                'link_laudo_ar': None
+            }
+            records.append(record)
             
-            # Adiciona os dados específicos do laudo de qualidade do ar
-            data_row.extend([
-                air_data['data_ensaio'],
-                air_data['resultado_geral'],
-                air_data.get('observacoes', 'Registro manual'),
-                None  # link_laudo_ar (será None para registro manual)
-            ])
-            
-            uploader.append_data_to_sheet(SCBA_SHEET_NAME, data_row)
+        db_client.append_data("qualidade_ar_scba", records)
         
         log_action("REGISTROU_QUALIDADE_AR_MANUAL", f"Cilindros: {', '.join(cilindros)}, Resultado: {air_data['resultado_geral']}")
         return True
@@ -117,7 +59,6 @@ def save_manual_air_quality_record(air_data):
 def show_page():
     st.title("💨 Inspeção de Conjuntos Autônomos (SCBA)")
 
-    # Check if user has at least viewer permissions
     if not check_user_access("viewer"):
         st.warning("Você não tem permissão para acessar esta página.")
         return
@@ -140,12 +81,10 @@ def show_page():
     with tab_test_scba:
         st.header("Registrar Teste de SCBA com IA")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para registrar testes.")
             st.info("Os dados abaixo são somente para visualização.")
         else:
-            # Check for AI features
             if not has_ai_features():
                 st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou use as abas de cadastro manual!", icon="🚀")
             else:
@@ -179,9 +118,8 @@ def show_page():
                     
                     if st.button("💾 Confirmar e Salvar Registros", type="primary", use_container_width=True):
                         with st.spinner("Salvando registros..."):
-                            uploader = GoogleDriveUploader()
                             pdf_name = f"Relatorio_SCBA_{date.today().isoformat()}_{st.session_state.scba_uploaded_pdf.name}"
-                            pdf_link = uploader.upload_file(st.session_state.scba_uploaded_pdf, novo_nome=pdf_name)
+                            pdf_link = upload_evidence_photo(st.session_state.scba_uploaded_pdf, pdf_name, "relatorios_scba")
                             
                             if not pdf_link:
                                 st.error("Falha ao fazer o upload do relatório. Os dados não foram salvos.")
@@ -202,7 +140,6 @@ def show_page():
                             st.cache_data.clear()
                             st.rerun()
 
-    # Nova aba para cadastro manual de teste SCBA
     with tab_manual_test:
         st.header("Cadastrar Teste de SCBA Manualmente")
         
@@ -231,17 +168,14 @@ def show_page():
                 st.subheader("Resultados dos Testes")
                 resultado_final = st.selectbox("Resultado Final", ["APTO PARA USO", "NÃO APTO PARA USO"])
                 
-                # Teste de vazamento de máscara
                 col7, col8 = st.columns(2)
                 vazamento_mascara_resultado = col7.selectbox("Vazamento de Máscara", ["Aprovado", "Reprovado"])
                 vazamento_mascara_valor = col8.text_input("Valor (mbar)", value="0,2 mbar")
                 
-                # Teste de vazamento de pressão alta
                 col9, col10 = st.columns(2)
                 vazamento_pressao_alta_resultado = col9.selectbox("Vazamento Pressão Alta", ["Aprovado", "Reprovado"])
                 vazamento_pressao_alta_valor = col10.text_input("Valor (bar)", value="0,7 bar")
                 
-                # Teste de pressão de alarme
                 col11, col12 = st.columns(2)
                 pressao_alarme_resultado = col11.selectbox("Pressão de Alarme", ["Aprovado", "Reprovado"])
                 pressao_alarme_valor = col12.text_input("Valor de Disparo (bar)", value="57,0 bar")
@@ -283,19 +217,16 @@ def show_page():
     with tab_quality_air:
         st.header("Registrar Laudo de Qualidade do Ar com IA")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para registrar laudos.")
             st.info("Os dados abaixo são somente para visualização.")
         else:
-            # Check for AI features
             if not has_ai_features():
                 st.info("✨ **Este recurso de IA** está disponível no plano **Premium IA**. Faça o upgrade para automatizar seu trabalho ou use a aba de registro manual!", icon="🚀")
             else:
                 st.session_state.setdefault('airq_step', 'start')
                 st.session_state.setdefault('airq_processed_data', None)
                 st.session_state.setdefault('airq_uploaded_pdf', None)
-                uploader = GoogleDriveUploader()
 
                 st.subheader("1. Faça o Upload do Laudo PDF")
                 st.info("A IA analisará o laudo, extrairá os dados e criará um registro para cada cilindro mencionado.")
@@ -325,24 +256,26 @@ def show_page():
                     if st.button("💾 Confirmar e Registrar Laudo", type="primary", use_container_width=True):
                         with st.spinner("Processando e salvando..."):
                             pdf_name = f"Laudo_Ar_{data.get('data_ensaio')}_{st.session_state.airq_uploaded_pdf.name}"
-                            pdf_link = uploader.upload_file(st.session_state.airq_uploaded_pdf, novo_nome=pdf_name)
+                            pdf_link = upload_evidence_photo(st.session_state.airq_uploaded_pdf, pdf_name, "laudos_ar")
                             
                             if pdf_link:
                                 cilindros = data.get('cilindros', [])
                                 if not cilindros:
                                     st.error("Não é possível salvar, pois nenhum cilindro foi identificado no laudo.")
                                 else:
+                                    records = []
                                     for cilindro_sn in cilindros:
-                                        data_row = [None] * 18
-                                        data_row[2] = cilindro_sn # Coluna C: numero_serie_equipamento
-                                        
-                                        data_row.extend([
-                                            data.get('data_ensaio'),
-                                            data.get('resultado_geral'),
-                                            data.get('observacoes'),
-                                            pdf_link 
-                                        ])
-                                        uploader.append_data_to_sheet(SCBA_SHEET_NAME, data_row)
+                                        record = {
+                                            'numero_serie_equipamento': cilindro_sn,
+                                            'data_ensaio_ar': data.get('data_ensaio'),
+                                            'resultado_ensaio_ar': data.get('resultado_geral'),
+                                            'observacoes_ensaio_ar': data.get('observacoes'),
+                                            'link_laudo_ar': pdf_link
+                                        }
+                                        records.append(record)
+                                    
+                                    db_client = get_supabase_client()
+                                    db_client.append_data("qualidade_ar_scba", records)
                                     
                                     st.success(f"Laudo de qualidade do ar registrado com sucesso para {len(cilindros)} cilindros!")
                                     
@@ -352,9 +285,8 @@ def show_page():
                                     st.cache_data.clear()
                                     st.rerun()
                             else:
-                                st.error("Falha no upload do PDF para o Google Drive. Nenhum dado foi salvo.")
+                                st.error("Falha no upload do PDF. Nenhum dado foi salvo.")
 
-    # Nova aba para registro manual de qualidade do ar
     with tab_manual_air:
         st.header("Registrar Qualidade do Ar Manualmente")
         
@@ -400,14 +332,13 @@ def show_page():
     with tab_visual_insp:
         st.header("Realizar Inspeção Periódica de SCBA")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para realizar inspeções.")
             st.info("Os dados abaixo são somente para visualização.")
         else:
             st.info("Esta inspeção inclui a verificação visual dos componentes e os testes funcionais de vedação e alarme.")
             
-            df_scba = load_sheet_data(SCBA_SHEET_NAME)
+            df_scba = load_sheet_data("conjuntos_autonomos")
             if not df_scba.empty:
                 equipment_list = df_scba.dropna(subset=['numero_serie_equipamento'])['numero_serie_equipamento'].unique().tolist()
             else:
@@ -420,7 +351,6 @@ def show_page():
                 selected_scba_id = st.selectbox("Selecione o Equipamento para Inspecionar", options, key="scba_visual_select")
 
                 if selected_scba_id != "Selecione um equipamento...":
-                    # Define os itens do checklist
                     cilindro_items = ["Integridade Cilindro", "Registro e Valvulas", "Manômetro do Cilindro", "Pressão Manômetro", "Mangueiras e Conexões", "Correias/ Tirantes e Alças"]
                     mascara_items = ["Integridade da Máscara", "Visor ou Lente", "Borrachas de Vedação", "Conector da válvula de Inalação", "Correias/ Tirantes", "Fivelas e Alças", "Válvula de Exalação"]
 
@@ -491,17 +421,21 @@ def show_page():
                         if submitted:
                             overall_status = "Reprovado com Pendências" if has_issues else "Aprovado"
                             with st.spinner("Salvando inspeção..."):
-                                if save_scba_visual_inspection(selected_scba_id, overall_status, results, get_user_display_name()):
+                                if save_scba_visual_inspection(
+                                    equipment_id=selected_scba_id, 
+                                    overall_status=overall_status, 
+                                    results_dict=results, 
+                                    inspector_name=get_user_display_name()
+                                ):
                                     st.success(f"Inspeção periódica para o SCBA '{selected_scba_id}' salva com sucesso!")
                                     st.cache_data.clear()
+                                    st.rerun()
                                 else:
                                     st.error("Ocorreu um erro ao salvar a inspeção.")
 
-    # Aba para cadastro manual de SCBA
     with tab_manual_scba:
         st.header("Cadastrar Novo SCBA Manualmente")
         
-        # Check for edit permissions
         if not can_edit():
             st.warning("Você precisa de permissões de edição para cadastrar novos equipamentos.")
             st.info("Os dados abaixo são somente para visualização.")
@@ -513,7 +447,6 @@ def show_page():
                 
                 col1, col2 = st.columns(2)
                 
-                # Dados essenciais
                 numero_serie = col1.text_input("Número de Série do Equipamento (Obrigatório)*")
                 marca = col2.text_input("Marca")
                 
@@ -521,7 +454,6 @@ def show_page():
                 modelo = col3.text_input("Modelo")
                 data_teste = col4.date_input("Data do Teste/Cadastro", value=date.today())
                 
-                # Dados opcionais
                 st.markdown("---")
                 st.subheader("Dados Complementares (Opcional)")
                 

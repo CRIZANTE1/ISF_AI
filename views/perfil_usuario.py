@@ -8,15 +8,13 @@ import re
 import requests
 import logging
 
-# Adiciona o diretório raiz ao path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from auth.auth_utils import (
     get_user_display_name, get_user_email, get_user_info,
     get_effective_user_plan, get_effective_user_status, is_on_trial
 )
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import USERS_SHEET_NAME
+from supabase.client import get_supabase_client
 from utils.auditoria import log_action
 from config.page_config import set_page_config
 from utils.webhook_handler import (
@@ -26,10 +24,8 @@ from utils.webhook_handler import (
 
 set_page_config()
 
-# Configuração de logging
 logger = logging.getLogger(__name__)
 
-# Configuração dos planos
 PLANOS_CONFIG = {
     "basico": {
         "nome": "Plano Básico", 
@@ -72,61 +68,10 @@ PLANOS_CONFIG = {
     }
 }
 
-def ensure_support_sheet_exists():
-    """Garante que a aba de solicitações de suporte existe"""
-    try:
-        from gdrive.config import SUPPORT_REQUESTS_SHEET_NAME
-        
-        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-        
-        # Tenta ler a aba
-        try:
-            matrix_uploader.get_data_from_sheet(SUPPORT_REQUESTS_SHEET_NAME)
-            return True  # Aba já existe
-        except:
-            # Aba não existe, vamos criá-la
-            pass
-        
-        # Cabeçalhos da aba de suporte
-        support_headers = [
-            "data_solicitacao", "email_usuario", "nome_usuario", 
-            "tipo_solicitacao", "assunto", "mensagem", 
-            "prioridade", "status", "data_resposta", "resposta_suporte"
-        ]
-        
-        # Cria a nova aba
-        spreadsheet_id = matrix_uploader.spreadsheet_id
-        request_body = {
-            'requests': [{
-                'addSheet': {
-                    'properties': {
-                        'title': SUPPORT_REQUESTS_SHEET_NAME
-                    }
-                }
-            }]
-        }
-        
-        matrix_uploader.sheets_service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body=request_body
-        ).execute()
-        
-        # Adiciona os cabeçalhos
-        matrix_uploader.append_data_to_sheet(SUPPORT_REQUESTS_SHEET_NAME, [support_headers])
-        
-        st.success(f"✅ Aba '{SUPPORT_REQUESTS_SHEET_NAME}' criada com sucesso!")
-        return True
-        
-    except Exception as e:
-        st.error(f"❌ Erro ao criar aba de suporte: {e}")
-        return False
-
-
 class MercadoPagoPayment:
     """Classe para integração com pagamentos do Mercado Pago"""
     
     def __init__(self):
-        # Busca as configurações do Mercado Pago nos secrets
         try:
             self.public_key = st.secrets["mercadopago"]["public_key"]
             self.api_url = st.secrets["payment"]["api_url"]
@@ -148,18 +93,15 @@ class MercadoPagoPayment:
             st.error("❌ Plano inválido selecionado.")
             return
 
-        # Container para o formulário de pagamento
         with st.container():
             st.markdown("### 💳 Finalizar Pagamento")
             
-            # Resumo detalhado do pedido
             with st.expander("📋 Resumo do Pedido", expanded=True):
                 col1, col2 = st.columns([2, 1])
                 with col1:
                     st.markdown(f"**{plan_info['nome']}**")
                     st.caption(plan_info['descricao'])
                     
-                    # Mostra alguns recursos principais
                     for recurso in plan_info['recursos'][:3]:
                         st.markdown(f"• {recurso}")
                         
@@ -168,14 +110,12 @@ class MercadoPagoPayment:
                     st.markdown("*por mês*")
                     st.caption("💳 Parcelamento disponível")
 
-        # Carrega e renderiza o template HTML
         html_template_path = os.path.join(os.path.dirname(__file__), 'templates', 'payment_form.html')
         
         try:
             with open(html_template_path, 'r', encoding='utf-8') as f:
                 payment_html_template = f.read()
             
-            # Substitui as variáveis no template
             payment_html = payment_html_template.format(
                 public_key=self.public_key,
                 user_name=user_name,
@@ -186,19 +126,15 @@ class MercadoPagoPayment:
                 plan_name=plan_info['nome']
             )
             
-            # Renderiza o formulário com altura adequada
             components.html(payment_html, height=800, scrolling=True)
             
-            # JavaScript para capturar mensagens do iframe
             message_handler = """
             <script>
                 window.addEventListener("message", function(event) {
                     console.log("Received message:", event.data);
                     
                     if (event.data.type === "payment_success") {
-                        // Mostrar mensagem de sucesso
                         alert("✅ Pagamento aprovado! Sua conta será ativada em instantes.");
-                        // Recarregar página após um tempo
                         setTimeout(function() {
                             window.location.reload();
                         }, 2000);
@@ -223,46 +159,10 @@ class MercadoPagoPayment:
 def update_user_profile(user_email: str, updated_data: dict):
     """Atualiza os dados do perfil do usuário de forma segura"""
     try:
-        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-        users_data = matrix_uploader.get_data_from_sheet(USERS_SHEET_NAME)
+        db_client = get_supabase_client()
         
-        if not users_data or len(users_data) < 2:
-            logger.error("Dados de usuários não encontrados ou vazios")
-            return False
+        db_client.update_data("usuarios", updated_data, "email", user_email)
         
-        headers = users_data[0]
-        df_users = pd.DataFrame(users_data[1:], columns=headers)
-        
-        # Encontra o usuário
-        user_row = df_users[df_users['email'].str.lower() == user_email.lower()]
-        
-        if user_row.empty:
-            logger.error(f"Usuário não encontrado: {user_email}")
-            return False
-            
-        row_index = user_row.index[0] + 2  # +2 para cabeçalho e índice baseado em 1
-        
-        # Mapeia os campos que podem ser atualizados
-        updatable_fields = {
-            'nome': 'nome',
-            'telefone': 'telefone', 
-            'empresa': 'empresa',
-            'cargo': 'cargo'
-        }
-        
-        # Atualiza cada campo individualmente
-        for data_key, col_name in updatable_fields.items():
-            if col_name in headers and data_key in updated_data:
-                col_index = headers.index(col_name)
-                col_letter = chr(ord('A') + col_index)  # Converte índice para letra
-                
-                matrix_uploader.update_cells(
-                    USERS_SHEET_NAME, 
-                    f"{col_letter}{row_index}", 
-                    [[updated_data[data_key]]]
-                )
-        
-        # Log da ação
         log_action("ATUALIZOU_PERFIL", f"Email: {user_email}, Campos: {list(updated_data.keys())}")
         logger.info(f"Perfil atualizado com sucesso para {user_email}")
         
@@ -293,13 +193,11 @@ def show_page():
     """Função principal da página de perfil"""
     st.title("👤 Meu Perfil e Configurações")
     
-    # Verifica autenticação
     user_email = get_user_email()
     if not user_email:
         st.error("❌ Usuário não autenticado.")
         st.stop()
     
-    # Carrega informações do usuário
     user_info = get_user_info()
     user_name = get_user_display_name()
     current_plan = get_effective_user_plan()
@@ -307,26 +205,21 @@ def show_page():
     is_trial = is_on_trial()
     real_plan = user_info.get('plano', 'basico') if user_info else 'basico'
     
-    # Verifica mensagem de pagamento bem-sucedido
     payment_success = get_payment_success_message()
     if payment_success:
         st.success("🎉 **Pagamento realizado com sucesso!** Seu plano foi ativado.")
-        #st.balloons()
         clear_payment_success_message()
         st.cache_data.clear()
 
-    # Interface principal com tabs
     tab_profile, tab_plan_and_payment, tab_support = st.tabs([
         "📝 Meus Dados", 
         "💎 Planos e Pagamento", 
         "🆘 Suporte"
     ])
     
-    # =================== ABA: MEUS DADOS ===================
     with tab_profile:
         st.header("📋 Informações do Perfil")
         
-        # Status e plano atual
         col1, col2 = st.columns(2)
         with col1:
             if user_status == "ativo":
@@ -341,7 +234,6 @@ def show_page():
             else:
                 st.info(f"💎 **Plano:** {plan_display}")
         
-        # Informações do trial
         if is_trial:
             trial_end = user_info.get('trial_end_date')
             if trial_end and isinstance(trial_end, date):
@@ -353,18 +245,15 @@ def show_page():
 
         st.markdown("---")
         
-        # Formulário de edição de perfil
         with st.form("profile_form"):
             st.subheader("✏️ Editar Dados Pessoais")
             
-            # Campo nome (obrigatório)
             new_name = st.text_input(
                 "Nome Completo *", 
                 value=user_info.get('nome', user_name),
                 help="Nome completo como deve aparecer nos relatórios"
             )
             
-            # Email (somente leitura)
             st.text_input(
                 "Email", 
                 value=user_email, 
@@ -372,7 +261,6 @@ def show_page():
                 help="Email não pode ser alterado"
             )
             
-            # Campos adicionais em expander
             with st.expander("📋 Informações Complementares", expanded=False):
                 new_phone = st.text_input(
                     "Telefone", 
@@ -395,12 +283,10 @@ def show_page():
                     help="Seu cargo ou função"
                 )
 
-            # Botão de submit
             if st.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True):
                 if not new_name.strip():
                     st.error("❌ O nome não pode estar vazio.")
                 else:
-                    # Prepara dados para atualização
                     updated_data = {
                         'nome': new_name.strip(),
                         'telefone': new_phone.strip(),
@@ -416,17 +302,13 @@ def show_page():
                         else:
                             st.error("❌ Erro ao atualizar perfil. Tente novamente.")
 
-    # =================== ABA: PLANOS E PAGAMENTO ===================
     with tab_plan_and_payment:
-        # Estado inicial: usuário não selecionou plano para pagar
         if 'selected_plan_to_pay' not in st.session_state:
             st.header("💎 Nossos Planos")
             
-            # Informação sobre trial
             if is_trial:
                 st.info("🚀 **Você está em um período de teste Premium!** Contrate um plano abaixo para garantir acesso contínuo após o término do trial.")
             
-            # Determina quais planos mostrar
             plans_to_show = []
             if is_trial or real_plan == 'basico':
                 plans_to_show = ['pro', 'premium_ia']
@@ -437,7 +319,6 @@ def show_page():
                 st.success("🎉 Parabéns! Você já possui nosso plano mais completo!")
                 st.balloons()
             else:
-                # Exibe os planos disponíveis
                 if plans_to_show:
                     cols = st.columns(len(plans_to_show))
                     
@@ -445,9 +326,7 @@ def show_page():
                         with cols[i]:
                             plan_info = PLANOS_CONFIG[plan_key]
                             
-                            # Container do plano
                             with st.container(border=True, height=500):
-                                # Cabeçalho do plano
                                 if plan_key == 'premium_ia':
                                     st.markdown("🌟 **MAIS POPULAR**")
                                 
@@ -458,21 +337,17 @@ def show_page():
                                 
                                 st.markdown("---")
                                 
-                                # Lista de recursos
                                 st.markdown("**Recursos inclusos:**")
                                 for feature in plan_info['recursos']:
                                     st.markdown(f"• {feature}")
                             
-                            # Botão de contratação
                             button_label = f"🚀 Contratar {plan_info['nome']}"
                             if st.button(button_label, key=f"btn_{plan_key}", type="primary", use_container_width=True):
                                 
-                                # Wake-up call para o backend (opcional)
                                 try:
                                     api_url = st.secrets.get("payment", {}).get("api_url")
                                     if api_url:
                                         st.toast("Preparando o formulário de pagamento...", icon="💳")
-                                        # Chama endpoint de ping para acordar o servidor
                                         requests.get(f"{api_url}/ping", timeout=3)
                                         logger.info(f"Ping enviado para {api_url}")
                                 except Exception as e:
@@ -481,7 +356,6 @@ def show_page():
                                 st.session_state.selected_plan_to_pay = plan_key
                                 st.rerun()
     
-        # Estado 2: usuário selecionou um plano
         else:
             selected_plan = st.session_state.selected_plan_to_pay
             plan_info = PLANOS_CONFIG[selected_plan]
@@ -489,7 +363,6 @@ def show_page():
             st.header(f"💳 Finalizar Contratação")
             st.subheader(f"{plan_info['nome']}")
             
-            # Renderiza o formulário de pagamento
             payment_integration = MercadoPagoPayment()
             payment_integration.render_payment_form(
                 plan_type=selected_plan, 
@@ -497,14 +370,12 @@ def show_page():
                 user_name=user_name
             )
     
-            # Botão para voltar
             col1, col2 = st.columns([1, 1])
             with col1:
                 if st.button("⬅️ Escolher outro plano", use_container_width=True):
                     del st.session_state.selected_plan_to_pay
                     st.rerun()
             
-            # Simulação para desenvolvimento (só em debug mode)
             with col2:
                 if st.secrets.get("debug_mode", False):
                     if st.button("🧪 Simular Pagamento (Debug)", use_container_width=True):
@@ -513,11 +384,9 @@ def show_page():
                             del st.session_state.selected_plan_to_pay
                             st.rerun()
 
-    # =================== ABA: SUPORTE ===================
     with tab_support:
         st.header("🆘 Central de Suporte")
         
-        # Mostra nível de suporte baseado no plano
         support_levels = {
             'basico': {'level': 'Email', 'response': '48-72h', 'color': 'blue'},
             'pro': {'level': 'Prioritário', 'response': '24-48h', 'color': 'green'}, 
@@ -534,7 +403,6 @@ def show_page():
         
         st.markdown("---")
         
-        # Formulário de suporte
         with st.form("support_form"):
             st.subheader("📝 Enviar Solicitação de Suporte")
             
@@ -554,57 +422,41 @@ def show_page():
                 placeholder="Descreva em detalhes sua solicitação, incluindo passos para reproduzir problemas (se aplicável)..."
             )
             
-            # Prioridade baseada no plano
             if current_plan == 'premium_ia':
                 priority = st.selectbox("Prioridade", ["Normal", "Alta", "Crítica"])
             else:
                 priority = "Normal"
                 
-            # Substituir o bloco de envio da solicitação:
             if st.form_submit_button("📤 Enviar Solicitação", type="primary", use_container_width=True):
                 if not subject.strip() or not message.strip():
                     st.error("❌ Por favor, preencha o assunto e a mensagem.")
                 else:
                     try:
                         from datetime import datetime
-                        from gdrive.config import SUPPORT_REQUESTS_SHEET_NAME
                         
-                        # Garante que a aba existe
-                        if not ensure_support_sheet_exists():
-                            st.error("❌ Não foi possível criar a aba de suporte.")
-                            st.info("📧 Por favor, envie sua solicitação diretamente para: cristian.ferreira.carlos@gmail.com")
-                            return
+                        support_data = {
+                            "data_solicitacao": datetime.now().isoformat(),
+                            "email_usuario": user_email,
+                            "nome_usuario": user_name,
+                            "tipo_solicitacao": support_type,
+                            "assunto": subject.strip(),
+                            "mensagem": message.strip(),
+                            "prioridade": priority,
+                            "status": "Pendente",
+                        }
                         
-                        # Prepara dados para salvar na planilha
-                        support_data = [
-                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # data_solicitacao
-                            user_email,                                     # email_usuario
-                            user_name,                                      # nome_usuario
-                            support_type,                                   # tipo_solicitacao
-                            subject.strip(),                               # assunto
-                            message.strip(),                               # mensagem
-                            priority,                                      # prioridade
-                            "Pendente",                                    # status
-                            "",                                            # data_resposta
-                            ""                                             # resposta_suporte
-                        ]
+                        db_client = get_supabase_client()
+                        db_client.append_data("solicitacoes_suporte", support_data)
                         
-                        # Salva na planilha matriz (administração)
-                        matrix_uploader = GoogleDriveUploader(is_matrix=True)
-                        matrix_uploader.append_data_to_sheet(SUPPORT_REQUESTS_SHEET_NAME, support_data)
-                        
-                        # Log da solicitação
                         support_details = f"Tipo: {support_type}, Assunto: {subject[:50]}..."
                         log_action("SOLICITACAO_SUPORTE", support_details)
                         
-                        # Gera número do ticket
                         ticket_number = datetime.now().strftime("%Y%m%d%H%M%S")
                         
                         st.success("✅ **Solicitação enviada com sucesso!**")
                         st.info(f"⏱️ Tempo estimado de resposta: **{support_info['response']}**")
                         st.info(f"🎫 **Número do ticket:** #{ticket_number}")
                         
-                        # Mostra informações adicionais baseadas no tipo
                         if support_type == "Problema Técnico":
                             st.warning("💡 **Dica:** Para problemas técnicos, inclua sempre capturas de tela quando possível.")
                             
@@ -612,15 +464,12 @@ def show_page():
                         st.error(f"❌ Erro ao enviar solicitação: {e}")
                         st.warning("📧 Tente novamente ou envie diretamente para: cristian.ferreira.carlos@gmail.com")
                         
-                        # Log do erro para debug
                         log_action("ERRO_SOLICITACAO_SUPORTE", f"Erro: {str(e)}")
         
         st.markdown("---")
         
-        # Informações de contato
         show_contact_info()
         
-        # FAQ rápida
         with st.expander("❓ Perguntas Frequentes", expanded=False):
             st.markdown("""
             **P: Como faço para alterar meu plano?**  
@@ -630,7 +479,7 @@ def show_page():
             R: Sim, entre em contato conosco para processar o cancelamento.
             
             **P: Os dados ficam salvos na nuvem?**  
-            R: Sim, utilizamos Google Sheets e Google Drive para máxima segurança.
+            R: Sim, utilizamos Supabase para máxima segurança e performance.
             
             **P: Como funciona o período de teste?**  
             R: O trial Premium IA é gratuito por 14 dias com todas as funcionalidades.

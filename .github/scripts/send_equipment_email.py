@@ -12,8 +12,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from jinja2 import Template
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+from supabase import create_client, Client
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -95,9 +94,9 @@ EQUIPMENT_EMAIL_TEMPLATES = {
                         </td>
                         <td>
                             {% if equipment.dias_restantes <= 7 %}
-                                <span class="priority-high">🔴 Crítica</span>
+                                <span class="priority-critical">🔴 Crítica</span>
                             {% elif equipment.dias_restantes <= 15 %}
-                                <span class="priority-medium">🟡 Alta</span>
+                                <span class="priority-high">🟡 Alta</span>
                             {% else %}
                                 <span class="priority-low">🟢 Normal</span>
                             {% endif %}
@@ -248,73 +247,36 @@ EQUIPMENT_EMAIL_TEMPLATES = {
     }
 }
 
-def get_google_sheets_service():
-    """Inicializa serviço do Google Sheets"""
+def get_supabase_client_for_script() -> Client:
+    """Inicializa o cliente Supabase para uso em scripts de backend."""
     try:
-        logger.info("Inicializando serviço Google Sheets...")
-        
-        credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
-        if not credentials_json:
-            raise ValueError("GOOGLE_CREDENTIALS não encontrado nas variáveis de ambiente")
-        
-        logger.info("Credenciais carregadas, criando serviço...")
-        credentials_dict = json.loads(credentials_json)
-        
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=['https://www.googleapis.com/auth/spreadsheets']
-        )
-        
-        service = build('sheets', 'v4', credentials=credentials)
-        logger.info("Serviço Google Sheets inicializado com sucesso")
-        
-        return service
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise ValueError("Credenciais SUPABASE_URL ou SUPABASE_KEY não encontradas no ambiente.")
+        return create_client(url, key)
     except Exception as e:
-        logger.error(f"Erro ao inicializar serviço Google Sheets: {e}")
-        raise
+        print(f"❌ Erro ao inicializar cliente Supabase: {e}")
+        return None
 
-def get_pending_equipment_notifications(sheets_service, spreadsheet_id):
-    """Busca notificações de equipamentos pendentes na planilha"""
+def get_pending_equipment_notifications(supabase_client: Client) -> list:
+    """Busca notificações de equipamentos pendentes da tabela do Supabase."""
     try:
-        logger.info(f"Buscando notificações pendentes na planilha {spreadsheet_id}")
+        logger.info("Buscando notificações de equipamentos pendentes no Supabase...")
+        response = supabase_client.table("notificacoes_pendentes").select("*").eq("status", "pendente").execute()
         
-        range_name = "notificacoes_pendentes!A:F"
-        result = sheets_service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id,
-            range=range_name
-        ).execute()
-        
-        values = result.get('values', [])
-        if not values or len(values) < 2:
-            logger.info("Nenhuma notificação encontrada ou planilha vazia")
-            return []
-        
-        logger.info(f"Encontradas {len(values) - 1} linhas na planilha de notificações")
-        
-        # Converte para lista de dicionários
-        headers = values[0]
-        notifications = []
-        
-        for i, row in enumerate(values[1:], 2):  # i=2 para linha da planilha
-            if len(row) >= 6 and row[5] == 'pendente':
-                # Filtra apenas notificações de equipamentos
-                if row[1] in ['equipment_expiring', 'pending_issues']:
-                    notification_data = {
-                        'row_index': i,
-                        'timestamp': row[0],
-                        'type': row[1], 
-                        'email': row[2],
-                        'name': row[3],
-                        'data': row[4],
-                        'status': row[5]
-                    }
-                    notifications.append(notification_data)
-        
-        logger.info(f"Encontradas {len(notifications)} notificações de equipamentos pendentes")
-        return notifications
-        
+        if response.data:
+            notifications = []
+            for item in response.data:
+                if item['type'] in ['equipment_expiring', 'pending_issues']:
+                    item['row_index'] = item['id'] 
+                    notifications.append(item)
+            logger.info(f"Encontradas {len(notifications)} notificações de equipamentos pendentes")
+            return notifications
+        logger.info("Nenhuma notificação de equipamento pendente encontrada no Supabase.")
+        return []
     except Exception as e:
-        logger.error(f"Erro ao buscar notificações de equipamentos: {e}")
+        logger.error(f"❌ Erro ao buscar notificações de equipamentos do Supabase: {e}")
         return []
 
 def send_equipment_email(smtp_config, recipient_email, subject, body_html):
@@ -324,7 +286,6 @@ def send_equipment_email(smtp_config, recipient_email, subject, body_html):
         
         msg = MIMEMultipart('alternative')
         
-        # Limpa e valida os campos do cabeçalho
         from_name = smtp_config['from_name'].strip().replace('\n', '').replace('\r', '')
         from_email = smtp_config['from_email'].strip().replace('\n', '').replace('\r', '')
         recipient_email = recipient_email.strip().replace('\n', '').replace('\r', '')
@@ -352,28 +313,18 @@ def send_equipment_email(smtp_config, recipient_email, subject, body_html):
         logger.error(f"Erro ao enviar email de equipamento para {recipient_email}: {e}")
         return False
 
-def update_equipment_notification_status(sheets_service, spreadsheet_id, row_index, status):
-    """Atualiza status da notificação na planilha"""
+def update_equipment_notification_status(supabase_client: Client, notification_id: int, status: str) -> bool:
+    """Atualiza o status de uma notificação de equipamento na tabela do Supabase."""
     try:
-        logger.info(f"Atualizando status da linha {row_index} para '{status}'")
-        
-        range_name = f"notificacoes_pendentes!F{row_index}"
-        body = {'values': [[status]]}
-        
-        sheets_service.spreadsheets().values().update(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption='RAW',
-            body=body
-        ).execute()
-        
-        logger.info(f"Status atualizado com sucesso para linha {row_index}")
+        logger.info(f"Atualizando status da notificação ID {notification_id} para '{status}' no Supabase.")
+        supabase_client.table("notificacoes_pendentes").update({"status": status}).eq("id", notification_id).execute()
+        logger.info(f"Status atualizado com sucesso para notificação ID {notification_id}.")
         return True
     except Exception as e:
-        logger.error(f"Erro ao atualizar status de equipamento: {e}")
+        logger.error(f"❌ Erro ao atualizar status de notificação de equipamento no Supabase: {e}")
         return False
 
-def process_equipment_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+def process_equipment_notification(notification, smtp_config, supabase_client):
     """Processa uma notificação de equipamento individual"""
     
     notification_type = notification['type']
@@ -382,14 +333,11 @@ def process_equipment_notification(notification, smtp_config, sheets_service, sp
     
     logger.info(f"Processando notificação '{notification_type}' para {recipient_email}")
     
-    # Parse dos dados da notificação
     try:
-        # Tenta fazer parse do JSON
         data_str = notification['data']
         if data_str.startswith('{'):
             data_dict = json.loads(data_str)
         else:
-            # Se não for JSON válido, tenta eval (compatibilidade com versão antiga)
             data_dict = ast.literal_eval(data_str) if data_str else {}
         
         logger.info(f"Dados da notificação parsados: {len(data_dict)} campos")
@@ -397,14 +345,12 @@ def process_equipment_notification(notification, smtp_config, sheets_service, sp
         logger.error(f"Erro ao fazer parse dos dados da notificação: {e}")
         data_dict = {}
     
-    # Busca template de equipamento
     if notification_type not in EQUIPMENT_EMAIL_TEMPLATES:
         logger.error(f"Template de equipamento não encontrado para: {notification_type}")
         return False
     
     template_data = EQUIPMENT_EMAIL_TEMPLATES[notification_type]
     
-    # Processa listas específicas de equipamentos
     if 'expiring_equipment' in data_dict:
         expiring_equipment = data_dict.get('expiring_equipment', [])
         if isinstance(expiring_equipment, str):
@@ -425,7 +371,6 @@ def process_equipment_notification(notification, smtp_config, sheets_service, sp
         data_dict['pending_issues'] = pending_issues
         logger.info(f"Pendências processadas: {len(pending_issues)}")
     
-    # Dados padrão para template
     template_vars = {
         'recipient_name': recipient_name,
         'recipient_email': recipient_email,
@@ -440,7 +385,6 @@ def process_equipment_notification(notification, smtp_config, sheets_service, sp
     
     logger.info(f"Variáveis do template preparadas para {recipient_email}")
     
-    # Renderiza template
     try:
         subject_template = Template(template_data['subject'])
         body_template = Template(template_data['template'])
@@ -453,19 +397,16 @@ def process_equipment_notification(notification, smtp_config, sheets_service, sp
         logger.error(f"Erro ao renderizar template: {e}")
         return False
     
-    # Envia email
     success = send_equipment_email(smtp_config, recipient_email, subject, body_html)
     
     if success:
-        # Marca como enviado na planilha
-        update_success = update_equipment_notification_status(sheets_service, spreadsheet_id, notification['row_index'], 'enviado')
+        update_success = update_equipment_notification_status(supabase_client, notification['id'], 'enviado')
         if update_success:
             logger.info(f"Notificação de equipamento {notification_type} processada com sucesso para {recipient_email}")
         else:
             logger.warning(f"Email enviado mas falha ao atualizar status para {recipient_email}")
     else:
-        # Marca como erro
-        update_equipment_notification_status(sheets_service, spreadsheet_id, notification['row_index'], 'erro')
+        update_equipment_notification_status(supabase_client, notification['id'], 'erro')
         logger.error(f"Falha ao processar notificação de equipamento {notification_type} para {recipient_email}")
     
     return success
@@ -475,9 +416,8 @@ def main():
     try:
         logger.info("🔄 Iniciando processamento de notificações de equipamentos...")
         
-        # Verificar variáveis de ambiente obrigatórias
         required_vars = ['SMTP_SERVER', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD', 
-                        'FROM_EMAIL', 'FROM_NAME', 'GOOGLE_CREDENTIALS', 'MATRIX_SHEETS_ID']
+                        'FROM_EMAIL', 'FROM_NAME', 'SUPABASE_URL', 'SUPABASE_KEY'] 
         
         missing_vars = [var for var in required_vars if not os.environ.get(var)]
         if missing_vars:
@@ -486,7 +426,6 @@ def main():
         
         logger.info("Todas as variáveis de ambiente estão configuradas")
         
-        # Configuração SMTP
         smtp_config = {
             'server': os.environ['SMTP_SERVER'],
             'port': int(os.environ['SMTP_PORT']),
@@ -498,14 +437,12 @@ def main():
         
         logger.info(f"Configuração SMTP: servidor {smtp_config['server']}:{smtp_config['port']}")
         
-        # Serviços Google
-        sheets_service = get_google_sheets_service()
-        spreadsheet_id = os.environ['MATRIX_SHEETS_ID']
+        supabase_client = get_supabase_client_for_script()
+        if not supabase_client:
+            logger.error("❌ Falha na conexão com o Supabase. Abortando.")
+            return
         
-        logger.info(f"Usando planilha matriz: {spreadsheet_id}")
-        
-        # Busca notificações de equipamentos pendentes
-        notifications = get_pending_equipment_notifications(sheets_service, spreadsheet_id)
+        notifications = get_pending_equipment_notifications(supabase_client)
         
         if not notifications:
             logger.info("✅ Nenhuma notificação de equipamento pendente encontrada.")
@@ -513,11 +450,10 @@ def main():
         
         logger.info(f"📧 Encontradas {len(notifications)} notificações de equipamentos pendentes.")
         
-        # Processa cada notificação de equipamento
         processed = 0
         for notification in notifications:
             try:
-                if process_equipment_notification(notification, smtp_config, sheets_service, spreadsheet_id):
+                if process_equipment_notification(notification, smtp_config, supabase_client):
                     processed += 1
             except Exception as e:
                 logger.error(f"Erro ao processar notificação de equipamento: {e}")

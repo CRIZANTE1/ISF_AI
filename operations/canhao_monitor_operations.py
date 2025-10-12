@@ -1,11 +1,7 @@
 import streamlit as st
 import json
 import pandas as pd
-from gdrive.gdrive_upload import GoogleDriveUploader
-from gdrive.config import (
-    CANHAO_MONITOR_INVENTORY_SHEET_NAME,
-    CANHAO_MONITOR_INSPECTIONS_SHEET_NAME
-)
+from supabase.client import get_supabase_client
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from utils.auditoria import log_action
@@ -45,22 +41,23 @@ CHECKLIST_FUNCIONAL = {
 def save_new_canhao_monitor(equip_id, location, brand, model):
     """Salva um novo canhão monitor no inventário."""
     try:
-        uploader = GoogleDriveUploader()
-        inventory_data = uploader.get_data_from_sheet(CANHAO_MONITOR_INVENTORY_SHEET_NAME)
-        if inventory_data and len(inventory_data) > 1:
-            df = pd.DataFrame(inventory_data[1:], columns=inventory_data[0])
-            if equip_id in df['id_equipamento'].values:
-                st.error(f"Erro: O ID '{equip_id}' já está cadastrado.")
-                return False
+        db_client = get_supabase_client()
+        
+        # Verifica se o ID já existe
+        df_inventory = db_client.get_data("inventario_canhoes_monitores")
+        if not df_inventory.empty and equip_id in df_inventory['id_equipamento'].values:
+            st.error(f"Erro: O ID '{equip_id}' já está cadastrado.")
+            return False
 
-        data_row = [
-            equip_id,
-            location,
-            brand,
-            model,
-            date.today().isoformat()
-        ]
-        uploader.append_data_to_sheet(CANHAO_MONITOR_INVENTORY_SHEET_NAME, data_row)
+        new_record = {
+            "id_equipamento": equip_id,
+            "localizacao": location,
+            "marca": brand,
+            "modelo": model,
+            "data_cadastro": date.today().isoformat()
+        }
+        
+        db_client.append_data("inventario_canhoes_monitores", new_record)
         log_action("CADASTROU_CANHAO_MONITOR", f"ID: {equip_id}")
         return True
     except Exception as e:
@@ -70,7 +67,7 @@ def save_new_canhao_monitor(equip_id, location, brand, model):
 def save_canhao_monitor_inspection(equip_id, inspection_type, overall_status, results_dict, photo_file, inspector_name):
     """Salva uma nova inspeção de canhão monitor."""
     try:
-        uploader = GoogleDriveUploader()
+        db_client = get_supabase_client()
         today = date.today()
         
         photo_link = None
@@ -91,32 +88,29 @@ def save_canhao_monitor_inspection(equip_id, inspection_type, overall_status, re
         
         results_json = json.dumps(results_dict, ensure_ascii=False)
 
-        data_row = [
-            today.isoformat(),
-            equip_id,
-            inspection_type,
-            overall_status,
-            action_plan,
-            results_json,
-            photo_link if photo_link else "",
-            inspector_name,
-            next_inspection_date
-        ]
+        inspection_record = {
+            "data_inspecao": today.isoformat(),
+            "id_equipamento": equip_id,
+            "tipo_inspecao": inspection_type,
+            "status_geral": overall_status,
+            "plano_de_acao": action_plan,
+            "resultados_json": results_json,
+            "link_foto_nao_conformidade": photo_link if photo_link else "",
+            "inspetor": inspector_name,
+            "data_proxima_inspecao": next_inspection_date
+        }
         
-        uploader.append_data_to_sheet(CANHAO_MONITOR_INSPECTIONS_SHEET_NAME, data_row)
+        db_client.append_data("inspecoes_canhoes_monitores", inspection_record)
         log_action("SALVOU_INSPECAO_CANHAO_MONITOR", f"ID: {equip_id}, Tipo: {inspection_type}, Status: {overall_status}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar a inspeção para {equip_id}: {e}")
         return False
 
-
 def save_canhao_monitor_action_log(equip_id, problem, action_taken, responsible, photo_file=None):
     """Salva um registro de ação corretiva para um canhão monitor no log específico."""
     try:
-        from gdrive.config import LOG_CANHAO_MONITOR_SHEET_NAME 
-        
-        uploader = GoogleDriveUploader()
+        db_client = get_supabase_client()
         
         photo_link = None
         if photo_file:
@@ -126,16 +120,16 @@ def save_canhao_monitor_action_log(equip_id, problem, action_taken, responsible,
                 "acao_corretiva_canhao"
             )
 
-        data_row = [
-            date.today().isoformat(),
-            equip_id,
-            problem,
-            action_taken,
-            responsible,
-            photo_link if photo_link else ""
-        ]
+        log_record = {
+            "data_acao": date.today().isoformat(),
+            "id_equipamento": equip_id,
+            "problema_identificado": problem,
+            "acao_realizada": action_taken,
+            "responsavel": responsible,
+            "link_foto_evidencia": photo_link if photo_link else ""
+        }
         
-        uploader.append_data_to_sheet(LOG_CANHAO_MONITOR_SHEET_NAME, [data_row]) # <-- CORREÇÃO AQUI
+        db_client.append_data("log_acoes_canhoes_monitores", log_record)
         log_action("REGISTROU_ACAO_CANHAO_MONITOR", f"ID: {equip_id}, Ação: {action_taken[:50]}...")
         return True
     except Exception as e:
