@@ -7,7 +7,7 @@ from auth.auth_utils import (
     get_user_display_name, check_user_access, can_edit, has_ai_features
 )
 from AI.api_Operation import PDFQA
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 from supabase.client import get_supabase_client
 from operations.scba_operations import save_scba_inspection, save_scba_visual_inspection, save_manual_scba
 import streamlit as st

@@ -3,6 +3,7 @@ Sistema de Notificações Periódicas de Equipamentos
 Monitora vencimentos e pendências, enviando alertas automáticos para usuários
 """
 
+from supabase import create_client as supabase_create_client, Client as SupabaseClient
 from supabase.client import get_supabase_client
 import os
 import pandas as pd
@@ -15,6 +16,19 @@ from typing import List, Dict
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Função específica para scripts, sem cache do Streamlit
+def get_supabase_client_for_script() -> SupabaseClient:
+    """Inicializa o cliente Supabase para uso em scripts de backend."""
+    try:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise ValueError("Credenciais SUPABASE_URL ou SUPABASE_KEY não encontradas no ambiente.")
+        return supabase_create_client(url, key)
+    except Exception as e:
+        logger.error(f"Erro ao inicializar cliente Supabase no script: {e}")
+        return None
 
 # Imports condicionais mais robustos
 STREAMLIT_AVAILABLE = False
@@ -67,30 +81,12 @@ def get_notification_handler():
     # Para GitHub Actions, usa o FallbackGitHubNotificationHandler direto
     if not STREAMLIT_AVAILABLE:
         logger.info(
-            "Ambiente GitHub Actions detectado - usando handler fallback")
-
-        class FallbackGitHubNotificationHandler:
-            def queue_notification(self, notification_type: str, recipient_email: str,
-                                   recipient_name: str, **kwargs):
-                try:
-                    # Prepara dados JSON para a coluna de dados
-                    notification_data = {**kwargs}
-
-                    # Linha para adicionar na tabela
-                    notification_record = {
-                        "timestamp": datetime.now().isoformat(),  # timestamp
-                        "type": notification_type,                             # tipo_notificacao
-                        "email": recipient_email,                               # email_destinatario
-                        "name": recipient_name,                               # nome_destinatario
-                        # dados_json
-                        "data": json.dumps(notification_data, ensure_ascii=False, default=str),
-                        "status": 'pendente'                                    # status
-                    }
-
                     # Adiciona à tabela de notificações pendentes no Supabase
-                    db_client = get_supabase_client()
-                    response = db_client.append_data(
-                        'notificacoes_pendentes', notification_record)
+                    db_client = get_supabase_client_for_script()
+                    if not db_client:
+                        logger.error("Falha ao inicializar o cliente Supabase para a fila de notificações.")
+                        return False
+                    response = db_client.table('notificacoes_pendentes').insert(notification_record).execute()
 
                     if response:
                         logger.info(
@@ -141,9 +137,11 @@ def get_notification_handler():
                     }
 
                     # Adiciona à tabela de notificações pendentes no Supabase
-                    db_client = get_supabase_client()
-                    response = db_client.append_data(
-                        'notificacoes_pendentes', notification_record)
+                    db_client = get_supabase_client_for_script()
+                    if not db_client:
+                        logger.error("Falha ao inicializar o cliente Supabase para a fila de notificações.")
+                        return False
+                    response = db_client.table('notificacoes_pendentes').insert(notification_record).execute()
 
                     if response:
                         logger.info(
@@ -172,8 +170,11 @@ def get_users_data():
     """Carrega dados de usuários do Supabase."""
     logger.info("Carregando usuários do Supabase.")
     try:
-        db_client = get_supabase_client()
-        df = db_client.get_data("usuarios")
+        db_client = get_supabase_client_for_script()
+        if not db_client:
+            return pd.DataFrame()
+        response = db_client.table("usuarios").select("*").execute()
+        df = pd.DataFrame(response.data)
 
         if df.empty:
             logger.warning("Tabela de usuários vazia.")
@@ -235,11 +236,14 @@ class EquipmentNotificationSystem:
             logger.info(
                 f"Verificando equipamentos vencendo para usuário com spreadsheet_id {user_spreadsheet_id}")
 
-            db_client = get_supabase_client()
+            db_client = get_supabase_client_for_script()
+            if not db_client:
+                return []
 
             # Verifica extintores
             try:
-                df_ext = db_client.get_data("extintores")
+                response = db_client.table("extintores").select("*").execute()
+                df_ext = pd.DataFrame(response.data)
                 if not df_ext.empty:
                     date_columns = [
                         'data_proxima_inspecao', 'data_proxima_manutencao_2_nivel', 'data_proxima_manutencao_3_nivel']
@@ -269,7 +273,8 @@ class EquipmentNotificationSystem:
 
             # Verifica mangueiras
             try:
-                df_hose = db_client.get_data("mangueiras")
+                response = db_client.table("mangueiras").select("*").execute()
+                df_hose = pd.DataFrame(response.data)
                 if not df_hose.empty:
                     if 'data_proximo_teste' in df_hose.columns:
                         df_hose['data_proximo_teste'] = pd.to_datetime(
@@ -296,7 +301,8 @@ class EquipmentNotificationSystem:
 
             # Verifica SCBAs
             try:
-                df_scba = db_client.get_data("conjuntos_autonomos")
+                response = db_client.table("conjuntos_autonomos").select("*").execute()
+                df_scba = pd.DataFrame(response.data)
                 if not df_scba.empty:
                     if 'data_validade' in df_scba.columns:
                         df_scba['data_validade'] = pd.to_datetime(
@@ -323,10 +329,12 @@ class EquipmentNotificationSystem:
 
             # Verifica detectores multigás
             try:
-                df_multi = db_client.get_data("inventario_multigas")
+                response = db_client.table("inventario_multigas").select("*").execute()
+                df_multi = pd.DataFrame(response.data)
                 if not df_multi.empty:
                     try:
-                        df_insp = db_client.get_data("inspecoes_multigas")
+                        response_insp = db_client.table("inspecoes_multigas").select("*").execute()
+                        df_insp = pd.DataFrame(response_insp.data)
                         if not df_insp.empty:
                             if 'proxima_calibracao' in df_insp.columns:
                                 df_insp['proxima_calibracao'] = pd.to_datetime(
@@ -372,11 +380,14 @@ class EquipmentNotificationSystem:
             logger.info(
                 f"Verificando pendências para usuário com spreadsheet_id {user_spreadsheet_id}")
 
-            db_client = get_supabase_client()
+            db_client = get_supabase_client_for_script()
+            if not db_client:
+                return []
 
             # Verifica extintores reprovados sem ações corretivas
             try:
-                df_ext = db_client.get_data("extintores")
+                response = db_client.table("extintores").select("*").execute()
+                df_ext = pd.DataFrame(response.data)
                 if not df_ext.empty:
                     if 'aprovado_inspecao' in df_ext.columns:
                         failed_extinguishers = df_ext[
@@ -402,7 +413,8 @@ class EquipmentNotificationSystem:
 
             # Verifica mangueiras reprovadas/condenadas
             try:
-                df_hose = db_client.get_data("mangueiras")
+                response = db_client.table("mangueiras").select("*").execute()
+                df_hose = pd.DataFrame(response.data)
                 if not df_hose.empty:
                     if 'resultado' in df_hose.columns:
                         failed_hoses = df_hose[

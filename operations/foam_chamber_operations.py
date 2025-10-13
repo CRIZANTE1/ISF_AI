@@ -4,7 +4,7 @@ from supabase.client import get_supabase_client
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from utils.auditoria import log_action
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 
 # --- ALTERAÇÃO AQUI: Checklist agora é um dicionário de modelos ---
 CHECKLIST_QUESTIONS = {

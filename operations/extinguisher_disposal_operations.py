@@ -4,7 +4,7 @@ import pandas as pd
 from supabase.client import get_supabase_client
 from auth.auth_utils import get_user_display_name
 from utils.auditoria import log_action
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 
 
 def get_disposed_extinguishers():

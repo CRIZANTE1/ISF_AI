@@ -1,6 +1,4 @@
 from utils.auditoria import log_action, get_sao_paulo_time_str
-from gdrive.config import USERS_SHEET_NAME
-from gdrive.gdrive_upload import GoogleDriveUploader
 import streamlit as st
 import pandas as pd
 import logging
@@ -9,8 +7,9 @@ from typing import Dict, Any, Optional
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from supabase.client import get_supabase_client
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -83,7 +82,7 @@ class PaymentWebhookHandler:
 
     def update_user_plan(self, user_email: str, new_plan: str) -> bool:
         """
-        Atualiza o plano do usuário na planilha de usuários
+        Atualiza o plano do usuário na tabela 'usuarios' do Supabase.
 
         Args:
             user_email: Email do usuário
@@ -93,80 +92,33 @@ class PaymentWebhookHandler:
             bool: True se atualizado com sucesso
         """
         try:
-            # Carregar dados dos usuários
-            users_data = self.matrix_uploader.get_data_from_sheet(
-                USERS_SHEET_NAME)
+            db_client = get_supabase_client()
 
-            if not users_data or len(users_data) < 2:
-                logger.error("Planilha de usuários vazia ou inválida")
+            # Dados a serem atualizados
+            updates = {
+                'plano': new_plan,
+                'status': 'ativo',
+                'trial_end_date': None  # Limpa a data de trial
+            }
+
+            # Executa a atualização no Supabase
+            response = db_client.update_data(
+                table_name="usuarios",
+                data=updates,
+                filter_column="email",
+                filter_value=user_email
+            )
+
+            # O cliente Supabase já loga o sucesso, mas podemos adicionar um log específico
+            if response:
+                logger.info(f"Usuário atualizado via webhook: {user_email} - Plano: {new_plan}, Status: ativo")
+                return True
+            else:
+                logger.error(f"Resposta vazia do Supabase ao tentar atualizar {user_email}")
                 return False
-
-            # Criar DataFrame
-            df_users = pd.DataFrame(users_data[1:], columns=users_data[0])
-
-            # Encontrar usuário
-            user_row = df_users[df_users['email'].str.lower()
-                                == user_email.lower()]
-
-            if user_row.empty:
-                logger.error(f"Usuário não encontrado: {user_email}")
-                return False
-
-            # Calcular índice da linha na planilha (base 1 + cabeçalho)
-            row_index = user_row.index[0] + 2
-
-            # Determinar colunas baseado no cabeçalho
-            headers = users_data[0]
-
-            # Mapear colunas (assumindo ordem padrão)
-            plano_col = None
-            status_col = None
-            trial_col = None
-
-            for i, header in enumerate(headers):
-                if 'plano' in header.lower():
-                    plano_col = self._get_excel_column(i)
-                elif 'status' in header.lower():
-                    status_col = self._get_excel_column(i)
-                elif 'trial' in header.lower() or 'end_date' in header.lower():
-                    trial_col = self._get_excel_column(i)
-
-            # Atualizar dados
-            updates = []
-
-            # Atualizar plano
-            if plano_col:
-                self.matrix_uploader.update_cells(
-                    USERS_SHEET_NAME,
-                    f"{plano_col}{row_index}",
-                    [[new_plan]]
-                )
-                updates.append(f"Plano: {new_plan}")
-
-            # Atualizar status para ativo
-            if status_col:
-                self.matrix_uploader.update_cells(
-                    USERS_SHEET_NAME,
-                    f"{status_col}{row_index}",
-                    [["ativo"]]
-                )
-                updates.append("Status: ativo")
-
-            # Limpar data de trial (usuário pagante não precisa de trial)
-            if trial_col:
-                self.matrix_uploader.update_cells(
-                    USERS_SHEET_NAME,
-                    f"{trial_col}{row_index}",
-                    [[""]]
-                )
-                updates.append("Trial removido")
-
-            logger.info(
-                f"Usuário atualizado: {user_email} - {', '.join(updates)}")
-            return True
 
         except Exception as e:
-            logger.error(f"Erro ao atualizar plano do usuário: {str(e)}")
+            logger.error(f"Erro ao atualizar plano do usuário via Supabase: {str(e)}")
             return False
 
     def save_payment_history(self, user_email: str, plan_type: str, payment_id: str, amount: float):

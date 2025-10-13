@@ -13,7 +13,6 @@ from .client import (
     list_files_in_folder,
     # Aliases para compatibilidade
     upload_evidence_photo,
-    display_drive_image,
     BUCKET_NAME
 )
 
@@ -25,6 +24,5 @@ __all__ = [
     'delete_file_from_storage',
     'list_files_in_folder',
     'upload_evidence_photo',
-    'display_drive_image',
     'BUCKET_NAME'
 ]

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from supabase.client import get_supabase_client
 from datetime import date, timedelta
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 from utils.auditoria import log_action
 
 # Define a estrutura do checklist de inspeção para sistemas de alarme

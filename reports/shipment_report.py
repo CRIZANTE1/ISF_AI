@@ -93,7 +93,7 @@ def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info,
     """
 
     # TODO: Replace with actual Supabase public URL
-    logo_url = "YOUR_SUPABASE_PUBLIC_LOGO_URL"
+    logo_url = "https://gfolhadxwqfrmjrbjujp.supabase.co/storage/v1/object/public/assets/logo.png"
     logo_html = f'<img src="{logo_url}" alt="Logo VIBRA" style="max-width: 150px; max-height: 70px;">'
 
     styles = """

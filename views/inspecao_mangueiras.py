@@ -7,7 +7,7 @@ from auth.auth_utils import (
 )
 from utils.prompts import get_hose_inspection_prompt, get_shelter_inventory_prompt
 from AI.api_Operation import PDFQA
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 from supabase.client import get_supabase_client
 from operations.hose_operations import save_new_hose
 from operations.shelter_operations import save_shelter_inventory, save_shelter_inspection

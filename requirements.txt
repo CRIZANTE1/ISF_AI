@@ -7,9 +7,7 @@ streamlit-lottie
 streamlit-js-eval 
 
 # Backend e Banco de Dados
-supabase # <- NOVA DEPENDÊNCIA
-fastapi==0.104.1
-uvicorn==0.24.0
+supabase-py # <- NOVA DEPENDÊNCIA
 
 # Manipulação de Dados e Datas
 pandas>=2.0.0

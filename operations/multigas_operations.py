@@ -5,7 +5,7 @@ from supabase.client import get_supabase_client
 from utils.auditoria import log_action
 from AI.api_Operation import PDFQA
 from utils.prompts import get_multigas_calibration_prompt
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 
 
 def to_safe_cell(value):

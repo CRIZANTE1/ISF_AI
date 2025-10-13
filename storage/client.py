@@ -7,11 +7,9 @@ import logging
 from PIL import Image
 import requests
 from io import BytesIO
+from config.table_names import BUCKET_NAME
 
 logger = logging.getLogger(__name__)
-
-# Nome do bucket no Supabase Storage
-BUCKET_NAME = "evidencias"
 
 
 def upload_file_to_storage(file, equipment_id: str, folder: str) -> str:
@@ -266,4 +264,3 @@ def list_files_in_folder(folder: str) -> list:
 # ALIASES PARA COMPATIBILIDADE COM CÓDIGO ANTIGO
 # ============================================================================
 upload_evidence_photo = upload_file_to_storage
-display_drive_image = display_storage_image

@@ -27,11 +27,7 @@ def show_page():
 
         if st.button("🚪 Sair / Trocar de Conta", use_container_width=True):
 
-            # Limpa sessões manualmente como uma garantia extra antes de chamar a função
-            keys_to_clear = ['is_logged_in', 'user_info_custom']
-            for key in keys_to_clear:
-                if key in st.session_state:
-                    del st.session_state[key]
+
 
             try:
                 # Chama a função de logout que lida com OIDC

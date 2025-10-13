@@ -43,3 +43,6 @@ USERS_SHEET_NAME = "usuarios"
 LOG_AUDITORIA_SHEET_NAME = "log_auditoria"
 SOLICITACOES_ACESSO_SHEET_NAME = "solicitacoes_acesso"
 SOLICITACOES_SUPORTE_SHEET_NAME = "solicitacoes_suporte"
+
+# Storage
+BUCKET_NAME = "evidencias"

@@ -6,7 +6,7 @@ from auth.auth_utils import (
     get_user_display_name
 )
 
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 from operations.qr_inspection_utils import decode_qr_from_image
 from operations.history import find_last_record
 from operations.extinguisher_operations import (

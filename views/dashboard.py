@@ -20,7 +20,7 @@ from operations.eyewash_operations import (
 )
 from operations.scba_operations import save_scba_visual_inspection, save_scba_action_log
 from reports.monthly_report_ui import show_monthly_report_interface
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 from operations.corrective_actions import save_corrective_action
 from operations.shelter_operations import save_shelter_action_log, save_shelter_inspection
 from reports.reports_pdf import generate_shelters_html
@@ -39,7 +39,7 @@ import os
 import numpy as np
 import json
 from streamlit_js_eval import streamlit_js_eval
-from operations.photo_operations import display_drive_image
+from storage import display_storage_image
 from reports.alarm_report import generate_alarm_inspection_html
 from supabase.client import get_supabase_client
 
@@ -1263,7 +1263,7 @@ def show_page():
                             'link_foto_nao_conformidade')
 
                         if photo_link and pd.notna(photo_link) and str(photo_link).strip() != '':
-                            display_drive_image(
+                            display_storage_image(
                                 photo_link, caption="Foto da Não Conformidade", width=400)
                         else:
                             st.info(
@@ -1601,7 +1601,7 @@ def show_page():
                             st.info("Nenhum detalhe de inspeção disponível.")
 
                         photo_link = row.get('link_foto_nao_conformidade')
-                        display_drive_image(
+                        display_storage_image(
                             photo_link, caption="Foto da Não Conformidade", width=300)
 
                     except (json.JSONDecodeError, TypeError):
@@ -1703,7 +1703,7 @@ def show_page():
                                     st.markdown("---")
                                     photo_link = row.get(
                                         'link_foto_nao_conformidade')
-                                    display_drive_image(
+                                    display_storage_image(
                                         photo_link, caption="Foto", width=300)
 
                                 except (json.JSONDecodeError, TypeError) as e:
@@ -1981,7 +1981,7 @@ def show_page():
                                     "Nenhum detalhe de inspeção disponível.")
 
                             photo_link = row.get('link_foto_nao_conformidade')
-                            display_drive_image(
+                            display_storage_image(
                                 photo_link, caption="Foto da Não Conformidade", width=300)
 
                         except (json.JSONDecodeError, TypeError):
@@ -2065,7 +2065,7 @@ def show_page():
                             st.info("Nenhum detalhe de inspeção disponível.")
 
                         photo_link = row.get('link_foto_nao_conformidade')
-                        display_drive_image(
+                        display_storage_image(
                             photo_link, caption="Foto da Não Conformidade", width=300)
 
                     except (json.JSONDecodeError, TypeError):

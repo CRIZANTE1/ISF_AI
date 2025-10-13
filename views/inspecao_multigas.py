@@ -8,7 +8,7 @@ from auth.auth_utils import (
     can_edit,
     has_ai_features
 )
-from operations.photo_operations import upload_evidence_photo
+from storage.client import upload_evidence_photo
 from operations.multigas_operations import (
     save_new_multigas_detector,
     save_multigas_inspection,

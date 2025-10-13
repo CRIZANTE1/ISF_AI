@@ -18,27 +18,11 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 
-# Import com tratamento de erro para módulos opcionais
-try:
-    from views import (
-        administracao, dashboard, resumo_gerencial, inspecao_extintores,
-        inspecao_mangueiras, inspecao_scba, inspecao_chuveiros,
-        inspecao_camaras_espuma, inspecao_multigas, historico, inspecao_alarmes,
-        utilitarios, demo_page, trial_expired_page, inspecao_canhoes_monitores
-    )
-
-    # Import condicional do perfil_usuario
-    try:
-        from views import perfil_usuario
-        PERFIL_DISPONIVEL = True
-    except ImportError as e:
-        PERFIL_DISPONIVEL = False
-        st.error(
-            f"Módulo perfil_usuario não encontrado: {e}. Algumas funcionalidades podem não estar disponíveis.")
-
-except ImportError as e:
-    st.error(f"Erro ao importar módulos: {e}")
-    st.stop()
+from views import administracao, dashboard, resumo_gerencial, inspecao_extintores, \
+                  inspecao_mangueiras, inspecao_scba, inspecao_chuveiros, \
+                  inspecao_camaras_espuma, inspecao_multigas, historico, inspecao_alarmes, \
+                  utilitarios, demo_page, trial_expired_page, inspecao_canhoes_monitores
+from views import is_perfil_available
 
 set_page_config()
 
@@ -60,7 +44,9 @@ PAGES = {
 }
 
 # Adiciona perfil apenas se disponível
+PERFIL_DISPONIVEL = is_perfil_available()
 if PERFIL_DISPONIVEL:
+    from views import perfil_usuario
     PAGES["Meu Perfil"] = perfil_usuario.show_page
 
 
