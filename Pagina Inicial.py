@@ -230,28 +230,30 @@ def main():
 
         # Lógica de renderização de páginas
         try:
-            if selected_page == "Meu Perfil" and PERFIL_DISPONIVEL:
-                PAGES[selected_page]()
-            elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
-                if selected_page in PAGES:
+            if selected_page in PAGES:
+                # Se a página selecionada é válida, renderiza
+                if selected_page == "Meu Perfil" and not PERFIL_DISPONIVEL:
+                    st.error("O módulo 'Meu Perfil' não está disponível.")
+                elif is_user_environment_loaded or (is_admin() and selected_page == "Super Admin"):
                     PAGES[selected_page]()
                 else:
-                    if page_options:
-                        first_available_page = page_options[0]
-                        if first_available_page in PAGES:
-                            PAGES[first_available_page]()
-                        else:
-                            st.error(
-                                f"Página '{first_available_page}' não encontrada.")
-                    else:
-                        st.error("Nenhuma página disponível para seu perfil.")
+                     if is_admin():
+                        st.info("👈 Como Administrador, selecione uma opção no menu ou acesse o painel de Super Admin.")
+                     else:
+                        st.warning("👈 Seu ambiente de dados não pôde ser carregado. Verifique o status da sua conta ou contate o administrador.")
             else:
-                if is_admin():
-                    st.info(
-                        "👈 Como Administrador, seu ambiente de dados não é carregado. Para gerenciar o sistema, acesse o painel de Super Admin.")
+                # Fallback se a página selecionada não for encontrada (raro)
+                st.error(f"Página '{selected_page}' não encontrada.")
+                st.info("Redirecionando para a página inicial do seu perfil...")
+                # Tenta redirecionar para uma página padrão segura
+                if "Dashboard" in page_options:
+                    PAGES["Dashboard"]()
+                elif "Resumo Gerencial" in page_options:
+                    PAGES["Resumo Gerencial"]()
+                elif page_options:
+                    PAGES[page_options[0]]()
                 else:
-                    st.warning(
-                        "👈 Seu ambiente de dados não pôde ser carregado. Verifique o status da sua conta ou contate o administrador.")
+                    st.error("Nenhuma página disponível para seu perfil.")
 
         except Exception as e:
             st.error(f"Erro ao carregar a página '{selected_page}': {e}")

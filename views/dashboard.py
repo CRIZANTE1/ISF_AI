@@ -656,7 +656,9 @@ def get_consolidated_status_df(df_full, df_locais):
         elif proximo_vencimento_real < today_ts:
             status_atual = "VENCIDO"
 
-        if status_atual == "FORA DE OPERAÇÃO":
+        # Verifica se o equipamento está fora de operação por substituição ou baixa definitiva
+        plano_de_acao_upper = str(latest_record_info.get('plano_de_acao', '')).upper()
+        if "FORA DE OPERAÇÃO" in plano_de_acao_upper or "BAIXADO DEFINITIVAMENTE" in plano_de_acao_upper:
             continue
 
         consolidated_data.append({
