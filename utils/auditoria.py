@@ -8,7 +8,7 @@ import logging
 # DE: from gdrive.gdrive_upload import GoogleDriveUploader
 # DE: from gdrive.config import AUDIT_LOG_SHEET_NAME
 # PARA:
-from supabase.client import get_supabase_client
+from database.supabase_client import get_supabase_client
 from auth.auth_utils import get_user_email, get_user_role
 
 logger = logging.getLogger(__name__)

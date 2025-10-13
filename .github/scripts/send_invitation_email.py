@@ -155,7 +155,8 @@ def create_invitation_notification(supabase_client: Client, email: str, app_url:
             "status": "pendente"
         }
         
-        supabase_client.append_data("notificacoes_pendentes", notification_record)
+        # Executa a inserção na tabela 'notificacoes_pendentes'
+        supabase_client.table("notificacoes_pendentes").insert(notification_record).execute()
         
         logger.info(f"✅ Notificação de convite criada com sucesso para {email}")
         return True
@@ -185,7 +186,7 @@ def main():
             logger.error("❌ Falha na conexão com o Supabase. Abortando.")
             return
         
-        logger.info(f"📊 Usando Supabase.")
+        logger.info("📊 Usando Supabase.")
         
         attempts = get_unauthorized_access_attempts(supabase_client)
         
@@ -209,7 +210,7 @@ def main():
                 logger.error(f"❌ Erro ao processar convite para {attempt['email']}: {e}")
         
         logger.info(f"✅ Processamento concluído: {created}/{len(attempts)} convites criados.")
-        logger.info(f"📧 Os emails serão enviados pelo sistema de notificações existente (send_email.py).")
+        logger.info("📧 Os emails serão enviados pelo sistema de notificações existente (send_email.py).")
         
     except Exception as e:
         logger.error(f"❌ Erro crítico no processamento: {e}")

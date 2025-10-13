@@ -116,7 +116,7 @@ def generate_report_html(df_inspections_month, df_action_log, df_locais, month, 
                         action_taken = action.iloc[0]
                         action_photo_link = action_taken.get(
                             'link_foto_evidencia')
-                        action_info = f"<p class='success-text'>Ação Corretiva Registrada:</p>"
+                        action_info = "<p class='success-text'>Ação Corretiva Registrada:</p>"
                         action_info += f"""
                         <p><b>Ação Realizada:</b> {action_taken.get('acao_realizada', 'N/A')}</p>
                         <p><b>Responsável:</b> {action_taken.get('responsavel_acao', 'N/A')}</p>
@@ -145,13 +145,13 @@ def show_monthly_report_interface():
     today = datetime.now()
     col1, col2 = st.columns(2)
     with col1:
-        selected_year = st.selectbox("Selecione o Ano:", range(
+        st.selectbox("Selecione o Ano:", range(
             today.year, today.year - 5, -1), key="report_year")
     with col2:
         months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
         default_month_index = today.month - 2 if today.day < 5 else today.month - 1
-        selected_month_name = st.selectbox(
+        st.selectbox(
             "Selecione o Mês:", months, index=default_month_index, key="report_month_name")
 
     if st.button("Gerar e Imprimir Relatório", type="primary", key="generate_report_btn"):

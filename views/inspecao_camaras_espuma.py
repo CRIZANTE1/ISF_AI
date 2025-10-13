@@ -3,7 +3,7 @@ from operations.history import load_sheet_data
 from operations.instrucoes import instru_foam_chamber
 from config.page_config import set_page_config
 from auth.auth_utils import (
-    get_user_display_name, check_user_access, can_edit, has_ai_features
+    get_user_display_name, check_user_access, can_edit
 )
 from operations.foam_chamber_operations import (
     save_new_foam_chamber,

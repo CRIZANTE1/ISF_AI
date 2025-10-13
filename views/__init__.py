@@ -18,7 +18,7 @@ from . import (
 
 # Módulo opcional - perfil do usuário
 try:
-    from . import perfil_usuario
+    from . import perfil_usuario  # noqa: F401
     _PERFIL_DISPONIVEL = True
 except ImportError:
     _PERFIL_DISPONIVEL = False

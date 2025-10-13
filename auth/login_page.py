@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 from streamlit_lottie import st_lottie
-from .auth_utils import is_oidc_available, is_user_logged_in, get_user_display_name
+from .auth_utils import is_oidc_available, get_user_display_name
 
 
 @st.cache_data
@@ -12,7 +12,7 @@ def load_lottie_file(filepath: str):
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        st.error(f"Arquivo de animação não encontrado em: {filepath}")
+        st.error("Arquivo de animação não encontrado em: {}".format(filepath))
         return None
     except json.JSONDecodeError:
         st.error(f"Erro ao ler o arquivo de animação. Verifique se é um JSON válido.")

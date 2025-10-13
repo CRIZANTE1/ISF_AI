@@ -13,9 +13,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import sys
 import os
-import pandas as pd
-from datetime import date, timedelta
-import re
+from datetime import date
 import requests
 import logging
 
@@ -153,7 +151,7 @@ class MercadoPagoPayment:
             components.html(message_handler, height=0)
 
         except FileNotFoundError:
-            st.error(f"❌ **Template de pagamento não encontrado**")
+            st.error("❌ **Template de pagamento não encontrado**")
             st.info(f"Esperado em: `{html_template_path}`")
             st.warning(
                 "Verifique se o diretório 'templates' existe na pasta 'views' com o arquivo 'payment_form.html'")

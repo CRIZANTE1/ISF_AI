@@ -8,7 +8,11 @@ from operations.alarm_operations import (
     CHECKLIST_QUESTIONS as ALARM_CHECKLIST
 )
 from operations.multigas_operations import save_multigas_action_log
-from operations.foam_chamber_operations import save_foam_chamber_inspection, save_foam_chamber_action_log
+from operations.foam_chamber_operations import (
+    save_foam_chamber_inspection,
+    save_foam_chamber_action_log,
+    CHECKLIST_QUESTIONS as FOAM_CHAMBER_CHECKLIST
+)
 from operations.eyewash_operations import (
     save_eyewash_inspection,
     save_eyewash_action_log,
@@ -37,6 +41,7 @@ import json
 from streamlit_js_eval import streamlit_js_eval
 from operations.photo_operations import display_drive_image
 from reports.alarm_report import generate_alarm_inspection_html
+from supabase.client import get_supabase_client
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -750,6 +755,11 @@ def action_dialog_foam_chamber(item_row):
     responsible = st.text_input(
         "Responsável pela ação:", value=get_user_display_name())
 
+    st.markdown("---")
+    st.write("Opcional: Anexe uma foto como evidência da ação concluída.")
+    photo_evidence = st.file_uploader("Foto da Evidência", type=[
+                                      "jpg", "jpeg", "png"], key=f"photo_action_foam_{chamber_id}")
+
     if st.button("Salvar Ação e Regularizar Status", type="primary"):
         if not action_taken:
             st.error("Por favor, descreva a ação realizada.")
@@ -764,12 +774,14 @@ def action_dialog_foam_chamber(item_row):
                 return
 
             mock_results = {
-                q: "Conforme" for q_list in CHECKLIST_QUESTIONS.values() for q in q_list}
+                q: "Conforme" for q_list in FOAM_CHAMBER_CHECKLIST.values() for q in q_list}
+
             inspection_saved = save_foam_chamber_inspection(
                 chamber_id=chamber_id,
-                inspection_type="Visual Mensal",
+                inspection_type="Visual Mensal (Regularização)",
                 overall_status="Aprovado",
                 results_dict=mock_results,
+                photo_file=photo_evidence,
                 inspector_name=get_user_display_name()
             )
 

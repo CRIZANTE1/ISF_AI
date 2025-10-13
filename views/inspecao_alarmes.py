@@ -6,8 +6,7 @@ from config.page_config import set_page_config
 from auth.auth_utils import (
     get_user_display_name,
     check_user_access,
-    can_edit,
-    has_ai_features
+    can_edit
 )
 from operations.alarm_operations import (
     save_new_alarm_system,
@@ -242,13 +241,13 @@ def show_page():
                     "Tipo de Sistema",
                     ["Convencional", "Endereçável", "Sem Fio", "Híbrido"]
                 )
-                install_date = col6.date_input(
+                col6.date_input(
                     "Data de Instalação",
                     value=None,
                     help="Data aproximada da instalação"
                 )
 
-                coverage_area = st.text_input(
+                st.text_input(
                     "Área de Cobertura",
                     placeholder="Ex: 1200m² / Todos os andares",
                     help="Área aproximada ou setores cobertos pelo sistema"

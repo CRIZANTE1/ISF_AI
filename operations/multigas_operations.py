@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
 from datetime import date
 from supabase.client import get_supabase_client

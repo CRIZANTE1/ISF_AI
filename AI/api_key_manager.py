@@ -2,7 +2,7 @@ import streamlit as st
 import logging
 import time
 import random
-from typing import Optional, List
+from typing import List
 from datetime import datetime, timedelta
 from collections import defaultdict
 

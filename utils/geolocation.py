@@ -1,6 +1,5 @@
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
-import json
 
 
 def get_user_location():

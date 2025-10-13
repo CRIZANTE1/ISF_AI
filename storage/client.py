@@ -1,7 +1,7 @@
 # storage/client.py (VERSÃO COMPLETA E DEFINITIVA)
 
 import streamlit as st
-from supabase.client import get_supabase_client
+from database.supabase_client import get_supabase_client
 from datetime import datetime
 import logging
 from PIL import Image
@@ -50,7 +50,7 @@ def upload_file_to_storage(file, equipment_id: str, folder: str) -> str:
         # Faz o upload
         logger.info(f"📤 Fazendo upload: {file_path}")
         
-        response = storage.from_(BUCKET_NAME).upload(
+        storage.from_(BUCKET_NAME).upload(
             path=file_path,
             file=file_bytes,
             file_options={
@@ -227,7 +227,7 @@ def delete_file_from_storage(file_path: str) -> bool:
         db_client = get_supabase_client()
         storage = db_client.client.storage
         
-        response = storage.from_(BUCKET_NAME).remove([file_path])
+        storage.from_(BUCKET_NAME).remove([file_path])
         
         logger.info(f"✅ Arquivo removido: {file_path}")
         return True

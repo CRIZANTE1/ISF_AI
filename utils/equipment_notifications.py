@@ -9,7 +9,7 @@ import pandas as pd
 import logging
 import json
 from datetime import date, timedelta, datetime
-from typing import List, Dict, Any
+from typing import List, Dict
 
 # Setup de logging
 logging.basicConfig(level=logging.INFO,
@@ -448,6 +448,7 @@ class EquipmentNotificationSystem:
         except Exception as e:
             logger.error(f"Erro geral ao buscar pendências: {e}")
 
+        priority_order = {"Crítica": 0, "Alta": 1, "Média": 2, "Normal": 3}
         pending_issues.sort(
             key=lambda x: priority_order.get(x['prioridade'], 3))
 
@@ -473,7 +474,6 @@ class EquipmentNotificationSystem:
                 f"Colunas disponíveis (lowercase): {available_columns}")
 
             status_col = None
-            spreadsheet_col = None  # This column is no longer needed
             email_col = None
             nome_col = None
 
@@ -490,7 +490,7 @@ class EquipmentNotificationSystem:
                 f"Colunas mapeadas - Status: {status_col}, Email: {email_col}, Nome: {nome_col}")
 
             if not status_col or not email_col:
-                logger.error(f"Colunas obrigatórias não encontradas:")
+                logger.error("Colunas obrigatórias não encontradas:")
                 logger.error(f"  - Status: {'✓' if status_col else '✗'}")
                 logger.error(f"  - Email: {'✓' if email_col else '✗'}")
                 logger.info(f"Colunas disponíveis: {list(users_df.columns)}")

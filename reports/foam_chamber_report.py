@@ -8,7 +8,6 @@ from datetime import datetime
 import pandas as pd
 import json
 from io import BytesIO
-import base64
 
 
 def generate_foam_chamber_consolidated_report(inspections_df, inventory_df):

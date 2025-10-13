@@ -1,9 +1,8 @@
 from operations.history import load_sheet_data
 from operations.instrucoes import instru_mangueiras
 from config.page_config import set_page_config
-from utils.auditoria import log_action
 from auth.auth_utils import (
-    get_user_display_name, get_user_email, get_user_role,
+    get_user_display_name,
     check_user_access, can_edit, has_ai_features
 )
 from utils.prompts import get_hose_inspection_prompt, get_shelter_inventory_prompt

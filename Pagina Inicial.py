@@ -2,7 +2,7 @@ from config.page_config import set_page_config
 from utils.auditoria import log_action
 from auth.login_page import show_login_page, show_user_header, show_logout_button
 from auth.auth_utils import (
-    is_user_logged_in, setup_sidebar, get_user_email, get_users_data,
+    is_user_logged_in, setup_sidebar, get_user_email,
     get_effective_user_status, get_effective_user_plan, get_user_role,
     is_admin, is_superuser, get_user_info
 )
@@ -98,19 +98,14 @@ def main():
 
         # Lógica de autorização simplificada
         is_authorized = False
-        user_status = None
 
         if user_email is not None:
             if is_superuser():
                 is_authorized = True
-                user_status = "superuser"
             elif st.session_state.user_data.get('status') != 'not_in_database':
-                user_status = st.session_state.user_data.get(
-                    'status', 'inativo')
                 is_authorized = True
             else:
                 is_authorized = False
-                user_status = "not_in_database"
 
         # Só registra ACCESS_DENIED_UNAUTHORIZED se realmente não autorizado
         if not is_authorized:

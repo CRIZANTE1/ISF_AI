@@ -1,5 +1,4 @@
 import pandas as pd
-from datetime import datetime
 
 # URL da imagem do logo (upload em um local público ou usar ID do Drive)
 # Logo da Vibra (exemplo)

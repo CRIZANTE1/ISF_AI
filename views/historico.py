@@ -25,7 +25,7 @@ from config.table_names import (
     CANHAO_MONITOR_INSPECTIONS_SHEET_NAME,
     LOG_CANHAO_MONITOR_SHEET_NAME
 )
-from auth.auth_utils import check_user_access, can_view
+from auth.auth_utils import check_user_access
 from operations.history import load_sheet_data
 import streamlit as st
 import pandas as pd

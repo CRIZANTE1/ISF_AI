@@ -2,7 +2,7 @@ from operations.instrucoes import instru_eyewash
 from operations.history import load_sheet_data
 from config.page_config import set_page_config
 from auth.auth_utils import (
-    get_user_display_name, check_user_access, can_edit, has_ai_features
+    get_user_display_name, check_user_access, can_edit
 )
 from operations.eyewash_operations import (
     save_eyewash_inspection,
@@ -12,8 +12,6 @@ from operations.eyewash_operations import (
 import streamlit as st
 import sys
 import os
-import pandas as pd
-from datetime import date
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -139,17 +137,17 @@ def show_page():
                 st.subheader("Especificações Técnicas (Opcional)")
 
                 col5, col6 = st.columns(2)
-                equipment_type = col5.selectbox(
+                col5.selectbox(
                     "Tipo de Equipamento",
                     ["", "Chuveiro de Emergência", "Lava-Olhos", "Chuveiro + Lava-Olhos Combinado",
                         "Chuveiro Portátil", "Lava-Olhos Portátil"]
                 )
-                installation_date = col6.date_input(
+                col6.date_input(
                     "Data de Instalação", value=None)
 
-                water_pressure = st.text_input(
+                st.text_input(
                     "Pressão da Água (opcional)", placeholder="Ex: 2,5 bar")
-                flow_rate = st.text_input(
+                st.text_input(
                     "Taxa de Fluxo (opcional)", placeholder="Ex: 76 L/min (chuveiro), 5,7 L/min (lava-olhos)")
 
                 additional_notes = st.text_area(

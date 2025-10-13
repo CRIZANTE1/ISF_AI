@@ -4,8 +4,7 @@ import streamlit as st
 import json
 from datetime import date
 from dateutil.relativedelta import relativedelta
-import pandas as pd  # Adicionado para verificação
-from supabase.client import get_supabase_client  # PARA: Nova importação
+from database.supabase_client import get_supabase_client  # PARA: Nova importação
 from auth.auth_utils import get_user_display_name
 from utils.auditoria import log_action
 

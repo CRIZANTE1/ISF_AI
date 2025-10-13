@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from supabase.client import get_supabase_client
-from auth.auth_utils import get_user_display_name
 from utils.auditoria import log_action
 
 
@@ -346,7 +345,7 @@ def show_location_management_interface():
             )
 
             if location_to_delete:
-                if st.button(f"🗑️ Remover Local '{location_to_delete}'", type="secondary"):
+                if st.button("🗑️ Remover Local '{}'".format(location_to_delete), type="secondary"):
                     if delete_location(location_to_delete):
                         st.success("✅ Local removido com sucesso!")
                         st.cache_data.clear()

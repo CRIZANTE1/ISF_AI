@@ -1,7 +1,5 @@
 import json
 import pandas as pd
-import base64
-import requests
 
 
 def generate_shelters_html(df_shelters_registered, df_inspections, df_action_log):
@@ -42,7 +40,7 @@ def generate_shelters_html(df_shelters_registered, df_inspections, df_action_log
         shelter_local = shelter.get('local', 'N/A')
         shelter_client = shelter.get('cliente', 'N/A')
 
-        html += f"<div class='shelter-container'>"
+        html += "<div class='shelter-container'>"
         html += f"<div class='shelter-title'>Abrigo ID: {shelter_id}</div>"
         html += f"<div class='shelter-info'><span><strong>Local:</strong> {shelter_local}</span><span><strong>Cliente:</strong> {shelter_client}</span></div>"
 

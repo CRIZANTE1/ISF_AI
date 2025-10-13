@@ -1,4 +1,3 @@
-import os
 import google.generativeai as genai
 import streamlit as st
 import logging
@@ -7,12 +6,13 @@ from AI.api_key_manager import get_api_key_manager
 logger = logging.getLogger('api_load')
 
 
-def load_api():
-    """Carrega a API do Gemini com suporte a múltiplas chaves"""
+def load_api(specific_key: str = None):
+    """Carrega a API do Gemini, opcionalmente com uma chave específica."""
     try:
-        # Obtém uma chave do gerenciador
         key_manager = get_api_key_manager()
-        api_key = key_manager.get_next_key()
+        
+        # Usa a chave específica se fornecida, senão, obtém a próxima
+        api_key = specific_key if specific_key else key_manager.get_next_key()
 
         if not api_key:
             error_msg = "Nenhuma chave API disponível"

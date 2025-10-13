@@ -2,7 +2,7 @@
 
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 import pytz
 import logging
 
@@ -363,44 +363,3 @@ def setup_sidebar():
     logger.info(f"✅ Sidebar configurado para {user_email} (ID: {user_id}) - {plan_display}")
     
     return True  # ✅ Ambiente carregado com sucesso
-
-
-# Função de diagnóstico para ajudar a identificar problemas
-def diagnose_users_sheet():
-    """
-    Função de diagnóstico para identificar problemas na planilha de usuários
-    """
-    try:
-        uploader = GoogleDriveUploader(is_matrix=True)
-        users_data = uploader.get_data_from_sheet(USERS_SHEET_NAME)
-
-        st.write("### 🔍 Diagnóstico da Planilha de Usuários")
-
-        if not users_data:
-            st.error("❌ Planilha não encontrada ou completamente vazia")
-            return
-
-        st.success(f"✅ Planilha encontrada com {len(users_data)} linhas")
-
-        if len(users_data) >= 1:
-            st.write(f"**Cabeçalho ({len(users_data[0])} colunas):**")
-            st.write(users_data[0])
-
-        if len(users_data) >= 2:
-            st.write("**Primeiras linhas de dados:**")
-            for i, row in enumerate(users_data[1:6]):  # Mostra até 5 linhas
-                st.write(f"Linha {i+2}: {row} ({len(row)} colunas)")
-
-        # Identifica linhas vazias
-        empty_rows = []
-        for i, row in enumerate(users_data[1:], 2):
-            if not any(str(cell).strip() for cell in row):
-                empty_rows.append(i)
-
-        if empty_rows:
-            st.warning(f"⚠️ Linhas vazias encontradas: {empty_rows}")
-        else:
-            st.success("✅ Nenhuma linha vazia encontrada")
-
-    except Exception as e:
-        st.error(f"❌ Erro durante diagnóstico: {e}")

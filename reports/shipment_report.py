@@ -1,11 +1,8 @@
 import pandas as pd
 from datetime import date
-import base64
-import requests
 import io
 from weasyprint import HTML
 from supabase.client import get_supabase_client
-from operations.photo_operations import display_drive_image
 
 
 def log_shipment(df_selected_items, item_type, bulletin_number):
@@ -94,7 +91,6 @@ def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info,
     """
     Gera o HTML para o boletim e o converte para um PDF em bytes, incluindo campos para assinatura.
     """
-    today = date.today().strftime('%d/%m/%Y')
 
     # TODO: Replace with actual Supabase public URL
     logo_url = "YOUR_SUPABASE_PUBLIC_LOGO_URL"

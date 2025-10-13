@@ -18,16 +18,13 @@ from config.table_names import (
     CANHAO_MONITOR_INVENTORY_SHEET_NAME,
     CANHAO_MONITOR_INSPECTIONS_SHEET_NAME
 )
-from auth.auth_utils import check_user_access, can_view
+from auth.auth_utils import check_user_access
 from config.page_config import set_page_config
 from operations.history import load_sheet_data
 import streamlit as st
 import pandas as pd
-from datetime import date
 import sys
 import os
-import numpy as np
-import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 

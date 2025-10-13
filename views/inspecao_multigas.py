@@ -1,6 +1,5 @@
-from utils.auditoria import log_action
 from operations.instrucoes import instru_multigas
-from datetime import datetime, date
+from datetime import datetime
 from reports.multigas_report import generate_bump_test_html
 from config.page_config import set_page_config
 from auth.auth_utils import (
@@ -10,7 +9,6 @@ from auth.auth_utils import (
     has_ai_features
 )
 from operations.photo_operations import upload_evidence_photo
-from supabase.client import get_supabase_client
 from operations.multigas_operations import (
     save_new_multigas_detector,
     save_multigas_inspection,
@@ -24,9 +22,7 @@ import pandas as pd
 import sys
 import os
 import json
-from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
-import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -259,13 +255,13 @@ def show_page():
                             st.subheader(
                                 "Novos Valores de Referência do Cilindro")
                             nc1, nc2, nc3, nc4 = st.columns(4)
-                            new_lel_cylinder = nc1.number_input(
+                            nc1.number_input(
                                 "LEL (% LEL)", step=0.1, format="%.1f", key="new_lel", value=float(detector_info.get('LEL_cilindro', 0)))
-                            new_o2_cylinder = nc2.number_input(
+                            nc2.number_input(
                                 "O² (% Vol)", step=0.1, format="%.1f", key="new_o2", value=float(detector_info.get('O2_cilindro', 0)))
-                            new_h2s_cylinder = nc3.number_input(
+                            nc3.number_input(
                                 "H²S (ppm)", step=1, key="new_h2s", value=int(detector_info.get('H2S_cilindro', 0)))
-                            new_co_cylinder = nc4.number_input(
+                            nc4.number_input(
                                 "CO (ppm)", step=1, key="new_co", value=int(detector_info.get('CO_cilindro', 0)))
 
                         st.subheader("Registro do Teste")

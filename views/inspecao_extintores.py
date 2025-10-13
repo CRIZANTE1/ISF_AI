@@ -6,14 +6,13 @@ from auth.auth_utils import (
     get_user_display_name
 )
 
-from operations.location_operations import show_location_selector
 from operations.photo_operations import upload_evidence_photo
 from operations.qr_inspection_utils import decode_qr_from_image
-from operations.history import find_last_record, load_sheet_data
+from operations.history import find_last_record
 from operations.extinguisher_operations import (
     process_extinguisher_pdf, calculate_next_dates, save_inspection,
     generate_action_plan, clean_and_prepare_ia_data, save_new_extinguisher,
-    update_extinguisher_location, save_inspection_batch
+    save_inspection_batch
 )
 import streamlit as st
 import pandas as pd
@@ -21,7 +20,6 @@ from datetime import date
 import sys
 import os
 from streamlit_js_eval import streamlit_js_eval
-import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -162,17 +160,7 @@ def show_page():
 
                 if st.button("💾 Confirmar e Salvar no Sistema", type="primary"):
                     with st.spinner("Preparando e salvando dados..."):
-                        uploader = GoogleDriveUploader()
-
-                        # Upload do PDF se for manutenção
                         pdf_link = None
-                        if any(r.get('tipo_servico') in ["Manutenção Nível 2", "Manutenção Nível 3"]
-                               for r in st.session_state.processed_data):
-                            pdf_link = uploader.upload_file(
-                                uploaded_pdf,
-                                f"Relatorio_Manutencao_{date.today().isoformat()}_{uploaded_pdf.name}"
-                            )
-
                         # ✅ CORREÇÃO: Usa save_inspection_batch que garante a ordem correta
                         for record in st.session_state.processed_data:
                             # Adiciona link do PDF se necessário
@@ -246,9 +234,6 @@ def show_page():
             # ====================================================================
             if st.session_state.qr_step == 'start':
                 location = st.session_state.location
-                is_location_ok = False
-
-                # Validação e feedback de localização
                 if location:
                     accuracy = location.get('accuracy', 999)
                     PRECISION_THRESHOLD = 30  # metros
@@ -256,13 +241,11 @@ def show_page():
                     if accuracy <= PRECISION_THRESHOLD:
                         st.success(
                             f"✅ Localização pronta! (Precisão: {accuracy:.1f} metros)")
-                        is_location_ok = True
                     else:
                         st.warning(
                             f"⚠️ Localização com baixa precisão ({accuracy:.1f}m). "
                             f"Tente ir para um local mais aberto ou use a digitação manual."
                         )
-                        is_location_ok = True
                 else:
                     st.error(
                         "❌ A geolocalização é necessária para continuar com a inspeção.")
@@ -641,59 +624,52 @@ def show_page():
                             st.error(
                                 "O campo 'Número de Identificação' é obrigatório.")
                         else:
-                            # Adapte o número de colunas vazias
-                            new_row = [numero_id, selo_inmetro, tipo_agente,
-                                       capacidade, marca, ano_fab] + [None] * 15
-                            try:
-                                uploader = GoogleDriveUploader()
-                                uploader.append_data_to_sheet(
-                                    EXTINGUISHER_SHEET_NAME, [new_row])
-                                log_action("CADASTROU_EXTINTOR",
-                                           f"ID: {numero_id}")
+                            details = {
+                                'numero_identificacao': numero_id,
+                                'numero_selo_inmetro': selo_inmetro,
+                                'tipo_agente': tipo_agente,
+                                'capacidade': capacidade,
+                                'marca_fabricante': marca,
+                                'ano_fabricacao': ano_fab
+                            }
+                            if save_new_extinguisher(details):
                                 st.success(
                                     f"Extintor '{numero_id}' cadastrado com sucesso!")
                                 st.cache_data.clear()
                                 st.rerun()
-                            except Exception as e:
-                                st.error(f"Erro ao salvar: {e}")
 
             st.markdown("---")
             with st.expander("✏️ Atualizar Extintor Existente"):
                 if df_extintores.empty:
                     st.info("Nenhum extintor cadastrado para atualizar.")
                 else:
+                    unique_ids = df_extintores['numero_identificacao'].unique().tolist()
                     ext_id_to_edit = st.selectbox("Selecione o extintor para atualizar:", options=[
-                                                  ""] + df_extintores['numero_identificacao'].tolist())
+                                                  ""] + unique_ids)
                     if ext_id_to_edit:
-                        ext_data = df_extintores[df_extintores['numero_identificacao']
-                                                 == ext_id_to_edit].iloc[0]
+                        ext_data = df_extintores[df_extintores['numero_identificacao'] == ext_id_to_edit].sort_values('data_servico', ascending=False).iloc[0]
                         with st.form("edit_extinguisher_form"):
                             st.info(
                                 f"Editando dados do extintor **{ext_id_to_edit}**")
                             edit_selo_inmetro = st.text_input(
                                 "Nº Selo INMETRO", value=ext_data.get('numero_selo_inmetro', ''))
-                            # Adicione outros campos para edição aqui
                             submitted_edit = st.form_submit_button(
                                 "Salvar Alterações")
                             if submitted_edit:
-                                try:
-                                    row_index_sheet = df_extintores[df_extintores['numero_identificacao']
-                                                                    == ext_id_to_edit].index[0] + 2
-                                    # Exemplo: Atualiza a partir da coluna B
-                                    range_to_update = f"B{row_index_sheet}"
-                                    # Adicione outras variáveis aqui
-                                    values_to_update = [[edit_selo_inmetro]]
-                                    uploader = GoogleDriveUploader()
-                                    uploader.update_cells(
-                                        EXTINGUISHER_SHEET_NAME, range_to_update, values_to_update)
-                                    log_action("ATUALIZOU_EXTINTOR",
-                                               f"ID: {ext_id_to_edit}")
-                                    st.success(
-                                        f"Extintor '{ext_id_to_edit}' atualizado com sucesso!")
+                                new_record = ext_data.to_dict()
+                                new_record['numero_selo_inmetro'] = edit_selo_inmetro
+                                new_record['tipo_servico'] = "Atualização Cadastral"
+                                new_record['data_servico'] = date.today().isoformat()
+                                new_record['inspetor_responsavel'] = get_user_display_name()
+                                new_record['aprovado_inspecao'] = "N/A"
+                                new_record['observacoes_gerais'] = f"Selo INMETRO atualizado para {edit_selo_inmetro}."
+                                new_record['plano_de_acao'] = "N/A"
+
+                                if save_inspection(new_record):
+                                    log_action("ATUALIZOU_EXTINTOR", f"ID: {ext_id_to_edit}, Novo Selo: {edit_selo_inmetro}")
+                                    st.success(f"Extintor '{ext_id_to_edit}' atualizado com sucesso!")
                                     st.cache_data.clear()
                                     st.rerun()
-                                except Exception as e:
-                                    st.error(f"Erro ao atualizar: {e}")
 
     # Nova aba para cadastro manual de inspeções
     with tab_manual:

@@ -8,13 +8,12 @@ from dateutil.relativedelta import relativedelta
 # DE: from gdrive.gdrive_upload import GoogleDriveUploader
 # DE: from gdrive.config import EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME
 # PARA:
-from supabase.client import get_supabase_client
-from operations.history import load_sheet_data  # A função agora usa Supabase
+from database.supabase_client import get_supabase_client
 
 from AI.api_Operation import PDFQA
 from utils.prompts import get_extinguisher_inspection_prompt
 from utils.auditoria import log_action
-from auth.auth_utils import get_user_display_name, get_user_email, get_user_role
+from auth.auth_utils import get_user_display_name
 
 # ... (As constantes ACTION_MAP, MAINTENANCE_INTERVALS e a função generate_action_plan permanecem as mesmas) ...
 ACTION_MAP = {
@@ -192,7 +191,7 @@ def save_inspection(record: dict) -> bool:
         True se salvou com sucesso, False caso contrário
     """
     try:
-        from supabase.client import get_supabase_client
+        from database.supabase_client import get_supabase_client
         from config.table_names import EXTINGUISHER_SHEET_NAME
         
         db_client = get_supabase_client()

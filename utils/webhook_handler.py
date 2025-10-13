@@ -3,7 +3,6 @@ from gdrive.config import USERS_SHEET_NAME
 from gdrive.gdrive_upload import GoogleDriveUploader
 import streamlit as st
 import pandas as pd
-from datetime import date, timedelta
 import logging
 import json
 from typing import Dict, Any, Optional

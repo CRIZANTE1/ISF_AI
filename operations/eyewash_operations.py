@@ -1,6 +1,5 @@
 import streamlit as st
 import json
-import pandas as pd
 from supabase.client import get_supabase_client
 from datetime import date
 from dateutil.relativedelta import relativedelta

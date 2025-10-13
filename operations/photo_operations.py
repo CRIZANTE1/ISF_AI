@@ -1,8 +1,8 @@
 # operations/photo_operations.py (REFATORADO)
 
 import streamlit as st
-from datetime import date
-from supabase.client import get_supabase_client
+from datetime import datetime
+from database.supabase_client import get_supabase_client
 import requests
 import logging
 
@@ -26,9 +26,6 @@ def upload_evidence_photo(photo_file, equipment_id: str, folder: str) -> str:
         return None
         
     try:
-        from supabase.client import get_supabase_client
-        from datetime import datetime
-        
         db_client = get_supabase_client()
         
         # Gera nome único para o arquivo
@@ -40,7 +37,7 @@ def upload_evidence_photo(photo_file, equipment_id: str, folder: str) -> str:
         file_bytes = photo_file.read()
         
         # Upload para o Supabase Storage
-        response = db_client.supabase.storage.from_('evidence-photos').upload(
+        response = db_client.client.storage.from_('evidence-photos').upload(
             file_name,
             file_bytes,
             file_options={"content-type": photo_file.type}
@@ -48,7 +45,7 @@ def upload_evidence_photo(photo_file, equipment_id: str, folder: str) -> str:
         
         if response:
             # Retorna URL pública
-            public_url = db_client.supabase.storage.from_('evidence-photos').get_public_url(file_name)
+            public_url = db_client.client.storage.from_('evidence-photos').get_public_url(file_name)
             return public_url
         
         return None

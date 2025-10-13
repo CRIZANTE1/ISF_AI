@@ -10,7 +10,6 @@ import ast
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
 from jinja2 import Template
 from supabase import create_client, Client
 
