@@ -4,44 +4,64 @@ import streamlit as st
 import pandas as pd
 from datetime import date, datetime, timedelta
 import pytz
+import logging
 
 # DE: from gdrive.gdrive_upload import GoogleDriveUploader
 # DE: from gdrive.config import USERS_SHEET_NAME, ACCESS_REQUESTS_SHEET_NAME
 # PARA: Importações refatoradas
-from operations.history import load_sheet_data # Usamos a função genérica que agora usa Supabase
+# Usamos a função genérica que agora usa Supabase
+from operations.history import load_sheet_data
 from supabase.client import get_supabase_client
 from utils.github_notifications import notify_new_access_request
 
-# ... (as funções is_oidc_available, is_user_logged_in, is_superuser, etc. permanecem as mesmas) ...
+logger = logging.getLogger(__name__)
+
+
 def is_oidc_available():
-    try: return hasattr(st.user, 'is_logged_in')
-    except Exception: return False
+    try:
+        return hasattr(st.user, 'is_logged_in')
+    except Exception:
+        return False
+
 
 def is_user_logged_in():
-    try: return st.user.is_logged_in
-    except Exception: return False
+    try:
+        return st.user.is_logged_in
+    except Exception:
+        return False
+
 
 def is_superuser() -> bool:
     try:
         user_email = get_user_email()
-        superuser_email = st.secrets["superuser"]["admin_email"].lower().strip()
+        superuser_email = st.secrets["superuser"]["admin_email"].lower(
+        ).strip()
         return user_email is not None and user_email == superuser_email
     except (KeyError, AttributeError):
         return False
 
+
 def get_user_display_name():
     try:
-        if is_superuser(): return "Desenvolvedor (Mestre)"
-        if hasattr(st.user, 'name') and st.user.name: return st.user.name
-        elif hasattr(st.user, 'email'): return st.user.email
+        if is_superuser():
+            return "Desenvolvedor (Mestre)"
+        if hasattr(st.user, 'name') and st.user.name:
+            return st.user.name
+        elif hasattr(st.user, 'email'):
+            return st.user.email
         return "Usuário Anônimo"
-    except Exception: return "Usuário Anônimo"
+    except Exception:
+        return "Usuário Anônimo"
+
 
 def get_user_email() -> str | None:
     try:
-        if hasattr(st.user, 'email') and st.user.email: return st.user.email.lower().strip()
+        if hasattr(st.user, 'email') and st.user.email:
+            return st.user.email.lower().strip()
         return None
-    except Exception: return None
+    except Exception:
+        return None
+
 
 @st.cache_data(ttl=300, show_spinner="Verificando permissões...")
 def get_users_data():
@@ -51,21 +71,23 @@ def get_users_data():
     try:
         # PARA: A lógica complexa de leitura e normalização foi substituída por uma única chamada.
         df = load_sheet_data("usuarios")
-        
+
         if not df.empty:
             # Converte colunas de data que vêm como string do Supabase
             if 'data_cadastro' in df.columns:
-                df['data_cadastro'] = pd.to_datetime(df['data_cadastro'], errors='coerce').dt.date
+                df['data_cadastro'] = pd.to_datetime(
+                    df['data_cadastro'], errors='coerce').dt.date
             if 'trial_end_date' in df.columns:
-                df['trial_end_date'] = pd.to_datetime(df['trial_end_date'], errors='coerce').dt.date
-        
+                df['trial_end_date'] = pd.to_datetime(
+                    df['trial_end_date'], errors='coerce').dt.date
+
         return df
-        
+
     except Exception as e:
         st.error(f"Erro crítico ao carregar dados de usuários: {e}")
         return pd.DataFrame()
 
-# ... (a função get_user_info e as demais funções que dependem de get_users_data não precisam de mudanças) ...
+
 def get_user_info() -> dict | None:
     """
     Retorna o registro do usuário. Se for o superusuário, "fabrica" o registro
@@ -87,29 +109,60 @@ def get_user_info() -> dict | None:
 
     # Se não for o superusuário, executa a lógica normal.
     user_email = get_user_email()
-    if not user_email: return None
+    if not user_email:
+        return None
     users_df = get_users_data()
-    if users_df.empty: return None
-    
+    if users_df.empty:
+        return None
+
     user_entry = users_df[users_df['email'] == user_email]
     return user_entry.iloc[0].to_dict() if not user_entry.empty else None
+
+
+def get_user_id() -> int:
+    """
+    Retorna o ID (INTEGER) do usuário logado.
+    
+    Returns:
+        int: ID do usuário ou None se não encontrado
+    """
+    user_info = get_user_info()
+    
+    if not user_info:
+        logger.warning("Não foi possível obter informações do usuário")
+        return None
+    
+    user_id = user_info.get('id')
+    
+    if not user_id:
+        logger.error(f"Usuário {user_info.get('email')} não possui ID na tabela usuarios!")
+        return None
+    
+    # Garante que retorna um inteiro
+    try:
+        return int(user_id)
+    except (ValueError, TypeError):
+        logger.error(f"ID do usuário não é um número válido: {user_id}")
+        return None
+
 
 def save_access_request(user_name, user_email, justification):
     """Salva uma solicitação de acesso na tabela 'solicitacoes_acesso' do Supabase."""
     try:
         sao_paulo_tz = pytz.timezone("America/Sao_Paulo")
         timestamp = datetime.now(sao_paulo_tz).strftime('%Y-%m-%d %H:%M:%S')
-        
+
         # PARA: Usa o cliente Supabase e um dicionário
         db_client = get_supabase_client()
-        
+
         # Verifica se já existe solicitação pendente
         df_requests = db_client.get_data("solicitacoes_acesso")
         if not df_requests.empty:
             if not df_requests[(df_requests['email_usuario'] == user_email) & (df_requests['status'] == 'Pendente')].empty:
-                st.warning("Você já possui uma solicitação de acesso pendente.")
+                st.warning(
+                    "Você já possui uma solicitação de acesso pendente.")
                 return False
-        
+
         # PARA: Cria um dicionário em vez de uma lista
         request_record = {
             "timestamp_solicitacao": timestamp,
@@ -119,10 +172,10 @@ def save_access_request(user_name, user_email, justification):
             "justificativa": justification,
             "status": "Pendente"
         }
-        
+
         # PARA: Usa o método append_data
         db_client.append_data("solicitacoes_acesso", request_record)
-        
+
         # A lógica de notificação permanece a mesma
         try:
             admin_email = st.secrets.get("superuser", {}).get("admin_email")
@@ -135,24 +188,29 @@ def save_access_request(user_name, user_email, justification):
                 )
                 st.info(" O administrador foi notificado sobre sua solicitação.")
         except Exception as notification_error:
-            print(f"Aviso: Falha ao enviar notificação para admin: {notification_error}")
-        
+            print(
+                f"Aviso: Falha ao enviar notificação para admin: {notification_error}")
+
         return True
-        
+
     except Exception as e:
         st.error(f"Ocorreu um erro ao enviar sua solicitação: {e}")
         return False
-        
+
 # --- NOVAS FUNÇÕES RÁPIDAS ---
+
+
 def get_current_user_info() -> dict | None:
     """Retorna os dados do usuário logado diretamente da sessão. É super rápido."""
     return st.session_state.get('user_data')
+
 
 def get_current_user_role() -> str:
     """Retorna o 'role' do usuário da sessão."""
     user_data = get_current_user_info()
     return user_data.get('role', 'viewer') if user_data else 'viewer'
 # --- FIM DAS NOVAS FUNÇÕES ---
+
 
 def get_effective_user_status() -> str:
     user_info = get_current_user_info()  # <-- MUDANÇA AQUI
@@ -166,6 +224,7 @@ def get_effective_user_status() -> str:
         return 'trial_expirado'
     return sheet_status
 
+
 def is_on_trial() -> bool:
     user_info = get_current_user_info()  # <-- MUDANÇA AQUI
     if not user_info:
@@ -174,6 +233,7 @@ def is_on_trial() -> bool:
     if pd.isna(trial_end_date):
         return False
     return date.today() <= trial_end_date
+
 
 def get_effective_user_plan() -> str:
     user_info = get_current_user_info()  # <-- MUDANÇA AQUI
@@ -184,21 +244,23 @@ def get_effective_user_plan() -> str:
         return 'premium_ia'
     return sheet_plan
 
+
 def get_user_role():
     """Retorna o role do usuário logado - agora ultra rápido!"""
     return get_current_user_role()  # <-- MUDANÇA AQUI
+
 
 def check_user_access(required_role="viewer"):
     """
     Checks if the current user has the required role or higher.
     Returns True if authorized, False otherwise.
-    
+
     Roles hierarchy (highest to lowest):
     - superuser (special role)
     - admin
     - editor
     - viewer
-    
+
     Usage:
         if not check_user_access("editor"):
             st.warning("You need editor permissions or higher.")
@@ -206,64 +268,102 @@ def check_user_access(required_role="viewer"):
     """
     role_hierarchy = {"viewer": 1, "editor": 2, "admin": 3}
     user_role = get_user_role()
-    
+
     # Superuser always has access
     if is_superuser():
         return True
-        
+
     # If required_role isn't in the hierarchy, default to viewer
     required_level = role_hierarchy.get(required_role, 1)
     user_level = role_hierarchy.get(user_role, 0)
-    
+
     return user_level >= required_level
 
+
 def can_edit(): return check_user_access("editor")
-def can_view(): return check_user_access("viewer") 
+def can_view(): return check_user_access("viewer")
 def is_admin(): return check_user_access("admin")
-def has_pro_features(): return get_effective_user_plan() in ['pro', 'premium_ia']
+def has_pro_features(): return get_effective_user_plan() in [
+    'pro', 'premium_ia']
+
+
 def has_ai_features(): return get_effective_user_plan() == 'premium_ia'
 
+
 def setup_sidebar():
-    user_info = get_current_user_info()  # <-- MUDANÇA AQUI: usa a função rápida
+    """
+    Configura a sidebar com informações do usuário.
+    VERSÃO CORRIGIDA - Usa user_id para isolamento de dados.
+    
+    Returns:
+        bool: True se o ambiente está OK, False caso contrário
+    """
+    user_info = get_user_info()
+    
+    if not user_info:
+        st.sidebar.error("❌ Erro ao carregar dados do usuário.")
+        return False
+    
     effective_status = get_effective_user_status()
+    user_id = user_info.get('id')
+    user_email = user_info.get('email')
     
-    if effective_status != 'ativo':
-        if is_admin():
-            st.sidebar.warning("Visão de Administrador.")
-            return False
-        if effective_status == 'inativo':
-            st.sidebar.error("Sua conta não está ativa.")
-            return False
+    # Valida que o usuário tem ID
+    if not user_id:
+        st.sidebar.error("❌ Usuário sem ID no banco de dados.")
+        logger.error(f"Usuário {user_email} não possui ID!")
         return False
     
-    spreadsheet_id = user_info.get('spreadsheet_id')
-    folder_id = user_info.get('folder_id')
+    # Valida status do usuário
+    if effective_status not in ['ativo', 'superuser']:
+        if effective_status == 'trial_expirado':
+            st.sidebar.warning("⏳ Trial expirado")
+        elif effective_status == 'inativo':
+            st.sidebar.warning("🔒 Conta inativa")
+        else:
+            st.sidebar.error(f"❌ Status: {effective_status}")
+        
+        if not is_admin():
+            return False
     
-    if pd.isna(spreadsheet_id) or spreadsheet_id == '' or pd.isna(folder_id) or folder_id == '':
-        if not is_superuser():
-            st.sidebar.error("Erro no ambiente de dados. Contate o suporte.")
-        return False
-    
-    # Limpa cache se o usuário mudou
-    if st.session_state.get('current_user_email') != user_info['email']:
+    # ✅ Armazena user_id na sessão para uso pelo SupabaseClient
+    if st.session_state.get('current_user_id') != user_id:
         st.cache_data.clear()
+        logger.info(f"🔄 Cache limpo para novo usuário: {user_email}")
     
-    st.session_state['current_user_email'] = user_info['email']
-    st.session_state['current_spreadsheet_id'] = spreadsheet_id
-    st.session_state['current_folder_id'] = folder_id
+    st.session_state['current_user_id'] = user_id
+    st.session_state['current_user_email'] = user_email
     
-    if is_superuser():
-        st.sidebar.success("👑 **Acesso Mestre**")
-    elif is_on_trial():
-        trial_end = user_info.get('trial_end_date', date.today())
-        days_left = (trial_end - date.today()).days
-        st.sidebar.info(f"🚀 **Trial Premium:** {days_left} dias restantes.")
-    else:
-        plano_atual = get_effective_user_plan().replace('_', ' ').title()
-        st.sidebar.success(f"**Plano:** {plano_atual}")
+    # Exibe informações do plano
+    current_plan = get_effective_user_plan()
+    plan_emoji = {
+        'basico': '📊',
+        'pro': '🔧',
+        'premium_ia': '🤖'
+    }.get(current_plan, '📦')
     
-    return True
+    plan_display = {
+        'basico': 'Básico',
+        'pro': 'Pro',
+        'premium_ia': 'Premium IA'
+    }.get(current_plan, current_plan.title())
     
+    # Trial badge
+    if is_on_trial():
+        trial_end = user_info.get('trial_end_date')
+        if trial_end and isinstance(trial_end, date):
+            days_left = (trial_end - date.today()).days
+            if days_left > 0:
+                st.sidebar.success(f"🚀 Trial Premium: {days_left} dias")
+            else:
+                st.sidebar.warning("⏳ Trial expirado")
+    
+    st.sidebar.info(f"{plan_emoji} **Plano:** {plan_display}")
+    
+    logger.info(f"✅ Sidebar configurado para {user_email} (ID: {user_id}) - {plan_display}")
+    
+    return True  # ✅ Ambiente carregado com sucesso
+
 
 # Função de diagnóstico para ajudar a identificar problemas
 def diagnose_users_sheet():
@@ -273,34 +373,34 @@ def diagnose_users_sheet():
     try:
         uploader = GoogleDriveUploader(is_matrix=True)
         users_data = uploader.get_data_from_sheet(USERS_SHEET_NAME)
-        
+
         st.write("### 🔍 Diagnóstico da Planilha de Usuários")
-        
+
         if not users_data:
             st.error("❌ Planilha não encontrada ou completamente vazia")
             return
-            
+
         st.success(f"✅ Planilha encontrada com {len(users_data)} linhas")
-        
+
         if len(users_data) >= 1:
             st.write(f"**Cabeçalho ({len(users_data[0])} colunas):**")
             st.write(users_data[0])
-            
+
         if len(users_data) >= 2:
             st.write("**Primeiras linhas de dados:**")
             for i, row in enumerate(users_data[1:6]):  # Mostra até 5 linhas
                 st.write(f"Linha {i+2}: {row} ({len(row)} colunas)")
-                
+
         # Identifica linhas vazias
         empty_rows = []
         for i, row in enumerate(users_data[1:], 2):
             if not any(str(cell).strip() for cell in row):
                 empty_rows.append(i)
-                
+
         if empty_rows:
             st.warning(f"⚠️ Linhas vazias encontradas: {empty_rows}")
         else:
             st.success("✅ Nenhuma linha vazia encontrada")
-            
+
     except Exception as e:
         st.error(f"❌ Erro durante diagnóstico: {e}")

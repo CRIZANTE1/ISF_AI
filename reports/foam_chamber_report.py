@@ -10,41 +10,46 @@ import json
 from io import BytesIO
 import base64
 
+
 def generate_foam_chamber_consolidated_report(inspections_df, inventory_df):
     """
     Gera relatório consolidado em PDF de todas as câmaras de espuma inspecionadas
-    
+
     Args:
         inspections_df: DataFrame com as inspeções
         inventory_df: DataFrame com o inventário de câmaras
-    
+
     Returns:
         BytesIO: Arquivo PDF em memória
     """
-    
+
     # Merge dos dados para ter informações completas
     if inspections_df.empty:
         st.warning("Nenhuma inspeção de câmara de espuma encontrada.")
         return None
-    
+
     # Pega a última inspeção de cada câmara
-    inspections_df['data_inspecao'] = pd.to_datetime(inspections_df['data_inspecao'])
-    latest_inspections = inspections_df.sort_values('data_inspecao').groupby('id_camara').tail(1)
-    
+    inspections_df['data_inspecao'] = pd.to_datetime(
+        inspections_df['data_inspecao'])
+    latest_inspections = inspections_df.sort_values(
+        'data_inspecao').groupby('id_camara').tail(1)
+
     # Merge com inventário
     merged_df = latest_inspections.merge(
-        inventory_df[['id_camara', 'localizacao', 'marca', 'modelo', 'tamanho_especifico']], 
-        on='id_camara', 
+        inventory_df[['id_camara', 'localizacao',
+                      'marca', 'modelo', 'tamanho_especifico']],
+        on='id_camara',
         how='left'
     )
-    
+
     # Gera HTML
     html_content = _generate_html_content(merged_df)
-    
+
     # Converte para PDF
     try:
         pdf_file = BytesIO()
-        HTML(string=html_content).write_pdf(pdf_file, stylesheets=[CSS(string=_get_css_styles())])
+        HTML(string=html_content).write_pdf(
+            pdf_file, stylesheets=[CSS(string=_get_css_styles())])
         pdf_file.seek(0)
         return pdf_file
     except Exception as e:
@@ -56,16 +61,16 @@ def generate_foam_chamber_consolidated_report(inspections_df, inventory_df):
 
 def _generate_html_content(df):
     """Gera o conteúdo HTML do relatório seguindo normas ABNT"""
-    
+
     current_date = datetime.now().strftime('%d/%m/%Y')
     current_time = datetime.now().strftime('%H:%M')
     current_year = datetime.now().strftime('%Y')
-    
+
     # Calcula estatísticas
     total_chambers = len(df)
     approved = len(df[df['status_geral'] == 'Aprovado'])
     rejected = total_chambers - approved
-    
+
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -235,11 +240,11 @@ def _generate_html_content(df):
             </p>
         </div>
     """
-    
+
     # Detalhes de cada câmara
     for idx, row in df.iterrows():
         html += _generate_chamber_section(row, idx + 1)
-    
+
     # Considerações finais
     html += f"""
         <!-- ========== CONSIDERAÇÕES FINAIS ========== -->
@@ -429,19 +434,20 @@ def _generate_html_content(df):
     </body>
     </html>
     """
-    
+
     return html
 
 
 def _generate_chamber_section(row, chamber_number):
     """Gera a seção HTML de uma câmara específica"""
-    
+
     status_class = "approved" if row['status_geral'] == "Aprovado" else "rejected"
     status_icon = "✓" if row['status_geral'] == "Aprovado" else "✗"
-    
+
     data_inspecao = pd.to_datetime(row['data_inspecao']).strftime('%d/%m/%Y')
-    data_proxima = pd.to_datetime(row['data_proxima_inspecao']).strftime('%d/%m/%Y')
-    
+    data_proxima = pd.to_datetime(
+        row['data_proxima_inspecao']).strftime('%d/%m/%Y')
+
     html = f"""
     <div class="chamber-section">
         <div class="chamber-header {status_class}">
@@ -484,10 +490,10 @@ def _generate_chamber_section(row, chamber_number):
             </table>
         </div>
     """
-    
+
     # Checklist de resultados
     html += _generate_checklist_html(row['resultados_json'])
-    
+
     # Plano de ação (se houver pendências)
     if row['status_geral'] != "Aprovado":
         html += f"""
@@ -496,11 +502,11 @@ def _generate_chamber_section(row, chamber_number):
             <p>{row['plano_de_acao']}</p>
         </div>
         """
-    
+
     # Foto de não conformidade (se houver)
     if row.get('link_foto_nao_conformidade') and str(row['link_foto_nao_conformidade']).strip():
         photo_url = row['link_foto_nao_conformidade']
-        
+
         # Converte link do Google Drive para formato de download direto
         if 'drive.google.com' in photo_url:
             if '/file/d/' in photo_url:
@@ -509,7 +515,7 @@ def _generate_chamber_section(row, chamber_number):
             elif 'id=' in photo_url:
                 # Já está no formato correto
                 pass
-        
+
         html += f"""
         <div class="photo-section">
             <h4>Registro Fotográfico</h4>
@@ -519,21 +525,22 @@ def _generate_chamber_section(row, chamber_number):
             <p class="photo-caption">Figura {chamber_number}: Registro fotográfico realizado durante a inspeção do equipamento {row['id_camara']} em {data_inspecao}</p>
         </div>
         """
-    
+
     html += """
     </div>
     """
-    
+
     return html
+
 
 def _generate_checklist_html(results_json):
     """Gera o HTML do checklist de resultados"""
-    
+
     try:
         results = json.loads(results_json)
     except:
         return "<p>Erro ao carregar resultados da inspeção.</p>"
-    
+
     html = """
     <div class="checklist">
         <h4>Checklist de Inspeção Técnica</h4>
@@ -546,7 +553,7 @@ def _generate_checklist_html(results_json):
             </thead>
             <tbody>
     """
-    
+
     for question, answer in results.items():
         result_class = ""
         if answer == "Conforme":
@@ -558,25 +565,26 @@ def _generate_checklist_html(results_json):
         else:
             result_class = "result-na"
             icon = "—"
-        
+
         html += f"""
                 <tr>
                     <td>{question}</td>
                     <td class="{result_class}">{icon} {answer}</td>
                 </tr>
         """
-    
+
     html += """
             </tbody>
         </table>
     </div>
     """
-    
+
     return html
+
 
 def _get_css_styles():
     """Retorna os estilos CSS sóbrios seguindo normas ABNT"""
-    
+
     return """
     @page {
         size: A4;
@@ -1037,4 +1045,3 @@ def _get_css_styles():
         margin: 3px 0;
     }
     """
-

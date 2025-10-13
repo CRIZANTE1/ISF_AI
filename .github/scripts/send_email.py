@@ -9,7 +9,7 @@ import os
 import ast
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+
 from jinja2 import Template
 from supabase import create_client, Client # PARA: Nova importação
 
@@ -599,7 +599,7 @@ def process_notification(notification, smtp_config, supabase_client):
         else:
             # Se não for JSON válido, tenta eval (compatibilidade com versão antiga)
             data_dict = ast.literal_eval(data_str) if data_str else {}
-    except:
+    except Exception:
         data_dict = {}
     
     # Busca template

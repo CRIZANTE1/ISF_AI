@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 # DE: from gdrive.config import EXTINGUISHER_SHEET_NAME, LOCATIONS_SHEET_NAME, AUDIT_LOG_SHEET_NAME
 # PARA:
 from supabase.client import get_supabase_client
-from operations.history import load_sheet_data # A função agora usa Supabase
+from operations.history import load_sheet_data  # A função agora usa Supabase
 
 from AI.api_Operation import PDFQA
 from utils.prompts import get_extinguisher_inspection_prompt
@@ -43,9 +43,11 @@ ACTION_MAP = {
 MAINTENANCE_INTERVALS = {
     "Inspeção": {"next_inspection": 1},  # meses
     "Manutenção Nível 2": {"next_inspection": 1, "next_level2": 12},  # meses
-    "Manutenção Nível 3": {"next_inspection": 1, "next_level2": 12, "next_level3": 60},  # meses (5 anos)
+    # meses (5 anos)
+    "Manutenção Nível 3": {"next_inspection": 1, "next_level2": 12, "next_level3": 60},
     "Substituição": {"next_inspection": 1},  # meses
 }
+
 
 def generate_action_plan(record):
     # ... (código original sem mudanças) ...
@@ -62,22 +64,24 @@ def generate_action_plan(record):
         for keyword, plan in ACTION_MAP.items():
             if keyword in observacoes:
                 return plan
-        
+
         # Se nenhuma palavra-chave for encontrada, retorna ação genérica
         if observacoes:
             return f"Analisar e corrigir a não conformidade reportada: '{record.get('observacoes_gerais', 'Não especificado')}'"
         else:
             return "Equipamento reprovado. Avaliar não conformidade e tomar ação corretiva apropriada."
-    
+
     # Caso 3: Status indefinido
     return "N/A"
 
 # ... (A função calculate_next_dates permanece a mesma) ...
+
+
 def calculate_next_dates(service_date_str, service_level, existing_dates=None):
     # ... (código original sem mudanças) ...
     if not service_date_str:
         return {}
-    
+
     try:
         service_date = pd.to_datetime(service_date_str).date()
     except (ValueError, TypeError):
@@ -91,14 +95,17 @@ def calculate_next_dates(service_date_str, service_level, existing_dates=None):
     if service_level == "Manutenção Nível 3":
         # Renova todas as datas
         dates['data_proxima_inspecao'] = service_date + relativedelta(months=1)
-        dates['data_proxima_manutencao_2_nivel'] = service_date + relativedelta(months=12)
-        dates['data_proxima_manutencao_3_nivel'] = service_date + relativedelta(years=5)
+        dates['data_proxima_manutencao_2_nivel'] = service_date + \
+            relativedelta(months=12)
+        dates['data_proxima_manutencao_3_nivel'] = service_date + \
+            relativedelta(years=5)
         dates['data_ultimo_ensaio_hidrostatico'] = service_date
-    
+
     elif service_level == "Manutenção Nível 2":
         # Renova inspeção mensal e N2, preserva N3 se existir
         dates['data_proxima_inspecao'] = service_date + relativedelta(months=1)
-        dates['data_proxima_manutencao_2_nivel'] = service_date + relativedelta(months=12)
+        dates['data_proxima_manutencao_2_nivel'] = service_date + \
+            relativedelta(months=12)
         # Não altera data_proxima_manutencao_3_nivel nem data_ultimo_ensaio_hidrostatico
 
     elif service_level in ["Inspeção", "Substituição"]:
@@ -126,25 +133,30 @@ def calculate_next_dates(service_date_str, service_level, existing_dates=None):
     return normalized_dates
 
 # ... (As funções process_extinguisher_pdf e clean_and_prepare_ia_data permanecem as mesmas) ...
+
+
 def process_extinguisher_pdf(uploaded_file):
     # ... (código original sem mudanças) ...
     if not uploaded_file:
         return None
-    
+
     with st.spinner("Analisando PDF com IA..."):
         prompt = get_extinguisher_inspection_prompt()
         pdf_qa = PDFQA()
         extracted_data = pdf_qa.extract_structured_data(uploaded_file, prompt)
-        
+
         if extracted_data and "extintores" in extracted_data and isinstance(extracted_data["extintores"], list):
-            st.success(f"✅ {len(extracted_data['extintores'])} extintores identificados no documento.")
+            st.success(
+                f"✅ {len(extracted_data['extintores'])} extintores identificados no documento.")
             return extracted_data["extintores"]
         else:
-            st.error("A IA não retornou os dados no formato esperado (uma lista de extintores).")
+            st.error(
+                "A IA não retornou os dados no formato esperado (uma lista de extintores).")
             if extracted_data:
                 with st.expander("🔍 Ver resposta da IA (debug)"):
                     st.json(extracted_data)
             return None
+
 
 def clean_and_prepare_ia_data(ia_item):
     # ... (código original sem mudanças) ...
@@ -165,58 +177,54 @@ def clean_and_prepare_ia_data(ia_item):
                 # Se a conversão falhar, define como None
                 cleaned_item[key] = None
                 st.warning(f"Data inválida no campo '{key}': {value}")
-    
+
     return cleaned_item
 
-def save_inspection(data: dict) -> bool:
+
+def save_inspection(record: dict) -> bool:
     """
-    Salva os dados de UMA inspeção na tabela 'extintores' do Supabase.
+    Salva uma inspeção de extintor no Supabase.
     
     Args:
-        data (dict): Dicionário com todos os campos da inspeção.
+        record: Dicionário com os dados da inspeção
         
     Returns:
-        bool: True se salvou com sucesso, False caso contrário.
+        True se salvou com sucesso, False caso contrário
     """
     try:
-        # PARA: O 'data' já é um dicionário. Apenas garantimos que não há valores inválidos para o JSON.
-        # Remove chaves com valores que não são serializáveis, como Timestamps do pandas.
-        record_to_save = {}
-        for key, value in data.items():
-            if pd.isna(value):
-                record_to_save[key] = None
-            elif isinstance(value, (date, pd.Timestamp)):
-                record_to_save[key] = value.isoformat()
-            else:
-                record_to_save[key] = value
+        from supabase.client import get_supabase_client
+        from config.table_names import EXTINGUISHER_SHEET_NAME
         
-        # PARA: Instancia o cliente Supabase e insere o dicionário.
         db_client = get_supabase_client()
-        db_client.append_data("extintores", record_to_save)
         
-        log_action(
-            "SALVOU_INSPECAO_EXTINTOR", 
-            f"ID: {data.get('numero_identificacao')}, Status: {data.get('aprovado_inspecao')}, Tipo: {data.get('tipo_servico')}"
-        )
+        # Remove campos None ou vazios
+        clean_record = {k: v for k, v in record.items() if v is not None and v != ''}
+        
+        # Salva no Supabase
+        db_client.append_data(EXTINGUISHER_SHEET_NAME, clean_record)
+        
         return True
         
     except Exception as e:
-        st.error(f"Erro ao salvar dados do equipamento {data.get('numero_identificacao')}: {e}")
+        st.error(f"Erro ao salvar inspeção: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return False
+
 
 def save_inspection_batch(inspections_list: list[dict]) -> tuple[bool, int]:
     """
     Salva múltiplas inspeções de uma vez (batch) no Supabase.
-    
+
     Args:
         inspections_list (list): Lista de dicionários de inspeções.
-        
+
     Returns:
         tuple: (sucesso: bool, quantidade_salva: int)
     """
     if not inspections_list:
         return False, 0
-    
+
     try:
         # PARA: A lista já está no formato correto (lista de dicionários).
         # Apenas limpamos valores inválidos.
@@ -235,39 +243,42 @@ def save_inspection_batch(inspections_list: list[dict]) -> tuple[bool, int]:
         # PARA: Insere a lista de dicionários diretamente.
         db_client = get_supabase_client()
         db_client.append_data("extintores", records_to_save)
-        
+
         log_action(
-            "SALVOU_INSPECAO_EXTINTOR_LOTE", 
+            "SALVOU_INSPECAO_EXTINTOR_LOTE",
             f"Total: {len(inspections_list)} inspeções salvas em lote"
         )
-        
+
         return True, len(inspections_list)
-        
+
     except Exception as e:
         st.error(f"Erro ao salvar lote de inspeções: {e}")
         return False, 0
+
 
 def save_new_location(location_id, description):
     """Salva um novo local na tabela 'locais'."""
     try:
         db_client = get_supabase_client()
-        
+
         # Verifica se o ID já existe
         df_locations = db_client.get_data("locais")
         if not df_locations.empty and location_id in df_locations['id'].values:
             st.error(f"❌ Erro: O ID de Local '{location_id}' já existe.")
             return False
-        
+
         # PARA: Cria um dicionário para o novo registro
         new_record = {'id': location_id, 'local': description}
         db_client.append_data("locais", new_record)
-        
-        log_action("CADASTROU_LOCAL", f"ID: {location_id}, Nome: {description}")
+
+        log_action("CADASTROU_LOCAL",
+                   f"ID: {location_id}, Nome: {description}")
         return True
-        
+
     except Exception as e:
         st.error(f"Erro ao salvar novo local: {e}")
         return False
+
 
 def update_extinguisher_location(equip_id, location_desc):
     """
@@ -275,18 +286,20 @@ def update_extinguisher_location(equip_id, location_desc):
     """
     try:
         db_client = get_supabase_client()
-        
+
         # Tenta atualizar. Se não funcionar, insere.
         # A função `upsert` do Supabase é perfeita para isso.
         record = {'id': str(equip_id), 'local': location_desc}
         db_client.client.table("locais").upsert(record).execute()
-        
-        log_action("ASSOCIOU_LOCAL_EXTINTOR", f"ID: {equip_id}, Local: {location_desc}")
+
+        log_action("ASSOCIOU_LOCAL_EXTINTOR",
+                   f"ID: {equip_id}, Local: {location_desc}")
         return True
-                
+
     except Exception as e:
         st.error(f"Erro ao salvar local para o equipamento '{equip_id}': {e}")
         return False
+
 
 def save_new_extinguisher(details_dict: dict) -> bool:
     """
@@ -300,7 +313,8 @@ def save_new_extinguisher(details_dict: dict) -> bool:
         # Verifica se o ID já existe
         df_extinguishers = db_client.get_data("extintores")
         if not df_extinguishers.empty and ext_id in df_extinguishers['numero_identificacao'].values:
-            st.error(f"❌ Erro: O ID de Extintor '{ext_id}' já está cadastrado.")
+            st.error(
+                f"❌ Erro: O ID de Extintor '{ext_id}' já está cadastrado.")
             return False
 
         # Monta o dicionário do novo registro
@@ -336,6 +350,7 @@ def save_new_extinguisher(details_dict: dict) -> bool:
         st.error(f"Erro ao salvar novo extintor: {e}")
         return False
 
+
 def batch_regularize_monthly_inspections(df_all_extinguishers: pd.DataFrame) -> int:
     """
     Encontra extintores com inspeção mensal vencida, cria novos registros de inspeção
@@ -345,8 +360,10 @@ def batch_regularize_monthly_inspections(df_all_extinguishers: pd.DataFrame) -> 
         st.warning("Não há extintores cadastrados para regularizar.")
         return 0
 
-    latest_records = df_all_extinguishers.sort_values(by='data_servico', ascending=False).drop_duplicates(subset=['numero_identificacao'], keep='first').copy()
-    latest_records['data_proxima_inspecao'] = pd.to_datetime(latest_records['data_proxima_inspecao'], errors='coerce')
+    latest_records = df_all_extinguishers.sort_values(by='data_servico', ascending=False).drop_duplicates(
+        subset=['numero_identificacao'], keep='first').copy()
+    latest_records['data_proxima_inspecao'] = pd.to_datetime(
+        latest_records['data_proxima_inspecao'], errors='coerce')
     today = pd.Timestamp(date.today())
 
     vencidos_e_aprovados = latest_records[
@@ -356,14 +373,15 @@ def batch_regularize_monthly_inspections(df_all_extinguishers: pd.DataFrame) -> 
     ]
 
     if vencidos_e_aprovados.empty:
-        st.success("✅ Nenhuma inspeção mensal (de equipamentos previamente aprovados) está vencida. Tudo em dia!")
+        st.success(
+            "✅ Nenhuma inspeção mensal (de equipamentos previamente aprovados) está vencida. Tudo em dia!")
         return 0
 
     new_inspections = []
     with st.spinner(f"Regularizando {len(vencidos_e_aprovados)} extintores..."):
         for _, original_record in vencidos_e_aprovados.iterrows():
             new_record = original_record.to_dict()
-            
+
             new_record.update({
                 'tipo_servico': "Inspeção",
                 'data_servico': date.today().isoformat(),
@@ -380,7 +398,7 @@ def batch_regularize_monthly_inspections(df_all_extinguishers: pd.DataFrame) -> 
                 'data_proxima_manutencao_3_nivel': original_record.get('data_proxima_manutencao_3_nivel'),
                 'data_ultimo_ensaio_hidrostatico': original_record.get('data_ultimo_ensaio_hidrostatico'),
             }
-            
+
             updated_dates = calculate_next_dates(
                 service_date_str=new_record['data_servico'],
                 service_level="Inspeção",
@@ -394,12 +412,13 @@ def batch_regularize_monthly_inspections(df_all_extinguishers: pd.DataFrame) -> 
         if success:
             st.success(f"✅ {count} extintores regularizados com sucesso!")
             # Log de auditoria para o lote
-            log_action("REGULARIZOU_INSPECAO_EXTINTOR_MASSA", f"Total: {count} extintores.")
+            log_action("REGULARIZOU_INSPECAO_EXTINTOR_MASSA",
+                       f"Total: {count} extintores.")
             return count
         else:
             st.error("❌ Ocorreu um erro durante a regularização em massa.")
             return -1
-            
+
     except Exception as e:
         st.error(f"❌ Ocorreu um erro durante a regularização em massa: {e}")
         log_action("FALHA_REGULARIZACAO_MASSA", f"Erro: {str(e)[:200]}")

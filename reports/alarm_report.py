@@ -2,20 +2,21 @@ import pandas as pd
 import json
 from datetime import datetime
 
+
 def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, period_type="monthly"):
     """
     Gera um relatório de inspeções de sistemas de alarme em HTML.
-    
+
     Args:
         df_inspections: DataFrame com as inspeções de alarme
         df_inventory: DataFrame com o inventário de sistemas
         unit_name: Nome da unidade/empresa
         period_type: Tipo de período ("monthly" ou "biannual")
-    
+
     Returns:
         str: HTML formatado para impressão
     """
-    
+
     # Junta os dados das inspeções com o inventário
     if not df_inventory.empty:
         report_df = pd.merge(
@@ -27,10 +28,11 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
     else:
         report_df = df_inspections
         report_df[['localizacao', 'marca', 'modelo']] = 'N/A'
-    
+
     # Formata as colunas de data
-    report_df['data_inspecao_fmt'] = pd.to_datetime(report_df['data_inspecao']).dt.strftime('%d/%m/%Y')
-    
+    report_df['data_inspecao_fmt'] = pd.to_datetime(
+        report_df['data_inspecao']).dt.strftime('%d/%m/%Y')
+
     # Define o título baseado no tipo de período
     if period_type == "biannual":
         # Determina o semestre baseado na primeira inspeção
@@ -40,13 +42,13 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
     else:
         first_date = pd.to_datetime(report_df['data_inspecao']).min()
         period_title = first_date.strftime('%B/%Y')
-    
+
     # Gera as linhas da tabela
     table_rows_html = ""
     for _, row in report_df.iterrows():
         status_icon = "✅" if row['status_geral'] == "Aprovado" else "❌"
         status_class = "status-ok" if row['status_geral'] == "Aprovado" else "status-fail"
-        
+
         # Processa os resultados JSON para mostrar não conformidades
         non_conformities = []
         try:
@@ -57,11 +59,12 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
                         non_conformities.append(item)
         except (json.JSONDecodeError, TypeError):
             pass
-        
-        non_conf_text = ", ".join(non_conformities[:3]) if non_conformities else "Nenhuma"
+
+        non_conf_text = ", ".join(
+            non_conformities[:3]) if non_conformities else "Nenhuma"
         if len(non_conformities) > 3:
             non_conf_text += f" (+ {len(non_conformities) - 3} outros)"
-        
+
         table_rows_html += f"""
         <tr class="{status_class}">
             <td>{row['data_inspecao_fmt']}</td>
@@ -74,7 +77,7 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
             <td>{row['plano_de_acao'][:50]}{'...' if len(str(row['plano_de_acao'])) > 50 else ''}</td>
         </tr>
         """
-    
+
     # Preenche com linhas vazias se necessário (mínimo 15 linhas)
     num_empty_rows = max(0, 15 - len(report_df))
     for _ in range(num_empty_rows):
@@ -90,7 +93,7 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
             <td>________________________</td>
         </tr>
         """
-    
+
     # CSS para o relatório (CORRIGIDO para evitar corte de texto)
     styles = """
     <style>
@@ -131,7 +134,7 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
         .signature-line { border-top: 1px solid #000; width: 200px; margin: 20px auto 5px; }
     </style>
     """
-    
+
     # Conteúdo HTML completo
     html_content = f"""
     <!DOCTYPE html>
@@ -200,5 +203,5 @@ def generate_alarm_inspection_html(df_inspections, df_inventory, unit_name, peri
     </body>
     </html>
     """
-    
+
     return html_content

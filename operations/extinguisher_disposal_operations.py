@@ -6,6 +6,7 @@ from auth.auth_utils import get_user_display_name
 from utils.auditoria import log_action
 from operations.photo_operations import upload_evidence_photo
 
+
 def get_disposed_extinguishers():
     """
     Retorna a lista de extintores baixados.
@@ -13,15 +14,16 @@ def get_disposed_extinguishers():
     try:
         db_client = get_supabase_client()
         df = db_client.get_data("log_baixas_extintores")
-        
+
         if df.empty:
             return pd.DataFrame()
-            
+
         return df
-        
+
     except Exception as e:
         st.error(f"Erro ao carregar registros de baixa: {e}")
         return pd.DataFrame()
+
 
 def is_equipment_disposed(equipment_id):
     """
@@ -30,8 +32,9 @@ def is_equipment_disposed(equipment_id):
     df_disposed = get_disposed_extinguishers()
     if df_disposed.empty:
         return False
-        
+
     return equipment_id in df_disposed['numero_identificacao'].values
+
 
 def register_extinguisher_disposal(equipment_id, condemnation_reason, substitute_id=None, observations="", photo_evidence=None):
     """
@@ -39,19 +42,20 @@ def register_extinguisher_disposal(equipment_id, condemnation_reason, substitute
     """
     try:
         db_client = get_supabase_client()
-        
+
         if is_equipment_disposed(equipment_id):
-            st.error(f"O extintor {equipment_id} já foi baixado anteriormente.")
+            st.error(
+                f"O extintor {equipment_id} já foi baixado anteriormente.")
             return False
-        
+
         photo_link = None
         if photo_evidence:
             photo_link = upload_evidence_photo(
-                photo_evidence, 
-                equipment_id, 
+                photo_evidence,
+                equipment_id,
                 "baixa_condenacao"
             )
-        
+
         disposal_record = {
             "data_baixa": date.today().isoformat(),
             "numero_identificacao": equipment_id,
@@ -61,21 +65,23 @@ def register_extinguisher_disposal(equipment_id, condemnation_reason, substitute
             "observacoes": observations,
             "link_foto_evidencia": photo_link if photo_link else ""
         }
-        
+
         db_client.append_data("log_baixas_extintores", disposal_record)
-        
-        _mark_equipment_as_disposed(equipment_id, condemnation_reason, substitute_id)
-        
+
+        _mark_equipment_as_disposed(
+            equipment_id, condemnation_reason, substitute_id)
+
         log_action(
-            "BAIXOU_EXTINTOR_CONDENADO", 
+            "BAIXOU_EXTINTOR_CONDENADO",
             f"ID: {equipment_id}, Motivo: {condemnation_reason}, Substituto: {substitute_id or 'N/A'}"
         )
-        
+
         return True
-        
+
     except Exception as e:
         st.error(f"Erro ao registrar baixa do extintor {equipment_id}: {e}")
         return False
+
 
 def _mark_equipment_as_disposed(equipment_id, reason, substitute_id):
     """
@@ -83,7 +89,7 @@ def _mark_equipment_as_disposed(equipment_id, reason, substitute_id):
     """
     try:
         from operations.extinguisher_operations import save_inspection
-        
+
         disposal_record = {
             'numero_identificacao': equipment_id,
             'numero_selo_inmetro': None,
@@ -107,8 +113,8 @@ def _mark_equipment_as_disposed(equipment_id, reason, substitute_id):
             'longitude': None,
             'link_foto_nao_conformidade': None
         }
-        
+
         save_inspection(disposal_record)
-        
+
     except Exception as e:
         st.error(f"Erro ao marcar equipamento como baixado: {e}")

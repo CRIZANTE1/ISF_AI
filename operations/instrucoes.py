@@ -159,7 +159,7 @@ def instru_canhoes_monitores():
         - **Gotejamento/Pequenos Vazamentos:** Vazamentos que não comprometem o jato principal, mas indicam desgaste das vedações.
         - **Sinalização/Acesso:** Placa de identificação ilegível ou acesso ao equipamento parcialmente obstruído.
         """)
-        
+
     with st.expander("🛠️ Lubrificação e Manutenção Preventiva"):
         st.markdown("""
         A norma NFPA 25 exige que os canhões monitores e seus componentes móveis sejam lubrificados **anualmente** para garantir a operação.
@@ -172,27 +172,28 @@ def instru_canhoes_monitores():
 
         **Importante:** Utilize sempre o tipo de lubrificante especificado pelo fabricante do equipamento.
         """)
-        
+
     st.markdown("---")
 
     st.success("Manter os registros de inspeção e teste em dia é a sua melhor evidência de conformidade com as normas de segurança e a garantia de que o equipamento funcionará quando mais for preciso.")
-    
+
+
 def instru_eyewash():
     """Instruções para o Dashboard de Chuveiros e Lava-Olhos"""
     st.header("📖 Guia de Uso - Sistema de Inspeção de Chuveiros e Lava-Olhos")
-    
+
     # Alerta de importância
     st.info(
         "🚨 **Importante:** Chuveiros e lava-olhos de emergência são equipamentos críticos. Inspeções periódicas são um **requisito normativo** para garantir seu funcionamento em uma emergência."
     )
-    
+
     st.markdown("---")
-    
+
     # Comparação de métodos
     st.subheader("🎯 Métodos Disponíveis de Inspeção")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("""
         ### 📋 Inspeção Completa (Checklist)
@@ -220,7 +221,7 @@ def instru_eyewash():
         - 📅 Cálculo automático de vencimentos
         - 📊 Histórico completo e rastreável
         """)
-    
+
     with col2:
         st.markdown("""
         ### ➕ Cadastro de Equipamento
@@ -253,12 +254,12 @@ def instru_eyewash():
         - 🏷️ Marcas comuns pré-cadastradas
         - ⚡ Interface intuitiva
         """)
-    
+
     st.markdown("---")
-    
+
     # Fluxo de trabalho recomendado
     st.subheader("🎯 Fluxo de Trabalho Recomendado")
-    
+
     st.info("""
     **Para Máxima Eficiência, Siga Esta Ordem:**
     
@@ -271,12 +272,12 @@ def instru_eyewash():
     3️⃣ **Novos Equipamentos Instalados?**
     → Use **Cadastrar Novo Equipamento** antes de realizar a primeira inspeção.
     """)
-    
+
     st.markdown("---")
-    
+
     # Guia detalhado de inspeção
     st.subheader("📋 Guia Completo: Inspeção com Checklist")
-    
+
     with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
         st.markdown("""
         #### **Antes de Começar:**
@@ -358,12 +359,12 @@ def instru_eyewash():
         - 📝 Registra no **histórico completo**
         - 🔔 Gera **alertas** se houver problemas críticos
         """)
-    
+
     st.markdown("---")
-    
+
     # Requisitos legais
     st.subheader("⚖️ Requisitos Legais e Normas")
-    
+
     with st.expander("📜 Normas e Legislação Aplicável", expanded=True):
         st.markdown("""
         #### **Principais Normas e Regulamentações:**
@@ -400,12 +401,12 @@ def instru_eyewash():
         - ✅ Manter um histórico detalhado para processos de certificação (ISO 45001, etc.).
         - ✅ Fornecer defesa documentada em caso de acidentes.
         """)
-    
+
     st.markdown("---")
-    
+
     # Critérios de aprovação/reprovação
     st.subheader("🎯 Critérios de Aprovação e Reprovação")
-    
+
     with st.expander("✅ Quando Aprovar um Equipamento"):
         st.markdown("""
         **Um equipamento está APROVADO quando:**
@@ -432,7 +433,7 @@ def instru_eyewash():
         - Iluminação adequada
         - Distância conforme norma (< 10 segundos de caminhada)
         """)
-    
+
     with st.expander("❌ Quando Reprovar um Equipamento"):
         st.markdown("""
         **Um equipamento deve ser REPROVADO quando:**
@@ -463,12 +464,12 @@ def instru_eyewash():
         - Providencie equipamento **substituto temporário** se necessário
         - Notifique **imediatamente** o responsável pela manutenção
         """)
-    
+
     st.markdown("---")
-    
+
     # Perguntas frequentes
     st.subheader("❓ Perguntas Frequentes")
-    
+
     with st.expander("📅 Com que frequência devo inspecionar?"):
         st.markdown("""
         As normas de referência estabelecem uma rotina clara:
@@ -481,7 +482,7 @@ def instru_eyewash():
         
         O sistema está configurado para um ciclo de **30 dias**, garantindo a conformidade com a inspeção documentada mensal.
         """)
-    
+
     with st.expander("💧 Como testar se o fluxo de água está adequado?"):
         st.markdown("""
         Você não precisa de equipamentos complexos para a inspeção mensal. Use uma avaliação visual baseada nos requisitos das normas:
@@ -496,7 +497,7 @@ def instru_eyewash():
         
         **Duração do Teste:** Para a verificação mensal, acione por tempo suficiente para garantir que a água saia limpa e o fluxo seja constante (geralmente 15-30 segundos). A norma exige que o equipamento seja capaz de fornecer fluxo por **15 minutos contínuos**.
         """)
-    
+
     with st.expander("📸 Preciso tirar foto em TODAS as inspeções?"):
         st.markdown("""
         **NÃO - Apenas quando houver não conformidade.**
@@ -522,7 +523,7 @@ def instru_eyewash():
         - 💾 Sistema aceita até 10MB por foto
         - 🖼️ Formatos: JPG, JPEG, PNG
         """)
-    
+
     with st.expander("🔧 O que fazer quando encontro um problema?"):
         st.markdown("""
         **Fluxo de Ação Recomendado:**
@@ -563,7 +564,7 @@ def instru_eyewash():
         - Anexe foto **após a correção** como evidência
         - Sistema mantém **rastreabilidade completa**
         """)
-    
+
     with st.expander("🆕 Como cadastrar um equipamento novo?"):
         st.markdown("""
         **Você tem DUAS opções de cadastro:**
@@ -614,9 +615,9 @@ def instru_eyewash():
         - 📊 É incluído nos relatórios e dashboards
         - 🔔 Sistema começa a monitorar vencimentos
         """)
-    
+
     st.markdown("---")
-    
+
     # Call-to-action
     st.success("""
     ### 🚀 Pronto para Começar?
@@ -636,7 +637,8 @@ def instru_eyewash():
     
     **Lembre-se:** Manter os registros de inspeção em dia é a sua melhor evidência de conformidade com a NR 20 e outras normas de segurança. ⚡
     """)
-    
+
+
 def instru_alarms():
     """Instruções para Sistemas de Alarme de Emergência"""
     st.header("📖 Guia de Uso - Gestão de Sistemas de Alarme de Emergência")
@@ -1016,6 +1018,8 @@ def instru_alarms():
     🔄 **Última Atualização das Instruções:** Janeiro/2025
     📖 **Versão do Guia:** 1.0
     """)
+
+
 def instru_foam_chamber():
     """Instruções para Câmaras de Espuma"""
     st.header("📖 Guia de Uso - Sistema de Câmaras de Espuma")
@@ -2437,6 +2441,7 @@ def instru_foam_chamber():
     📖 **Versão do Guia:** 1.0
     """)
 
+
 def instru_mangueiras():
     """Instruções para Mangueiras e Abrigos"""
     st.header("📖 Guia de Uso - Sistema de Mangueiras e Abrigos de Incêndio")
@@ -3556,8 +3561,6 @@ def instru_mangueiras():
     """)
 
 
-import streamlit as st
-
 def instru_dash():
     """Instruções para o Dashboard"""
     st.header("📘 Guia Completo da Dashboard")
@@ -3571,15 +3574,15 @@ def instru_dash():
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # ===================================================================
     # SEÇÃO 1: VISÃO GERAL
     # ===================================================================
     st.markdown("---")
     st.subheader("📊 O que é a Dashboard?")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("""
         ### 🎯 Propósito Principal
@@ -3594,7 +3597,7 @@ def instru_dash():
         - 🚨 **Identificação imediata** de problemas
         - 📄 **Geração rápida** de relatórios
         """)
-    
+
     with col2:
         st.markdown("""
         ### 📋 Equipamentos Monitorados
@@ -3611,18 +3614,18 @@ def instru_dash():
         8. 🔔 **Alarmes** - Inspeções de sistemas
         9. 🌊 **Canhões Monitores** - Inspeções visuais e funcionais
         """)
-    
+
     # ===================================================================
     # SEÇÃO 2: ENTENDENDO OS STATUS
     # ===================================================================
     st.markdown("---")
     st.subheader("🟢🟠🔴🔵 Decifrando os Indicadores de Status")
-    
+
     st.info("**IMPORTANTE:** Os status são calculados automaticamente pelo sistema com base nas datas e resultados das inspeções mais recentes.")
-    
+
     # Cards visuais para cada status
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.markdown("""
         <div style="background-color: #d4edda; border-left: 5px solid #28a745; 
@@ -3634,7 +3637,7 @@ def instru_dash():
             </p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown("""
         <div style="background-color: #fff3cd; border-left: 5px solid #ffc107; 
@@ -3647,7 +3650,7 @@ def instru_dash():
             </p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col3:
         st.markdown("""
         <div style="background-color: #f8d7da; border-left: 5px solid #dc3545; 
@@ -3660,7 +3663,7 @@ def instru_dash():
             </p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col4:
         st.markdown("""
         <div style="background-color: #d1ecf1; border-left: 5px solid #17a2b8; 
@@ -3672,13 +3675,13 @@ def instru_dash():
             </p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     # ===================================================================
     # SEÇÃO 3: NAVEGAÇÃO E USO
     # ===================================================================
     st.markdown("---")
     st.subheader("🧭 Como Navegar pela Dashboard")
-    
+
     with st.expander("📌 Passo 1: Escolha a Aba do Equipamento", expanded=True):
         st.markdown("""
         **No topo da página, você verá 10 abas:**
@@ -3696,7 +3699,7 @@ def instru_dash():
         3. **Lista de Equipamentos** - Com expansores para ver detalhes
         4. **Ações Rápidas** - Botões para registrar correções ou gerar relatórios
         """)
-    
+
     with st.expander("🔍 Passo 2: Use os Filtros e Métricas"):
         st.markdown("""
         ### 📊 Entendendo as Métricas do Topo
@@ -3728,7 +3731,7 @@ def instru_dash():
         - Ver **apenas problemas** → Deixe apenas 🔴 e 🟠
         - Ver **tudo que precisa atenção** → Desmarque apenas 🟢
         """)
-    
+
     with st.expander("📂 Passo 3: Explore os Detalhes de Cada Equipamento"):
         st.markdown("""
         ### 🔽 Expansores Interativos
@@ -3767,7 +3770,7 @@ def instru_dash():
            - Certificados de testes
            - Evidências de ações realizadas
         """)
-    
+
     with st.expander("✍️ Passo 4: Registre Ações Corretivas"):
         st.markdown("""
         ### 🛠️ Quando Registrar uma Ação?
@@ -3824,13 +3827,13 @@ def instru_dash():
         
         **Importante:** A ação fica **permanentemente registrada** para auditorias!
         """)
-    
+
     # ===================================================================
     # SEÇÃO 4: RELATÓRIOS
     # ===================================================================
     st.markdown("---")
     st.subheader("📄 Gerando Relatórios da Dashboard")
-    
+
     with st.expander("📋 Tipos de Relatórios Disponíveis", expanded=True):
         st.markdown("""
         Cada aba possui opções de relatórios específicas:
@@ -3878,15 +3881,15 @@ def instru_dash():
         - 📊 Relatórios incluem **gráficos e métricas** automaticamente
         - 🔒 Dados dos relatórios são **confiáveis para auditorias**
         """)
-    
+
     # ===================================================================
     # SEÇÃO 5: RECURSOS ESPECIAIS POR EQUIPAMENTO
     # ===================================================================
     st.markdown("---")
     st.subheader("⚙️ Recursos Especiais de Cada Aba")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         with st.expander("🔥 Recursos dos Extintores"):
             st.markdown("""
@@ -3909,7 +3912,7 @@ def instru_dash():
               - Registra substituto obrigatório
               - Mantém histórico completo
             """)
-        
+
         with st.expander("💧 Recursos das Mangueiras"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -3927,7 +3930,7 @@ def instru_dash():
               - Acesso direto aos PDFs de teste
               - Armazenados no Google Drive
             """)
-        
+
         with st.expander("🧯 Recursos dos Abrigos"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -3944,7 +3947,7 @@ def instru_dash():
               - Mostra item por item inspecionado
               - Status individual de cada componente
             """)
-        
+
         with st.expander("💨 Recursos do SCBA"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -3961,7 +3964,7 @@ def instru_dash():
               - Rastreia validade de laudos
               - Alerta sobre vencimentos
             """)
-        
+
         with st.expander("🌊 Recursos dos Canhões Monitores"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -3982,7 +3985,7 @@ def instru_dash():
               - Fotos de problemas identificados
               - Registro dos testes funcionais realizados
             """)
-    
+
     with col2:
         with st.expander("🚿 Recursos dos Chuveiros/Lava-Olhos"):
             st.markdown("""
@@ -4000,7 +4003,7 @@ def instru_dash():
               - Ao resolver problema, sistema aprova automaticamente
               - Gera nova inspeção conforme
             """)
-        
+
         with st.expander("☁️ Recursos das Câmaras de Espuma"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -4018,7 +4021,7 @@ def instru_dash():
               - Vê todas de um local de uma vez
               - Identifica problemas por área
             """)
-        
+
         with st.expander("💨 Recursos do Multigás"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -4036,7 +4039,7 @@ def instru_dash():
               - Link direto para certificado
               - Rastreamento de validade
             """)
-        
+
         with st.expander("🔔 Recursos dos Alarmes"):
             st.markdown("""
             **Funcionalidades Exclusivas:**
@@ -4053,13 +4056,13 @@ def instru_dash():
               - Status geral de todos os sistemas
               - Identifica falhas críticas
             """)
-    
+
     # ===================================================================
     # SEÇÃO 6: DICAS E BOAS PRÁTICAS
     # ===================================================================
     st.markdown("---")
     st.subheader("💡 Dicas e Boas Práticas")
-    
+
     with st.expander("⚡ Para Usar a Dashboard com Máxima Eficiência"):
         st.markdown("""
         ### 🎯 Rotina Diária Recomendada
@@ -4130,7 +4133,7 @@ def instru_dash():
         - Documentar motivos de baixa
         - Manter dados atualizados
         """)
-    
+
     with st.expander("🔒 Garantindo Conformidade em Auditorias"):
         st.markdown("""
         ### 📋 Preparação para Auditoria
@@ -4186,13 +4189,13 @@ def instru_dash():
            - Demonstre redução de problemas
            - Apresente ações preventivas
         """)
-    
+
     # ===================================================================
     # SEÇÃO 7: PROBLEMAS COMUNS
     # ===================================================================
     st.markdown("---")
     st.subheader("🔧 Solucionando Problemas Comuns")
-    
+
     with st.expander("❓ Perguntas Frequentes"):
         st.markdown("""
         ### **P: A dashboard não carregou nenhum dado. O que fazer?**
@@ -4273,7 +4276,7 @@ def instru_dash():
         - ✅ Log de auditoria de todas as ações
         - ✅ Conformidade com LGPD
         """)
-    
+
     with st.expander("🚨 Problemas Técnicos e Soluções"):
         st.markdown("""
         ### ⚠️ "Erro ao carregar dados da planilha"
@@ -4363,13 +4366,13 @@ def instru_dash():
         3. Use filtros para reduzir dados exibidos
         4. Atualize a página (F5)
         """)
-    
+
     # ===================================================================
     # SEÇÃO 8: RECURSOS AVANÇADOS
     # ===================================================================
     st.markdown("---")
     st.subheader("🎓 Recursos Avançados")
-    
+
     with st.expander("🔐 Para Administradores: Funcionalidades Exclusivas"):
         st.markdown("""
         ### 👑 Poderes de Administrador
@@ -4432,7 +4435,7 @@ def instru_dash():
         - IP de origem (quando disponível)
         - Antes/depois de alterações
         """)
-    
+
     with st.expander("📊 Análise de Tendências e KPIs"):
         st.markdown("""
         ### 📈 Como Usar a Dashboard para Análise Estratégica
@@ -4508,13 +4511,13 @@ def instru_dash():
         - Documentação completa?
         - Pronto para auditoria?
         """)
-    
+
     # ===================================================================
     # SEÇÃO 9: INTEGRAÇÃO COM OUTROS MÓDULOS
     # ===================================================================
     st.markdown("---")
     st.subheader("🔗 Integração com Outros Módulos do Sistema")
-    
+
     with st.expander("🧭 Como a Dashboard se Conecta com Outras Áreas"):
         st.markdown("""
         ### 🎯 Fluxo Completo do Sistema
@@ -4594,7 +4597,7 @@ def instru_dash():
         - Consolidação de dados
         - Geração de relatórios
         """)
-    
+
     # ===================================================================
     # SEÇÃO 10: CALL TO ACTION E PRÓXIMOS PASSOS
     # ===================================================================
@@ -4649,7 +4652,7 @@ def instru_dash():
     
     Faça dela parte da sua rotina diária de segurança. 💪
     """)
-    
+
     # ===================================================================
     # FOOTER COM INFORMAÇÕES ADICIONAIS
     # ===================================================================
@@ -4660,31 +4663,31 @@ def instru_dash():
     📖 **Documentação Completa:** Acesse o menu "Documentação" no sistema  
     🆘 **Suporte Técnico:** Disponível de Segunda a Sexta, 8h às 18h  
     """)
-    
+
     # Dica visual final
     st.info("""
     💡 **Dica Final:** Adicione esta página aos favoritos do seu navegador! 
     Volte aqui sempre que tiver dúvidas sobre como usar a dashboard.
     """, icon="💡")
-   
-    
+
+
 def instru_extinguisher():
     """Instruções para Inspeção de Extintores"""
     st.header("📖 Guia de Uso - Sistema de Inspeção de Extintores")
-    
+
     # Alerta de priorização
     st.success(
         "⚡ **Recomendação:** Para inspeções mais rápidas e eficientes, "
         "utilize a **Inspeção Rápida via QR Code**! É o método mais ágil e prático."
     )
-    
+
     st.markdown("---")
-    
+
     # Comparação de métodos
     st.subheader("🎯 Escolha o Melhor Método para Sua Situação")
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.markdown("""
         ### 📱 Inspeção QR Code
@@ -4711,7 +4714,7 @@ def instru_extinguisher():
         - 📱 Funciona direto no celular
         - 🔍 Sem digitar códigos manualmente
         """)
-    
+
     with col2:
         st.markdown("""
         ### 🗂️ Registro em Lote (PDF)
@@ -4738,7 +4741,7 @@ def instru_extinguisher():
         
         **Requer:** Plano Premium IA
         """)
-    
+
     with col3:
         st.markdown("""
         ### 📝 Cadastro Manual
@@ -4763,12 +4766,12 @@ def instru_extinguisher():
         - 🔧 Flexibilidade máxima
         - 🆕 Para equipamentos novos
         """)
-    
+
     st.markdown("---")
-    
+
     # Fluxo de trabalho recomendado
     st.subheader("🎯 Fluxo de Trabalho Recomendado")
-    
+
     st.info("""
     **Para Máxima Eficiência, Siga Esta Ordem:**
     
@@ -4778,12 +4781,12 @@ def instru_extinguisher():
     
     3️⃣ **Cadastrar Extintor Novo ou Fazer Correção** → Use **Cadastro Manual**
     """)
-    
+
     st.markdown("---")
-    
+
     # Guia detalhado de QR Code
     st.subheader("📱 Guia Completo: Inspeção Rápida via QR Code")
-    
+
     with st.expander("🚀 Passo a Passo Detalhado", expanded=True):
         st.markdown("""
         #### **Antes de Começar:**
@@ -4875,12 +4878,12 @@ def instru_extinguisher():
         - ✅ Confirme se o extintor foi cadastrado na aba "Cadastrar / Editar"
         - ✅ Entre em contato com o administrador se necessário
         """)
-    
+
     st.markdown("---")
-    
+
     # Perguntas frequentes
     st.subheader("❓ Perguntas Frequentes")
-    
+
     with st.expander("📍 Por que preciso permitir a localização?"):
         st.markdown("""
         A localização GPS é essencial para:
@@ -4891,7 +4894,7 @@ def instru_extinguisher():
         
         **Não se preocupe:** Sua localização só é usada no momento da inspeção e fica vinculada ao equipamento, não a você.
         """)
-    
+
     with st.expander("🤖 Preciso do plano Premium IA para usar QR Code?"):
         st.markdown("""
         **NÃO!** A inspeção via QR Code está disponível para **todos os planos Pro e Premium IA**.
@@ -4903,7 +4906,7 @@ def instru_extinguisher():
         
         Mas o QR Code já está liberado no seu plano atual! 🎉
         """)
-    
+
     with st.expander("⏱️ Quanto tempo leva cada método?"):
         st.markdown("""
         **Tempos médios por equipamento:**
@@ -4918,7 +4921,7 @@ def instru_extinguisher():
         
         **💡 A inspeção QR Code é até 5x mais rápida!**
         """)
-    
+
     with st.expander("📸 Quando devo tirar fotos?"):
         st.markdown("""
         **Tire fotos apenas quando:**
@@ -4932,7 +4935,7 @@ def instru_extinguisher():
         
         **Dica:** Use a opção "Enviar da Galeria" para fotos de melhor qualidade.
         """)
-    
+
     with st.expander("🔧 Posso editar uma inspeção depois de salvar?"):
         st.markdown("""
         **Não diretamente, mas você pode:**
@@ -4945,9 +4948,9 @@ def instru_extinguisher():
         
         Para correções administrativas, contate um administrador do sistema.
         """)
-    
+
     st.markdown("---")
-    
+
     # Call-to-action
     st.success("""
     ### 🚀 Pronto para Começar?
@@ -4958,24 +4961,23 @@ def instru_extinguisher():
     """)
 
 
-
 def instru_scba():
     """Instruções para SCBA"""
     st.header("📖 Guia de Uso - Sistema de Conjuntos Autônomos (SCBA)")
-    
+
     # Alerta de priorização
     st.success(
         "⚡ **Recomendação:** Para inspeções regulares, use a **Inspeção Visual Periódica**! "
         "É completa, guiada e não requer upload de arquivos."
     )
-    
+
     st.markdown("---")
-    
+
     # Comparação de métodos
     st.subheader("🎯 Escolha o Melhor Método para Sua Situação")
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.markdown("""
         ### 🔍 Inspeção Visual
@@ -5009,7 +5011,7 @@ def instru_scba():
         - 🤖 Avaliação automática
         - 📊 Rastreabilidade completa
         """)
-    
+
     with col2:
         st.markdown("""
         ### 🤖 Testes Posi3 (IA)
@@ -5039,7 +5041,7 @@ def instru_scba():
         
         **Requer:** Plano Premium IA
         """)
-    
+
     with col3:
         st.markdown("""
         ### 💨 Qualidade do Ar
@@ -5065,12 +5067,12 @@ def instru_scba():
         - 🔢 Registra múltiplos cilindros de uma vez
         - 📊 Rastreabilidade do ar comprimido
         """)
-    
+
     st.markdown("---")
-    
+
     # Fluxo de trabalho recomendado
     st.subheader("🎯 Fluxo de Trabalho Recomendado")
-    
+
     st.info("""
     **Para Máxima Eficiência, Siga Esta Ordem:**
     
@@ -5082,12 +5084,12 @@ def instru_scba():
     
     4️⃣ **Cadastrar SCBA Novo** → Use **"Cadastrar Novo SCBA"**
     """)
-    
+
     st.markdown("---")
-    
+
     # Perguntas frequentes
     st.subheader("❓ Perguntas Frequentes")
-    
+
     with st.expander("🔍 Qual a diferença entre Inspeção Visual e Teste Posi3?"):
         st.markdown("""
         **Inspeção Visual Periódica:**
@@ -5114,7 +5116,7 @@ def instru_scba():
         
         **Ambos são obrigatórios e complementares!**
         """)
-    
+
     with st.expander("⏰ Com que frequência devo fazer cada inspeção?"):
         st.markdown("""
         **Calendário Obrigatório:**
@@ -5141,7 +5143,7 @@ def instru_scba():
         
         **💡 Dica:** Configure lembretes mensais no sistema!
         """)
-    
+
     with st.expander("😷 Como faço a limpeza e manutenção básica do SCBA?"):
         st.markdown("""
         ### **Limpeza Após Cada Uso**
@@ -5178,7 +5180,6 @@ def instru_scba():
         - ⏰ Nunca ultrapasse os prazos de inspeção periódica
         - 💡 Crie rotina: limpeza e checklist sempre após cada uso
         """)
-
 
 
 def instru_multigas():
@@ -5443,8 +5444,3 @@ def instru_multigas():
         - 🔄 Mantenha o **cilindro de referência sempre acessível**
         - 📱 Use tablet ou celular em campo (sistema é responsivo)
         """)
-
-
-
-
-

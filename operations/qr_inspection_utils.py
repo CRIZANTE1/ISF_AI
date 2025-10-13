@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
+
 def decode_qr_from_image(image_file):
     """
     Decodifica o QR code, aplicando pré-processamento para melhorar a detecção.
@@ -15,12 +16,12 @@ def decode_qr_from_image(image_file):
             return None, None
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                        cv2.THRESH_BINARY, 11, 2)
 
         # Inicializa o detector
         detector = cv2.QRCodeDetector()
-        
+
         # Tenta decodificar a imagem processada
         decoded_text, _, _ = detector.detectAndDecode(thresh)
 
@@ -31,10 +32,10 @@ def decode_qr_from_image(image_file):
         # Se ainda falhar, tenta na imagem colorida original como último recurso
         if not decoded_text:
             decoded_text, _, _ = detector.detectAndDecode(img)
-            
+
         if not decoded_text:
             return None, None
-        
+
         # Lógica de extração (permanece a mesma)
         decoded_text = decoded_text.strip()
         if '#' in decoded_text:
@@ -48,26 +49,29 @@ def decode_qr_from_image(image_file):
             id_equipamento = decoded_text
             selo_inmetro = None
             return id_equipamento, selo_inmetro
-            
+
     except Exception:
         return None, None
+
 
 def find_last_record_from_history(df_history, search_value, column_name):
     """
     Função genérica para encontrar o último registro em um DataFrame de histórico.
     """
-    if df_history.empty or column_name not in df_history.columns: 
+    if df_history.empty or column_name not in df_history.columns:
         return None
-        
-    records = df_history[df_history[column_name].astype(str) == str(search_value)].copy()
-    
-    if records.empty: 
+
+    records = df_history[df_history[column_name].astype(
+        str) == str(search_value)].copy()
+
+    if records.empty:
         return None
-        
-    records['data_servico'] = pd.to_datetime(records['data_servico'], errors='coerce')
+
+    records['data_servico'] = pd.to_datetime(
+        records['data_servico'], errors='coerce')
     records.dropna(subset=['data_servico'], inplace=True)
-    
-    if records.empty: 
+
+    if records.empty:
         return None
-        
+
     return records.sort_values(by='data_servico', ascending=False).iloc[0].to_dict()

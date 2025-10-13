@@ -2,7 +2,7 @@ import streamlit as st
 import msal
 import logging
 from streamlit_js_eval import streamlit_js_eval
-from utils.auditoria import log_action 
+from utils.auditoria import log_action
 
 
 logger = logging.getLogger('abrangencia_app.azure_auth')
@@ -13,7 +13,8 @@ TENANT_ID = st.secrets.get("azure", {}).get("tenant_id")
 REDIRECT_URI = st.secrets.get("azure", {}).get("redirect_uri")
 
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPE = ["User.Read"] # Permissões básicas para ler o perfil do usuário
+SCOPE = ["User.Read"]  # Permissões básicas para ler o perfil do usuário
+
 
 @st.cache_resource
 def get_msal_app():
@@ -27,6 +28,7 @@ def get_msal_app():
         client_credential=CLIENT_SECRET
     )
 
+
 def get_login_button():
     """Gera a URL de login do Azure e retorna um st.link_button."""
     msal_app = get_msal_app()
@@ -38,7 +40,8 @@ def get_login_button():
         scopes=SCOPE,
         redirect_uri=REDIRECT_URI
     )
-    st.link_button("Fazer Login com Microsoft Azure", auth_url, use_container_width=True)
+    st.link_button("Fazer Login com Microsoft Azure",
+                   auth_url, use_container_width=True)
 
 
 def handle_redirect():
@@ -62,8 +65,10 @@ def handle_redirect():
         )
 
         if "error" in result:
-            logger.error(f"Erro ao adquirir token: {result.get('error_description')}")
-            st.error(f"Erro de autenticação: {result.get('error_description')}")
+            logger.error(
+                f"Erro ao adquirir token: {result.get('error_description')}")
+            st.error(
+                f"Erro de autenticação: {result.get('error_description')}")
             st.session_state.login_processed = True
             return
 
@@ -79,7 +84,7 @@ def handle_redirect():
         # Limpa e normaliza os dados do usuário
         user_email_cleaned = user_email.lower().strip()
         user_name_cleaned = user_name or user_email_cleaned.split('@')[0]
-        
+
         # Salva as informações na sessão
         st.session_state.is_logged_in = True
         st.session_state.user_info_custom = {
@@ -93,11 +98,13 @@ def handle_redirect():
         # Note que get_user_email() e outras funções de auth_utils agora funcionarão
         # porque acabamos de definir o session_state.
         log_action("LOGIN_SUCCESS_AZURE", f"Email: {user_email_cleaned}")
-        logger.info(f"Usuário '{user_email_cleaned}' autenticado. Redirecionando...")
+        logger.info(
+            f"Usuário '{user_email_cleaned}' autenticado. Redirecionando...")
         # --- FIM DA CHAMADA ---
-        
+
         st.success("Autenticação bem-sucedida! Redirecionando...")
-        streamlit_js_eval(js_expressions="window.location.href = window.location.pathname;")
+        streamlit_js_eval(
+            js_expressions="window.location.href = window.location.pathname;")
         st.stop()
 
     except Exception as e:

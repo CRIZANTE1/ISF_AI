@@ -7,12 +7,13 @@ from weasyprint import HTML
 from supabase.client import get_supabase_client
 from operations.photo_operations import display_drive_image
 
+
 def log_shipment(df_selected_items, item_type, bulletin_number):
     """Salva o log dos itens enviados na tabela correspondente do Supabase."""
     db_client = get_supabase_client()
     today_iso = date.today().isoformat()
     current_year = date.today().year
-    
+
     records_to_save = []
     if item_type == 'Mangueiras':
         table_name = "log_remessa_mangueiras"
@@ -31,42 +32,56 @@ def log_shipment(df_selected_items, item_type, bulletin_number):
             "numero_boletim": bulletin_number
         }
         records_to_save.append(record)
-    
+
     if records_to_save:
         db_client.append_data(table_name, records_to_save)
 
+
 def select_extinguishers_for_maintenance(df_extinguishers, df_shipment_log):
     """Seleciona ~50% dos extintores para manutenção."""
-    if df_extinguishers.empty: return pd.DataFrame()
-    df_extinguishers['data_servico'] = pd.to_datetime(df_extinguishers['data_servico'], errors='coerce')
-    latest_extinguishers = df_extinguishers.sort_values('data_servico', ascending=False).drop_duplicates('numero_identificacao', keep='first')
+    if df_extinguishers.empty:
+        return pd.DataFrame()
+    df_extinguishers['data_servico'] = pd.to_datetime(
+        df_extinguishers['data_servico'], errors='coerce')
+    latest_extinguishers = df_extinguishers.sort_values(
+        'data_servico', ascending=False).drop_duplicates('numero_identificacao', keep='first')
     current_year = date.today().year
     sent_this_year = []
     if not df_shipment_log.empty and 'ano_remessa' in df_shipment_log.columns:
         if 'numero_identificacao' in df_shipment_log.columns:
-            sent_this_year = df_shipment_log[df_shipment_log['ano_remessa'].astype(str) == str(current_year)]['numero_identificacao'].tolist()
-    eligible = latest_extinguishers[~latest_extinguishers['numero_identificacao'].isin(sent_this_year)]
-    if eligible.empty: return pd.DataFrame()
+            sent_this_year = df_shipment_log[df_shipment_log['ano_remessa'].astype(
+                str) == str(current_year)]['numero_identificacao'].tolist()
+    eligible = latest_extinguishers[~latest_extinguishers['numero_identificacao'].isin(
+        sent_this_year)]
+    if eligible.empty:
+        return pd.DataFrame()
     eligible = eligible.sort_values(by='data_servico', ascending=True)
     num_to_select = max(1, len(eligible) // 2)
     return eligible.head(num_to_select)
 
+
 def select_hoses_for_th(df_hoses, df_shipment_log):
     """Seleciona ~50% das mangueiras para teste."""
-    if df_hoses.empty: return pd.DataFrame()
-    if 'ano_fabricacao' not in df_hoses.columns: return pd.DataFrame()
-    df_hoses['ano_fabricacao'] = pd.to_numeric(df_hoses['ano_fabricacao'], errors='coerce')
+    if df_hoses.empty:
+        return pd.DataFrame()
+    if 'ano_fabricacao' not in df_hoses.columns:
+        return pd.DataFrame()
+    df_hoses['ano_fabricacao'] = pd.to_numeric(
+        df_hoses['ano_fabricacao'], errors='coerce')
     df_hoses = df_hoses.dropna(subset=['ano_fabricacao', 'id_mangueira'])
     current_year = date.today().year
     sent_this_year = []
     if not df_shipment_log.empty and 'ano_remessa' in df_shipment_log.columns:
         if 'id_mangueira' in df_shipment_log.columns:
-            sent_this_year = df_shipment_log[df_shipment_log['ano_remessa'].astype(str) == str(current_year)]['id_mangueira'].tolist()
+            sent_this_year = df_shipment_log[df_shipment_log['ano_remessa'].astype(
+                str) == str(current_year)]['id_mangueira'].tolist()
     eligible = df_hoses[~df_hoses['id_mangueira'].isin(sent_this_year)]
-    if eligible.empty: return pd.DataFrame()
+    if eligible.empty:
+        return pd.DataFrame()
     eligible = eligible.sort_values(by='ano_fabricacao', ascending=True)
     num_to_select = max(1, len(eligible) // 2)
     return eligible.head(num_to_select)
+
 
 def generate_pdf_from_html(html_content):
     """Converte uma string HTML em um objeto de bytes de PDF usando WeasyPrint."""
@@ -74,13 +89,15 @@ def generate_pdf_from_html(html_content):
     HTML(string=html_content).write_pdf(pdf_bytes)
     return pdf_bytes.getvalue()
 
+
 def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info, destinatario_info, bulletin_number):
     """
     Gera o HTML para o boletim e o converte para um PDF em bytes, incluindo campos para assinatura.
     """
     today = date.today().strftime('%d/%m/%Y')
-    
-    logo_url = "YOUR_SUPABASE_PUBLIC_LOGO_URL" # TODO: Replace with actual Supabase public URL
+
+    # TODO: Replace with actual Supabase public URL
+    logo_url = "YOUR_SUPABASE_PUBLIC_LOGO_URL"
     logo_html = f'<img src="{logo_url}" alt="Logo VIBRA" style="max-width: 150px; max-height: 70px;">'
 
     styles = """
@@ -111,7 +128,7 @@ def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info,
         .signature-box .line { border-top: 1px solid #000; margin-top: 40px; }
     </style>
     """
-    
+
     total_value = 0
     item_rows_html = ""
     for _, row in df_selected_items.iterrows():
@@ -125,12 +142,17 @@ def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info,
             description = f"EXTINTOR DE INCÊNDIO P/ MANUTENÇÃO - TIPO {row.get('tipo_agente', 'N/A')} - {row.get('capacidade', 'N/A')}"
             capacidade = str(row.get('capacidade', '')).lower()
             agente = str(row.get('tipo_agente', '')).lower()
-            if '50kg' in capacidade: unit_value = 3000.00
-            elif '12kg' in capacidade: unit_value = 293.00
-            elif 'abc' in agente: unit_value = 600.00
-            elif 'co2' in agente: unit_value = 300.00
-            else: unit_value = 150.00
-            
+            if '50kg' in capacidade:
+                unit_value = 3000.00
+            elif '12kg' in capacidade:
+                unit_value = 293.00
+            elif 'abc' in agente:
+                unit_value = 600.00
+            elif 'co2' in agente:
+                unit_value = 300.00
+            else:
+                unit_value = 150.00
+
         total_value += unit_value
         item_rows_html += f"""
         <tr>
@@ -202,5 +224,5 @@ def generate_shipment_html_and_pdf(df_selected_items, item_type, remetente_info,
         </div></body>
     </html>
     """
-    
+
     return generate_pdf_from_html(html_string)

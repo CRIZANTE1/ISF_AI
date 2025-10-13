@@ -2,28 +2,33 @@ import pandas as pd
 from datetime import datetime
 
 # URL da imagem do logo (upload em um local público ou usar ID do Drive)
-LOGO_URL = "https://sindicom.com.br/wp-content/uploads/2021/11/vibra-sem-fundo.png" # Logo da Vibra (exemplo)
+# Logo da Vibra (exemplo)
+LOGO_URL = "https://sindicom.com.br/wp-content/uploads/2021/11/vibra-sem-fundo.png"
+
 
 def generate_bump_test_html(df_tests, df_inventory, unit_name):
     """
     Gera um relatório de Registro de Bump Test em HTML com base nos dados fornecidos.
     """
-    
+
     # Junta os dados dos testes com os dados do inventário para obter marca, modelo, etc.
     if not df_inventory.empty:
         report_df = pd.merge(
             df_tests,
-            df_inventory[['id_equipamento', 'marca', 'modelo', 'numero_serie']],
+            df_inventory[['id_equipamento',
+                          'marca', 'modelo', 'numero_serie']],
             on='id_equipamento',
             how='left'
         )
     else:
         report_df = df_tests
         report_df[['marca', 'modelo', 'numero_serie']] = 'N/A'
-    
+
     # Formata as colunas de data e hora
-    report_df['data_teste_fmt'] = pd.to_datetime(report_df['data_teste']).dt.strftime('%d/%m/%Y')
-    report_df['hora_teste_fmt'] = report_df['hora_teste'].apply(lambda x: x.split(':')[0] + ':' + x.split(':')[1] if isinstance(x, str) and ':' in x else 'N/A')
+    report_df['data_teste_fmt'] = pd.to_datetime(
+        report_df['data_teste']).dt.strftime('%d/%m/%Y')
+    report_df['hora_teste_fmt'] = report_df['hora_teste'].apply(lambda x: x.split(
+        ':')[0] + ':' + x.split(':')[1] if isinstance(x, str) and ':' in x else 'N/A')
 
     # Gera as linhas da tabela
     table_rows_html = ""
@@ -41,7 +46,7 @@ def generate_bump_test_html(df_tests, df_inventory, unit_name):
             <td>Nome: {row.get('responsavel_nome', '')}<br>Matrícula: {row.get('responsavel_matricula', '')}<br>Assinatura:</td>
         </tr>
         """
-        
+
     # Preenche com linhas vazias para completar o formulário (total de 20 linhas)
     num_empty_rows = max(0, 20 - len(report_df))
     for _ in range(num_empty_rows):
@@ -58,7 +63,7 @@ def generate_bump_test_html(df_tests, df_inventory, unit_name):
             <td>Nome:<br>Matrícula:<br>Assinatura:</td>
         </tr>
         """
-        
+
     styles = """
     <style>
         @media print { body { -webkit-print-color-adjust: exact; } }

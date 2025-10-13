@@ -1,9 +1,10 @@
 import streamlit as st
 import json
 from supabase.client import get_supabase_client
-from datetime import date 
-from dateutil.relativedelta import relativedelta 
-from utils.auditoria import log_action 
+from datetime import date
+from dateutil.relativedelta import relativedelta
+from utils.auditoria import log_action
+
 
 def save_shelter_inventory(shelter_id, client, local, items_dict):
     """
@@ -13,7 +14,7 @@ def save_shelter_inventory(shelter_id, client, local, items_dict):
     try:
         db_client = get_supabase_client()
         items_json_string = json.dumps(items_dict, ensure_ascii=False)
-        
+
         # Verifica se o ID já existe
         df_shelters = db_client.get_data("abrigos")
         if not df_shelters.empty and shelter_id in df_shelters['id_abrigo'].values:
@@ -33,6 +34,7 @@ def save_shelter_inventory(shelter_id, client, local, items_dict):
         st.error(f"Erro ao salvar inventário do abrigo {shelter_id}: {e}")
         return False
 
+
 def save_shelter_inspection(shelter_id, overall_status, inspection_results, inspector_name):
     """
     Salva o resultado de uma inspeção de abrigo e calcula a próxima data de inspeção.
@@ -41,8 +43,9 @@ def save_shelter_inspection(shelter_id, overall_status, inspection_results, insp
         db_client = get_supabase_client()
         today = date.today()
         next_inspection_date = (today + relativedelta(months=3)).isoformat()
-        results_json_string = json.dumps(inspection_results, ensure_ascii=False)
-        
+        results_json_string = json.dumps(
+            inspection_results, ensure_ascii=False)
+
         new_record = {
             "data_inspecao": today.isoformat(),
             "id_abrigo": shelter_id,
@@ -51,13 +54,15 @@ def save_shelter_inspection(shelter_id, overall_status, inspection_results, insp
             "inspetor": inspector_name,
             "data_proxima_inspecao": next_inspection_date
         }
-        
+
         db_client.append_data("inspecoes_abrigos", new_record)
-        log_action("SALVOU_INSPECAO_ABRIGO", f"ID: {shelter_id}, Status: {overall_status}")
+        log_action("SALVOU_INSPECAO_ABRIGO",
+                   f"ID: {shelter_id}, Status: {overall_status}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar inspeção do abrigo {shelter_id}: {e}")
         return False
+
 
 def save_shelter_action_log(shelter_id, problem, action_taken, responsible):
     """

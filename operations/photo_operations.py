@@ -7,57 +7,58 @@ import requests
 import logging
 
 logger = logging.getLogger(__name__)
-BUCKET_NAME = "evidencias" # O nome do bucket que você criou
+BUCKET_NAME = "evidencias"  # O nome do bucket que você criou
 
-def upload_evidence_photo(photo_file, id_equipamento, photo_type="nao_conformidade"):
+
+def upload_evidence_photo(photo_file, equipment_id: str, folder: str) -> str:
     """
-    Faz o upload de uma foto de evidência para o Supabase Storage e retorna a URL PÚBLICA.
+    Faz upload de foto para o Supabase Storage.
     
     Args:
-        photo_file: O objeto de arquivo do Streamlit.
-        id_equipamento (str): O ID do equipamento para nomear o arquivo.
-        photo_type (str): "nao_conformidade" ou "acao_corretiva".
-    
+        photo_file: Arquivo de foto (UploadedFile do Streamlit)
+        equipment_id: ID do equipamento
+        folder: Pasta de destino no storage
+        
     Returns:
-        str or None: A URL pública da foto no Supabase Storage ou None se falhar.
+        URL pública da foto ou None se falhar
     """
     if not photo_file:
         return None
-
-    try:
-        db_client = get_supabase_client()
-        supabase_storage = db_client.client.storage
         
-        # Monta um nome de arquivo único
-        file_name = f"foto_{photo_type.lower()}_id_{id_equipamento}_{date.today().isoformat()}.jpg"
-        path_in_bucket = f"public/{file_name}" # Usar uma pasta 'public' é uma boa prática
+    try:
+        from supabase.client import get_supabase_client
+        from datetime import datetime
+        
+        db_client = get_supabase_client()
+        
+        # Gera nome único para o arquivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = photo_file.name.split('.')[-1]
+        file_name = f"{folder}/{equipment_id}_{timestamp}.{file_extension}"
         
         # Lê os bytes do arquivo
-        file_bytes = photo_file.getvalue()
+        file_bytes = photo_file.read()
         
-        # Faz o upload para o bucket
-        response = supabase_storage.from_(BUCKET_NAME).upload(
-            file=file_bytes,
-            path=path_in_bucket,
-            file_options={"content-type": "image/jpeg", "upsert": "true"} # upsert=true sobrescreve se já existir
+        # Upload para o Supabase Storage
+        response = db_client.supabase.storage.from_('evidence-photos').upload(
+            file_name,
+            file_bytes,
+            file_options={"content-type": photo_file.type}
         )
         
-        # Obtém a URL pública
-        public_url_response = supabase_storage.from_(BUCKET_NAME).get_public_url(path_in_bucket)
+        if response:
+            # Retorna URL pública
+            public_url = db_client.supabase.storage.from_('evidence-photos').get_public_url(file_name)
+            return public_url
         
-        if public_url_response:
-            st.success(f"Foto de evidência ({photo_type}) salva no Supabase Storage!")
-            logger.info(f"Foto salva em: {public_url_response}")
-            return public_url_response
-        else:
-            logger.error("Falha ao obter URL pública da foto após upload.")
-            st.error("Foto enviada, mas não foi possível obter o link público.")
-            return None
+        return None
         
     except Exception as e:
-        logger.error(f"Falha ao fazer upload da foto para o Supabase Storage: {e}")
-        st.error(f"Falha ao fazer upload da foto de evidência: {e}")
+        st.error(f"Erro ao fazer upload da foto: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return None
+
 
 def display_drive_image(image_url, caption="", width=300):
     """
@@ -71,9 +72,10 @@ def display_drive_image(image_url, caption="", width=300):
         # A URL pública do Supabase já é direta para o conteúdo
         response = requests.get(image_url, timeout=15)
         response.raise_for_status()
-        
+
         st.image(response.content, caption=caption, width=width)
-        
+
     except requests.exceptions.RequestException as e:
-        st.warning(f"Não foi possível carregar a imagem de evidência. Link: {image_url}")
+        st.warning(
+            f"Não foi possível carregar a imagem de evidência. Link: {image_url}")
         logger.warning(f"Erro ao carregar imagem do Supabase: {e}")

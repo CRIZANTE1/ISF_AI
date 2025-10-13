@@ -38,11 +38,12 @@ CHECKLIST_FUNCIONAL = {
     ]
 }
 
+
 def save_new_canhao_monitor(equip_id, location, brand, model):
     """Salva um novo canhão monitor no inventário."""
     try:
         db_client = get_supabase_client()
-        
+
         # Verifica se o ID já existe
         df_inventory = db_client.get_data("inventario_canhoes_monitores")
         if not df_inventory.empty and equip_id in df_inventory['id_equipamento'].values:
@@ -56,7 +57,7 @@ def save_new_canhao_monitor(equip_id, location, brand, model):
             "modelo": model,
             "data_cadastro": date.today().isoformat()
         }
-        
+
         db_client.append_data("inventario_canhoes_monitores", new_record)
         log_action("CADASTROU_CANHAO_MONITOR", f"ID: {equip_id}")
         return True
@@ -64,12 +65,13 @@ def save_new_canhao_monitor(equip_id, location, brand, model):
         st.error(f"Erro ao salvar novo canhão monitor: {e}")
         return False
 
+
 def save_canhao_monitor_inspection(equip_id, inspection_type, overall_status, results_dict, photo_file, inspector_name):
     """Salva uma nova inspeção de canhão monitor."""
     try:
         db_client = get_supabase_client()
         today = date.today()
-        
+
         photo_link = None
         if photo_file:
             photo_link = upload_evidence_photo(
@@ -80,12 +82,14 @@ def save_canhao_monitor_inspection(equip_id, inspection_type, overall_status, re
 
         if inspection_type == "Teste Funcional (Anual)":
             next_inspection_date = (today + relativedelta(years=1)).isoformat()
-        else: # Visual Trimestral
-            next_inspection_date = (today + relativedelta(months=3)).isoformat()
-            
-        non_conformities = [q for q, status in results_dict.items() if status == "Não Conforme"]
+        else:  # Visual Trimestral
+            next_inspection_date = (
+                today + relativedelta(months=3)).isoformat()
+
+        non_conformities = [
+            q for q, status in results_dict.items() if status == "Não Conforme"]
         action_plan = "Corrigir itens não conformes." if non_conformities else "Manter monitoramento periódico."
-        
+
         results_json = json.dumps(results_dict, ensure_ascii=False)
 
         inspection_record = {
@@ -99,24 +103,26 @@ def save_canhao_monitor_inspection(equip_id, inspection_type, overall_status, re
             "inspetor": inspector_name,
             "data_proxima_inspecao": next_inspection_date
         }
-        
+
         db_client.append_data("inspecoes_canhoes_monitores", inspection_record)
-        log_action("SALVOU_INSPECAO_CANHAO_MONITOR", f"ID: {equip_id}, Tipo: {inspection_type}, Status: {overall_status}")
+        log_action("SALVOU_INSPECAO_CANHAO_MONITOR",
+                   f"ID: {equip_id}, Tipo: {inspection_type}, Status: {overall_status}")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar a inspeção para {equip_id}: {e}")
         return False
 
+
 def save_canhao_monitor_action_log(equip_id, problem, action_taken, responsible, photo_file=None):
     """Salva um registro de ação corretiva para um canhão monitor no log específico."""
     try:
         db_client = get_supabase_client()
-        
+
         photo_link = None
         if photo_file:
             photo_link = upload_evidence_photo(
-                photo_file, 
-                equip_id, 
+                photo_file,
+                equip_id,
                 "acao_corretiva_canhao"
             )
 
@@ -128,9 +134,10 @@ def save_canhao_monitor_action_log(equip_id, problem, action_taken, responsible,
             "responsavel": responsible,
             "link_foto_evidencia": photo_link if photo_link else ""
         }
-        
+
         db_client.append_data("log_acoes_canhoes_monitores", log_record)
-        log_action("REGISTROU_ACAO_CANHAO_MONITOR", f"ID: {equip_id}, Ação: {action_taken[:50]}...")
+        log_action("REGISTROU_ACAO_CANHAO_MONITOR",
+                   f"ID: {equip_id}, Ação: {action_taken[:50]}...")
         return True
     except Exception as e:
         st.error(f"Erro ao salvar log de ação para o canhão {equip_id}: {e}")

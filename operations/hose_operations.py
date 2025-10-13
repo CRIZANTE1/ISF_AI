@@ -6,6 +6,7 @@ from supabase.client import get_supabase_client
 from utils.auditoria import log_action
 from auth.auth_utils import get_user_display_name
 
+
 def save_new_hose(hose_data: dict) -> bool:
     """
     Salva uma nova mangueira na tabela 'mangueiras' do Supabase.
@@ -18,7 +19,7 @@ def save_new_hose(hose_data: dict) -> bool:
         if not df_hoses.empty and hose_data['id_mangueira'] in df_hoses['id_mangueira'].values:
             st.error(f"Erro: O ID '{hose_data['id_mangueira']}' já existe.")
             return False
-        
+
         # Prepara o dicionário para inserção
         new_hose_record = {
             'id_mangueira': hose_data['id_mangueira'],
@@ -37,9 +38,10 @@ def save_new_hose(hose_data: dict) -> bool:
         }
 
         db_client.append_data("mangueiras", new_hose_record)
-        
-        log_action("CADASTROU_MANGUEIRA_MANUAL", f"ID: {hose_data['id_mangueira']}, Marca: {hose_data['marca']}, Tipo: {hose_data['tipo']}")
-        
+
+        log_action("CADASTROU_MANGUEIRA_MANUAL",
+                   f"ID: {hose_data['id_mangueira']}, Marca: {hose_data['marca']}, Tipo: {hose_data['tipo']}")
+
         return True
     except Exception as e:
         st.error(f"Erro ao salvar nova mangueira: {e}")

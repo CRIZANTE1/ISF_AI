@@ -51,6 +51,8 @@ def get_extinguisher_inspection_prompt():
       ]
     }
     """
+
+
 def get_hose_inspection_prompt():
     """
     Retorna um prompt para extrair dados de certificados de inspeção e manutenção de mangueiras de incêndio.
@@ -111,6 +113,7 @@ def get_hose_inspection_prompt():
     }
     """
 
+
 def get_shelter_inventory_prompt():
     """
     Retorna um prompt para extrair o inventário de abrigos de emergência de um documento.
@@ -147,7 +150,8 @@ def get_shelter_inventory_prompt():
         }
       ]
     }
-    """    
+    """
+
 
 def get_scba_inspection_prompt():
     """
@@ -207,6 +211,7 @@ def get_scba_inspection_prompt():
     }
     """
 
+
 def get_air_quality_prompt():
     """
     Retorna um prompt para extrair a data e o resultado de um Laudo de Qualidade do Ar.
@@ -233,7 +238,8 @@ def get_air_quality_prompt():
       }
     }
     """
-    
+
+
 def get_multigas_calibration_prompt():
     """
     Retorna um prompt para extrair dados de Certificados de Calibração de detectores multigás.

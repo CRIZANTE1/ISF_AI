@@ -46,8 +46,7 @@ if _PERFIL_DISPONIVEL:
     __all__.append("perfil_usuario")
 
 # Função utilitária para verificar se o perfil está disponível
+
+
 def is_perfil_available():
     return _PERFIL_DISPONIVEL
-
-
-
