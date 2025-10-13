@@ -147,7 +147,7 @@ def show_page():
 
                             st.success(
                                 f"{len(hose_records)} registros de mangueiras salvos com sucesso!")
-                            st.balloons()
+                            #st.balloons()
 
                             st.session_state.hose_step = 'start'
                             st.session_state.hose_processed_data = None
@@ -221,7 +221,7 @@ def show_page():
                             st.success(
                                 f"Mangueira '{hose_id}' cadastrada com sucesso!")
                             st.cache_data.clear()
-                            st.balloons()
+                            #st.balloons()
 
     with tab_shelters:
         st.header("Cadastrar Abrigos de Emergência com IA")
@@ -296,7 +296,7 @@ def show_page():
                                 st.session_state.shelter_processed_data)
                             st.success(
                                 f"✅ {total_count} abrigo(s) salvo(s) com sucesso em lote!")
-                            st.balloons()
+                            #st.balloons()
 
                             st.session_state.shelter_step = 'start'
                             st.session_state.shelter_processed_data = None
@@ -385,7 +385,7 @@ def show_page():
                                 st.success(
                                     f"Abrigo '{shelter_id}' cadastrado com sucesso!")
                                 st.cache_data.clear()
-                                st.balloons()
+                                #st.balloons()
 
             st.markdown("---")
             st.subheader("Inspeção de Abrigo Existente")
@@ -460,7 +460,7 @@ def show_page():
                                 if save_shelter_inspection(selected_shelter_id, overall_status, inspection_results, get_user_display_name()):
                                     st.success(
                                         f"Inspeção do abrigo '{selected_shelter_id}' salva com sucesso como '{overall_status}'!")
-                                    st.balloons() if not has_issues else None
+                                    #st.balloons() if not has_issues else None
                                     st.cache_data.clear()
                                 else:
                                     st.error(

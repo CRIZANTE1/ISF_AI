@@ -105,7 +105,7 @@ def show_page():
                                     if save_eyewash_inspection(selected_equipment_id, overall_status, inspection_results, photo_file, get_user_display_name()):
                                         st.success(
                                             f"Inspeção para '{selected_equipment_id}' salva com sucesso!")
-                                        st.balloons() if not non_conformities_found else None
+                                        #st.balloons() if not non_conformities_found else None
                                         st.cache_data.clear()
                                         st.rerun()
                                     else:
@@ -219,5 +219,5 @@ def show_page():
                             if save_new_eyewash_station(quick_id, quick_location, final_brand, model_to_use):
                                 st.success(
                                     f"Equipamento '{quick_id}' ({quick_type}) cadastrado rapidamente!")
-                                st.balloons()
+                                #st.balloons()
                                 st.cache_data.clear()

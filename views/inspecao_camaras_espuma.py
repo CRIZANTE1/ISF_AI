@@ -161,7 +161,7 @@ def show_page():
                                     ):
                                         st.success(
                                             f"Inspeção '{inspection_type}' para a câmara '{selected_chamber_id}' salva com sucesso!")
-                                        st.balloons() if not has_issues else None
+                                        #st.balloons() if not has_issues else None
                                         st.cache_data.clear()
                                         st.rerun()
                                     else:
@@ -278,7 +278,7 @@ def show_page():
                             if save_new_foam_chamber(quick_id, quick_location, final_brand, chamber_type, quick_size):
                                 st.success(
                                     f"Câmara '{quick_id}' ({quick_size}) cadastrada rapidamente!")
-                                st.balloons()
+                                #st.balloons()
                                 st.cache_data.clear()
 
     with tab_report:

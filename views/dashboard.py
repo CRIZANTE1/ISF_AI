@@ -95,36 +95,46 @@ def action_dialog_canhao_monitor(item_row):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
-            log_saved = save_canhao_monitor_action_log(
-                equipment_id, problem, action_taken, responsible, photo_evidence)
+            # Mock de resultados para a nova inspeção
+            mock_results = {q: "Conforme" for cat in CANHAO_CHECKLIST_VISUAL.values() for q in cat}
 
-            if not log_saved:
-                st.error(
-                    "Falha ao salvar o log da ação. O status não foi atualizado.")
-                return
+            # >>> Início da Lógica Corrigida <<<
+            try:
+                # Tenta salvar a nova inspeção PRIMEIRO (operação mais crítica)
+                inspection_saved = save_canhao_monitor_inspection(
+                    equip_id=equipment_id,
+                    inspection_type="Visual Trimestral (Regularização)",
+                    overall_status="Aprovado",
+                    results_dict=mock_results,
+                    photo_file=None, # A foto da ação vai no log, não na inspeção de regularização
+                    inspector_name=get_user_display_name()
+                )
 
-            mock_results = {}
-            for category, questions in CANHAO_CHECKLIST_VISUAL.items():
-                for question in questions:
-                    mock_results[question] = "Conforme"
+                if not inspection_saved:
+                    # Se a inspeção falhou, não prossiga. A função já mostra um st.error.
+                    raise Exception("Falha ao salvar a nova inspeção de regularização.")
 
-            inspection_saved = save_canhao_monitor_inspection(
-                equip_id=equipment_id,
-                inspection_type="Visual Trimestral (Regularização)",
-                overall_status="Aprovado",
-                results_dict=mock_results,
-                photo_file=None,
-                inspector_name=get_user_display_name()
-            )
-
-            if inspection_saved:
-                st.success(
-                    "Ação registrada e status do equipamento regularizado com sucesso!")
+                # Se a inspeção foi salva com sucesso, salve o log da ação
+                # A foto de evidência da ação é associada ao log, não à inspeção de regularização
+                log_saved = save_canhao_monitor_action_log(
+                    equipment_id, problem, action_taken, responsible, photo_evidence
+                )
+                
+                if not log_saved:
+                     # Isso é raro, mas se acontecer, a inspeção foi salva mas o log não.
+                     # O status do equipamento estará OK, o que é o mais importante.
+                    st.warning("Status do equipamento regularizado, mas houve uma falha ao salvar o log detalhado da ação.")
+                
+                # Sucesso em ambas as operações
+                st.success("Ação registrada e status do equipamento regularizado com sucesso!")
+                #st.balloons()
                 st.cache_data.clear()
-                st.rerun()
-            else:
-                st.error(
-                    "Log salvo, mas falha ao registrar a nova inspeção de regularização.")
+                st.rerun() # Fecha o diálogo e atualiza a página
+
+            except Exception as e:
+                # Se qualquer uma das operações falhar, o erro é capturado aqui
+                st.error(f"Não foi possível concluir a regularização: {e}")
+                st.info("A pendência não foi resolvida. Por favor, tente novamente.")
 
 
 def get_multigas_status_df(df_inventory, df_inspections):
@@ -326,10 +336,7 @@ def get_hose_status_df(df_hoses, df_disposals):
     choices = ['🟠 REPROVADA', '🔴 VENCIDO']
     latest_hoses['status'] = np.select(conditions, choices, default='🟢 OK')
 
-    latest_hoses['data_inspecao'] = latest_hoses['data_inspecao'].dt.strftime(
-        '%d/%m/%Y')
-    latest_hoses['data_proximo_teste'] = latest_hoses['data_proximo_teste'].dt.strftime(
-        '%d/%m/%Y')
+
 
     display_columns = [
         'id_mangueira', 'status', 'marca', 'diametro', 'tipo',
@@ -472,7 +479,7 @@ def disposal_dialog_extinguisher(item_row):
                     f"✅ Extintor {equipment_id} baixado definitivamente!")
                 st.success(
                     f"🔄 Lembre-se de instalar o substituto {substitute_id} no local.")
-                st.balloons()
+                #st.balloons()
                 st.cache_data.clear()
                 st.rerun()
             else:
@@ -565,10 +572,7 @@ def get_shelter_status_df(df_shelters_registered, df_inspections):
     dashboard_df['status_dashboard'] = np.select(
         conditions, choices, default='🟢 OK')
 
-    dashboard_df['data_inspecao_str'] = dashboard_df['data_inspecao'].apply(
-        lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else 'N/A')
-    dashboard_df['data_proxima_inspecao_str'] = dashboard_df['data_proxima_inspecao'].apply(
-        lambda x: x.strftime('%d/%m/%Y') if pd.notna(x) else 'N/A')
+
     dashboard_df['inspetor'] = dashboard_df['inspetor'].fillna('N/A')
     dashboard_df['resultados_json'] = dashboard_df['resultados_json'].fillna(
         '{}')
@@ -666,10 +670,10 @@ def get_consolidated_status_df(df_full, df_locais):
             'numero_selo_inmetro': latest_record_info.get('numero_selo_inmetro'),
             'tipo_agente': latest_record_info.get('tipo_agente'),
             'status_atual': status_atual,
-            'proximo_vencimento_geral': proximo_vencimento_real.strftime('%d/%m/%Y'),
-            'prox_venc_inspecao': next_insp.strftime('%d/%m/%Y') if pd.notna(next_insp) else "N/A",
-            'prox_venc_maint2': next_maint2.strftime('%d/%m/%Y') if pd.notna(next_maint2) else "N/A",
-            'prox_venc_maint3': next_maint3.strftime('%d/%m/%Y') if pd.notna(next_maint3) else "N/A",
+            'proximo_vencimento_geral': proximo_vencimento_real,
+            'prox_venc_inspecao': next_insp if pd.notna(next_insp) else pd.NaT,
+            'prox_venc_maint2': next_maint2 if pd.notna(next_maint2) else pd.NaT,
+            'prox_venc_maint3': next_maint3 if pd.notna(next_maint3) else pd.NaT,
             'plano_de_acao': latest_record_info.get('plano_de_acao'),
         })
 
@@ -714,35 +718,38 @@ def action_dialog_alarm(item_row):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
-            log_saved = save_alarm_action_log(
-                system_id, problem, action_taken, responsible, photo_evidence)
+            try:
+                mock_results = {}
+                for category, questions in ALARM_CHECKLIST.items():
+                    for question in questions:
+                        mock_results[question] = "Conforme"
 
-            if not log_saved:
-                st.error(
-                    "Falha ao salvar o log da ação. O status não foi atualizado.")
-                return
+                inspection_saved = save_alarm_inspection(
+                    system_id=system_id,
+                    overall_status="Aprovado",
+                    results_dict=mock_results,
+                    photo_file=None,
+                    inspector_name=get_user_display_name()
+                )
 
-            mock_results = {}
-            for category, questions in ALARM_CHECKLIST.items():
-                for question in questions:
-                    mock_results[question] = "Conforme"
+                if not inspection_saved:
+                    raise Exception("Falha ao salvar a nova inspeção de regularização.")
 
-            inspection_saved = save_alarm_inspection(
-                system_id=system_id,
-                overall_status="Aprovado",
-                results_dict=mock_results,
-                photo_file=None,
-                inspector_name=get_user_display_name()
-            )
+                log_saved = save_alarm_action_log(
+                    system_id, problem, action_taken, responsible, photo_evidence)
 
-            if inspection_saved:
+                if not log_saved:
+                    st.warning("Status do sistema regularizado, mas houve uma falha ao salvar o log detalhado da ação.")
+
                 st.success(
                     "Ação registrada e status do sistema regularizado com sucesso!")
+                #st.balloons()
                 st.cache_data.clear()
                 st.rerun()
-            else:
-                st.error(
-                    "Log salvo, mas falha ao registrar a nova inspeção de regularização. O status pode continuar pendente.")
+
+            except Exception as e:
+                st.error(f"Não foi possível concluir a regularização: {e}")
+                st.info("A pendência não foi resolvida. Por favor, tente novamente.")
 
 
 @st.dialog("Registrar Ação Corretiva para Câmara de Espuma")
@@ -768,33 +775,37 @@ def action_dialog_foam_chamber(item_row):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
-            log_saved = save_foam_chamber_action_log(
-                chamber_id, problem, action_taken, responsible)
+            try:
+                mock_results = {
+                    q: "Conforme" for q_list in FOAM_CHAMBER_CHECKLIST.values() for q in q_list}
 
-            if not log_saved:
-                st.error("Falha ao salvar o log da ação.")
-                return
+                inspection_saved = save_foam_chamber_inspection(
+                    chamber_id=chamber_id,
+                    inspection_type="Visual Mensal (Regularização)",
+                    overall_status="Aprovado",
+                    results_dict=mock_results,
+                    photo_file=photo_evidence,
+                    inspector_name=get_user_display_name()
+                )
 
-            mock_results = {
-                q: "Conforme" for q_list in FOAM_CHAMBER_CHECKLIST.values() for q in q_list}
+                if not inspection_saved:
+                    raise Exception("Falha ao salvar a nova inspeção de regularização.")
 
-            inspection_saved = save_foam_chamber_inspection(
-                chamber_id=chamber_id,
-                inspection_type="Visual Mensal (Regularização)",
-                overall_status="Aprovado",
-                results_dict=mock_results,
-                photo_file=photo_evidence,
-                inspector_name=get_user_display_name()
-            )
+                log_saved = save_foam_chamber_action_log(
+                    chamber_id, problem, action_taken, responsible)
 
-            if inspection_saved:
+                if not log_saved:
+                    st.warning("Status do equipamento regularizado, mas houve uma falha ao salvar o log detalhado da ação.")
+
                 st.success(
                     "Ação registrada e status do equipamento regularizado com sucesso!")
+                #st.balloons()
                 st.cache_data.clear()
                 st.rerun()
-            else:
-                st.error(
-                    "Log salvo, mas falha ao registrar a nova inspeção de regularização.")
+
+            except Exception as e:
+                st.error(f"Não foi possível concluir a regularização: {e}")
+                st.info("A pendência não foi resolvida. Por favor, tente novamente.")
 
 
 @st.dialog("Registrar Ação Corretiva para Chuveiro / Lava-Olhos")
@@ -820,33 +831,36 @@ def action_dialog_eyewash(item_row):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
-            log_saved = save_eyewash_action_log(
-                equipment_id, problem, action_taken, responsible, photo_evidence)
+            try:
+                mock_results = {
+                    q: "Conforme" for q_list in EYEWASH_CHECKLIST.values() for q in q_list}
 
-            if not log_saved:
-                st.error(
-                    "Falha ao salvar o log da ação. O status não foi atualizado.")
-                return
+                inspection_saved = save_eyewash_inspection(
+                    equipment_id=equipment_id,
+                    overall_status="Aprovado",
+                    results_dict=mock_results,
+                    photo_file=None,
+                    inspector_name=get_user_display_name()
+                )
 
-            mock_results = {
-                q: "Conforme" for q_list in EYEWASH_CHECKLIST.values() for q in q_list}
+                if not inspection_saved:
+                    raise Exception("Falha ao salvar a nova inspeção de regularização.")
 
-            inspection_saved = save_eyewash_inspection(
-                equipment_id=equipment_id,
-                overall_status="Aprovado",
-                results_dict=mock_results,
-                photo_file=None,
-                inspector_name=get_user_display_name()
-            )
+                log_saved = save_eyewash_action_log(
+                    equipment_id, problem, action_taken, responsible, photo_evidence)
 
-            if inspection_saved:
+                if not log_saved:
+                    st.warning("Status do equipamento regularizado, mas houve uma falha ao salvar o log detalhado da ação.")
+
                 st.success(
                     "Ação registrada e status do equipamento regularizado com sucesso!")
+                #st.balloons()
                 st.cache_data.clear()
                 st.rerun()
-            else:
-                st.error(
-                    "Log salvo, mas falha ao registrar a nova inspeção de regularização. O status pode continuar pendente.")
+
+            except Exception as e:
+                st.error(f"Não foi possível concluir a regularização: {e}")
+                st.info("A pendência não foi resolvida. Por favor, tente novamente.")
 
 
 @st.dialog("Registrar Ação Corretiva para SCBA")
@@ -862,15 +876,29 @@ def action_dialog_scba(equipment_id, problem):
             st.error("Por favor, descreva a ação.")
             return
         with st.spinner("Registrando..."):
-            save_scba_action_log(equipment_id, problem,
-                                 action_taken, responsible)
-            results = {
-                "Info": {"Status": "Regularizado via Ação Corretiva", "Ação": action_taken}}
-            save_scba_visual_inspection(
-                equipment_id, "Aprovado", results, get_user_display_name())
-            st.success("Ação registrada e status regularizado!")
-            st.cache_data.clear()
-            st.rerun()
+            try:
+                results = {
+                    "Info": {"Status": "Regularizado via Ação Corretiva", "Ação": action_taken}}
+                inspection_saved = save_scba_visual_inspection(
+                    equipment_id, "Aprovado", results, get_user_display_name())
+
+                if not inspection_saved:
+                    raise Exception("Falha ao salvar a nova inspeção de regularização.")
+
+                log_saved = save_scba_action_log(equipment_id, problem,
+                                     action_taken, responsible)
+                
+                if not log_saved:
+                    st.warning("Status do equipamento regularizado, mas houve uma falha ao salvar o log detalhado da ação.")
+
+                st.success("Ação registrada e status regularizado!")
+                #st.balloons()
+                st.cache_data.clear()
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Não foi possível concluir a regularização: {e}")
+                st.info("A pendência não foi resolvida. Por favor, tente novamente.")
 
 
 @st.dialog("Registrar Plano de Ação para Abrigo")
@@ -890,53 +918,52 @@ def action_dialog_shelter(shelter_id, problem):
             return
 
         with st.spinner("Registrando ação e regularizando status..."):
-            log_saved = save_shelter_action_log(
-                shelter_id, problem, action_taken, responsible)
-
-            if not log_saved:
-                st.error(
-                    "Falha ao salvar o log da ação. O status não foi atualizado.")
-                return
-
-            df_shelters = load_sheet_data("abrigos")
-            shelter_inventory_row = df_shelters[df_shelters['id_abrigo'] == shelter_id]
-
-            if shelter_inventory_row.empty:
-                st.error(
-                    f"Não foi possível encontrar o inventário original para o abrigo {shelter_id}. A regularização falhou.")
-                return
-
             try:
-                items_dict = json.loads(
-                    shelter_inventory_row.iloc[0]['itens_json'])
+                df_shelters = load_sheet_data("abrigos")
+                shelter_inventory_row = df_shelters[df_shelters['id_abrigo'] == shelter_id]
 
-                inspection_results = {item: {
-                    "status": "OK", "observacao": "Regularizado via ação corretiva"} for item in items_dict}
+                if shelter_inventory_row.empty:
+                    raise Exception(f"Não foi possível encontrar o inventário original para o abrigo {shelter_id}.")
 
-                inspection_results["Condições Gerais"] = {
-                    "Lacre": "Sim", "Sinalização": "Sim", "Acesso": "Sim"
-                }
+                try:
+                    items_dict = json.loads(
+                        shelter_inventory_row.iloc[0]['itens_json'])
 
-            except (json.JSONDecodeError, TypeError):
-                st.error(
-                    f"O inventário do abrigo {shelter_id} está corrompido na planilha. A regularização falhou.")
-                return
+                    inspection_results = {item: {
+                        "status": "OK", "observacao": "Regularizado via ação corretiva"} for item in items_dict}
 
-            inspection_saved = save_shelter_inspection(
-                shelter_id=shelter_id,
-                overall_status="Aprovado",
-                inspection_results=inspection_results,
-                inspector_name=get_user_display_name()
-            )
+                    inspection_results["Condições Gerais"] = {
+                        "Lacre": "Sim", "Sinalização": "Sim", "Acesso": "Sim"
+                    }
 
-            if inspection_saved:
+                except (json.JSONDecodeError, TypeError):
+                    raise Exception(f"O inventário do abrigo {shelter_id} está corrompido na planilha.")
+
+                inspection_saved = save_shelter_inspection(
+                    shelter_id=shelter_id,
+                    overall_status="Aprovado",
+                    inspection_results=inspection_results,
+                    inspector_name=get_user_display_name()
+                )
+
+                if not inspection_saved:
+                    raise Exception("Falha ao registrar a nova inspeção de regularização.")
+
+                log_saved = save_shelter_action_log(
+                    shelter_id, problem, action_taken, responsible)
+
+                if not log_saved:
+                    st.warning("Status do abrigo regularizado, mas houve uma falha ao salvar o log detalhado da ação.")
+
                 st.success(
                     "Plano de ação registrado e status do abrigo regularizado com sucesso!")
+                #st.balloons()
                 st.cache_data.clear()
                 st.rerun()
-            else:
-                st.error(
-                    "Log salvo, mas falha ao registrar a nova inspeção de regularização. O status pode continuar pendente.")
+
+            except Exception as e:
+                st.error(f"Não foi possível concluir a regularização: {e}")
+                st.info("A pendência não foi resolvida. Por favor, tente novamente.")
 
 
 @st.dialog("Registrar Ação Corretiva")
@@ -1036,7 +1063,7 @@ def action_form(item, df_full_history, location):
                         f"✅ Extintor {item['numero_identificacao']} baixado definitivamente!")
                     st.success(
                         f"🔄 Lembre-se de instalar o substituto {substitute_id} no local.")
-                    st.balloons()
+                    #st.balloons()
                     st.cache_data.clear()
                     st.rerun()
                 else:
@@ -1181,7 +1208,7 @@ def show_page():
                         if num_regularized > 0:
                             st.success(
                                 f"{num_regularized} extintores foram regularizados com sucesso!")
-                            st.balloons()
+                            #st.balloons()
                             st.cache_data.clear()
                             st.rerun()
                         elif num_regularized == 0:
@@ -1243,11 +1270,11 @@ def show_page():
 
                     col_venc1, col_venc2, col_venc3 = st.columns(3)
                     col_venc1.metric("Inspeção Mensal",
-                                     value=row['prox_venc_inspecao'])
+                                     value=row['prox_venc_inspecao'].strftime('%d/%m/%Y') if pd.notna(row['prox_venc_inspecao']) else "N/A")
                     col_venc2.metric("Manutenção Nível 2",
-                                     value=row['prox_venc_maint2'])
+                                     value=row['prox_venc_maint2'].strftime('%d/%m/%Y') if pd.notna(row['prox_venc_maint2']) else "N/A")
                     col_venc3.metric("Manutenção Nível 3",
-                                     value=row['prox_venc_maint3'])
+                                     value=row['prox_venc_maint3'].strftime('%d/%m/%Y') if pd.notna(row['prox_venc_maint3']) else "N/A")
 
                     st.caption(
                         f"Último Selo INMETRO registrado: {row.get('numero_selo_inmetro', 'N/A')}")
@@ -1323,8 +1350,15 @@ def show_page():
                     column_config={
                         "id_mangueira": "ID", "status": "Status", "marca": "Marca",
                         "diametro": "Diâmetro", "tipo": "Tipo", "comprimento": "Comprimento",
-                        "ano_fabricacao": "Ano Fab.", "data_inspecao": "Último Teste",
-                        "data_proximo_teste": "Próximo Teste", "registrado_por": "Registrado Por",
+                        "ano_fabricacao": "Ano Fab.",
+                        # Use column_config para formatar a data na exibição
+                        "data_inspecao": st.column_config.DateColumn(
+                            "Último Teste", format="DD/MM/YYYY"
+                        ),
+                        "data_proximo_teste": st.column_config.DateColumn(
+                            "Próximo Teste", format="DD/MM/YYYY"
+                        ),
+                        "registrado_por": "Registrado Por",
                         "link_certificado_pdf": st.column_config.LinkColumn(
                             "Certificado", display_text="🔗 Ver PDF"
                         )
@@ -1383,12 +1417,12 @@ def show_page():
             st.subheader("Lista de Abrigos e Status")
             for _, row in dashboard_df_shelters.iterrows():
                 status = row['status_dashboard']
-                prox_inspecao_str = row['data_proxima_inspecao_str']
+                prox_inspecao_str = row['data_proxima_inspecao'].strftime('%d/%m/%Y') if pd.notna(row['data_proxima_inspecao']) else 'N/A'
                 local_info = row.get('local', 'N/A')
                 expander_title = f"{status} | **ID:** {row['id_abrigo']} | **Local:** {local_info} | **Próx. Inspeção:** {prox_inspecao_str}"
 
                 with st.expander(expander_title):
-                    data_inspecao_str = row['data_inspecao_str']
+                    data_inspecao_str = row['data_inspecao'].strftime('%d/%m/%Y') if pd.notna(row['data_inspecao']) else 'N/A'
                     st.write(
                         f"**Última inspeção:** {data_inspecao_str} por **{row['inspetor']}**")
                     st.write(

@@ -241,7 +241,7 @@ def show_page():
                         if save_scba_inspection(record=record, pdf_link=None, user_name=get_user_display_name()):
                             st.success(
                                 f"Teste para o SCBA '{numero_serie}' registrado com sucesso!")
-                            st.balloons()
+                            #st.balloons()
                             st.cache_data.clear()
 
     with tab_quality_air:
@@ -376,7 +376,7 @@ def show_page():
                                 [c.strip() for c in cilindros_text.split(',') if c.strip()])
                             st.success(
                                 f"Laudo de qualidade do ar registrado com sucesso para {cilindros_count} cilindro(s)!")
-                            st.balloons()
+                            #st.balloons()
                             st.cache_data.clear()
 
     with tab_visual_insp:

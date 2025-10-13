@@ -329,7 +329,7 @@ def show_page():
             if not plans_to_show and not is_trial:
                 st.success(
                     "🎉 Parabéns! Você já possui nosso plano mais completo!")
-                st.balloons()
+                #st.balloons()
             else:
                 if plans_to_show:
                     cols = st.columns(len(plans_to_show))

@@ -30,4 +30,4 @@ def show_page():
     st.markdown(
         "- **Website:** [www.suaempresa.com/planos](https://www.suaempresa.com/planos)")
 
-    st.balloons()
+    #st.balloons()

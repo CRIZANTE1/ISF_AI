@@ -202,7 +202,7 @@ def show_page():
                                             f"Inspeção para o sistema '{selected_system_id}' salva com sucesso!")
 
                                         if not has_issues:
-                                            st.balloons()
+                                            #st.balloons()
 
                                         st.cache_data.clear()
                                         st.rerun()
@@ -326,5 +326,5 @@ def show_page():
                             if save_new_alarm_system(quick_id, quick_location, final_brand, system_type):
                                 st.success(
                                     f"Sistema '{quick_id}' cadastrado rapidamente!")
-                                st.balloons()
+                                #st.balloons()
                                 st.cache_data.clear()

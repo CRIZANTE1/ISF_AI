@@ -134,7 +134,7 @@ def show_page():
                                         st.success(
                                             f"Registro para '{selected_id}' salvo com sucesso!")
                                         if not has_issues:
-                                            st.balloons()
+                                            #st.balloons()
                                         st.cache_data.clear()
                                     else:
                                         st.error("Falha ao salvar o registro.")

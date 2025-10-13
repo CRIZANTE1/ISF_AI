@@ -130,7 +130,7 @@ def show_page():
                         if save_multigas_inspection(inspection_record):
                             st.success(
                                 "Registro de calibração salvo com sucesso!")
-                            st.balloons()
+                            #st.balloons()
                             st.session_state.calib_step = 'start'
                             st.session_state.calib_data = None
                             st.session_state.calib_status = None
@@ -401,7 +401,7 @@ def show_page():
                         if save_new_multigas_detector(detector_id, brand, model, serial_number, cylinder_values):
                             st.success(
                                 f"Detector '{detector_id}' cadastrado com sucesso!")
-                            st.balloons()
+                            #st.balloons()
                             st.cache_data.clear()
 
     with tab_manual_register:

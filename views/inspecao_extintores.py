@@ -174,7 +174,7 @@ def show_page():
                         if success:
                             st.success(
                                 f"✅ {count} registros salvos com sucesso!")
-                            st.balloons()
+                            #st.balloons()
                             st.session_state.batch_step = 'start'
                             st.session_state.processed_data = None
                             st.cache_data.clear()
@@ -569,7 +569,7 @@ def show_page():
                                         f"- Precisão: {location.get('accuracy', 'N/A'):.1f}m"
                                     )
 
-                                    st.balloons()
+                                    #st.balloons()
 
                                     # Reset para próxima inspeção
                                     st.session_state.qr_step = 'start'
@@ -943,7 +943,7 @@ def show_page():
                                         st.success(
                                             f"🗺️ Coordenadas GPS salvas: ({manual_latitude:.6f}, {manual_longitude:.6f})")
 
-                                    st.balloons()
+                                    #st.balloons()
 
                                     # Limpa as coordenadas capturadas do session_state
                                     st.session_state['manual_lat_captured'] = None

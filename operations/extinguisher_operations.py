@@ -213,22 +213,23 @@ def save_inspection(record: dict) -> bool:
 
 def save_inspection_batch(inspections_list: list[dict]) -> tuple[bool, int]:
     """
-    Salva múltiplas inspeções de uma vez (batch) no Supabase.
-
-    Args:
-        inspections_list (list): Lista de dicionários de inspeções.
+    Salva múltiplas inspeções de uma vez (batch), com tratamento de erro individual.
 
     Returns:
-        tuple: (sucesso: bool, quantidade_salva: int)
+        tuple: (sucesso_geral: bool, quantidade_salva: int)
     """
     if not inspections_list:
-        return False, 0
+        return True, 0 # Retorna sucesso se a lista estiver vazia
 
-    try:
-        # PARA: A lista já está no formato correto (lista de dicionários).
-        # Apenas limpamos valores inválidos.
-        records_to_save = []
-        for inspection in inspections_list:
+    db_client = get_supabase_client()
+    success_count = 0
+    failed_records = []
+
+    progress_bar = st.progress(0, text="Salvando registros...")
+    total_records = len(inspections_list)
+
+    for i, inspection in enumerate(inspections_list):
+        try:
             clean_record = {}
             for key, value in inspection.items():
                 if pd.isna(value):
@@ -237,22 +238,32 @@ def save_inspection_batch(inspections_list: list[dict]) -> tuple[bool, int]:
                     clean_record[key] = value.isoformat()
                 else:
                     clean_record[key] = value
-            records_to_save.append(clean_record)
+            
+            # Insere um registro de cada vez
+            db_client.append_data("extintores", clean_record)
+            success_count += 1
+        except Exception as e:
+            failed_records.append({
+                'id': inspection.get('numero_identificacao', 'N/A'),
+                'erro': str(e)
+            })
+        
+        progress_bar.progress((i + 1) / total_records, text=f"Salvando {i+1}/{total_records}...")
 
-        # PARA: Insere a lista de dicionários diretamente.
-        db_client = get_supabase_client()
-        db_client.append_data("extintores", records_to_save)
-
+    if failed_records:
+        st.error(f"Falha ao salvar {len(failed_records)} registro(s).")
+        with st.expander("Ver detalhes dos erros"):
+            for failed in failed_records:
+                st.error(f"ID: {failed['id']} - Erro: {failed['erro']}")
+    
+    if success_count > 0:
         log_action(
             "SALVOU_INSPECAO_EXTINTOR_LOTE",
-            f"Total: {len(inspections_list)} inspeções salvas em lote"
+            f"Sucesso: {success_count}/{total_records} inspeções salvas."
         )
 
-        return True, len(inspections_list)
-
-    except Exception as e:
-        st.error(f"Erro ao salvar lote de inspeções: {e}")
-        return False, 0
+    # Considera sucesso geral se pelo menos um registro foi salvo
+    return success_count > 0, success_count
 
 
 def save_new_location(location_id, description):
