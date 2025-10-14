@@ -1,34 +1,32 @@
 # requirements.txt
 
 # Core do Streamlit e UI
-streamlit>=1.28.0
-streamlit-option-menu
-streamlit-lottie
-streamlit-js-eval 
+streamlit==1.28.0
+streamlit-option-menu==0.3.6
+streamlit-lottie==0.0.5
+streamlit-js-eval==0.1.7
 
 # Backend e Banco de Dados
-supabase-py
+supabase==2.3.4
 
 # Manipulação de Dados e Datas
-pandas>=2.0.0
-numpy>=1.24.0
-python-dateutil
+pandas==2.0.3
+numpy==1.24.4
+python-dateutil==2.8.2
 
-# Geração de QR Code
-qrcode[pil]
-Pillow
-
-# Geração de PDF (alternativa leve)
-reportlab
+# Geração de PDF e QR Code
+reportlab==4.0.7
+qrcode==7.4.2
+Pillow==10.1.0
 
 # Outras Utilitários
-requests 
-PyYAML
-jinja2>=3.1.2
+requests==2.31.0
+PyYAML==6.0.1
+jinja2==3.1.2
 
 # Autenticação
-msal
-authlib
+msal==1.25.0
+authlib==1.3.0
 
 # IA do Google
-google-generativeai
+google-generativeai==0.3.2
