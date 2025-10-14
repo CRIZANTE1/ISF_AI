@@ -1,4 +1,4 @@
-# requirements.txt (REFATORADO)
+# requirements.txt
 
 # Core do Streamlit e UI
 streamlit>=1.28.0
@@ -7,26 +7,28 @@ streamlit-lottie
 streamlit-js-eval 
 
 # Backend e Banco de Dados
-supabase-py # <- NOVA DEPENDÊNCIA
+supabase-py
 
 # Manipulação de Dados e Datas
 pandas>=2.0.0
 numpy>=1.24.0
 python-dateutil
 
-# Geração de PDF e QR Code
-weasyprint
+# Geração de QR Code
 qrcode[pil]
 Pillow
+
+# Geração de PDF (alternativa leve)
+reportlab
 
 # Outras Utilitários
 requests 
 PyYAML
 jinja2>=3.1.2
 
-# Autenticação (manter se ainda usa o login MSAL)
+# Autenticação
 msal
 authlib
 
-# IA do Google (ainda necessário para o Gemini)
+# IA do Google
 google-generativeai
