@@ -8,6 +8,11 @@ import Utilities from './pages/Utilities';
 import AuthPage from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import EquipmentListPage from './pages/EquipmentListPage';
+import AddEquipmentPage from './pages/AddEquipmentPage';
+import EquipmentDetailPage from './pages/EquipmentDetailPage';
+import AddInspectionPage from './pages/AddInspectionPage';
+import EditEquipmentPage from './pages/EditEquipmentPage';
 
 function App() {
   return (
@@ -23,6 +28,11 @@ function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="inspections" element={<Inspections />} />
+        <Route path="inspections/:type" element={<EquipmentListPage />} />
+        <Route path="inspections/:type/new" element={<AddEquipmentPage />} />
+        <Route path="equipment/:id" element={<EquipmentDetailPage />} />
+        <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+        <Route path="equipment/:id/inspections/new" element={<AddInspectionPage />} />
         <Route path="profile" element={<Profile />} />
         <Route path="history" element={<History />} />
         <Route 
