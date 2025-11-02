@@ -1,0 +1,124 @@
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+type AuthMode = 'login' | 'signup';
+
+const AuthPage = () => {
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { session } = useAuth();
+
+  if (session) {
+    navigate('/');
+  }
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      if (mode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              role: 'admin', // Default role for new signups
+            },
+          },
+        });
+        if (error) throw error;
+        setMessage('Cadastro realizado! Verifique seu e-mail para confirmar a conta e depois faça o login.');
+        setMode('login'); // Switch to login view after successful signup
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        navigate('/');
+      }
+    } catch (err: any) {
+      setError(err.error_description || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleMode = () => {
+    setMode(mode === 'login' ? 'signup' : 'login');
+    setError(null);
+    setMessage(null);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-light-background dark:bg-dark-background p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-brand-green">ISF IA</h1>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                {mode === 'login' ? 'Acesse sua conta' : 'Crie uma nova conta'}
+            </p>
+        </div>
+
+        <form onSubmit={handleAuth} className="space-y-4">
+          {mode === 'signup' && (
+            <input
+              type="text"
+              placeholder="Nome Completo"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+            />
+          )}
+          <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          />
+          <input
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full p-3 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Processando...' : (mode === 'login' ? 'Entrar' : 'Cadastrar')}
+          </button>
+        </form>
+
+        {error && <p className="mt-4 text-center text-status-error">{error}</p>}
+        {message && <p className="mt-4 text-center text-status-success">{message}</p>}
+
+        <div className="mt-6 text-center">
+          <button onClick={toggleMode} className="text-sm text-brand-green hover:underline">
+            {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça o login'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthPage;
