@@ -1,59 +1,297 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Tables } from '../types/supabase';
 import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
+import { getExtinguisherById } from '../utils/extinguisherOperations';
+import { getAllEyewashStations } from '../utils/eyewashOperations';
+import { getAllFoamChambers } from '../utils/foamChamberOperations';
+import { getAllAlarmSystems } from '../utils/alarmOperations';
+import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
+import { getAllSCBAs } from '../utils/scbaOperations';
+import { getAllMultigasDetectors } from '../utils/multigasOperations';
+import { getAllShelters } from '../utils/shelterOperations';
+import { getAllHoses } from '../utils/hoseOperations';
 
-type Equipment = Tables<'equipment'>;
-type Inspection = Tables<'inspections'>;
+type EquipmentInfo = {
+  id: string;
+  name: string;
+  location?: string;
+  [key: string]: any;
+};
+
+type InspectionInfo = {
+  id: number;
+  data_inspecao: string;
+  status_geral?: string;
+  status?: string;
+  notes?: string;
+  observacoes_gerais?: string;
+  plano_de_acao?: string;
+  link_foto_nao_conformidade?: string;
+};
 
 const EquipmentDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
-  const [equipment, setEquipment] = useState<Equipment | null>(null);
-  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
+  const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // State for deletion modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ type: 'equipment' | 'inspection'; id: number } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'equipment' | 'inspection'; id: number | string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchDetails = async () => {
-    if (!id) return;
+    if (!id || !type) return;
     setLoading(true);
     setError(null);
 
     try {
-      const equipmentId = parseInt(id, 10);
-      if (isNaN(equipmentId)) {
-        throw new Error('ID inválido');
+      let equipmentData: EquipmentInfo | null = null;
+      let inspectionsData: InspectionInfo[] = [];
+
+      switch (type) {
+        case 'extintor': {
+          const extData = await getExtinguisherById(id);
+          if (extData) {
+            equipmentData = {
+              id: extData.numero_identificacao,
+              name: extData.numero_identificacao,
+              location: extData.local_id || undefined,
+              ...extData,
+            };
+            // Buscar inspeções de extintores
+            const { data, error: inspError } = await supabase
+              .from('extintores')
+              .select('*')
+              .eq('numero_identificacao', id)
+              .single();
+            if (data && !inspError) {
+              // Para extintores, as inspeções estão na própria tabela como histórico
+              inspectionsData = [];
+            }
+          }
+          break;
+        }
+        case 'chuveiro_lavaolhos': {
+          const stations = await getAllEyewashStations();
+          const station = stations.find(e => e.id_equipamento === id);
+          if (station) {
+            equipmentData = {
+              id: station.id_equipamento,
+              name: station.id_equipamento,
+              location: station.localizacao,
+              ...station,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_chuveiros_lava_olhos')
+              .select('*')
+              .eq('id_equipamento', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                observacoes_gerais: insp.plano_de_acao,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'camara_espuma': {
+          const chambers = await getAllFoamChambers();
+          const chamber = chambers.find(e => e.id_camara === id);
+          if (chamber) {
+            equipmentData = {
+              id: chamber.id_camara,
+              name: chamber.id_camara,
+              location: chamber.localizacao,
+              ...chamber,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_camaras_espuma')
+              .select('*')
+              .eq('id_camara', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'alarme': {
+          const systems = await getAllAlarmSystems();
+          const system = systems.find(e => e.id_sistema === id);
+          if (system) {
+            equipmentData = {
+              id: system.id_sistema,
+              name: system.id_sistema,
+              location: system.localizacao,
+              ...system,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_alarmes')
+              .select('*')
+              .eq('id_sistema', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'canhao_monitor': {
+          const monitors = await getAllCannonMonitors();
+          const monitor = monitors.find(e => e.id_equipamento === id);
+          if (monitor) {
+            equipmentData = {
+              id: monitor.id_equipamento,
+              name: monitor.id_equipamento,
+              location: monitor.localizacao,
+              ...monitor,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_canhoes_monitores')
+              .select('*')
+              .eq('id_equipamento', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'scba': {
+          const scbas = await getAllSCBAs();
+          const scba = scbas.find(e => e.numero_serie_equipamento === id);
+          if (scba) {
+            equipmentData = {
+              id: scba.numero_serie_equipamento,
+              name: scba.numero_serie_equipamento,
+              location: scba.localizacao,
+              ...scba,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_scba')
+              .select('*')
+              .eq('numero_serie_equipamento', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'multigas': {
+          const detectors = await getAllMultigasDetectors();
+          const detector = detectors.find(e => e.id_equipamento === id);
+          if (detector) {
+            equipmentData = {
+              id: detector.id_equipamento,
+              name: detector.id_equipamento,
+              location: detector.localizacao,
+              ...detector,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_multigas')
+              .select('*')
+              .eq('id_equipamento', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'abrigo': {
+          const shelters = await getAllShelters();
+          const shelter = shelters.find(e => e.id_abrigo === id);
+          if (shelter) {
+            equipmentData = {
+              id: shelter.id_abrigo,
+              name: shelter.id_abrigo,
+              location: shelter.localizacao,
+              ...shelter,
+            };
+            const { data, error: inspError } = await supabase
+              .from('inspecoes_abrigos')
+              .select('*')
+              .eq('id_abrigo', id)
+              .order('data_inspecao', { ascending: false });
+            if (!inspError && data) {
+              inspectionsData = data.map(insp => ({
+                id: insp.id || 0,
+                data_inspecao: insp.data_inspecao || '',
+                status_geral: insp.status_geral,
+                plano_de_acao: insp.plano_de_acao,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+              }));
+            }
+          }
+          break;
+        }
+        case 'mangueira': {
+          const hoses = await getAllHoses();
+          const hose = hoses.find(e => e.id_mangueira === id);
+          if (hose) {
+            equipmentData = {
+              id: hose.id_mangueira,
+              name: hose.id_mangueira,
+              location: hose.localizacao,
+              ...hose,
+            };
+            inspectionsData = [];
+          }
+          break;
+        }
       }
 
-      const { data: equipmentData, error: equipmentError } = await supabase
-        .from('equipment')
-        .select('*')
-        .eq('id', equipmentId)
-        .single();
-
-      if (equipmentError) throw equipmentError;
-      setEquipment(equipmentData);
-
-      const { data: inspectionsData, error: inspectionsError } = await supabase
-        .from('inspections')
-        .select('*')
-        .eq('equipment_id', equipmentId)
-        .order('inspection_date', { ascending: false });
-
-      if (inspectionsError) throw inspectionsError;
-      setInspections(inspectionsData);
-
+      if (!equipmentData) {
+        setError(`Equipamento não encontrado. Verifique se o ID '${id}' está correto.`);
+      } else {
+        setEquipment(equipmentData);
+        setInspections(inspectionsData);
+      }
     } catch (err: any) {
       setError('Falha ao buscar detalhes do equipamento.');
       console.error(err);
@@ -64,29 +302,107 @@ const EquipmentDetailPage = () => {
 
   useEffect(() => {
     fetchDetails();
-  }, [id]);
+  }, [id, type]);
 
-  const handleDeleteClick = (type: 'equipment' | 'inspection', id: number) => {
-    setItemToDelete({ type, id });
+  const handleDeleteClick = (deleteType: 'equipment' | 'inspection', deleteId: number | string) => {
+    setItemToDelete({ type: deleteType, id: deleteId });
     setIsModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!itemToDelete) return;
+    if (!itemToDelete || !type) return;
     setIsDeleting(true);
     setError(null);
 
     try {
       if (itemToDelete.type === 'equipment') {
-        const { error } = await supabase.from('equipment').delete().eq('id', itemToDelete.id);
-        if (error) throw error;
-        // Navigate back to the list of the same type
-        navigate(`/inspections/${equipment?.type}`);
+        // Determinar qual tabela usar baseado no tipo
+        let tableName = '';
+        let idColumn = '';
+        
+        switch (type) {
+          case 'extintor':
+            tableName = 'extintores';
+            idColumn = 'numero_identificacao';
+            break;
+          case 'chuveiro_lavaolhos':
+            tableName = 'inventario_chuveiros_lava_olhos';
+            idColumn = 'id_equipamento';
+            break;
+          case 'camara_espuma':
+            tableName = 'inventario_camaras_espuma';
+            idColumn = 'id_camara';
+            break;
+          case 'alarme':
+            tableName = 'inventario_alarmes';
+            idColumn = 'id_sistema';
+            break;
+          case 'canhao_monitor':
+            tableName = 'inventario_canhoes_monitores';
+            idColumn = 'id_equipamento';
+            break;
+          case 'scba':
+            tableName = 'conjuntos_autonomos';
+            idColumn = 'numero_serie_equipamento';
+            break;
+          case 'multigas':
+            tableName = 'inventario_multigas';
+            idColumn = 'id_equipamento';
+            break;
+          case 'abrigo':
+            tableName = 'abrigos';
+            idColumn = 'id_abrigo';
+            break;
+          case 'mangueira':
+            tableName = 'mangueiras';
+            idColumn = 'id_mangueira';
+            break;
+        }
+
+        if (tableName && idColumn) {
+          const { error } = await supabase
+            .from(tableName as any)
+            .delete()
+            .eq(idColumn, itemToDelete.id);
+          if (error) throw error;
+          navigate(`/inspections/${type}`);
+        }
       } else {
-        const { error } = await supabase.from('inspections').delete().eq('id', itemToDelete.id);
-        if (error) throw error;
-        // Refresh inspections list
-        setInspections(inspections.filter(insp => insp.id !== itemToDelete.id));
+        // Deletar inspeção baseado no tipo
+        let tableName = '';
+        
+        switch (type) {
+          case 'chuveiro_lavaolhos':
+            tableName = 'inspecoes_chuveiros_lava_olhos';
+            break;
+          case 'camara_espuma':
+            tableName = 'inspecoes_camaras_espuma';
+            break;
+          case 'alarme':
+            tableName = 'inspecoes_alarmes';
+            break;
+          case 'canhao_monitor':
+            tableName = 'inspecoes_canhoes_monitores';
+            break;
+          case 'scba':
+            tableName = 'inspecoes_scba';
+            break;
+          case 'multigas':
+            tableName = 'inspecoes_multigas';
+            break;
+          case 'abrigo':
+            tableName = 'inspecoes_abrigos';
+            break;
+        }
+
+        if (tableName) {
+          const { error } = await supabase
+            .from(tableName as any)
+            .delete()
+            .eq('id', itemToDelete.id);
+          if (error) throw error;
+          setInspections(inspections.filter(insp => insp.id !== itemToDelete.id));
+        }
       }
     } catch (err) {
       setError(`Falha ao excluir o item. Tente novamente.`);
@@ -98,13 +414,13 @@ const EquipmentDetailPage = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'aprovado': return 'bg-status-success/20 text-status-success';
-      case 'reprovado': return 'bg-status-error/20 text-status-error';
-      case 'pendente': return 'bg-status-warning/20 text-status-warning';
-      default: return 'bg-gray-200 dark:bg-gray-700';
-    }
+  const getStatusBadge = (status?: string) => {
+    if (!status) return 'bg-gray-200 dark:bg-gray-700';
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('aprovado') || statusLower === 'ok') return 'bg-status-success/20 text-status-success';
+    if (statusLower.includes('reprovado') || statusLower.includes('nao conforme')) return 'bg-status-error/20 text-status-error';
+    if (statusLower.includes('pendente')) return 'bg-status-warning/20 text-status-warning';
+    return 'bg-gray-200 dark:bg-gray-700';
   };
 
   const modalTitle = itemToDelete?.type === 'equipment' ? 'Excluir Equipamento' : 'Excluir Inspeção';
@@ -112,16 +428,16 @@ const EquipmentDetailPage = () => {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={loading ? 'Carregando...' : equipment?.equipment_id ?? 'Detalhes'}>
+      <PageHeader title={loading ? 'Carregando...' : equipment?.name ?? 'Detalhes'}>
         {!loading && equipment && (
-            <div className="flex items-center gap-2">
-                <Link to={`/equipment/${equipment.id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-green transition-colors">
-                    <Edit size={20} />
-                </Link>
-                <button onClick={() => handleDeleteClick('equipment', equipment.id)} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors">
-                    <Trash2 size={20} />
-                </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Link to={`/equipment/${type}/${id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-green transition-colors">
+              <Edit size={20} />
+            </Link>
+            <button onClick={() => handleDeleteClick('equipment', id)} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors">
+              <Trash2 size={20} />
+            </button>
+          </div>
         )}
       </PageHeader>
       <main className="p-4">
@@ -131,22 +447,15 @@ const EquipmentDetailPage = () => {
           <>
             <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border mb-6">
               <h2 className="font-bold text-lg mb-2">Detalhes</h2>
-              <p><span className="font-semibold">Localização:</span> {equipment.localizacao}</p>
-              <p><span className="font-semibold">Tipo:</span> {equipment.type}</p>
-              <p><span className="font-semibold">Status:</span> {equipment.status}</p>
-              {equipment.specifications && (
-                <div className="mt-2 text-sm">
-                  <h3 className="font-semibold mb-1">Especificações:</h3>
-                  <pre className="bg-light-background dark:bg-dark-background p-2 rounded overflow-x-auto text-xs">
-                    {JSON.stringify(equipment.specifications, null, 2)}
-                  </pre>
-                </div>
+              <p><span className="font-semibold">ID:</span> {equipment.name}</p>
+              {equipment.location && (
+                <p><span className="font-semibold">Localização:</span> {equipment.location}</p>
               )}
             </div>
 
             <div className="mb-6">
               <Link
-                to={`/equipment/${id}/inspections/new`}
+                to={`/equipment/${type}/${id}/inspections/new`}
                 className="w-full text-center block p-3 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors"
               >
                 Registrar Nova Inspeção
@@ -161,12 +470,23 @@ const EquipmentDetailPage = () => {
                     <li key={insp.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border flex justify-between items-start gap-4">
                       <div className="flex-grow">
                         <div className="flex justify-between items-start">
-                          <p className="font-semibold">{format(new Date(insp.inspection_date), "dd/MM/yyyy", { locale: ptBR })}</p>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.status)}`}>
-                            {insp.status}
-                          </span>
+                          <p className="font-semibold">{format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: ptBR })}</p>
+                          {insp.status_geral && (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.status_geral)}`}>
+                              {insp.status_geral}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">{insp.notes}</p>
+                        {insp.plano_de_acao && (
+                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                            {insp.plano_de_acao}
+                          </p>
+                        )}
+                        {insp.link_foto_nao_conformidade && (
+                          <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-green mt-1 block">
+                            Ver foto de evidência
+                          </a>
+                        )}
                       </div>
                       <button onClick={() => handleDeleteClick('inspection', insp.id)} className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors flex-shrink-0">
                         <Trash2 size={16} />

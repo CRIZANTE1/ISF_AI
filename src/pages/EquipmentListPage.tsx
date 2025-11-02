@@ -76,14 +76,7 @@ const EquipmentListPage = () => {
             data = await getAllShelters();
             break;
           default:
-            // Fallback para tabela genérica equipment
-            const { data: equipmentData, error: equipmentError } = await supabase
-              .from('equipment')
-              .select('*')
-              .eq('user_id', user.id)
-              .eq('equipment_type', type);
-            if (equipmentError) throw equipmentError;
-            data = equipmentData || [];
+            throw new Error(`Tipo de equipamento '${type}' não suportado.`);
         }
         
         setEquipment(data);
