@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import { LogOut, Edit2, User, Mail, Calendar, Settings, CreditCard, BarChart3, Save, X, Camera } from 'lucide-react';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
@@ -28,6 +29,7 @@ interface UserStats {
 
 const Profile = () => {
   const { profile, user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -387,15 +389,24 @@ const Profile = () => {
 
       {/* Menu de Opções */}
       <div className="mt-8 w-full max-w-sm space-y-2">
-        <button className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3">
+        <button 
+          onClick={() => navigate('/profile/my-data')}
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+        >
           <User size={18} className="text-brand-green" />
           <span>Meus Dados</span>
         </button>
-        <button className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3">
+        <button 
+          onClick={() => navigate('/profile/plan-payment')}
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+        >
           <CreditCard size={18} className="text-brand-green" />
           <span>Plano e Pagamento</span>
         </button>
-        <button className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3">
+        <button 
+          onClick={() => navigate('/profile/settings')}
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+        >
           <Settings size={18} className="text-brand-green" />
           <span>Configurações</span>
         </button>

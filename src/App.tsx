@@ -13,6 +13,9 @@ import AddEquipmentPage from './pages/AddEquipmentPage';
 import EquipmentDetailPage from './pages/EquipmentDetailPage';
 import AddInspectionPage from './pages/AddInspectionPage';
 import EditEquipmentPage from './pages/EditEquipmentPage';
+import MyDataPage from './pages/MyDataPage';
+import PlanPaymentPage from './pages/PlanPaymentPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -34,6 +37,9 @@ function App() {
         <Route path="equipment/:type/:id/edit" element={<EditEquipmentPage />} />
         <Route path="equipment/:type/:id/inspections/new" element={<AddInspectionPage />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="profile/my-data" element={<MyDataPage />} />
+        <Route path="profile/plan-payment" element={<PlanPaymentPage />} />
+        <Route path="profile/settings" element={<SettingsPage />} />
         <Route path="history" element={<History />} />
         <Route 
           path="utilities" 
