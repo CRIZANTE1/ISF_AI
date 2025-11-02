@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom';
-import { Shield, Flame, Warehouse, SprayCan, LifeBuoy, Factory, Siren, Construction } from 'lucide-react';
+import { Shield, Flame, Warehouse, SprayCan, LifeBuoy, Factory, Siren, Construction, Droplets, AlertTriangle, Home } from 'lucide-react';
 import InspectionCategory from '../components/InspectionCategory';
 
 const sciItems = [
   { name: 'Extintores', link: '/inspections/extintor', icon: <Flame size={20} /> },
-  { name: 'Mangueiras e Abrigos', link: '/inspections/mangueira', icon: <Shield size={20} /> },
+  { name: 'Mangueiras', link: '/inspections/mangueira', icon: <Shield size={20} /> },
   { name: 'Câmaras de Espuma', link: '/inspections/camara_espuma', icon: <Factory size={20} /> },
   { name: 'Canhões Monitores', link: '/inspections/canhao_monitor', icon: <SprayCan size={20} /> },
+  { name: 'Chuveiros/Lava-olhos', link: '/inspections/chuveiro_lavaolhos', icon: <Droplets size={20} /> },
+  { name: 'Sistemas de Alarme', link: '/inspections/alarme', icon: <AlertTriangle size={20} /> },
 ];
 
 const safetyItems = [
   { name: 'Medidores Multigás', link: '/inspections/multigas', icon: <Siren size={20} /> },
   { name: 'Conjuntos Autônomos (SCBA)', link: '/inspections/scba', icon: <LifeBuoy size={20} /> },
+  { name: 'Abrigos de Emergência', link: '/inspections/abrigo', icon: <Home size={20} /> },
 ];
 
 const Inspections = () => {

@@ -3,6 +3,8 @@
  * Baseado nas funcionalidades do projeto Python ISF_IA_SUP
  */
 
+import { supabase } from '../lib/supabase';
+
 // Mapeamento de ações para plano de ação baseado em não conformidades
 const ACTION_MAP: Record<string, string> = {
   PINTURA: "Programar a repintura corretiva do extintor.",
@@ -38,6 +40,34 @@ export interface EquipmentDates {
 export interface InspectionRecord {
   aprovado_inspecao?: string;
   observacoes_gerais?: string;
+}
+
+export interface Extinguisher {
+  id?: number;
+  numero_identificacao: string;
+  numero_selo_inmetro?: string;
+  tipo_agente?: string;
+  capacidade?: number;
+  marca_fabricante?: string;
+  ano_fabricacao?: number;
+  tipo_servico?: string;
+  data_servico?: string;
+  inspetor_responsavel?: string;
+  empresa_executante?: string;
+  data_proxima_inspecao?: string;
+  data_proxima_manutencao_2_nivel?: string;
+  data_proxima_manutencao_3_nivel?: string;
+  data_ultimo_ensaio_hidrostatico?: string;
+  aprovado_inspecao?: string;
+  observacoes_gerais?: string;
+  plano_de_acao?: string;
+  link_relatorio_pdf?: string;
+  latitude?: number;
+  longitude?: number;
+  link_foto_nao_conformidade?: string;
+  local_id?: string;
+  created_at?: string;
+  user_id?: string;
 }
 
 /**
@@ -210,3 +240,163 @@ export function daysUntilExpiration(dateStr: string | null | undefined): number 
   }
 }
 
+/**
+ * Busca todos os extintores
+ */
+export async function getAllExtinguishers(): Promise<Extinguisher[]> {
+  try {
+    const { data, error } = await supabase
+      .from('extintores')
+      .select('*')
+      .order('numero_identificacao');
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar extintores:', error);
+    return [];
+  }
+}
+
+/**
+ * Busca um extintor por ID
+ */
+export async function getExtinguisherById(numeroIdentificacao: string): Promise<Extinguisher | null> {
+  try {
+    const { data, error } = await supabase
+      .from('extintores')
+      .select('*')
+      .eq('numero_identificacao', numeroIdentificacao)
+      .order('data_servico', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar extintor:', error);
+    return null;
+  }
+}
+
+/**
+ * Salva um novo extintor
+ */
+export async function saveNewExtinguisher(
+  extinguisher: Omit<Extinguisher, 'id' | 'created_at'>
+): Promise<boolean> {
+  try {
+    // Verifica se já existe
+    const { data: existing } = await supabase
+      .from('extintores')
+      .select('numero_identificacao')
+      .eq('numero_identificacao', extinguisher.numero_identificacao)
+      .limit(1)
+      .single();
+
+    if (existing) {
+      throw new Error(`Extintor com ID '${extinguisher.numero_identificacao}' já existe.`);
+    }
+
+    const { error } = await supabase
+      .from('extintores')
+      .insert(extinguisher);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar extintor:', error);
+    throw error;
+  }
+}
+
+/**
+ * Salva uma inspeção de extintor
+ */
+export async function saveExtinguisherInspection(
+  inspection: Omit<Extinguisher, 'id' | 'created_at'>
+): Promise<boolean> {
+  try {
+    // Gera plano de ação
+    const planoDeAcao = generateActionPlan({
+      aprovado_inspecao: inspection.aprovado_inspecao,
+      observacoes_gerais: inspection.observacoes_gerais,
+    });
+
+    // Calcula próximas datas
+    const existingDates: EquipmentDates = {
+      data_proxima_manutencao_2_nivel: inspection.data_proxima_manutencao_2_nivel || null,
+      data_proxima_manutencao_3_nivel: inspection.data_proxima_manutencao_3_nivel || null,
+      data_ultimo_ensaio_hidrostatico: inspection.data_ultimo_ensaio_hidrostatico || null,
+    };
+
+    const nextDates = calculateNextDates(
+      inspection.data_servico || new Date().toISOString().split('T')[0],
+      inspection.tipo_servico || 'Inspeção',
+      existingDates
+    );
+
+    const inspectionData: Omit<Extinguisher, 'id' | 'created_at'> = {
+      ...inspection,
+      plano_de_acao: planoDeAcao,
+      ...nextDates,
+    };
+
+    const { error } = await supabase
+      .from('extintores')
+      .insert(inspectionData);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar inspeção de extintor:', error);
+    throw error;
+  }
+}
+
+/**
+ * Registra baixa de extintor
+ */
+export async function registerExtinguisherDisposal(
+  numeroIdentificacao: string,
+  motivoCondenacao: string,
+  responsavelBaixa: string,
+  numeroSubstituto?: string,
+  observacoes?: string,
+  linkFoto?: string
+): Promise<boolean> {
+  try {
+    // Salva no log de baixa
+    const { error: logError } = await supabase
+      .from('log_baixa_extintores')
+      .insert({
+        numero_identificacao: numeroIdentificacao,
+        motivo_condenacao: motivoCondenacao,
+        responsavel_baixa: responsavelBaixa,
+        numero_identificacao_substituto: numeroSubstituto || null,
+        observacoes: observacoes || null,
+        link_foto_evidencia: linkFoto || null,
+        data_baixa: new Date().toISOString().split('T')[0],
+      });
+
+    if (logError) throw logError;
+
+    // Marca o equipamento como baixado
+    const { error: updateError } = await supabase
+      .from('extintores')
+      .insert({
+        numero_identificacao: numeroIdentificacao,
+        tipo_servico: 'Baixa Definitiva',
+        data_servico: new Date().toISOString().split('T')[0],
+        aprovado_inspecao: 'N/A',
+        observacoes_gerais: `EQUIPAMENTO BAIXADO - ${motivoCondenacao}`,
+        plano_de_acao: `BAIXADO DEFINITIVAMENTE - SUBSTITUTO: ${numeroSubstituto || 'AGUARDANDO'}`,
+      });
+
+    if (updateError) throw updateError;
+    return true;
+  } catch (error) {
+    console.error('Erro ao registrar baixa de extintor:', error);
+    return false;
+  }
+}

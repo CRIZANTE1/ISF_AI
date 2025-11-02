@@ -30,9 +30,9 @@ function App() {
         <Route path="inspections" element={<Inspections />} />
         <Route path="inspections/:type" element={<EquipmentListPage />} />
         <Route path="inspections/:type/new" element={<AddEquipmentPage />} />
-        <Route path="equipment/:id" element={<EquipmentDetailPage />} />
-        <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
-        <Route path="equipment/:id/inspections/new" element={<AddInspectionPage />} />
+        <Route path="equipment/:type/:id" element={<EquipmentDetailPage />} />
+        <Route path="equipment/:type/:id/edit" element={<EditEquipmentPage />} />
+        <Route path="equipment/:type/:id/inspections/new" element={<AddInspectionPage />} />
         <Route path="profile" element={<Profile />} />
         <Route path="history" element={<History />} />
         <Route 

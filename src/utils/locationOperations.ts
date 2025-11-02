@@ -1,0 +1,107 @@
+/**
+ * Utilitários para operações de locais
+ */
+
+import { supabase } from '../lib/supabase';
+
+export interface Location {
+  id?: number;
+  local_id: string;
+  local_descricao: string;
+  created_at?: string;
+  user_id?: string;
+}
+
+/**
+ * Busca todos os locais cadastrados
+ */
+export async function getAllLocations(): Promise<Location[]> {
+  try {
+    const { data, error } = await supabase
+      .from('locais')
+      .select('*')
+      .order('local_id');
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Erro ao buscar locais:', error);
+    return [];
+  }
+}
+
+/**
+ * Busca um local por ID
+ */
+export async function getLocationById(localId: string): Promise<Location | null> {
+  try {
+    const { data, error } = await supabase
+      .from('locais')
+      .select('*')
+      .eq('local_id', localId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar local:', error);
+    return null;
+  }
+}
+
+/**
+ * Salva um novo local
+ */
+export async function saveNewLocation(location: Omit<Location, 'id' | 'created_at'>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('locais')
+      .insert(location);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar local:', error);
+    return false;
+  }
+}
+
+/**
+ * Atualiza um local existente
+ */
+export async function updateLocation(
+  localId: string,
+  updates: Partial<Pick<Location, 'local_descricao'>>
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('locais')
+      .update(updates)
+      .eq('local_id', localId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar local:', error);
+    return false;
+  }
+}
+
+/**
+ * Deleta um local
+ */
+export async function deleteLocation(localId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('locais')
+      .delete()
+      .eq('local_id', localId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Erro ao deletar local:', error);
+    return false;
+  }
+}
+
