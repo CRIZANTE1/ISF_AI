@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Users, Settings, Shield } from 'lucide-react';
+import { Users, Settings, Shield, Lock } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 
 const Utilities = () => {

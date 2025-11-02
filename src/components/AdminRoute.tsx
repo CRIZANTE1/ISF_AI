@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
-  const { profile, loading } = useAuth();
+  const { profile, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -12,8 +12,14 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
     );
   }
 
+  if (!user) {
+    // User not logged in, redirect to auth
+    return <Navigate to="/auth" replace />;
+  }
+
   if (profile?.role !== 'admin') {
-    // Redirect non-admin users to the dashboard
+    // Redirect non-admin users to the dashboard with a message
+    console.warn('Acesso negado: Usuário não é administrador. Role atual:', profile?.role);
     return <Navigate to="/" replace />;
   }
 
