@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import Skeleton from './Skeleton';
+import { AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getAllExtinguishers } from '../utils/extinguisherOperations';
 import { getAllHoses } from '../utils/hoseOperations';
 import { getAllSCBAs } from '../utils/scbaOperations';
@@ -134,28 +136,71 @@ const AlertsList = ({ userId }: AlertsListProps) => {
   }, [userId]);
 
   return (
-    <div className="mt-6">
-      <h3 className="text-lg font-bold text-light-text-primary dark:text-dark-text-primary mb-4 transition-colors duration-200">Alertas Críticos</h3>
-      <div className="mt-3 space-y-2">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.7 }}
+      className="mt-6"
+    >
+      <motion.h3 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.8 }}
+        className="text-lg font-bold text-light-text-primary dark:text-dark-text-primary mb-4 flex items-center gap-2 transition-colors duration-200"
+      >
+        <AlertTriangle className="text-status-warning" size={20} />
+        Alertas Críticos
+      </motion.h3>
+      <div className="mt-3 space-y-3">
         {loading ? (
           Array.from({ length: 2 }).map((_, index) => (
             <Skeleton key={index} className="h-12 w-full rounded-xl" />
           ))
         ) : alerts.length > 0 ? (
-          alerts.map((alert) => (
-            <div key={alert.id} className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl p-4 shadow-card transition-colors duration-200">
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary transition-colors duration-200">
-                <span className="font-medium text-status-warning mr-2">•</span> {alert.message}
-              </p>
-            </div>
-          ))
+          <AnimatePresence>
+            {alerts.map((alert, index) => (
+              <motion.div
+                key={alert.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02, x: 5 }}
+                className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 shadow-lg transition-all duration-200 cursor-pointer group"
+              >
+                <p className="text-sm font-medium text-red-700 dark:text-red-400 flex items-center gap-2 transition-colors duration-200">
+                  <motion.span
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                    className="text-status-warning text-xl"
+                  >
+                    ⚠️
+                  </motion.span>
+                  {alert.message}
+                </p>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         ) : (
-          <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl p-4 text-center shadow-card transition-colors duration-200">
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary transition-colors duration-200">Nenhum alerta crítico no momento.</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.9 }}
+            className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-6 text-center shadow-lg transition-colors duration-200"
+          >
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center justify-center gap-2 transition-colors duration-200"
+            >
+              <span className="text-xl">✓</span>
+              Nenhum alerta crítico no momento.
+            </motion.p>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

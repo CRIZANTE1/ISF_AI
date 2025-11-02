@@ -11,8 +11,8 @@ const getInitialTheme = () => {
   if (savedTheme) {
     return savedTheme === 'dark';
   }
-  // Se não houver preferência salva, usar preferência do sistema
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // Por padrão, usar tema claro se não houver preferência salva
+  return false;
 };
 
 const isDark = getInitialTheme();
@@ -20,6 +20,10 @@ if (isDark) {
   document.documentElement.classList.add('dark');
 } else {
   document.documentElement.classList.remove('dark');
+  // Garantir que o tema claro seja aplicado
+  if (!localStorage.getItem('theme')) {
+    localStorage.setItem('theme', 'light');
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

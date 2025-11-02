@@ -5,6 +5,7 @@ import MetricCard from '../components/MetricCard';
 import AlertsList from '../components/AlertsList';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
+import { motion } from 'framer-motion';
 import { getAllExtinguishers } from '../utils/extinguisherOperations';
 import { getAllHoses } from '../utils/hoseOperations';
 import { getAllSCBAs } from '../utils/scbaOperations';
@@ -103,19 +104,29 @@ const Dashboard = () => {
   const isLoading = authLoading || loadingStats;
 
   return (
-    <div className="flex flex-col min-h-screen bg-light-background dark:bg-dark-background transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-dark-background dark:via-dark-background dark:to-dark-background transition-colors duration-200">
       <DashboardHeader />
       <main className="p-4 flex-grow">
-        <div className="mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6"
+        >
           {isLoading ? (
             <Skeleton className="h-7 w-1/2 mb-2" />
           ) : (
-            <h2 className="text-2xl font-bold text-light-text-primary dark:text-dark-text-primary mb-2 transition-colors duration-200">
-              Olá, <span className="font-bold">{profile?.full_name ?? 'Usuário'}</span>
-            </h2>
+            <motion.h2 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-bold text-light-text-primary dark:text-dark-text-primary mb-2 transition-colors duration-200"
+            >
+              Olá, <span className="bg-gradient-to-r from-brand-blue to-brand-purple bg-clip-text text-transparent font-bold">{profile?.full_name ?? 'Usuário'}</span>
+            </motion.h2>
           )}
           <TrialStatusBar profile={profile} />
-        </div>
+        </motion.div>
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl mb-4 transition-colors duration-200" role="alert">
@@ -124,29 +135,52 @@ const Dashboard = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <MetricCard 
-            title="Total" 
-            value={stats?.total ?? null} 
-            isLoading={isLoading} 
-            percentage={stats?.total ? (stats.total / (stats.total || 1)) * 100 : 0}
-            color="orange"
-          />
-          <MetricCard 
-            title="OK" 
-            value={stats?.ok ?? null} 
-            isLoading={isLoading}
-            percentage={stats?.ok && stats?.total ? (stats.ok / stats.total) * 100 : 0}
-            color="green"
-          />
-          <MetricCard 
-            title="Pendente" 
-            value={stats?.pendente ?? null} 
-            isLoading={isLoading}
-            percentage={stats?.pendente && stats?.total ? (stats.pendente / stats.total) * 100 : 0}
-            color="blue"
-          />
-        </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, staggerChildren: 0.1 }}
+          className="grid grid-cols-3 gap-4 mb-6"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <MetricCard 
+              title="Total" 
+              value={stats?.total ?? null} 
+              isLoading={isLoading} 
+              percentage={stats?.total ? (stats.total / (stats.total || 1)) * 100 : 0}
+              color="orange"
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <MetricCard 
+              title="OK" 
+              value={stats?.ok ?? null} 
+              isLoading={isLoading}
+              percentage={stats?.ok && stats?.total ? (stats.ok / stats.total) * 100 : 0}
+              color="green"
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            <MetricCard 
+              title="Pendente" 
+              value={stats?.pendente ?? null} 
+              isLoading={isLoading}
+              percentage={stats?.pendente && stats?.total ? (stats.pendente / stats.total) * 100 : 0}
+              color="blue"
+            />
+          </motion.div>
+        </motion.div>
         
         <AlertsList userId={user?.id} />
       </main>
