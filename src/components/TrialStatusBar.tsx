@@ -23,7 +23,7 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
   if (!trial_ends_at) {
     return (
       <div className="mt-2">
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div className="bg-status-error h-1.5 rounded-full" style={{ width: '100%' }}></div>
         </div>
         <p className="text-xs text-status-error mt-1">Período de teste expirado.</p>
@@ -39,7 +39,7 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
   if (diffDays <= 0) {
     return (
       <div className="mt-2">
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div className="bg-status-error h-1.5 rounded-full" style={{ width: '100%' }}></div>
         </div>
         <p className="text-xs text-status-error mt-1">Período de teste expirado.</p>
@@ -52,10 +52,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
 
   return (
     <div className="mt-2">
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+      <div className="w-full bg-gray-200 rounded-full h-1.5">
         <div className="bg-status-warning h-1.5 rounded-full" style={{ width: `${percentage}%` }}></div>
       </div>
-      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 transition-colors duration-200">
         {diffDays} dia{diffDays !== 1 ? 's' : ''} restante{diffDays !== 1 ? 's' : ''} no período de teste.
       </p>
     </div>

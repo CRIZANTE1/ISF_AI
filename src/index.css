@@ -1,3 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Tema claro e escuro dinâmicos */
+html {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-light-background dark:bg-dark-background text-light-text-primary dark:text-dark-text-primary transition-colors duration-200;
+}

@@ -10,7 +10,7 @@ const PageHeader = ({ title, children }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between h-14 px-4 bg-light-background/80 dark:bg-dark-background/80 backdrop-blur-sm border-b border-light-border dark:border-dark-border">
+    <header className="sticky top-0 z-10 flex items-center justify-between h-14 px-4 bg-light-background/95 dark:bg-dark-background/95 backdrop-blur-sm border-b border-light-border dark:border-dark-border transition-colors duration-200">
       <div className="flex items-center gap-2">
         <button
           onClick={() => navigate(-1)}
@@ -18,7 +18,7 @@ const PageHeader = ({ title, children }: PageHeaderProps) => {
         >
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold text-light-text-primary dark:text-dark-text-primary truncate">
+        <h1 className="text-xl font-bold text-light-text-primary dark:text-dark-text-primary truncate transition-colors duration-200">
           {title}
         </h1>
       </div>

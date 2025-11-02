@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
@@ -20,10 +20,20 @@ import {
 const SettingsPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem('theme') === 'dark' || 
-    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  );
+  
+  // Inicializar estado do tema baseado na classe atual do documento
+  const getInitialTheme = () => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        return savedTheme === 'dark';
+      }
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  };
+
+  const [darkMode, setDarkMode] = useState(getInitialTheme);
   const [notifications, setNotifications] = useState(true);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');

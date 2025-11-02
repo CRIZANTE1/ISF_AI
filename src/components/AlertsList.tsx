@@ -135,23 +135,23 @@ const AlertsList = ({ userId }: AlertsListProps) => {
 
   return (
     <div className="mt-6">
-      <h3 className="text-lg font-semibold text-light-text-primary dark:text-dark-text-primary">Alertas Críticos</h3>
+      <h3 className="text-lg font-bold text-light-text-primary dark:text-dark-text-primary mb-4 transition-colors duration-200">Alertas Críticos</h3>
       <div className="mt-3 space-y-2">
         {loading ? (
           Array.from({ length: 2 }).map((_, index) => (
-            <Skeleton key={index} className="h-12 w-full rounded-lg" />
+            <Skeleton key={index} className="h-12 w-full rounded-xl" />
           ))
         ) : alerts.length > 0 ? (
           alerts.map((alert) => (
-            <div key={alert.id} className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg p-3">
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span className="font-medium text-status-warning">•</span> {alert.message}
+            <div key={alert.id} className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl p-4 shadow-card transition-colors duration-200">
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary transition-colors duration-200">
+                <span className="font-medium text-status-warning mr-2">•</span> {alert.message}
               </p>
             </div>
           ))
         ) : (
-          <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg p-4 text-center">
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Nenhum alerta crítico no momento.</p>
+          <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl p-4 text-center shadow-card transition-colors duration-200">
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary transition-colors duration-200">Nenhum alerta crítico no momento.</p>
           </div>
         )}
       </div>

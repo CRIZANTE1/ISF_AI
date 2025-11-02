@@ -11,19 +11,23 @@ export default {
           green: '#3ECF8E',
           dark: '#1E1E1E',
           darker: '#181818',
+          orange: '#FF9500',
+          blue: '#5AC8FA',
+          purple: '#AF52DE',
         },
         status: {
-          success: '#3ECF8E',
-          warning: '#F97316',
-          error: '#F43F5E',
-          info: '#0EA5E9',
+          success: '#34C759',
+          warning: '#FF9500',
+          error: '#FF3B30',
+          info: '#5AC8FA',
         },
         light: {
-          background: '#FAFAFA',
+          background: '#FFFFFF',
           surface: '#FFFFFF',
+          card: '#FFFFFF',
           text: {
-            primary: '#1E1E1E',
-            secondary: '#666666',
+            primary: '#1D1D1F',
+            secondary: '#86868B',
           },
           border: '#E5E5E5',
         },
@@ -38,8 +42,17 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Roboto', 'sans-serif'],
-        display: ['Roboto', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        display: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      borderRadius: {
+        'xl': '12px',
+        '2xl': '16px',
+        '3xl': '20px',
+      },
+      boxShadow: {
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        'card-lg': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
       }
     },
   },
