@@ -2,10 +2,12 @@ import { Bell, UserCircle, ChevronDown, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const DashboardHeader = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const today = new Date();
   const formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR });
   const userInitial = profile?.full_name?.charAt(0).toUpperCase() || 'U';
@@ -35,6 +37,7 @@ const DashboardHeader = () => {
           <motion.button 
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/profile')}
             className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-purple dark:hover:text-brand-purple transition-colors rounded-lg hover:bg-purple-50 dark:hover:bg-dark-background"
           >
             <UserCircle size={22} />

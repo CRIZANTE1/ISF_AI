@@ -1,14 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, ClipboardCheck, UserCircle, History, Wrench, Plus } from 'lucide-react';
+import { LayoutGrid, ClipboardCheck, History, Wrench, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const allNavItems = [
   { to: '/', icon: LayoutGrid, label: 'Home' },
   { to: '/inspections', icon: ClipboardCheck, label: 'Inspections' },
   { to: '/history', icon: History, label: 'History' },
-  { to: '/profile', icon: UserCircle, label: 'Profile' },
   { to: '/utilities', icon: Wrench, label: 'Utilities', adminOnly: true },
 ];
 
@@ -19,6 +18,10 @@ const BottomNav = () => {
   const navItems = allNavItems.filter(item => {
     if (item.adminOnly) {
       return profile?.role === 'admin';
+    }
+    // Remover Profile da navegação inferior (mantém apenas no topo)
+    if (item.to === '/profile') {
+      return false;
     }
     return true;
   });
@@ -50,19 +53,8 @@ const BottomNav = () => {
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 className="relative"
               >
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="absolute -inset-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl blur-sm"
-                    />
-                  )}
-                </AnimatePresence>
                 <item.icon 
-                  className={`w-6 h-6 mb-1 relative z-10 ${isActive ? 'text-brand-blue dark:text-brand-blue' : ''}`}
+                  className={`w-6 h-6 mb-1 ${isActive ? 'text-brand-blue dark:text-brand-blue' : ''}`}
                   strokeWidth={isActive ? 2.5 : 2} 
                 />
               </motion.div>
@@ -112,19 +104,8 @@ const BottomNav = () => {
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 className="relative"
               >
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab2"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="absolute -inset-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl blur-sm"
-                    />
-                  )}
-                </AnimatePresence>
                 <item.icon 
-                  className={`w-6 h-6 mb-1 relative z-10 ${isActive ? 'text-brand-purple dark:text-brand-purple' : ''}`}
+                  className={`w-6 h-6 mb-1 ${isActive ? 'text-brand-purple dark:text-brand-purple' : ''}`}
                   strokeWidth={isActive ? 2.5 : 2} 
                 />
               </motion.div>
