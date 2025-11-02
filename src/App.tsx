@@ -17,6 +17,9 @@ import MyDataPage from './pages/MyDataPage';
 import PlanPaymentPage from './pages/PlanPaymentPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminSystemSettingsPage from './pages/AdminSystemSettingsPage';
+import AdminSecurityAuditPage from './pages/AdminSecurityAuditPage';
+import AdminSecurityPoliciesPage from './pages/AdminSecurityPoliciesPage';
 
 function App() {
   return (
@@ -55,6 +58,30 @@ function App() {
           element={
             <AdminRoute>
               <AdminUsersPage />
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="utilities/system-settings" 
+          element={
+            <AdminRoute>
+              <AdminSystemSettingsPage />
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="utilities/security-audit" 
+          element={
+            <AdminRoute>
+              <AdminSecurityAuditPage />
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="utilities/security-policies" 
+          element={
+            <AdminRoute>
+              <AdminSecurityPoliciesPage />
             </AdminRoute>
           } 
         />
