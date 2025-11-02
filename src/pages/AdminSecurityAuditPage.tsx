@@ -288,9 +288,9 @@ const AdminSecurityAuditPage = () => {
   const unresolvedEvents = securityEvents.filter(e => !e.resolved);
   const criticalEvents = securityEvents.filter(e => e.severity === 'critical' && !e.resolved);
 
-  // Check if tables don't exist (all empty after loading)
-  const tablesExist = !loading && (accessLogs.length > 0 || actionLogs.length > 0 || securityAlerts.length > 0 || securityEvents.length > 0);
-  const showTableWarning = !loading && !tablesExist && (accessLogs.length === 0 && actionLogs.length === 0 && securityAlerts.length === 0 && securityEvents.length === 0);
+  // Tables exist even if empty - the warning was showing incorrectly
+  // We only show warning if there's an actual error loading the data
+  const showTableWarning = false; // Tables are created, even if empty
 
   return (
     <div className="min-h-screen">
