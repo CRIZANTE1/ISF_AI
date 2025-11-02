@@ -52,19 +52,35 @@ export interface SecurityAlert {
 
 // Get all system settings
 export async function getAllSystemSettings(): Promise<Record<string, any>> {
-  const { data, error } = await supabase
-    .from('system_settings')
-    .select('*')
-    .order('setting_key');
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('*')
+      .order('setting_key');
 
-  if (error) throw error;
+    if (error) {
+      // If table doesn't exist, return empty object
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('Tabela system_settings não existe ainda. Execute a migração do banco de dados.');
+        return {};
+      }
+      throw error;
+    }
 
-  const settings: Record<string, any> = {};
-  (data || []).forEach(setting => {
-    settings[setting.setting_key] = setting.setting_value.value;
-  });
+    const settings: Record<string, any> = {};
+    (data || []).forEach(setting => {
+      settings[setting.setting_key] = setting.setting_value?.value ?? setting.setting_value;
+    });
 
-  return settings;
+    return settings;
+  } catch (error: any) {
+    console.error('Erro ao buscar configurações do sistema:', error);
+    // Return empty object if table doesn't exist
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      return {};
+    }
+    throw error;
+  }
 }
 
 // Get a single system setting
@@ -81,28 +97,65 @@ export async function getSystemSetting(key: string): Promise<any> {
 
 // Update a system setting
 export async function updateSystemSetting(key: string, value: any): Promise<void> {
-  const { error } = await supabase
-    .from('system_settings')
-    .upsert({
-      setting_key: key,
-      setting_value: { value },
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'setting_key',
-    });
+  try {
+    const { error } = await supabase
+      .from('system_settings')
+      .upsert({
+        setting_key: key,
+        setting_value: { value },
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'setting_key',
+      });
 
-  if (error) throw error;
+    if (error) {
+      // If table doesn't exist, save to localStorage as fallback
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('Tabela system_settings não existe. Salvando em localStorage.');
+        const currentSettings = JSON.parse(localStorage.getItem('system_settings') || '{}');
+        currentSettings[key] = value;
+        localStorage.setItem('system_settings', JSON.stringify(currentSettings));
+        return;
+      }
+      throw error;
+    }
+  } catch (error: any) {
+    // Fallback to localStorage
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      const currentSettings = JSON.parse(localStorage.getItem('system_settings') || '{}');
+      currentSettings[key] = value;
+      localStorage.setItem('system_settings', JSON.stringify(currentSettings));
+      return;
+    }
+    throw error;
+  }
 }
 
 // Get all security policies
 export async function getAllSecurityPolicies(): Promise<SecurityPolicy[]> {
-  const { data, error } = await supabase
-    .from('security_policies')
-    .select('*')
-    .order('policy_name');
+  try {
+    const { data, error } = await supabase
+      .from('security_policies')
+      .select('*')
+      .order('policy_name');
 
-  if (error) throw error;
-  return data || [];
+    if (error) {
+      // If table doesn't exist, return empty array
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('Tabela security_policies não existe ainda. Execute a migração do banco de dados.');
+        return [];
+      }
+      throw error;
+    }
+    return data || [];
+  } catch (error: any) {
+    console.error('Erro ao buscar políticas de segurança:', error);
+    // Return empty array if table doesn't exist
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 // Update a security policy
@@ -123,13 +176,29 @@ export async function updateSecurityPolicy(
 
 // Get all blocked IPs
 export async function getBlockedIPs(): Promise<BlockedIP[]> {
-  const { data, error } = await supabase
-    .from('blocked_ips')
-    .select('*')
-    .order('blocked_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('blocked_ips')
+      .select('*')
+      .order('blocked_at', { ascending: false });
 
-  if (error) throw error;
-  return data || [];
+    if (error) {
+      // If table doesn't exist, return empty array
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('Tabela blocked_ips não existe ainda. Execute a migração do banco de dados.');
+        return [];
+      }
+      throw error;
+    }
+    return data || [];
+  } catch (error: any) {
+    console.error('Erro ao buscar IPs bloqueados:', error);
+    // Return empty array if table doesn't exist
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 // Block an IP address
@@ -169,24 +238,40 @@ export async function getSecurityAlerts(
   resolved?: boolean,
   severity?: string
 ): Promise<{ alerts: SecurityAlert[]; total: number }> {
-  let query = supabase
-    .from('security_alerts')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
+  try {
+    let query = supabase
+      .from('security_alerts')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-  if (resolved !== undefined) {
-    query = query.eq('resolved', resolved);
+    if (resolved !== undefined) {
+      query = query.eq('resolved', resolved);
+    }
+
+    if (severity) {
+      query = query.eq('severity', severity);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      // If table doesn't exist, return empty array
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('Tabela security_alerts não existe ainda. Execute a migração do banco de dados.');
+        return { alerts: [], total: 0 };
+      }
+      throw error;
+    }
+    return { alerts: data || [], total: count || 0 };
+  } catch (error: any) {
+    console.error('Erro ao buscar alertas de segurança:', error);
+    // Return empty array if table doesn't exist
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      return { alerts: [], total: 0 };
+    }
+    throw error;
   }
-
-  if (severity) {
-    query = query.eq('severity', severity);
-  }
-
-  const { data, error, count } = await query;
-
-  if (error) throw error;
-  return { alerts: data || [], total: count || 0 };
 }
 
 // Resolve a security alert

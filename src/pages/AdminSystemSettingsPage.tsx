@@ -89,7 +89,15 @@ const AdminSystemSettingsPage = () => {
       // Fallback to localStorage if database fails
       const saved = localStorage.getItem('system_settings');
       if (saved) {
-        setSettings(JSON.parse(saved));
+        try {
+          setSettings(JSON.parse(saved));
+        } catch (e) {
+          // Use default values if localStorage is invalid
+          console.warn('Erro ao carregar configurações do localStorage, usando valores padrão');
+        }
+      } else {
+        // Show helpful message
+        setError('Tabela system_settings não encontrada no banco de dados. Execute a migração 20250118000000_create_system_settings_and_security_policies.sql no Supabase SQL Editor.');
       }
     } finally {
       setLoading(false);

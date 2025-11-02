@@ -57,7 +57,11 @@ const AdminSecurityPoliciesPage = () => {
       setBlockedIPs(blockedIPsData);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
-      setError('Falha ao carregar políticas de segurança.');
+      if (err.code === '42P01' || err.message?.includes('does not exist')) {
+        setError('Tabelas de segurança não encontradas no banco de dados. Execute a migração 20250118000000_create_system_settings_and_security_policies.sql no Supabase SQL Editor.');
+      } else {
+        setError('Falha ao carregar políticas de segurança.');
+      }
     } finally {
       setLoading(false);
     }

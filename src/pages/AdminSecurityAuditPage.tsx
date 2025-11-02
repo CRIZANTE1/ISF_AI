@@ -114,7 +114,17 @@ const AdminSecurityAuditPage = () => {
     try {
       setLoading(true);
       // Filter failed logins and suspicious activity from access logs
-      const { logs } = await getAccessLogs(1000);
+      let logs: AccessLog[] = [];
+      try {
+        const result = await getAccessLogs(1000);
+        logs = result.logs;
+      } catch (err: any) {
+        console.error('Erro ao carregar logs de acesso:', err);
+        // Continue with empty logs if table doesn't exist
+        if (err.code !== '42P01' && !err.message?.includes('does not exist')) {
+          throw err;
+        }
+      }
       const failedLogins = logs
         .filter(log => !log.success && log.action === 'login')
         .map(log => ({
@@ -129,7 +139,17 @@ const AdminSecurityAuditPage = () => {
         }));
 
       // Get permission denied actions from action logs
-      const { logs: actionLogsData } = await getActionLogs(1000);
+      let actionLogsData: ActionLog[] = [];
+      try {
+        const result = await getActionLogs(1000);
+        actionLogsData = result.logs;
+      } catch (err: any) {
+        console.error('Erro ao carregar logs de ação:', err);
+        // Continue with empty logs if table doesn't exist
+        if (err.code !== '42P01' && !err.message?.includes('does not exist')) {
+          throw err;
+        }
+      }
       const permissionDenied = actionLogsData
         .filter(log => log.action_type === 'permission_denied' || log.action_type === 'access_denied')
         .map(log => ({
@@ -156,8 +176,12 @@ const AdminSecurityAuditPage = () => {
       setLoading(true);
       const { logs } = await getActionLogs(200);
       setActionLogs(logs);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar logs de auditoria:', error);
+      // If table doesn't exist, use empty array
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        setActionLogs([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -168,8 +192,12 @@ const AdminSecurityAuditPage = () => {
       setLoading(true);
       const { logs } = await getAccessLogs(200);
       setAccessLogs(logs);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar logs de acesso:', error);
+      // If table doesn't exist, use empty array
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        setAccessLogs([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -225,11 +253,32 @@ const AdminSecurityAuditPage = () => {
   const unresolvedEvents = securityEvents.filter(e => !e.resolved);
   const criticalEvents = securityEvents.filter(e => e.severity === 'critical' && !e.resolved);
 
+  // Check if tables don't exist (all empty after loading)
+  const tablesExist = !loading && (accessLogs.length > 0 || actionLogs.length > 0 || securityAlerts.length > 0 || securityEvents.length > 0);
+  const showTableWarning = !loading && !tablesExist && (accessLogs.length === 0 && actionLogs.length === 0 && securityAlerts.length === 0 && securityEvents.length === 0);
+
   return (
     <div className="min-h-screen">
       <PageHeader title="Segurança e Auditoria" />
       <main className="p-4">
         <div className="max-w-6xl mx-auto space-y-6">
+          {showTableWarning && (
+            <div className="p-4 bg-status-warning/20 border-2 border-status-warning rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle size={20} className="text-status-warning" />
+                <h3 className="font-bold text-status-warning">
+                  Tabelas de Logs Não Encontradas
+                </h3>
+              </div>
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                Execute as seguintes migrações no Supabase SQL Editor:
+              </p>
+              <ul className="list-disc list-inside text-sm text-light-text-secondary dark:text-dark-text-secondary space-y-1 ml-4">
+                <li>20250117000000_create_admin_logs_table.sql</li>
+                <li>20250118000000_create_system_settings_and_security_policies.sql</li>
+              </ul>
+            </div>
+          )}
           {/* Alertas de Segurança */}
           {criticalEvents.length > 0 && (
             <div className="p-4 bg-status-error/20 border-2 border-status-error rounded-lg">
