@@ -65,6 +65,7 @@ const AdminSecurityAuditPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showReports, setShowReports] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSecurityEvents();
@@ -78,9 +79,9 @@ const AdminSecurityAuditPage = () => {
 
   // Check for critical events and create alerts automatically
   useEffect(() => {
-    const checkCriticalEvents = () => {
+    const checkCriticalEvents = async () => {
       const critical = securityEvents.filter(e => e.severity === 'critical' && !e.resolved);
-      if (critical.length > 0) {
+      if (critical.length > 0 && securityAlerts.length > 0) {
         critical.forEach(event => {
           // Check if alert already exists
           const existingAlert = securityAlerts.find(
@@ -97,18 +98,18 @@ const AdminSecurityAuditPage = () => {
               'security_event',
               event.id,
               { severity: event.severity }
-            ).then(() => {
-              loadSecurityAlerts();
+            ).catch(err => {
+              console.error('Erro ao criar alerta de segurança:', err);
             });
           }
         });
       }
     };
 
-    if (securityEvents.length > 0) {
+    if (securityEvents.length > 0 && securityAlerts.length > 0) {
       checkCriticalEvents();
     }
-  }, [securityEvents]);
+  }, [securityEvents, securityAlerts]);
 
   const loadSecurityEvents = async () => {
     try {
@@ -164,8 +165,11 @@ const AdminSecurityAuditPage = () => {
         }));
 
       setSecurityEvents([...failedLogins, ...permissionDenied].slice(0, 100));
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Erro ao carregar eventos de segurança:', error);
+      setError('Erro ao carregar eventos de segurança. Verifique o console para mais detalhes.');
+      setSecurityEvents([]);
     } finally {
       setLoading(false);
     }
@@ -203,15 +207,46 @@ const AdminSecurityAuditPage = () => {
     }
   };
 
+  const loadSecurityAlerts = async () => {
+    try {
+      const { alerts } = await getSecurityAlerts(100, 0);
+      setSecurityAlerts(alerts);
+    } catch (error: any) {
+      console.error('Erro ao carregar alertas de segurança:', error);
+      // If table doesn't exist, just use empty array
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        setSecurityAlerts([]);
+      } else {
+        setSecurityAlerts([]);
+      }
+    }
+  };
+
   const handleExportLogs = () => {
     // TODO: Implement export functionality
     alert('Funcionalidade de exportação em desenvolvimento');
   };
 
-  const handleResolveEvent = (eventId: string) => {
-    setSecurityEvents(events =>
-      events.map(e => (e.id === eventId ? { ...e, resolved: true } : e))
-    );
+  const handleResolveEvent = async (eventId: string) => {
+    try {
+      // Mark event as resolved locally
+      setSecurityEvents(events =>
+        events.map(e => (e.id === eventId ? { ...e, resolved: true } : e))
+      );
+      
+      // Try to resolve alert in database if it exists
+      const alert = securityAlerts.find(a => a.resource_id === eventId && !a.resolved);
+      if (alert) {
+        await resolveSecurityAlert(alert.id);
+        await loadSecurityAlerts();
+      }
+    } catch (err: any) {
+      console.error('Erro ao resolver evento:', err);
+      // Revert local change on error
+      setSecurityEvents(events =>
+        events.map(e => (e.id === eventId ? { ...e, resolved: false } : e))
+      );
+    }
   };
 
   const getSeverityColor = (severity: string) => {
@@ -262,7 +297,40 @@ const AdminSecurityAuditPage = () => {
       <PageHeader title="Segurança e Auditoria" />
       <main className="p-4">
         <div className="max-w-6xl mx-auto space-y-6">
-          {showTableWarning && (
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center p-8">
+              <RefreshCw className="animate-spin text-brand-green" size={32} />
+              <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">Carregando...</span>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && !loading && (
+            <div className="p-4 bg-status-error/20 border-2 border-status-error rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle size={20} className="text-status-error" />
+                <h3 className="font-bold text-status-error">Erro</h3>
+              </div>
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                {error}
+              </p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  loadSecurityEvents();
+                  loadSecurityAlerts();
+                }}
+                className="mt-2 px-4 py-2 bg-status-error text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+              >
+                Tentar Novamente
+              </button>
+            </div>
+          )}
+
+          {/* Table Warning */}
+          {showTableWarning && !loading && !error && (
             <div className="p-4 bg-status-warning/20 border-2 border-status-warning rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle size={20} className="text-status-warning" />
