@@ -5,6 +5,7 @@ import { Session, User } from '@supabase/supabase-js';
 export interface Profile {
   id: string;
   full_name: string;
+  avatar_url?: string | null;
   role: 'admin' | 'user';
   plan: 'trial' | 'premium';
   trial_ends_at: string | null;
