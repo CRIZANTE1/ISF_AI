@@ -25,10 +25,18 @@ const EditEquipmentPage = () => {
     const fetchEquipment = async () => {
       if (!id) return;
       setLoadingData(true);
+      
+      const equipmentId = parseInt(id, 10);
+      if (isNaN(equipmentId)) {
+        setError('ID inválido.');
+        setLoadingData(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('equipment')
         .select('*')
-        .eq('id', id)
+        .eq('id', equipmentId)
         .single();
       
       if (error || !data) {
@@ -48,12 +56,19 @@ const EditEquipmentPage = () => {
     setLoading(true);
     setError(null);
 
+    const equipmentId = parseInt(id, 10);
+    if (isNaN(equipmentId)) {
+      setError('ID inválido.');
+      setLoading(false);
+      return;
+    }
+
     const { created_at, user_id, ...dataToUpdate } = formData;
 
     const { error } = await supabase
       .from('equipment')
       .update(dataToUpdate as TablesUpdate<'equipment'>)
-      .eq('id', id);
+      .eq('id', equipmentId);
 
     if (error) {
       setError('Falha ao atualizar equipamento.');

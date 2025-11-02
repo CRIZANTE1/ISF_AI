@@ -29,7 +29,7 @@ const EquipmentListPage = () => {
         .from('equipment')
         .select('*')
         .eq('user_id', user.id)
-        .eq('type', type);
+        .eq('equipment_type', type);
       
       if (error) {
         setError('Falha ao buscar equipamentos.');

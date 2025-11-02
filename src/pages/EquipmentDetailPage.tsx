@@ -31,10 +31,15 @@ const EquipmentDetailPage = () => {
     setError(null);
 
     try {
+      const equipmentId = parseInt(id, 10);
+      if (isNaN(equipmentId)) {
+        throw new Error('ID inválido');
+      }
+
       const { data: equipmentData, error: equipmentError } = await supabase
         .from('equipment')
         .select('*')
-        .eq('id', id)
+        .eq('id', equipmentId)
         .single();
 
       if (equipmentError) throw equipmentError;
@@ -43,7 +48,7 @@ const EquipmentDetailPage = () => {
       const { data: inspectionsData, error: inspectionsError } = await supabase
         .from('inspections')
         .select('*')
-        .eq('equipment_id', id)
+        .eq('equipment_id', equipmentId)
         .order('inspection_date', { ascending: false });
 
       if (inspectionsError) throw inspectionsError;

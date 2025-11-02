@@ -52,22 +52,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const fetchProfile = async () => {
       if (user) {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching profile:", error);
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            // Log error but don't crash the app
+            if (error.code !== 'PGRST116') { // PGRST116 means no rows found
+              console.error("Error fetching profile:", {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+              });
+            }
+            setProfile(null);
+          } else {
+            setProfile(data as Profile);
+          }
+        } catch (err: any) {
+          // Handle network errors or other unexpected errors
+          console.error("Error fetching profile:", {
+            message: err?.message || 'Unknown error',
+            details: err?.toString() || '',
+            hint: '',
+            code: ''
+          });
           setProfile(null);
-        } else {
-          setProfile(data as Profile);
+        } finally {
+          setLoading(false);
         }
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchProfile();
