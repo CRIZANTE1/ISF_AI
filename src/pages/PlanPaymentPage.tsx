@@ -27,7 +27,7 @@ const PlanPaymentPage = () => {
       return {
         name: 'Plano Premium',
         description: 'Acesso completo a todas as funcionalidades',
-        price: 'R$ 99,90',
+        price: 'R$ 24,90',
         period: 'mensal',
         features: [
           'Gestão ilimitada de equipamentos',

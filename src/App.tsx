@@ -16,6 +16,7 @@ import EditEquipmentPage from './pages/EditEquipmentPage';
 import MyDataPage from './pages/MyDataPage';
 import PlanPaymentPage from './pages/PlanPaymentPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 
 function App() {
   return (
@@ -46,6 +47,14 @@ function App() {
           element={
             <AdminRoute>
               <Utilities />
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="utilities/users" 
+          element={
+            <AdminRoute>
+              <AdminUsersPage />
             </AdminRoute>
           } 
         />
