@@ -44,6 +44,7 @@ const EquipmentDetailPage = () => {
   const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   // State for deletion modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,10 +56,14 @@ const EquipmentDetailPage = () => {
     
     // Verificar autenticação antes de buscar
     const { data: { session } } = await supabase.auth.getSession();
-    console.log('EquipmentDetailPage - User ID:', session?.user?.id, 'Procurando:', type, id);
+    const logMessage = `EquipmentDetailPage - User ID: ${session?.user?.id}, Procurando: ${type}/${id}`;
+    console.log(logMessage);
+    setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${logMessage}`]);
     
     if (!session?.user) {
-      console.error('Usuário não autenticado');
+      const errorMsg = 'Usuário não autenticado';
+      console.error(errorMsg);
+      setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
       setError('Você precisa estar autenticado para acessar este equipamento.');
       setLoading(false);
       return;
@@ -234,10 +239,16 @@ const EquipmentDetailPage = () => {
         }
         case 'multigas': {
           // Buscar diretamente por ID usando a função específica
-          console.log('Buscando MULT-001 no EquipmentDetailPage, id:', id);
+          const log1 = `Buscando MULT-001 no EquipmentDetailPage, id: ${id}`;
+          console.log(log1);
+          setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log1}`]);
+          
           const detector = await getMultigasDetectorById(id);
           if (detector) {
-            console.log('Detector encontrado no EquipmentDetailPage:', detector);
+            const log2 = `Detector encontrado: ${JSON.stringify(detector)}`;
+            console.log(log2);
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log2}`]);
+            
             equipmentData = {
               id: detector.id_equipamento,
               name: detector.id_equipamento,
@@ -259,10 +270,15 @@ const EquipmentDetailPage = () => {
               }));
             }
           } else {
-            console.error('Multigas não encontrado no EquipmentDetailPage:', id);
+            const errorMsg = `Multigas não encontrado: ${id}`;
+            console.error(errorMsg);
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
+            
             // Fallback: tentar buscar todos para debug
             const allDetectors = await getAllMultigasDetectors();
-            console.log('Total de detectores disponíveis:', allDetectors.length, 'IDs:', allDetectors.map(d => d.id_equipamento));
+            const log3 = `Total de detectores disponíveis: ${allDetectors.length}, IDs: ${allDetectors.map(d => d.id_equipamento).join(', ')}`;
+            console.log(log3);
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log3}`]);
             
             // Tentar buscar diretamente via Supabase sem usar a função wrapper
             const { data: directData, error: directError } = await supabase
@@ -271,7 +287,9 @@ const EquipmentDetailPage = () => {
               .eq('id_equipamento', id)
               .maybeSingle();
             
-            console.log('Tentativa direta Supabase - data:', directData, 'error:', directError);
+            const log4 = `Tentativa direta Supabase - data: ${directData ? JSON.stringify(directData) : 'null'}, error: ${directError ? JSON.stringify(directError) : 'null'}`;
+            console.log(log4);
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log4}`]);
             
             if (directData) {
               equipmentData = {
@@ -336,11 +354,26 @@ const EquipmentDetailPage = () => {
         setInspections(inspectionsData);
       }
     } catch (err: any) {
-      setError('Falha ao buscar detalhes do equipamento.');
+      const errorMsg = `Falha ao buscar detalhes do equipamento: ${err?.message || JSON.stringify(err)}`;
+      setError(errorMsg);
       console.error(err);
+      setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
     } finally {
       setLoading(false);
     }
+  };
+  
+  const downloadLogs = () => {
+    const logContent = debugLogs.join('\n');
+    const blob = new Blob([logContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debug-logs-${type}-${id}-${new Date().toISOString()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -485,7 +518,30 @@ const EquipmentDetailPage = () => {
       </PageHeader>
       <main className="p-4">
         {loading && <Skeleton className="h-48 w-full" />}
-        {error && <p className="mb-4 text-center text-status-error">{error}</p>}
+        {error && (
+          <div className="mb-4">
+            <p className="text-center text-status-error mb-2" style={{ color: '#FF3B30' }}>{error}</p>
+            {debugLogs.length > 0 && (
+              <div className="mt-4 p-4 rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(0, 200, 255, 0.3)' }}>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Logs de Debug:</h4>
+                  <button
+                    onClick={downloadLogs}
+                    className="px-3 py-1 text-xs rounded hover:opacity-90"
+                    style={{ backgroundColor: '#00C8FF', color: '#FFFFFF' }}
+                  >
+                    Baixar Logs
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <pre className="text-xs font-mono whitespace-pre-wrap" style={{ color: '#FFFFFF' }}>
+                    {debugLogs.join('\n')}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {!loading && equipment && (
           <>
             <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border mb-6">

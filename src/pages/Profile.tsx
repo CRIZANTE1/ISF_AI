@@ -250,10 +250,10 @@ const Profile = () => {
             src={profile.avatar_url}
             alt={profile.full_name || 'Avatar'}
             className="w-24 h-24 rounded-full object-cover border-2"
-            style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
+            style={{ borderColor: '#2A2A2A' }}
           />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-dark-surface flex items-center justify-center border-2" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+          <div className="w-24 h-24 rounded-full bg-dark-surface flex items-center justify-center border-2" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>
             <span className="text-4xl font-bold text-accent-cyan">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </span>
@@ -276,7 +276,7 @@ const Profile = () => {
         </label>
         {isUploadingAvatar && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#2A2A2A' }}></div>
           </div>
         )}
       </div>

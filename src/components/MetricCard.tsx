@@ -11,7 +11,7 @@ interface MetricCardProps {
 const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: MetricCardProps) => {
   const colorConfig = {
     cyan: { text: '#00C8FF', bg: 'rgba(0, 200, 255, 0.1)', border: 'rgba(0, 200, 255, 0.15)' },
-    green: { text: '#00D97E', bg: 'rgba(0, 217, 126, 0.1)', border: 'rgba(255, 255, 255, 0.1)' },
+    green: { text: '#00D97E', bg: 'rgba(0, 217, 126, 0.1)', border: 'rgba(0, 217, 126, 0.15)' },
     orange: { text: '#FFA800', bg: 'rgba(255, 168, 0, 0.1)', border: 'rgba(255, 168, 0, 0.15)' },
     purple: { text: '#8A3FFC', bg: 'rgba(138, 63, 252, 0.1)', border: 'rgba(138, 63, 252, 0.15)' },
   };

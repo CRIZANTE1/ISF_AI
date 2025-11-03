@@ -188,7 +188,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
             className="rounded-2xl p-6 text-center shadow-card border"
             style={{ 
               backgroundColor: '#1A1A1A', 
-              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderColor: '#2A2A2A',
               borderWidth: '1px'
             }}
           >
