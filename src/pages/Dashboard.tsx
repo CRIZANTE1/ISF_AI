@@ -5,6 +5,7 @@ import MetricCard from '../components/MetricCard';
 import AlertsList from '../components/AlertsList';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
+import InstructionsPanel from '../components/InstructionsPanel';
 import { motion } from 'framer-motion';
 import { getAllExtinguishers } from '../utils/extinguisherOperations';
 import { getAllHoses } from '../utils/hoseOperations';
@@ -128,6 +129,8 @@ const Dashboard = () => {
           )}
           <TrialStatusBar profile={profile} />
         </motion.div>
+
+        <InstructionsPanel equipmentType="dashboard" />
 
         {error && (
           <motion.div 

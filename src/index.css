@@ -165,3 +165,97 @@ svg {
   background-color: var(--fitness-stand);
   color: #FFFFFF;
 }
+
+/* Estilos para conteúdo de instruções */
+.instructions-content {
+  color: #8E8E93;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.instructions-content h1,
+.instructions-content h2,
+.instructions-content h3,
+.instructions-content h4,
+.instructions-content h5,
+.instructions-content h6 {
+  color: #FFFFFF !important;
+  font-weight: 600;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.instructions-content h3 {
+  font-size: 16px;
+}
+
+.instructions-content h4 {
+  font-size: 14px;
+}
+
+.instructions-content p {
+  color: #8E8E93 !important;
+  margin-bottom: 8px;
+}
+
+.instructions-content strong {
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+
+.instructions-content ul,
+.instructions-content ol {
+  color: #8E8E93 !important;
+  margin-left: 20px;
+  margin-bottom: 12px;
+}
+
+.instructions-content li {
+  color: #8E8E93 !important;
+  margin-bottom: 4px;
+}
+
+.instructions-content code {
+  color: #FFFFFF !important;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.instructions-content hr {
+  border-color: rgba(255, 255, 255, 0.1);
+  margin: 16px 0;
+}
+
+.instructions-content a {
+  color: var(--fitness-stand);
+  text-decoration: underline;
+}
+
+.instructions-content blockquote {
+  border-left: 3px solid var(--fitness-stand);
+  padding-left: 12px;
+  margin: 12px 0;
+  color: #8E8E93;
+}
+
+.instructions-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.instructions-content table th,
+.instructions-content table td {
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #8E8E93;
+}
+
+.instructions-content table th {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+  font-weight: 600;
+}

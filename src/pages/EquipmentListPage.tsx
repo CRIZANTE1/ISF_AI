@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import FloatingActionButton from '../components/FloatingActionButton';
 import Skeleton from '../components/Skeleton';
+import InstructionsPanel from '../components/InstructionsPanel';
 import { ChevronRight } from 'lucide-react';
 import { getAllExtinguishers } from '../utils/extinguisherOperations';
 import { getAllHoses } from '../utils/hoseOperations';
@@ -92,9 +93,10 @@ const EquipmentListPage = () => {
   }, [user, type]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-black">
       <PageHeader title={equipmentTypeName} />
-      <main className="p-4">
+      <main className="px-ios-4 py-ios-4">
+        {type && <InstructionsPanel equipmentType={type} />}
         {loading && (
           <div className="space-y-3">
             <Skeleton className="h-16 w-full rounded-lg" />

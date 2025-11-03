@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
 import PhotoUpload from '../components/PhotoUpload';
+import InstructionsPanel from '../components/InstructionsPanel';
 import EyewashChecklist from '../components/checklists/EyewashChecklist';
 import FoamChamberChecklist from '../components/checklists/FoamChamberChecklist';
 import AlarmChecklist from '../components/checklists/AlarmChecklist';
@@ -540,11 +541,12 @@ const AddInspectionPage = () => {
   return (
     <div className="min-h-screen">
       <PageHeader title="Registrar Inspeção" />
-      <main className="p-4">
+      <main className="px-ios-4 py-ios-4 bg-black">
+        {type && <InstructionsPanel equipmentType={type} />}
         {equipment && (
-          <div className="mb-4 p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-            <p className="font-semibold text-sm">{equipment.name}</p>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg" style={{ backgroundColor: 'rgba(28, 28, 30, 0.8)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}>
+            <p className="font-semibold text-sm text-white">{equipment.name}</p>
+            <p className="text-xs text-[#8E8E93]">
               {equipment.location || equipment.localizacao || 'Sem localização'}
             </p>
             {equipment.model && (
