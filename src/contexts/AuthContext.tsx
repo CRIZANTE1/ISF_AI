@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { logUserAccess } from '../utils/adminOperations';
 
 export interface Profile {
   id: string;
@@ -42,21 +43,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Log access events
+        // Log access events (non-blocking)
         if (event === 'SIGNED_IN' && session) {
-          try {
-            const { logUserAccess } = await import('../utils/adminOperations');
-            await logUserAccess('login', true);
-          } catch (error) {
-            console.error('Failed to log login:', error);
-          }
+          // Use setTimeout to avoid blocking the auth flow
+          setTimeout(() => {
+            logUserAccess('login', true).catch((error) => {
+              console.error('Failed to log login:', error);
+            });
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
-          try {
-            const { logUserAccess } = await import('../utils/adminOperations');
-            await logUserAccess('logout', true);
-          } catch (error) {
-            console.error('Failed to log logout:', error);
-          }
+          setTimeout(() => {
+            logUserAccess('logout', true).catch((error) => {
+              console.error('Failed to log logout:', error);
+            });
+          }, 0);
         }
       }
     );
@@ -113,12 +113,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const signOut = async () => {
-    try {
-      const { logUserAccess } = await import('../utils/adminOperations');
-      await logUserAccess('logout', true);
-    } catch (error) {
+    // Log before sign out (non-blocking)
+    logUserAccess('logout', true).catch((error) => {
       console.error('Failed to log logout:', error);
-    }
+    });
     await supabase.auth.signOut();
   };
 

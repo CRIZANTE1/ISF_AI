@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface EyewashStation {
   id?: number;
@@ -84,7 +85,6 @@ export async function saveNewEyewashStation(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', station.id_equipamento, {
         type: 'chuveiro_lavaolhos',
       });
@@ -129,7 +129,6 @@ export async function saveEyewashInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.id_equipamento, {
         type: 'chuveiro_lavaolhos',
         status: inspection.status_geral,

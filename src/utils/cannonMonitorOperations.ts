@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface CannonMonitor {
   id?: number;
@@ -55,7 +56,6 @@ export async function saveNewCannonMonitor(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', cannon.id_equipamento, {
         type: 'canhao_monitor',
       });
@@ -102,7 +102,6 @@ export async function saveCannonMonitorInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.id_equipamento, {
         type: 'canhao_monitor',
         tipo_inspecao: inspection.tipo_inspecao,

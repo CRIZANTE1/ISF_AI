@@ -324,10 +324,13 @@ export async function logUserAccess(
   errorMessage?: string
 ): Promise<void> {
   try {
+    // Check if navigator exists (may be undefined in SSR/build environments)
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+    
     await supabase.rpc('log_user_access', {
       p_action: action,
       p_ip_address: null, // IP será obtido no backend se necessário
-      p_user_agent: navigator.userAgent,
+      p_user_agent: userAgent,
       p_session_id: null,
       p_success: success,
       p_error_message: errorMessage || null,

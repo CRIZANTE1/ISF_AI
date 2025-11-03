@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface MultigasDetector {
   id?: number;
@@ -74,7 +75,6 @@ export async function saveNewMultigasDetector(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', detector.id_equipamento, {
         type: 'multigas',
       });
@@ -268,7 +268,6 @@ export async function saveMultigasInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.id_equipamento, {
         type: 'multigas',
         tipo_teste: inspection.tipo_teste,

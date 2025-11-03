@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface SCBA {
   id?: number;
@@ -58,7 +59,6 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', scba.numero_serie_equipamento, {
         type: 'scba',
       });
@@ -125,7 +125,6 @@ export async function saveSCBAVisualInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.numero_serie_equipamento, {
         type: 'scba',
         status: inspection.status_geral,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { logUserAccess } from '../utils/adminOperations';
 
 type AuthMode = 'login' | 'signup';
 
@@ -49,13 +50,10 @@ const AuthPage = () => {
           password,
         });
         if (error) {
-          // Log failed login
-          try {
-            const { logUserAccess } = await import('../utils/adminOperations');
-            await logUserAccess('login', false, error.message);
-          } catch (logError) {
+          // Log failed login (non-blocking)
+          logUserAccess('login', false, error.message).catch((logError) => {
             console.error('Failed to log login error:', logError);
-          }
+          });
           throw error;
         }
         // Successful login will be logged in AuthContext onAuthStateChange

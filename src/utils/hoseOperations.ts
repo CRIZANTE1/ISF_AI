@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface Hose {
   id?: number;
@@ -47,7 +48,6 @@ export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promis
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', hose.id_mangueira, {
         type: 'mangueira',
       });

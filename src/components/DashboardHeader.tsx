@@ -9,7 +9,12 @@ const DashboardHeader = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const today = new Date();
-  const formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR });
+  let formattedDate = '';
+  try {
+    formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR });
+  } catch (error) {
+    formattedDate = today.toLocaleDateString('pt-BR');
+  }
   const userInitial = profile?.full_name?.charAt(0).toUpperCase() || 'U';
 
   return (
@@ -30,10 +35,10 @@ const DashboardHeader = () => {
           className="flex flex-col"
         >
           <h1 className="text-screen-title font-semibold text-white mb-1" style={{ letterSpacing: '-0.5px' }}>
-            {formattedDate.split(',')[0]}
+            {formattedDate.split(',')[0] || formattedDate}
           </h1>
           <p className="text-body text-[#8E8E93]">
-            {formattedDate.split(',')[1].trim()}
+            {formattedDate.split(',')[1]?.trim() || ''}
           </p>
         </motion.div>
         <div className="flex items-center gap-3">

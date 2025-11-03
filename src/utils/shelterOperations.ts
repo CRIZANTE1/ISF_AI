@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface Shelter {
   id?: number;
@@ -51,7 +52,6 @@ export async function saveNewShelter(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', shelter.id_abrigo, {
         type: 'abrigo',
       });
@@ -81,7 +81,6 @@ export async function saveShelterInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.id_abrigo, {
         type: 'abrigo',
         status: inspection.status_geral,

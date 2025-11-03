@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface FoamChamber {
   id?: number;
@@ -82,7 +83,6 @@ export async function saveNewFoamChamber(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', chamber.id_camara, {
         type: 'camara_espuma',
       });
@@ -127,7 +127,6 @@ export async function saveFoamChamberInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.id_camara, {
         type: 'camara_espuma',
         tipo_inspecao: inspection.tipo_inspecao,

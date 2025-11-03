@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 export interface AlarmSystem {
   id?: number;
@@ -106,7 +107,6 @@ export async function saveNewAlarmSystem(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', alarm.id_sistema, {
         type: 'alarme',
       });
@@ -157,7 +157,6 @@ export async function saveAlarmInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.id_sistema, {
         type: 'alarme',
         status: inspection.status_geral,

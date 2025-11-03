@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logUserAction } from './adminOperations';
 
 // Mapeamento de ações para plano de ação baseado em não conformidades
 const ACTION_MAP: Record<string, string> = {
@@ -306,7 +307,6 @@ export async function saveNewExtinguisher(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'equipment', extinguisher.numero_identificacao, {
         type: 'extintor',
       });
@@ -361,7 +361,6 @@ export async function saveExtinguisherInspection(
     
     // Log action
     try {
-      const { logUserAction } = await import('./adminOperations');
       await logUserAction('create', 'inspection', inspection.numero_identificacao, {
         type: 'extintor',
         tipo_servico: inspection.tipo_servico,
