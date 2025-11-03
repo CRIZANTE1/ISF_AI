@@ -101,16 +101,47 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
  */
 export async function getMultigasDetectorById(idEquipamento: string): Promise<MultigasDetector | null> {
   try {
+    console.log('Buscando detector multigas:', idEquipamento);
     const { data, error } = await supabase
       .from('inventario_multigas')
       .select('*')
       .eq('id_equipamento', idEquipamento)
-      .single();
+      .maybeSingle(); // Usar maybeSingle() em vez de single() para evitar erro quando não encontra
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro Supabase ao buscar detector multigás:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      console.log('Detector multigas não encontrado:', idEquipamento);
+      // Fallback: tentar buscar sem .maybeSingle() para debug
+      const { data: allData, error: allError } = await supabase
+        .from('inventario_multigas')
+        .select('*')
+        .eq('id_equipamento', idEquipamento);
+      
+      if (allError) {
+        console.error('Erro ao buscar todos os detectores:', allError);
+      } else {
+        console.log('Resultado sem maybeSingle:', allData);
+        if (allData && allData.length > 0) {
+          return allData[0];
+        }
+      }
+      return null;
+    }
+    
+    console.log('Detector multigas encontrado:', data);
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar detector multigás:', error);
+    console.error('Detalhes do erro:', {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint
+    });
     return null;
   }
 }

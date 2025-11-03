@@ -220,8 +220,10 @@ const EquipmentDetailPage = () => {
         }
         case 'multigas': {
           // Buscar diretamente por ID usando a função específica
+          console.log('Buscando MULT-001 no EquipmentDetailPage, id:', id);
           const detector = await getMultigasDetectorById(id);
           if (detector) {
+            console.log('Detector encontrado no EquipmentDetailPage:', detector);
             equipmentData = {
               id: detector.id_equipamento,
               name: detector.id_equipamento,
@@ -243,10 +245,28 @@ const EquipmentDetailPage = () => {
               }));
             }
           } else {
-            console.log('Multigas não encontrado:', id, 'Tentativa de buscar diretamente por ID falhou');
+            console.error('Multigas não encontrado no EquipmentDetailPage:', id);
             // Fallback: tentar buscar todos para debug
             const allDetectors = await getAllMultigasDetectors();
             console.log('Total de detectores disponíveis:', allDetectors.length, 'IDs:', allDetectors.map(d => d.id_equipamento));
+            
+            // Tentar buscar diretamente via Supabase sem usar a função wrapper
+            const { data: directData, error: directError } = await supabase
+              .from('inventario_multigas')
+              .select('*')
+              .eq('id_equipamento', id)
+              .maybeSingle();
+            
+            console.log('Tentativa direta Supabase - data:', directData, 'error:', directError);
+            
+            if (directData) {
+              equipmentData = {
+                id: directData.id_equipamento,
+                name: directData.id_equipamento,
+                location: undefined,
+                ...directData,
+              };
+            }
           }
           break;
         }
