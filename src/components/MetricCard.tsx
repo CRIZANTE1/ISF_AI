@@ -12,32 +12,32 @@ interface MetricCardProps {
 const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: MetricCardProps) => {
   const colorConfig = {
     blue: { 
-      bg: 'rgba(114, 222, 255, 0.4)',         // Rally Blue translúcido (40%)
-      bgSolid: '#72DEFF',                      // Cor sólida para texto
+      bg: 'rgba(21, 126, 251, 0.4)',          // Fitness Stand translúcido (40%)
+      bgSolid: '#157EFB',                     // Cor sólida para texto
       text: '#FFFFFF',
-      accent: '#5BC5E0',
-      shadow: 'rgba(114, 222, 255, 0.25)'
+      accent: '#0066CC',
+      shadow: 'rgba(21, 126, 251, 0.3)'
     },
     green: { 
-      bg: 'rgba(30, 185, 128, 0.4)',          // Rally Green translúcido (40%)
-      bgSolid: '#1EB980',
+      bg: 'rgba(83, 215, 105, 0.4)',         // Fitness Exercise translúcido (40%)
+      bgSolid: '#53D769',
       text: '#FFFFFF',
-      accent: '#16A572',
-      shadow: 'rgba(30, 185, 128, 0.25)'
+      accent: '#45C159',
+      shadow: 'rgba(83, 215, 105, 0.3)'
     },
     orange: { 
-      bg: 'rgba(255, 104, 89, 0.4)',          // Rally Orange translúcido (40%)
-      bgSolid: '#FF6859',
+      bg: 'rgba(252, 61, 57, 0.4)',          // Fitness Move translúcido (40%)
+      bgSolid: '#FC3D39',
       text: '#FFFFFF',
-      accent: '#FF4A3A',
-      shadow: 'rgba(255, 104, 89, 0.25)'
+      accent: '#E02E2A',
+      shadow: 'rgba(252, 61, 57, 0.3)'
     },
     purple: { 
-      bg: 'rgba(177, 93, 255, 0.4)',          // Rally Purple translúcido (40%)
+      bg: 'rgba(177, 93, 255, 0.4)',         // Mantido para compatibilidade
       bgSolid: '#B15DFF',
       text: '#FFFFFF',
       accent: '#9A3EE6',
-      shadow: 'rgba(177, 93, 255, 0.25)'
+      shadow: 'rgba(177, 93, 255, 0.3)'
     },
   };
 
@@ -64,13 +64,13 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
     <motion.div 
       whileHover={{ scale: 1.02, y: -2 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="relative rally-card-translucent flex flex-col overflow-hidden group cursor-pointer"
+      className="relative fitness-card-translucent flex flex-col overflow-hidden group cursor-pointer"
       style={{ 
         backgroundColor: config.bg,
-        borderRadius: '16px',
+        borderRadius: '24px',
         padding: '20px',
         gap: '12px',
-        boxShadow: `0 4px 12px ${config.shadow}`,
+        boxShadow: `0 2px 8px ${config.shadow}`,
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
       }}

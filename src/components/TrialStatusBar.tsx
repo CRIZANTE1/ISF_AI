@@ -18,16 +18,16 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
         transition={{ delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className="mt-2"
       >
-        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(30, 185, 128, 0.2)' }}>
+        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(83, 215, 105, 0.2)' }}>
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: '100%' }}
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
             className="h-1.5 rounded-full" 
-            style={{ backgroundColor: '#1EB980' }}
+            style={{ backgroundColor: '#53D769' }}
           />
         </div>
-        <p className="text-xs mt-2 text-[var(--text-secondary-current)]">
+        <p className="text-xs mt-2 text-[#8E8E93]">
           Acesso total ao Plano Premium.
         </p>
       </motion.div>
@@ -42,10 +42,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
         transition={{ delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className="mt-2"
       >
-        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(255, 104, 89, 0.2)' }}>
-          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FF6859' }} />
+        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(252, 61, 57, 0.2)' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FC3D39' }} />
         </div>
-        <p className="text-xs mt-2" style={{ color: '#FF6859' }}>
+        <p className="text-xs mt-2" style={{ color: '#FC3D39' }}>
           Período de teste expirado.
         </p>
       </motion.div>
@@ -65,10 +65,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
         transition={{ delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className="mt-2"
       >
-        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(255, 104, 89, 0.2)' }}>
-          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FF6859' }} />
+        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(252, 61, 57, 0.2)' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FC3D39' }} />
         </div>
-        <p className="text-xs mt-2" style={{ color: '#FF6859' }}>
+        <p className="text-xs mt-2" style={{ color: '#FC3D39' }}>
           Período de teste expirado.
         </p>
       </motion.div>
@@ -85,16 +85,16 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
       transition={{ delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className="mt-2"
     >
-      <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(255, 207, 68, 0.2)' }}>
+      <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(252, 61, 57, 0.2)' }}>
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
           className="h-1.5 rounded-full" 
-          style={{ backgroundColor: '#FFCF44' }}
+          style={{ backgroundColor: '#FC3D39' }}
         />
       </div>
-      <p className="text-xs mt-2 text-[var(--text-secondary-current)]">
+      <p className="text-xs mt-2 text-[#8E8E93]">
         {diffDays} dia{diffDays !== 1 ? 's' : ''} restante{diffDays !== 1 ? 's' : ''} no período de teste.
       </p>
     </motion.div>

@@ -108,17 +108,17 @@ const AuthPage = () => {
             type="submit"
             disabled={loading}
             className="w-full p-3 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: loading ? '#5BC5E0' : '#72DEFF' }}
+            style={{ backgroundColor: loading ? '#0066CC' : '#157EFB' }}
           >
             {loading ? 'Processando...' : (mode === 'login' ? 'Entrar' : 'Cadastrar')}
           </button>
         </form>
 
-        {error && <p className="mt-4 text-center" style={{ color: '#FF6859' }}>{error}</p>}
-        {message && <p className="mt-4 text-center" style={{ color: '#1EB980' }}>{message}</p>}
+        {error && <p className="mt-4 text-center" style={{ color: '#FC3D39' }}>{error}</p>}
+        {message && <p className="mt-4 text-center" style={{ color: '#53D769' }}>{message}</p>}
 
         <div className="mt-6 text-center">
-          <button onClick={toggleMode} className="text-sm hover:underline text-[var(--text-primary-current)]">
+          <button onClick={toggleMode} className="text-sm hover:underline text-white">
             {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça o login'}
           </button>
         </div>

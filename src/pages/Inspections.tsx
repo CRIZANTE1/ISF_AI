@@ -19,9 +19,9 @@ const safetyItems = [
 
 const Inspections = () => {
   return (
-    <div className="min-h-screen bg-[var(--bg-current)]">
-      <header className="sticky top-0 z-10 flex items-center h-14 px-ios-4 frosted-glass border-b border-[var(--border-current)]">
-        <h1 className="text-xl font-bold text-[var(--text-primary-current)]">Inspeções</h1>
+    <div className="min-h-screen bg-black">
+      <header className="sticky top-0 z-10 flex items-center h-14 px-ios-4 frosted-glass border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+        <h1 className="text-xl font-bold text-white">Inspeções</h1>
       </header>
       <main className="flex flex-col">
         <InspectionCategory title="SCI - Sistema de Combate a Incêndio" icon={<Flame />}>
@@ -29,7 +29,7 @@ const Inspections = () => {
             <Link 
               key={item.name} 
               to={item.link} 
-              className="flex items-center gap-4 p-ios-3 rounded-ios-md text-[var(--text-primary-current)] hover:bg-[var(--surface-current)] transition-colors"
+              className="flex items-center gap-4 p-ios-3 rounded-ios-md text-white hover:bg-[rgba(28,28,30,0.8)] transition-colors"
             >
               {item.icon}
               <span>{item.name}</span>
@@ -41,7 +41,7 @@ const Inspections = () => {
             <Link 
               key={item.name} 
               to={item.link} 
-              className="flex items-center gap-4 p-ios-3 rounded-ios-md text-[var(--text-primary-current)] hover:bg-[var(--surface-current)] transition-colors"
+              className="flex items-center gap-4 p-ios-3 rounded-ios-md text-white hover:bg-[rgba(28,28,30,0.8)] transition-colors"
             >
               {item.icon}
               <span>{item.name}</span>

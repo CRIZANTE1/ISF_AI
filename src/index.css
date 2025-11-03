@@ -4,78 +4,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design System Rally Colors */
+/* Design System Apple Fitness UI */
 :root {
-  /* Paleta Rally */
-  --rally-green-primary: #1EB980;
-  --rally-green-dark: #045D56;
-  --rally-orange: #FF6859;
-  --rally-yellow: #FFCF44;
-  --rally-purple: #B15DFF;
-  --rally-blue: #72DEFF;
+  /* Paleta Apple Fitness */
+  --fitness-move: #FC3D39;      /* Vermelho - Move */
+  --fitness-exercise: #53D769;  /* Verde - Exercise */
+  --fitness-stand: #157EFB;     /* Azul - Stand */
   
-  /* Cores modo claro */
-  --bg-light: #F5F5F7;
-  --bg-dark: #1C1C1E;
-  --surface-light: #FFFFFF;
-  --surface-dark: #2C2C2E;
-  --text-primary-light: #000000;
+  /* Cores base (modo dark - preto absoluto) */
+  --bg-dark: #000000;
+  --surface-dark: rgba(28, 28, 30, 0.8);
   --text-primary-dark: #FFFFFF;
-  --text-secondary-light: #8E8E93;
   --text-secondary-dark: #8E8E93;
-  --accent-blue: #72DEFF;
-  --success: #1EB980;
-  --warning: #FFCF44;
-  --error: #FF6859;
-  --border-light: rgba(0, 0, 0, 0.1);
   --border-dark: rgba(255, 255, 255, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.5);
+  
+  /* Cores modo claro (manter para compatibilidade) */
+  --bg-light: #F5F5F7;
+  --surface-light: #FFFFFF;
+  --text-primary-light: #000000;
+  --text-secondary-light: #8E8E93;
+  --border-light: rgba(0, 0, 0, 0.1);
   --shadow-light: rgba(0, 0, 0, 0.05);
-  --shadow-dark: rgba(0, 0, 0, 0.3);
   
   /* Cores translúcidas (40% opacidade) */
-  --rally-green-translucent: rgba(30, 185, 128, 0.4);
-  --rally-green-dark-translucent: rgba(4, 93, 86, 0.4);
-  --rally-orange-translucent: rgba(255, 104, 89, 0.4);
-  --rally-yellow-translucent: rgba(255, 207, 68, 0.4);
-  --rally-purple-translucent: rgba(177, 93, 255, 0.4);
-  --rally-blue-translucent: rgba(114, 222, 255, 0.4);
+  --fitness-move-translucent: rgba(252, 61, 57, 0.4);
+  --fitness-exercise-translucent: rgba(83, 215, 105, 0.4);
+  --fitness-stand-translucent: rgba(21, 126, 251, 0.4);
+  
+  /* Status colors (usando paleta Fitness) */
+  --success: var(--fitness-exercise);
+  --warning: var(--fitness-move);
+  --error: var(--fitness-move);
+  --info: var(--fitness-stand);
 }
 
-/* Detecção automática de modo escuro */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-current: var(--bg-dark);
-    --surface-current: var(--surface-dark);
-    --text-primary-current: var(--text-primary-dark);
-    --text-secondary-current: var(--text-secondary-dark);
-    --border-current: var(--border-dark);
-    --shadow-current: var(--shadow-dark);
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg-current: var(--bg-light);
-    --surface-current: var(--surface-light);
-    --text-primary-current: var(--text-primary-light);
-    --text-secondary-current: var(--text-secondary-light);
-    --border-current: var(--border-light);
-    --shadow-current: var(--shadow-light);
-  }
+/* Apple Fitness sempre usa modo dark (preto absoluto) */
+:root {
+  --bg-current: var(--bg-dark);
+  --surface-current: var(--surface-dark);
+  --text-primary-current: var(--text-primary-dark);
+  --text-secondary-current: var(--text-secondary-dark);
+  --border-current: var(--border-dark);
+  --shadow-current: var(--shadow-dark);
 }
 
 html {
-  color-scheme: light dark;
-  background-color: var(--bg-current);
+  color-scheme: dark;
+  background-color: #000000;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-current);
-  color: var(--text-primary-current);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #000000;
+  color: #FFFFFF;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -102,71 +87,66 @@ body {
   opacity: 0.7;
 }
 
-/* Efeito frosted glass (backdrop-filter) */
+/* Efeito frosted glass (backdrop-filter) - Apple Fitness */
 .frosted-glass {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(28, 28, 30, 0.7);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border-current);
 }
 
-@media (prefers-color-scheme: dark) {
-  .frosted-glass {
-    background: rgba(28, 28, 30, 0.7);
-  }
-}
-
-/* Card estilo Apple com translucidez */
+/* Card estilo Apple Fitness (24px radius) */
 .apple-card {
   background: var(--surface-current);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px var(--shadow-current);
+  border-radius: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border-current);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .apple-card:hover {
-  box-shadow: 0 8px 24px var(--shadow-current);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   transform: translateY(-2px);
 }
 
-/* Card translúcido (40% opacidade) */
-.rally-card-translucent {
+/* Card translúcido Apple Fitness (40% opacidade, 24px radius) */
+.fitness-card-translucent {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 16px;
+  border-radius: 24px;
   border: 1px solid var(--border-current);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.rally-card-translucent:hover {
+.fitness-card-translucent:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-/* Botão estilo Rally */
+/* Botão estilo Apple Fitness */
 .apple-button {
-  background: var(--rally-blue);
+  background: var(--fitness-stand);
   color: #FFFFFF;
-  border-radius: 12px;
+  border-radius: 24px;
   padding: 12px 24px;
-  font-weight: 500;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 17px;
   border: none;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(114, 222, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(21, 126, 251, 0.3);
 }
 
 .apple-button:hover {
-  background: #5BC5E0;
-  box-shadow: 0 4px 12px rgba(114, 222, 255, 0.35);
+  background: #0066CC;
+  box-shadow: 0 4px 12px rgba(21, 126, 251, 0.4);
   transform: translateY(-1px);
 }
 
 .apple-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(114, 222, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(21, 126, 251, 0.3);
 }
 
 /* Ícones minimalistas */
@@ -180,8 +160,8 @@ svg {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Seleção de texto estilo Rally */
+/* Seleção de texto estilo Apple Fitness */
 ::selection {
-  background-color: var(--rally-blue);
+  background-color: var(--fitness-stand);
   color: #FFFFFF;
 }

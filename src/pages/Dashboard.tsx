@@ -104,7 +104,7 @@ const Dashboard = () => {
   const isLoading = authLoading || loadingStats;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--bg-current)] transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-black transition-colors duration-300">
       <DashboardHeader />
       <main className="px-ios-4 flex-grow py-ios-4">
         <motion.div 
@@ -120,7 +120,7 @@ const Dashboard = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-              className="text-section-title font-semibold text-[var(--text-primary-current)] mb-2"
+              className="text-section-title font-semibold text-white mb-2"
               style={{ letterSpacing: '-0.3px' }}
             >
               Olá, {profile?.full_name ?? 'Usuário'}
@@ -133,17 +133,17 @@ const Dashboard = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rally-card-translucent px-ios-5 py-ios-4 mb-ios-6" 
+            className="fitness-card-translucent px-ios-5 py-ios-4 mb-ios-6" 
             style={{ 
-              backgroundColor: 'rgba(255, 104, 89, 0.4)', 
-              borderColor: 'rgba(255, 104, 89, 0.3)',
+              backgroundColor: 'rgba(252, 61, 57, 0.4)', 
+              borderColor: 'rgba(252, 61, 57, 0.3)',
               backdropFilter: 'blur(20px) saturate(180%)',
               WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             }}
             role="alert"
           >
-            <strong className="font-semibold" style={{ color: '#FF6859' }}>Erro: </strong>
-            <span className="block sm:inline" style={{ color: '#FF6859' }}>{error}</span>
+            <strong className="font-semibold" style={{ color: '#FC3D39' }}>Erro: </strong>
+            <span className="block sm:inline" style={{ color: '#FC3D39' }}>{error}</span>
           </motion.div>
         )}
 

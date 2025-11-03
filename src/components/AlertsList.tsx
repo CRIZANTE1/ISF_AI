@@ -166,18 +166,18 @@ const AlertsList = ({ userId }: AlertsListProps) => {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ delay: index * 0.05, ease: [0.4, 0, 0.2, 1] }}
                 whileHover={{ scale: 1.01, y: -2 }}
-                className="rally-card-translucent cursor-pointer group"
+                className="fitness-card-translucent cursor-pointer group"
                 style={{ 
-                  backgroundColor: 'rgba(255, 104, 89, 0.4)', 
-                  borderColor: 'rgba(255, 104, 89, 0.3)',
+                  backgroundColor: 'rgba(252, 61, 57, 0.4)', 
+                  borderColor: 'rgba(252, 61, 57, 0.3)',
                   padding: '16px',
-                  boxShadow: '0 4px 12px rgba(255, 104, 89, 0.25)',
+                  boxShadow: '0 2px 8px rgba(252, 61, 57, 0.3)',
                   backdropFilter: 'blur(20px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
                 }}
               >
-                <p className="text-body font-medium flex items-center gap-3" style={{ color: '#FF6859' }}>
-                  <AlertTriangle size={18} strokeWidth={2} style={{ color: '#FF6859' }} />
+                <p className="text-body font-medium flex items-center gap-3" style={{ color: '#FC3D39' }}>
+                  <AlertTriangle size={18} strokeWidth={2} style={{ color: '#FC3D39' }} />
                   {alert.message}
                 </p>
               </motion.div>

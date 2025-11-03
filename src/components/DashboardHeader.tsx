@@ -29,10 +29,10 @@ const DashboardHeader = () => {
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           className="flex flex-col"
         >
-          <h1 className="text-screen-title font-semibold text-[var(--text-primary-current)] mb-1" style={{ letterSpacing: '-0.5px' }}>
+          <h1 className="text-screen-title font-semibold text-white mb-1" style={{ letterSpacing: '-0.5px' }}>
             {formattedDate.split(',')[0]}
           </h1>
-          <p className="text-body text-[var(--text-secondary-current)]">
+          <p className="text-body text-[#8E8E93]">
             {formattedDate.split(',')[1].trim()}
           </p>
         </motion.div>
@@ -40,11 +40,11 @@ const DashboardHeader = () => {
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="relative p-2.5 rounded-full transition-colors hover:bg-[var(--surface-current)]"
+            className="relative p-2.5 rounded-full transition-colors hover:bg-[rgba(28,28,30,0.8)]"
             aria-label="Notificações"
           >
-            <Bell size={22} strokeWidth={2} className="text-[var(--text-secondary-current)]" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor: '#72DEFF' }}></span>
+            <Bell size={22} strokeWidth={2} className="text-[#8E8E93]" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor: '#157EFB' }}></span>
           </motion.button>
           <motion.button 
             whileHover={{ scale: 1.05 }}
@@ -52,8 +52,8 @@ const DashboardHeader = () => {
             onClick={() => navigate('/profile')}
             className="w-10 h-10 rounded-full flex items-center justify-center shadow-apple-sm transition-all hover:shadow-apple-md"
             style={{ 
-              backgroundColor: '#72DEFF',
-              boxShadow: '0 2px 8px rgba(114, 222, 255, 0.25)'
+              backgroundColor: '#157EFB',
+              boxShadow: '0 2px 8px rgba(21, 126, 251, 0.3)'
             }}
             aria-label="Perfil"
           >

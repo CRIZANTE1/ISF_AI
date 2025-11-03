@@ -53,7 +53,7 @@ const BottomNav = () => {
                   className="w-6 h-6"
                   strokeWidth={isActive ? 2.5 : 2}
                   style={{ 
-                    color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                    color: isActive ? '#157EFB' : '#8E8E93' 
                   }}
                 />
               </motion.div>
@@ -64,7 +64,7 @@ const BottomNav = () => {
                 }}
                 className="text-xs relative z-10 transition-colors"
                 style={{ 
-                  color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                  color: isActive ? '#157EFB' : '#8E8E93' 
                 }}
               >
                 {item.label}
@@ -81,8 +81,8 @@ const BottomNav = () => {
         whileTap={{ scale: 0.95 }}
         className="flex items-center justify-center w-14 h-14 rounded-full transition-all shadow-apple-floating"
         style={{ 
-          backgroundColor: '#72DEFF',
-          boxShadow: '0 4px 20px rgba(114, 222, 255, 0.35)'
+          backgroundColor: '#157EFB',
+          boxShadow: '0 4px 20px rgba(21, 126, 251, 0.4)'
         }}
         aria-label="Adicionar inspeção"
       >
@@ -107,7 +107,7 @@ const BottomNav = () => {
                   className="w-6 h-6"
                   strokeWidth={isActive ? 2.5 : 2}
                   style={{ 
-                    color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                    color: isActive ? '#157EFB' : '#8E8E93' 
                   }}
                 />
               </motion.div>
@@ -118,7 +118,7 @@ const BottomNav = () => {
                 }}
                 className="text-xs relative z-10 transition-colors"
                 style={{ 
-                  color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                  color: isActive ? '#157EFB' : '#8E8E93' 
                 }}
               >
                 {item.label}

@@ -8,40 +8,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta Rally Colors
-        rally: {
-          green: {
-            primary: '#1EB980',
-            dark: '#045D56',
-            translucent: 'rgba(30, 185, 128, 0.4)',
-            darkTranslucent: 'rgba(4, 93, 86, 0.4)',
-          },
-          orange: {
-            DEFAULT: '#FF6859',
-            translucent: 'rgba(255, 104, 89, 0.4)',
-          },
-          yellow: {
-            DEFAULT: '#FFCF44',
-            translucent: 'rgba(255, 207, 68, 0.4)',
-          },
-          purple: {
-            DEFAULT: '#B15DFF',
-            translucent: 'rgba(177, 93, 255, 0.4)',
-          },
-          blue: {
-            DEFAULT: '#72DEFF',
-            translucent: 'rgba(114, 222, 255, 0.4)',
-          },
+        // Paleta Apple Fitness
+        fitness: {
+          move: '#FC3D39',           // Vermelho - Move
+          exercise: '#53D769',       // Verde - Exercise
+          stand: '#157EFB',          // Azul - Stand
+          moveTranslucent: 'rgba(252, 61, 57, 0.4)',
+          exerciseTranslucent: 'rgba(83, 215, 105, 0.4)',
+          standTranslucent: 'rgba(21, 126, 251, 0.4)',
         },
         // Paleta Apple (iOS/macOS) - mantida para compatibilidade
         apple: {
           bg: {
             light: '#F5F5F7',
-            dark: '#1C1C1E',
+            dark: '#000000',          // Preto absoluto (Apple Fitness)
           },
           surface: {
             light: '#FFFFFF',
-            dark: '#2C2C2E',
+            dark: 'rgba(28, 28, 30, 0.8)',
           },
           text: {
             primary: {
@@ -50,10 +34,10 @@ export default {
             },
             secondary: '#8E8E93',
           },
-          accent: '#72DEFF', // Rally Blue
-          success: '#1EB980', // Rally Green
-          warning: '#FFCF44', // Rally Yellow
-          error: '#FF6859', // Rally Orange
+          accent: '#157EFB',          // Fitness Stand
+          success: '#53D769',         // Fitness Exercise
+          warning: '#FC3D39',         // Fitness Move
+          error: '#FC3D39',           // Fitness Move
           border: 'rgba(0, 0, 0, 0.1)',
           borderDark: 'rgba(255, 255, 255, 0.1)',
         },
@@ -67,17 +51,17 @@ export default {
           system6: '#F5F5F7',
         },
         accent: {
-          blue: '#72DEFF',
-          cyan: '#72DEFF',
+          blue: '#157EFB',
+          cyan: '#157EFB',
           purple: '#B15DFF',
-          orange: '#FF6859',
-          green: '#1EB980',
+          orange: '#FC3D39',
+          green: '#53D769',
         },
         status: {
-          success: '#1EB980',
-          warning: '#FFCF44',
-          error: '#FF6859',
-          info: '#72DEFF',
+          success: '#53D769',
+          warning: '#FC3D39',
+          error: '#FC3D39',
+          info: '#157EFB',
         },
       },
       fontFamily: {
@@ -110,23 +94,22 @@ export default {
         'ios-md': '12px',
         'ios-lg': '16px',
         'ios-xl': '20px',
+        'fitness': '24px',           // Apple Fitness card radius
         'xl': '20px',
         '2xl': '24px',
         '3xl': '32px',
-        'button': '12px',
+        'button': '24px',            // Apple Fitness button radius
       },
       boxShadow: {
-        'apple-sm': '0 2px 8px rgba(0, 0, 0, 0.05)',
-        'apple-md': '0 4px 12px rgba(0, 0, 0, 0.05)',
-        'apple-lg': '0 8px 24px rgba(0, 0, 0, 0.1)',
-        'apple-floating': '0 4px 20px rgba(114, 222, 255, 0.25)',
-        'rally-green': '0 4px 12px rgba(30, 185, 128, 0.25)',
-        'rally-orange': '0 4px 12px rgba(255, 104, 89, 0.25)',
-        'rally-yellow': '0 4px 12px rgba(255, 207, 68, 0.25)',
-        'rally-purple': '0 4px 12px rgba(177, 93, 255, 0.25)',
-        'rally-blue': '0 4px 12px rgba(114, 222, 255, 0.25)',
-        'card': '0 4px 12px rgba(0, 0, 0, 0.05)',
-        'card-lg': '0 8px 24px rgba(0, 0, 0, 0.1)',
+        'apple-sm': '0 2px 8px rgba(0, 0, 0, 0.3)',
+        'apple-md': '0 4px 12px rgba(0, 0, 0, 0.3)',
+        'apple-lg': '0 8px 24px rgba(0, 0, 0, 0.4)',
+        'apple-floating': '0 4px 20px rgba(21, 126, 251, 0.3)',
+        'fitness-move': '0 4px 12px rgba(252, 61, 57, 0.3)',
+        'fitness-exercise': '0 4px 12px rgba(83, 215, 105, 0.3)',
+        'fitness-stand': '0 4px 12px rgba(21, 126, 251, 0.3)',
+        'card': '0 2px 8px rgba(0, 0, 0, 0.3)',
+        'card-lg': '0 4px 16px rgba(0, 0, 0, 0.4)',
       },
       backdropBlur: {
         'apple': '20px',
