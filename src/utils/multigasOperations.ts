@@ -101,47 +101,77 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
  */
 export async function getMultigasDetectorById(idEquipamento: string): Promise<MultigasDetector | null> {
   try {
-    console.log('Buscando detector multigas:', idEquipamento);
+    // Verificar autenticação primeiro
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Buscando detector multigas:', idEquipamento, 'User ID:', session?.user?.id);
+    
+    if (!session?.user) {
+      console.error('Usuário não autenticado');
+      throw new Error('Você precisa estar autenticado para acessar este equipamento.');
+    }
+    
     const { data, error } = await supabase
       .from('inventario_multigas')
       .select('*')
       .eq('id_equipamento', idEquipamento)
-      .maybeSingle(); // Usar maybeSingle() em vez de single() para evitar erro quando não encontra
+      .maybeSingle();
 
     if (error) {
       console.error('Erro Supabase ao buscar detector multigás:', error);
+      console.error('Detalhes do erro RLS:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      // Se for erro de RLS (permissão negada), explicar melhor
+      if (error.code === 'PGRST301' || error.message?.includes('permission') || error.message?.includes('RLS')) {
+        throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Verifique se este equipamento pertence à sua conta.`);
+      }
       throw error;
     }
     
     if (!data) {
-      console.log('Detector multigas não encontrado:', idEquipamento);
-      // Fallback: tentar buscar sem .maybeSingle() para debug
+      console.log('Detector multigas não encontrado ou sem permissão:', idEquipamento);
+      console.log('User ID atual:', session.user.id);
+      
+      // Verificar se o equipamento existe mas pertence a outro usuário
       const { data: allData, error: allError } = await supabase
         .from('inventario_multigas')
-        .select('*')
+        .select('id_equipamento, user_id')
         .eq('id_equipamento', idEquipamento);
       
       if (allError) {
-        console.error('Erro ao buscar todos os detectores:', allError);
+        console.error('Erro ao verificar equipamento:', allError);
+      } else if (allData && allData.length === 0) {
+        console.log('Equipamento realmente não existe no banco');
+        return null;
       } else {
-        console.log('Resultado sem maybeSingle:', allData);
-        if (allData && allData.length > 0) {
-          return allData[0];
-        }
+        console.log('Equipamento existe mas user_id não corresponde:', allData);
+        throw new Error(`O equipamento '${idEquipamento}' existe, mas você não tem permissão para acessá-lo. Verifique se este equipamento pertence à sua conta.`);
       }
+      
       return null;
+    }
+    
+    // Verificar se o user_id corresponde
+    if (data.user_id && data.user_id !== session.user.id) {
+      console.error('User ID não corresponde:', { 
+        equipamento_user_id: data.user_id, 
+        usuario_atual: session.user.id 
+      });
+      throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Este equipamento pertence a outra conta.`);
     }
     
     console.log('Detector multigas encontrado:', data);
     return data;
   } catch (error: any) {
     console.error('Erro ao buscar detector multigás:', error);
-    console.error('Detalhes do erro:', {
-      message: error?.message,
-      code: error?.code,
-      details: error?.details,
-      hint: error?.hint
-    });
+    // Se já for um Error customizado, relançá-lo
+    if (error instanceof Error && (error.message.includes('permissão') || error.message.includes('autenticado'))) {
+      throw error;
+    }
     return null;
   }
 }

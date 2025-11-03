@@ -243,33 +243,49 @@ const EquipmentDetailPage = () => {
           console.log(log1);
           setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log1}`]);
           
-          const detector = await getMultigasDetectorById(id);
-          if (detector) {
-            const log2 = `Detector encontrado: ${JSON.stringify(detector)}`;
-            console.log(log2);
-            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log2}`]);
-            
-            equipmentData = {
-              id: detector.id_equipamento,
-              name: detector.id_equipamento,
-              location: undefined, // inventario_multigas não tem coluna localizacao
-              ...detector,
-            };
-            const { data: inspData, error: inspError } = await supabase
-              .from('inspecoes_multigas')
-              .select('*')
-              .eq('id_equipamento', id)
-              .order('data_teste', { ascending: false });
-            if (!inspError && inspData) {
-              inspectionsData = inspData.map(insp => ({
-                id: insp.id || 0,
-                data_inspecao: insp.data_teste || '',
-                status_geral: insp.resultado_teste || '',
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
-              }));
+          try {
+            const detector = await getMultigasDetectorById(id);
+            if (detector) {
+              const log2 = `Detector encontrado: ${JSON.stringify(detector)}`;
+              console.log(log2);
+              setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log2}`]);
+              
+              equipmentData = {
+                id: detector.id_equipamento,
+                name: detector.id_equipamento,
+                location: undefined, // inventario_multigas não tem coluna localizacao
+                ...detector,
+              };
+              const { data: inspData, error: inspError } = await supabase
+                .from('inspecoes_multigas')
+                .select('*')
+                .eq('id_equipamento', id)
+                .order('data_teste', { ascending: false });
+              if (!inspError && inspData) {
+                inspectionsData = inspData.map(insp => ({
+                  id: insp.id || 0,
+                  data_inspecao: insp.data_teste || '',
+                  status_geral: insp.resultado_teste || '',
+                  plano_de_acao: insp.plano_de_acao,
+                  link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                }));
+              }
+            } else {
+              const errorMsg = `Multigas não encontrado: ${id}`;
+              console.error(errorMsg);
+              setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
             }
-          } else {
+          } catch (permError: any) {
+            // Capturar erros de permissão
+            const permMsg = permError?.message || `Erro ao acessar MULT-001: ${permError}`;
+            console.error(permMsg);
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${permMsg}`]);
+            if (!equipmentData) {
+              setError(permMsg);
+            }
+          }
+          
+          if (!equipmentData) {
             const errorMsg = `Multigas não encontrado: ${id}`;
             console.error(errorMsg);
             setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
@@ -348,7 +364,13 @@ const EquipmentDetailPage = () => {
       }
 
       if (!equipmentData) {
-        setError(`Equipamento não encontrado. Verifique se o ID '${id}' está correto.`);
+        // Verificar se foi um erro de permissão
+        const lastLog = debugLogs[debugLogs.length - 1];
+        if (lastLog && (lastLog.includes('permissão') || lastLog.includes('permission'))) {
+          setError(lastLog);
+        } else {
+          setError(`Equipamento não encontrado. Verifique se o ID '${id}' está correto e se você tem permissão para acessá-lo.`);
+        }
       } else {
         setEquipment(equipmentData);
         setInspections(inspectionsData);
