@@ -20,6 +20,9 @@ import { saveEyewashInspection, generateEyewashActionPlan, getAllEyewashStations
 import { saveFoamChamberInspection, getAllFoamChambers } from '../utils/foamChamberOperations';
 import { saveAlarmInspection, getAllAlarmSystems } from '../utils/alarmOperations';
 import { saveCannonMonitorInspection, getAllCannonMonitors } from '../utils/cannonMonitorOperations';
+import { saveMultigasInspection, getAllMultigasDetectors, getMultigasDetectorById } from '../utils/multigasOperations';
+import { saveSCBAVisualInspection, getAllSCBAs, getSCBABySerial } from '../utils/scbaOperations';
+import { saveShelterInspection, getAllShelters } from '../utils/shelterOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
 
 type AddInspectionFormData = {
@@ -135,6 +138,37 @@ const AddInspectionPage = () => {
               };
             }
             break;
+          case 'multigas':
+            const multigasData = await getMultigasDetectorById(id);
+            if (multigasData) {
+              equipmentData = {
+                id: multigasData.id_equipamento,
+                name: multigasData.id_equipamento,
+                location: multigasData.localizacao,
+              };
+            }
+            break;
+          case 'scba':
+            const scbaData = await getSCBABySerial(id);
+            if (scbaData) {
+              equipmentData = {
+                id: scbaData.numero_serie_equipamento,
+                name: scbaData.numero_serie_equipamento,
+                location: undefined,
+              };
+            }
+            break;
+          case 'abrigo':
+            const shelters = await getAllShelters();
+            const shelterData = shelters.find(s => s.id_abrigo === id);
+            if (shelterData) {
+              equipmentData = {
+                id: shelterData.id_abrigo,
+                name: shelterData.id_abrigo,
+                location: shelterData.local,
+              };
+            }
+            break;
         }
 
         if (!equipmentData) {
@@ -200,13 +234,19 @@ const AddInspectionPage = () => {
           camara_espuma: 'nao_conformidade_camara_espuma',
           alarme: 'nao_conformidade_alarme',
           canhao_monitor: 'nao_conformidade_canhao_monitor',
+          multigas: 'nao_conformidade_multigas',
+          scba: 'nao_conformidade_scba',
+          abrigo: 'nao_conformidade_abrigo',
         };
         photoLink = await uploadEvidencePhoto(photoFile, id, folderMap[type] || 'nao_conformidade');
       }
 
-      // Determina status geral baseado nos resultados do checklist
+      // Determina status geral baseado nos resultados do checklist ou aprovação direta
       const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme');
-      const overallStatus = nonConformities.length > 0 ? 'Reprovado com Pendências' : 'Aprovado';
+      const hasChecklistForType = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor'].includes(type || '');
+      const overallStatus = hasChecklistForType
+        ? (nonConformities.length > 0 ? 'Reprovado com Pendências' : 'Aprovado')
+        : (aprovado === 'Não' || aprovado === 'Reprovado' ? 'Reprovado' : 'Aprovado');
 
       switch (type) {
         case 'extintor': {
@@ -323,6 +363,61 @@ const AddInspectionPage = () => {
           break;
         }
 
+        case 'multigas': {
+          // Para multigas, usar tipo_teste padrão como "Bump Test"
+          const inspectionRecord = {
+            id_equipamento: id,
+            data_teste: inspectionDate,
+            tipo_teste: 'Bump Test',
+            resultado_teste: overallStatus === 'Aprovado' ? 'Aprovado' : 'Reprovado',
+            plano_de_acao: planAction || (overallStatus === 'Reprovado' ? observacoes || 'Equipamento não aprovado' : undefined),
+            observacoes: observacoes || undefined,
+            inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
+            data_proximo_teste: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            user_id: user.id,
+          };
+
+          const success = await saveMultigasInspection(inspectionRecord);
+          if (!success) throw new Error('Falha ao salvar inspeção');
+          break;
+        }
+
+        case 'scba': {
+          const inspectionRecord = {
+            numero_serie_equipamento: id,
+            data_inspecao: inspectionDate,
+            status_geral: overallStatus,
+            resultados_json: checklistResults,
+            plano_de_acao: planAction,
+            link_foto_nao_conformidade: photoLink || undefined,
+            inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
+            data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            user_id: user.id,
+          };
+
+          const success = await saveSCBAVisualInspection(inspectionRecord);
+          if (!success) throw new Error('Falha ao salvar inspeção');
+          break;
+        }
+
+        case 'abrigo': {
+          const inspectionRecord = {
+            id_abrigo: id,
+            data_inspecao: inspectionDate,
+            status_geral: overallStatus,
+            resultados_json: checklistResults,
+            plano_de_acao: planAction,
+            link_foto_nao_conformidade: photoLink || undefined,
+            inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
+            data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            user_id: user.id,
+          };
+
+          const success = await saveShelterInspection(inspectionRecord);
+          if (!success) throw new Error('Falha ao salvar inspeção');
+          break;
+        }
+
         default:
           throw new Error(`Tipo de equipamento '${type}' não suportado para inspeção`);
       }
@@ -350,6 +445,7 @@ const AddInspectionPage = () => {
   const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor'].includes(type || '');
   const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme');
   const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual');
+  const isSafetyEquipment = ['multigas', 'scba', 'abrigo'].includes(type || '');
 
   return (
     <div className="min-h-screen">
@@ -531,6 +627,64 @@ const AddInspectionPage = () => {
                 </label>
               </div>
             </div>
+          )}
+
+          {isSafetyEquipment && (
+            <>
+              <div className="mb-4">
+                <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1">
+                  Status da Inspeção *
+                </label>
+                <Controller
+                  name="aprovado_inspecao"
+                  control={control}
+                  rules={{ required: 'Status é obrigatório' }}
+                  render={({ field }) => (
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          {...field}
+                          value="Aprovado"
+                          className="w-4 h-4"
+                        />
+                        <span>Aprovado</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          {...field}
+                          value="Reprovado"
+                          className="w-4 h-4"
+                        />
+                        <span>Reprovado</span>
+                      </label>
+                    </div>
+                  )}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1">
+                  Observações Gerais
+                </label>
+                <textarea
+                  id="observacoes_gerais"
+                  rows={4}
+                  {...register('observacoes_gerais')}
+                  placeholder="Descreva problemas encontrados, se houver..."
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                />
+              </div>
+
+              {aprovado === 'Reprovado' && (
+                <PhotoUpload
+                  value={photoFile}
+                  onChange={setPhotoFile}
+                  label="Foto de Não Conformidade"
+                />
+              )}
+            </>
           )}
 
           {hasChecklist && (

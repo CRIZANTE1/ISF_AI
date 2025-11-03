@@ -10,69 +10,158 @@ interface MetricCardProps {
 
 const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: MetricCardProps) => {
   const colorConfig = {
-    cyan: { text: '#00C8FF', bg: 'rgba(0, 200, 255, 0.1)', border: 'rgba(0, 200, 255, 0.15)' },
-    green: { text: '#00D97E', bg: 'rgba(0, 217, 126, 0.1)', border: 'rgba(0, 217, 126, 0.15)' },
-    orange: { text: '#FFA800', bg: 'rgba(255, 168, 0, 0.1)', border: 'rgba(255, 168, 0, 0.15)' },
-    purple: { text: '#8A3FFC', bg: 'rgba(138, 63, 252, 0.1)', border: 'rgba(138, 63, 252, 0.15)' },
+    cyan: { 
+      text: '#00C8FF', 
+      bg: 'rgba(0, 200, 255, 0.12)', 
+      border: 'rgba(0, 200, 255, 0.16)',
+      accent: 'rgba(0, 200, 255, 0.08)'
+    },
+    green: { 
+      text: '#00D97E', 
+      bg: 'rgba(0, 217, 126, 0.12)', 
+      border: 'rgba(0, 217, 126, 0.16)',
+      accent: 'rgba(0, 217, 126, 0.08)'
+    },
+    orange: { 
+      text: '#FFA800', 
+      bg: 'rgba(255, 168, 0, 0.12)', 
+      border: 'rgba(255, 168, 0, 0.16)',
+      accent: 'rgba(255, 168, 0, 0.08)'
+    },
+    purple: { 
+      text: '#8A3FFC', 
+      bg: 'rgba(138, 63, 252, 0.12)', 
+      border: 'rgba(138, 63, 252, 0.16)',
+      accent: 'rgba(138, 63, 252, 0.08)'
+    },
   };
 
   const config = colorConfig[color];
 
-  const size = 100;
-  const strokeWidth = 6;
+  const size = 64;
+  const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const percent = percentage || (value ? Math.min((value / 100) * 100, 100) : 0);
+  const percent = percentage !== undefined ? percentage : (value ? Math.min((value / 100) * 100, 100) : 0);
   const offset = circumference - (percent / 100) * circumference;
 
   if (isLoading) {
     return (
-      <div className="bg-dark-surface rounded-2xl p-6 flex flex-col items-center justify-center shadow-card border border-dark-inactive" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>
-        <Skeleton className="h-28 w-28 rounded-full mb-4" />
-        <Skeleton className="h-4 w-20" />
+      <div className="rounded-xl p-6 flex flex-col gap-4 border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+        <Skeleton className="h-16 w-16 rounded-lg" />
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-4 w-16" />
       </div>
     );
   }
 
   return (
     <div 
-      className="rounded-2xl p-6 flex flex-col items-center justify-center shadow-card border transition-all duration-200"
+      className="relative rounded-xl p-6 flex flex-col gap-4 border hover:border-opacity-40 transition-all duration-200 group overflow-hidden"
       style={{ 
         backgroundColor: '#1A1A1A', 
         borderColor: config.border,
         borderWidth: '1px'
       }}
     >
-      <div className="relative w-28 h-28 mb-5">
-        <svg className="transform -rotate-90 w-28 h-28">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#2A2A2A"
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={config.text}
-            strokeWidth={strokeWidth}
-            fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            className="transition-all duration-700 ease-out"
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-3xl font-semibold" style={{ color: config.text }}>
-            {percentage !== undefined ? `${Math.round(percentage)}%` : value ?? '-'}
-          </span>
+      {/* Header with title and circle */}
+      <div className="flex items-start justify-between">
+        {/* Title */}
+        <div className="flex-1">
+          <div 
+            className="font-medium mb-1" 
+            style={{ 
+              color: '#B0B0B0', 
+              fontSize: '13px',
+              fontWeight: 500
+            }}
+          >
+            {title}
+          </div>
+        </div>
+
+        {/* Small Progress Circle */}
+        <div className="relative flex-shrink-0" style={{ width: `${size}px`, height: `${size}px` }}>
+          <svg 
+            className="absolute transform -rotate-90" 
+            width={size} 
+            height={size}
+            style={{ width: `${size}px`, height: `${size}px` }}
+          >
+            {/* Background circle */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke="#2A2A2A"
+              strokeWidth={strokeWidth}
+              fill="none"
+            />
+            {/* Progress circle */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={config.text}
+              strokeWidth={strokeWidth}
+              fill="none"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              className="transition-all duration-800 ease-out"
+            />
+          </svg>
+          {/* Center value */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span 
+              className="font-semibold" 
+              style={{ 
+                color: config.text, 
+                fontSize: '13px',
+                fontWeight: 600
+              }}
+            >
+              {Math.round(percent)}%
+            </span>
+          </div>
         </div>
       </div>
-      <span className="text-caption font-medium text-text-secondary" style={{ fontSize: '14px', color: '#B0B0B0' }}>{title}</span>
+
+      {/* Main Value */}
+      <div className="flex items-baseline gap-1">
+        <span 
+          className="font-bold leading-none" 
+          style={{ 
+            color: '#FFFFFF', 
+            fontSize: '32px',
+            fontWeight: 700,
+            lineHeight: '1'
+          }}
+        >
+          {percentage !== undefined ? Math.round(percentage) : value ?? '-'}
+        </span>
+        {percentage !== undefined && (
+          <span 
+            className="font-semibold" 
+            style={{ 
+              color: '#B0B0B0', 
+              fontSize: '16px',
+              fontWeight: 600,
+              opacity: 0.6
+            }}
+          >
+            %
+          </span>
+        )}
+      </div>
+
+      {/* Background accent */}
+      <div 
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${config.accent} 0%, transparent 100%)`
+        }}
+      />
     </div>
   );
 };
