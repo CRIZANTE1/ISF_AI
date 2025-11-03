@@ -14,7 +14,7 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
         <input
           id="numero_selo_inmetro"
           {...register('specifications.numero_selo_inmetro')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
@@ -22,7 +22,7 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
         <input
           id="tipo_agente"
           {...register('specifications.tipo_agente')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
@@ -32,7 +32,7 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
           type="number"
           step="0.1"
           {...register('specifications.capacidade', { valueAsNumber: true })}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
     </>

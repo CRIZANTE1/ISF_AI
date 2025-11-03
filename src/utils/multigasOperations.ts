@@ -133,23 +133,43 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
     }
     
     if (!data) {
-      console.log('Detector multigas não encontrado ou sem permissão:', idEquipamento);
-      console.log('User ID atual:', session.user.id);
+      console.log('⚠️ Detector multigas não encontrado ou sem permissão RLS:', idEquipamento);
+      console.log('👤 User ID atual autenticado:', session.user.id);
       
       // Verificar se o equipamento existe mas pertence a outro usuário
-      const { data: allData, error: allError } = await supabase
-        .from('inventario_multigas')
-        .select('id_equipamento, user_id')
-        .eq('id_equipamento', idEquipamento);
-      
-      if (allError) {
-        console.error('Erro ao verificar equipamento:', allError);
-      } else if (allData && allData.length === 0) {
-        console.log('Equipamento realmente não existe no banco');
-        return null;
-      } else {
-        console.log('Equipamento existe mas user_id não corresponde:', allData);
-        throw new Error(`O equipamento '${idEquipamento}' existe, mas você não tem permissão para acessá-lo. Verifique se este equipamento pertence à sua conta.`);
+      // IMPORTANTE: Esta query pode falhar também por RLS, mas vamos tentar
+      try {
+        const { data: allData, error: allError } = await supabase
+          .from('inventario_multigas')
+          .select('id_equipamento, user_id')
+          .eq('id_equipamento', idEquipamento);
+        
+        if (allError) {
+          console.error('❌ Erro ao verificar equipamento (provavelmente RLS bloqueando):', allError);
+          console.error('💡 Isso significa que o equipamento existe mas pertence a outro usuário');
+          throw new Error(`O equipamento '${idEquipamento}' existe no banco, mas você não tem permissão para acessá-lo. Este equipamento pertence a outra conta (user_id diferente).`);
+        } else if (allData && allData.length === 0) {
+          console.log('ℹ️ Equipamento realmente não existe no banco de dados');
+          return null;
+        } else {
+          console.log('⚠️ Equipamento existe mas user_id não corresponde:', {
+            equipamento_user_id: allData[0]?.user_id,
+            usuario_atual: session.user.id,
+            corresponde: allData[0]?.user_id === session.user.id
+          });
+          
+          if (allData[0]?.user_id !== session.user.id) {
+            throw new Error(`O equipamento '${idEquipamento}' existe, mas pertence a outra conta. Seu user_id: ${session.user.id}, Equipamento user_id: ${allData[0]?.user_id}`);
+          }
+        }
+      } catch (checkError: any) {
+        // Se já é um erro customizado, relançá-lo
+        if (checkError instanceof Error && checkError.message.includes('permissão')) {
+          throw checkError;
+        }
+        // Se for erro de RLS na verificação, significa que não temos acesso
+        console.error('❌ Erro ao verificar permissão:', checkError);
+        throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Verifique se está autenticado com a conta correta.`);
       }
       
       return null;

@@ -291,7 +291,7 @@ const Profile = () => {
             <input
               id="full_name"
               {...register('full_name', { required: 'Nome é obrigatório' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             />
             {errors.full_name && (
               <p className="text-sm text-status-error mt-1 text-left">{errors.full_name.message}</p>
@@ -311,7 +311,7 @@ const Profile = () => {
                 setIsEditing(false);
                 reset({ full_name: profile?.full_name || '' });
               }}
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               <X size={16} />
               Cancelar
@@ -366,19 +366,19 @@ const Profile = () => {
             Estatísticas
           </h3>
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <p className="text-2xl font-bold text-accent-cyan">{stats.totalEquipment}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Equipamentos
               </p>
             </div>
-            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <p className="text-2xl font-bold text-accent-cyan">{stats.totalInspections}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Inspeções
               </p>
             </div>
-            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <p className="text-2xl font-bold text-status-warning">{stats.activeAlerts}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Alertas
@@ -392,21 +392,21 @@ const Profile = () => {
       <div className="mt-8 w-full max-w-sm space-y-2">
         <button 
           onClick={() => navigate('/profile/my-data')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         >
           <User size={18} color="#00C8FF" />
           <span>Meus Dados</span>
         </button>
         <button 
           onClick={() => navigate('/profile/plan-payment')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         >
           <CreditCard size={18} color="#00C8FF" />
           <span>Plano e Pagamento</span>
         </button>
         <button 
           onClick={() => navigate('/profile/settings')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         >
           <Settings size={18} color="#00C8FF" />
           <span>Configurações</span>

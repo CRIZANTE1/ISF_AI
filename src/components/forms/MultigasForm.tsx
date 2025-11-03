@@ -12,7 +12,7 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
         <input
           id="marca"
           {...register('marca')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
@@ -20,7 +20,7 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
         <input
           id="modelo"
           {...register('modelo')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
@@ -28,7 +28,7 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
         <input
           id="numero_serie"
           {...register('numero_serie')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
@@ -38,7 +38,7 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
           type="number"
           step="0.1"
           {...register('LEL_cilindro', { valueAsNumber: true })}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
@@ -48,7 +48,7 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
           type="number"
           step="0.1"
           {...register('O2_cilindro', { valueAsNumber: true })}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
     </>

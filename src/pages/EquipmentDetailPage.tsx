@@ -544,7 +544,7 @@ const EquipmentDetailPage = () => {
           <div className="mb-4">
             <p className="text-center text-status-error mb-2" style={{ color: '#FF3B30' }}>{error}</p>
             {debugLogs.length > 0 && (
-              <div className="mt-4 p-4 rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(0, 200, 255, 0.3)' }}>
+              <div className="mt-4 p-4 rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Logs de Debug:</h4>
                   <button
@@ -566,7 +566,7 @@ const EquipmentDetailPage = () => {
         )}
         {!loading && equipment && (
           <>
-            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border mb-6">
+            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border mb-6" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <h2 className="font-bold text-lg mb-2">Detalhes</h2>
               <p><span className="font-semibold">ID:</span> {equipment.name}</p>
               {equipment.location && (
@@ -588,7 +588,7 @@ const EquipmentDetailPage = () => {
               {inspections.length > 0 ? (
                 <ul className="space-y-3">
                   {inspections.map(insp => (
-                    <li key={insp.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border flex justify-between items-start gap-4">
+                    <li key={insp.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border flex justify-between items-start gap-4" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                       <div className="flex-grow">
                         <div className="flex justify-between items-start">
                           <p className="font-semibold">{format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: ptBR })}</p>

@@ -356,7 +356,7 @@ const AddInspectionPage = () => {
       <PageHeader title="Registrar Inspeção" />
       <main className="p-4">
         {equipment && (
-          <div className="mb-4 p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="mb-4 p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <p className="font-semibold text-sm">{equipment.name}</p>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
               {equipment.location || equipment.localizacao || 'Sem localização'}
@@ -380,7 +380,7 @@ const AddInspectionPage = () => {
               type="date"
               id="data_inspecao"
               {...register('data_inspecao', { required: 'Data é obrigatória' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             />
             {errors.data_inspecao && (
               <p className="text-sm text-status-error mt-1">{errors.data_inspecao.message}</p>
@@ -401,7 +401,7 @@ const AddInspectionPage = () => {
                     <select
                       {...field}
                       id="tipo_servico"
-                      className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                      className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                     >
                       <option value="Inspeção">Inspeção</option>
                       <option value="Manutenção Nível 2">Manutenção Nível 2</option>
@@ -454,12 +454,12 @@ const AddInspectionPage = () => {
                   rows={4}
                   {...register('observacoes_gerais')}
                   placeholder="Descreva problemas encontrados, se houver..."
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
 
               {planAction && (
-                <div className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
+                <div className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                   <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
@@ -571,7 +571,7 @@ const AddInspectionPage = () => {
               )}
 
               {planAction && (
-                <div className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
+                <div className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                   <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}

@@ -202,35 +202,35 @@ const AdminUsersPage = () => {
           {/* Estatísticas */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Users size={20} className="text-accent-cyan" />
                   <span className="text-sm font-medium">Total</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
-              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Crown size={20} color="#00C8FF" />
                   <span className="text-sm font-medium">Premium</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.premium}</p>
               </div>
-              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar size={20} className="text-status-warning" />
                   <span className="text-sm font-medium">Trial</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.trial}</p>
               </div>
-              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Shield size={20} className="text-status-info" />
                   <span className="text-sm font-medium">Admin</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.admin}</p>
               </div>
-              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+              <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Activity size={20} className="text-status-success" />
                   <span className="text-sm font-medium">Ativos</span>
@@ -242,7 +242,7 @@ const AdminUsersPage = () => {
 
           {/* Tabs */}
           <div className="mb-6">
-            <div className="flex gap-2 border-b border-light-border dark:border-dark-border">
+            <div className="flex gap-2 border-b" style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <button
                 onClick={() => setActiveTab('users')}
                 className={`px-4 py-2 font-medium transition-colors ${
@@ -291,12 +291,12 @@ const AdminUsersPage = () => {
                     placeholder="Pesquisar por email ou nome..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                    className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   />
                 </div>
                 <button
                   onClick={loadUsers}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <RefreshCw size={18} />
                 </button>
@@ -307,7 +307,7 @@ const AdminUsersPage = () => {
                 {filteredUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors cursor-pointer"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors cursor-pointer" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                     onClick={() => {
                       setSelectedUser(user);
                       setShowUserModal(true);
@@ -355,7 +355,7 @@ const AdminUsersPage = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => loadActionLogs(actionLogsPage)}
-                    className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                    className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <RefreshCw size={18} />
                   </button>
@@ -366,7 +366,7 @@ const AdminUsersPage = () => {
                 {actionLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -395,7 +395,7 @@ const AdminUsersPage = () => {
                 <button
                   onClick={() => setActionLogsPage(Math.max(0, actionLogsPage - 1))}
                   disabled={actionLogsPage === 0}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   Anterior
                 </button>
@@ -405,7 +405,7 @@ const AdminUsersPage = () => {
                 <button
                   onClick={() => setActionLogsPage(actionLogsPage + 1)}
                   disabled={(actionLogsPage + 1) * 50 >= actionLogsTotal}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   Próxima
                 </button>
@@ -422,7 +422,7 @@ const AdminUsersPage = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => loadAccessLogs(accessLogsPage)}
-                    className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                    className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <RefreshCw size={18} />
                   </button>
@@ -433,7 +433,7 @@ const AdminUsersPage = () => {
                 {accessLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -467,7 +467,7 @@ const AdminUsersPage = () => {
                 <button
                   onClick={() => setAccessLogsPage(Math.max(0, accessLogsPage - 1))}
                   disabled={accessLogsPage === 0}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   Anterior
                 </button>
@@ -477,7 +477,7 @@ const AdminUsersPage = () => {
                 <button
                   onClick={() => setAccessLogsPage(accessLogsPage + 1)}
                   disabled={(accessLogsPage + 1) * 50 >= accessLogsTotal}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   Próxima
                 </button>
@@ -489,7 +489,7 @@ const AdminUsersPage = () => {
         {/* Modal de Detalhes do Usuário */}
         {showUserModal && selectedUser && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-light-background dark:bg-dark-background rounded-lg border max-w-md w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold">Detalhes do Usuário</h2>
@@ -519,7 +519,7 @@ const AdminUsersPage = () => {
                         className={`px-4 py-2 rounded-lg border transition-colors ${
                           selectedUser.profile?.plan === 'trial'
                             ? 'bg-status-warning/20 border-status-warning text-status-warning'
-                            : 'bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border hover:bg-light-background dark:hover:bg-dark-background'
+                            : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
                         Trial
@@ -530,7 +530,7 @@ const AdminUsersPage = () => {
                         className={`px-4 py-2 rounded-lg border transition-colors ${
                           selectedUser.profile?.plan === 'premium'
                             ? 'bg-accent-cyan/20 border-accent-cyan/30 text-accent-cyan'
-                            : 'bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border hover:bg-light-background dark:hover:bg-dark-background'
+                            : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
                         Premium
@@ -546,7 +546,7 @@ const AdminUsersPage = () => {
                         className={`px-4 py-2 rounded-lg border transition-colors ${
                           selectedUser.profile?.role === 'user'
                             ? 'bg-status-info/20 border-status-info text-status-info'
-                            : 'bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border hover:bg-light-background dark:hover:bg-dark-background'
+                            : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
                         Usuário
@@ -557,7 +557,7 @@ const AdminUsersPage = () => {
                         className={`px-4 py-2 rounded-lg border transition-colors ${
                           selectedUser.profile?.role === 'admin'
                             ? 'bg-status-info/20 border-status-info text-status-info'
-                            : 'bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border hover:bg-light-background dark:hover:bg-dark-background'
+                            : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
                         Admin
@@ -579,7 +579,7 @@ const AdminUsersPage = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-light-border dark:border-dark-border">
+                  <div className="pt-4 border-t" style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}>
                     <label className="text-sm font-medium text-status-error mb-2 block">Ações Perigosas</label>
                     <div className="flex gap-2">
                       <button

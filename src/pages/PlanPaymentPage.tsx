@@ -66,7 +66,7 @@ const PlanPaymentPage = () => {
       <main className="p-4">
         <div className="max-w-md mx-auto space-y-6">
           {/* Plano Atual */}
-          <div className="p-6 bg-dark-surface rounded-lg border border-accent-cyan/30" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(0, 200, 255, 0.2)' }}>
+          <div className="p-6 bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold text-accent-cyan flex items-center gap-2">
@@ -117,7 +117,7 @@ const PlanPaymentPage = () => {
 
           {/* Upgrade para Premium (se for Trial) */}
           {isTrial && (
-            <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <h3 className="text-lg font-semibold mb-2">Upgrade para Premium</h3>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
                 Desbloqueie todas as funcionalidades com o plano Premium.
@@ -139,7 +139,7 @@ const PlanPaymentPage = () => {
 
           {/* Informações de Pagamento (se Premium) */}
           {isPremium && (
-            <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <CreditCard size={20} />
                 Método de Pagamento
@@ -149,7 +149,7 @@ const PlanPaymentPage = () => {
               </p>
               <button
                 onClick={() => alert('Funcionalidade em desenvolvimento')}
-                className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors text-sm"
+                className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors text-sm" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
               >
                 Gerenciar Pagamento
               </button>
@@ -173,7 +173,7 @@ const PlanPaymentPage = () => {
           {/* Botão Voltar */}
           <button
             onClick={() => navigate('/profile')}
-            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+            className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
           >
             Voltar ao Perfil
           </button>

@@ -12,7 +12,7 @@ const Utilities = () => {
         <div className="max-w-md mx-auto space-y-4">
           <button
             onClick={() => navigate('/utilities/users')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
           >
             <Users size={24} color="#00C8FF" />
             <div>
@@ -25,7 +25,7 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/system-settings')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
           >
             <Settings size={24} color="#00C8FF" />
             <div>
@@ -38,7 +38,7 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/security-audit')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
           >
             <Shield size={24} color="#00C8FF" />
             <div>
@@ -51,7 +51,7 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/security-policies')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
           >
             <Lock size={24} color="#00C8FF" />
             <div>

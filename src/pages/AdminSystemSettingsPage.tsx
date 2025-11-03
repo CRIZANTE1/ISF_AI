@@ -190,7 +190,7 @@ const AdminSystemSettingsPage = () => {
           )}
 
           {/* Modo de Manutenção */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Server size={24} className="text-accent-cyan" />
               <h2 className="text-xl font-bold">Modo de Manutenção</h2>
@@ -222,7 +222,7 @@ const AdminSystemSettingsPage = () => {
           </div>
 
           {/* Limites do Sistema */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Database size={24} className="text-accent-cyan" />
               <h2 className="text-xl font-bold">Limites do Sistema</h2>
@@ -238,7 +238,7 @@ const AdminSystemSettingsPage = () => {
                   max="1000"
                   value={settings.max_equipment_per_user}
                   onChange={(e) => setSettings({ ...settings, max_equipment_per_user: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div>
@@ -251,7 +251,7 @@ const AdminSystemSettingsPage = () => {
                   max="1000"
                   value={settings.max_inspections_per_day}
                   onChange={(e) => setSettings({ ...settings, max_inspections_per_day: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div>
@@ -264,7 +264,7 @@ const AdminSystemSettingsPage = () => {
                   max="365"
                   value={settings.trial_duration_days}
                   onChange={(e) => setSettings({ ...settings, trial_duration_days: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div>
@@ -277,14 +277,14 @@ const AdminSystemSettingsPage = () => {
                   step="0.01"
                   value={settings.premium_price}
                   onChange={(e) => setSettings({ ...settings, premium_price: parseFloat(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
             </div>
           </div>
 
           {/* Configurações de Notificações */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Bell size={24} className="text-accent-cyan" />
               <h2 className="text-xl font-bold">Notificações</h2>
@@ -316,7 +316,7 @@ const AdminSystemSettingsPage = () => {
           </div>
 
           {/* Configurações de Backup */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Database size={24} className="text-accent-cyan" />
               <h2 className="text-xl font-bold">Backup e Recuperação</h2>
@@ -355,7 +355,7 @@ const AdminSystemSettingsPage = () => {
                     max="30"
                     value={settings.backup_frequency_days}
                     onChange={(e) => setSettings({ ...settings, backup_frequency_days: parseInt(e.target.value) })}
-                    className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                    className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   />
                 </div>
               )}
@@ -363,7 +363,7 @@ const AdminSystemSettingsPage = () => {
           </div>
 
           {/* Configurações de Segurança */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Shield size={24} className="text-accent-cyan" />
               <h2 className="text-xl font-bold">Segurança</h2>
@@ -379,7 +379,7 @@ const AdminSystemSettingsPage = () => {
                   max="1440"
                   value={settings.session_timeout_minutes}
                   onChange={(e) => setSettings({ ...settings, session_timeout_minutes: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -441,13 +441,13 @@ const AdminSystemSettingsPage = () => {
             </button>
             <button
               onClick={handleReset}
-              className="px-6 py-4 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+              className="px-6 py-4 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               <RefreshCw size={20} />
             </button>
             <button
               onClick={() => navigate('/utilities')}
-              className="px-6 py-4 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+              className="px-6 py-4 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               Voltar
             </button>

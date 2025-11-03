@@ -260,7 +260,7 @@ const AdminSecurityAuditPage = () => {
       case 'low':
         return 'text-status-info bg-status-info/20 border-status-info';
       default:
-        return 'text-light-text-secondary bg-light-surface border-light-border';
+        return 'text-light-text-secondary bg-light-surface';
     }
   };
 
@@ -364,21 +364,21 @@ const AdminSecurityAuditPage = () => {
 
           {/* Estatísticas Rápidas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle size={20} className="text-status-error" />
                 <span className="text-sm font-medium">Eventos Não Resolvidos</span>
               </div>
               <p className="text-2xl font-bold">{unresolvedEvents.length}</p>
             </div>
-            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle size={20} className="text-status-error" />
                 <span className="text-sm font-medium">Críticos</span>
               </div>
               <p className="text-2xl font-bold">{criticalEvents.length}</p>
             </div>
-            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
                 <Activity size={20} className="text-accent-cyan" />
                 <span className="text-sm font-medium">Logins Hoje</span>
@@ -387,7 +387,7 @@ const AdminSecurityAuditPage = () => {
                 {accessLogs.filter(log => log.action === 'login' && log.success && new Date(log.created_at).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
-            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
                 <XCircle size={20} className="text-status-warning" />
                 <span className="text-sm font-medium">Falhas de Login</span>
@@ -399,7 +399,7 @@ const AdminSecurityAuditPage = () => {
           </div>
 
           {/* Gráficos e Relatórios */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <Activity size={20} className="text-accent-cyan" />
@@ -407,7 +407,7 @@ const AdminSecurityAuditPage = () => {
               </h3>
               <button
                 onClick={() => setShowReports(!showReports)}
-                className="px-4 py-2 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg hover:bg-opacity-50 transition-colors text-sm"
+                className="px-4 py-2 bg-light-background dark:bg-dark-background border rounded-lg hover:bg-opacity-50 transition-colors text-sm" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
               >
                 {showReports ? 'Ocultar' : 'Mostrar'} Relatórios
               </button>
@@ -469,7 +469,7 @@ const AdminSecurityAuditPage = () => {
 
           {/* Tabs */}
           <div>
-            <div className="flex gap-2 border-b border-light-border dark:border-dark-border">
+            <div className="flex gap-2 border-b" style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <button
                 onClick={() => setActiveTab('security')}
                 className={`px-4 py-2 font-medium transition-colors ${
@@ -515,7 +515,7 @@ const AdminSecurityAuditPage = () => {
                 placeholder="Pesquisar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
               />
             </div>
             {activeTab === 'security' && (
@@ -523,7 +523,7 @@ const AdminSecurityAuditPage = () => {
                 <select
                   value={filterSeverity}
                   onChange={(e) => setFilterSeverity(e.target.value)}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <option value="all">Todas as Severidades</option>
                   <option value="critical">Crítico</option>
@@ -534,7 +534,7 @@ const AdminSecurityAuditPage = () => {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <option value="all">Todos os Tipos</option>
                   <option value="failed_login">Login Falho</option>
@@ -548,14 +548,14 @@ const AdminSecurityAuditPage = () => {
                 type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 placeholder="Data Início"
               />
               <input
                 type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 placeholder="Data Fim"
               />
             </div>
@@ -565,13 +565,13 @@ const AdminSecurityAuditPage = () => {
                 else if (activeTab === 'access') loadAccessLogs();
                 else loadActionLogs();
               }}
-              className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+              className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               <RefreshCw size={18} />
             </button>
             <button
               onClick={handleExportLogs}
-              className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+              className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               <Download size={18} />
             </button>
@@ -594,7 +594,7 @@ const AdminSecurityAuditPage = () => {
                     key={event.id}
                     className={`p-4 rounded-lg border ${
                       event.resolved
-                        ? 'bg-light-surface/50 dark:bg-dark-surface/50 border-light-border dark:border-dark-border opacity-60'
+                        ? 'bg-light-surface/50 dark:bg-dark-surface/50 opacity-60'
                         : getSeverityColor(event.severity)
                     }`}
                   >
@@ -666,7 +666,7 @@ const AdminSecurityAuditPage = () => {
                 accessLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -714,7 +714,7 @@ const AdminSecurityAuditPage = () => {
                 actionLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>

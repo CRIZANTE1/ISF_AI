@@ -83,7 +83,7 @@ const MyDataPage = () => {
             <input
               id="full_name"
               {...register('full_name', { required: 'Nome é obrigatório' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             />
             {errors.full_name && (
               <p className="text-sm text-status-error mt-1">{errors.full_name.message}</p>
@@ -107,13 +107,13 @@ const MyDataPage = () => {
                   },
                 })}
                 disabled={!isEditingEmail}
-                className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none disabled:opacity-50"
+                className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none disabled:opacity-50" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
               />
               {!isEditingEmail && (
                 <button
                   type="button"
                   onClick={() => setIsEditingEmail(true)}
-                  className="px-4 py-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   Editar
                 </button>
@@ -125,7 +125,7 @@ const MyDataPage = () => {
                     setIsEditingEmail(false);
                     reset({ email: user?.email || '' });
                   }}
-                  className="px-4 py-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+                  className="px-4 py-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <X size={18} />
                 </button>
@@ -165,7 +165,7 @@ const MyDataPage = () => {
             <button
               type="button"
               onClick={() => navigate('/profile')}
-              className="px-6 p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
+              className="px-6 p-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               <X size={18} />
             </button>

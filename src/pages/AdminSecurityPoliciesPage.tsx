@@ -150,7 +150,7 @@ const AdminSecurityPoliciesPage = () => {
           )}
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-light-border dark:border-dark-border">
+          <div className="flex gap-2 border-b" style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <button
               onClick={() => setActiveTab('policies')}
               className={`px-4 py-2 font-medium transition-colors ${
@@ -181,7 +181,7 @@ const AdminSecurityPoliciesPage = () => {
               {policies.map((policy) => (
                 <div
                   key={policy.id}
-                  className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border"
+                  className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -212,7 +212,7 @@ const AdminSecurityPoliciesPage = () => {
                     <div className="flex items-center gap-2 ml-4">
                       <button
                         onClick={() => setEditingPolicy(editingPolicy?.id === policy.id ? null : policy)}
-                        className="px-4 py-2 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg hover:bg-opacity-50 transition-colors"
+                        className="px-4 py-2 bg-light-background dark:bg-dark-background border rounded-lg hover:bg-opacity-50 transition-colors" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                       >
                         {editingPolicy?.id === policy.id ? 'Cancelar' : 'Editar'}
                       </button>
@@ -235,7 +235,7 @@ const AdminSecurityPoliciesPage = () => {
 
                   {/* Editor de Configuração */}
                   {editingPolicy?.id === policy.id && (
-                    <div className="mt-4 p-4 bg-light-background dark:bg-dark-background rounded-lg border border-light-border dark:border-dark-border">
+                    <div className="mt-4 p-4 bg-light-background dark:bg-dark-background rounded-lg border" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                       <label className="block text-sm font-medium mb-2">Configuração (JSON)</label>
                       <textarea
                         value={JSON.stringify(editingPolicy.config, null, 2)}
@@ -247,7 +247,7 @@ const AdminSecurityPoliciesPage = () => {
                             // Invalid JSON, don't update
                           }
                         }}
-                        className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none font-mono text-xs"
+                        className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none font-mono text-xs" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                         rows={8}
                       />
                       <button
@@ -269,7 +269,7 @@ const AdminSecurityPoliciesPage = () => {
           {activeTab === 'blocked' && (
             <div className="space-y-4">
               {/* Formulário para bloquear novo IP */}
-              <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+              <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Ban size={20} className="text-accent-cyan" />
                   Bloquear Novo IP
@@ -282,7 +282,7 @@ const AdminSecurityPoliciesPage = () => {
                       value={newIP}
                       onChange={(e) => setNewIP(e.target.value)}
                       placeholder="192.168.1.1"
-                      className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                      className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                     />
                   </div>
                   <div>
@@ -292,7 +292,7 @@ const AdminSecurityPoliciesPage = () => {
                       value={blockReason}
                       onChange={(e) => setBlockReason(e.target.value)}
                       placeholder="Tentativas de login suspeitas"
-                      className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
+                      className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                     />
                   </div>
                 </div>
@@ -310,7 +310,7 @@ const AdminSecurityPoliciesPage = () => {
                 {blockedIPs.filter(ip => ip.is_active).map((ip) => (
                   <div
                     key={ip.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
