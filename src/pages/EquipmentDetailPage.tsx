@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -38,6 +39,7 @@ type InspectionInfo = {
 const EquipmentDetailPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,18 @@ const EquipmentDetailPage = () => {
 
   const fetchDetails = async () => {
     if (!id || !type) return;
+    
+    // Verificar autenticação antes de buscar
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('EquipmentDetailPage - User ID:', session?.user?.id, 'Procurando:', type, id);
+    
+    if (!session?.user) {
+      console.error('Usuário não autenticado');
+      setError('Você precisa estar autenticado para acessar este equipamento.');
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
