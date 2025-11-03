@@ -13,7 +13,7 @@ const ScbaForm = ({ register }: ScbaFormProps) => {
         <input
           id="marca"
           {...register('specifications.marca')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
       <div className="mb-4">
@@ -21,7 +21,7 @@ const ScbaForm = ({ register }: ScbaFormProps) => {
         <input
           id="modelo"
           {...register('specifications.modelo')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
       <div className="mb-4">
@@ -29,7 +29,7 @@ const ScbaForm = ({ register }: ScbaFormProps) => {
         <input
           id="numero_serie_cilindro"
           {...register('specifications.numero_serie_cilindro')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
       <div className="mb-4">
@@ -38,7 +38,7 @@ const ScbaForm = ({ register }: ScbaFormProps) => {
           id="pressao_trabalho"
           type="number"
           {...register('specifications.pressao_trabalho', { valueAsNumber: true })}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
     </>

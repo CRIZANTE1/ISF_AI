@@ -7,52 +7,59 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          green: '#3ECF8E',
-          dark: '#1E1E1E',
-          darker: '#181818',
-          orange: '#FF9500',
-          blue: '#5AC8FA',
-          purple: '#AF52DE',
-        },
-        status: {
-          success: '#34C759',
-          warning: '#FF9500',
-          error: '#FF3B30',
-          info: '#5AC8FA',
-        },
-        light: {
-          background: '#FFFFFF',
-          surface: '#FFFFFF',
-          card: '#FFFFFF',
-          text: {
-            primary: '#1D1D1F',
-            secondary: '#86868B',
-          },
-          border: '#E5E5E5',
-        },
+        // Fundo principal escuro
         dark: {
-          background: '#181818',
-          surface: '#1E1E1E',
-          text: {
-            primary: '#EDEDED',
-            secondary: '#A3A3A3',
-          },
-          border: '#2D2D2D',
-        }
+          primary: '#121212',
+          secondary: '#0E0E0E',
+          surface: '#1A1A1A',
+          inactive: '#2A2A2A',
+        },
+        // Texto
+        text: {
+          primary: '#FFFFFF',
+          secondary: '#B0B0B0',
+          muted: '#9E9E9E',
+        },
+        // Acentos
+        accent: {
+          cyan: '#00C8FF',
+          purple: '#8A3FFC',
+          orange: '#FFA800',
+          green: '#00D97E',
+        },
+        // Status
+        status: {
+          success: '#00D97E',
+          warning: '#FFA800',
+          error: '#FF3B30',
+          info: '#00C8FF',
+        },
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        display: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        sans: ['Inter', 'Poppins', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['Poppins', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
+      fontSize: {
+        'screen-title': ['28px', { lineHeight: '1.2', fontWeight: '600' }],
+        'section-title': ['20px', { lineHeight: '1.3', fontWeight: '500' }],
+        'body': ['16px', { lineHeight: '1.5', fontWeight: '400' }],
+        'button': ['18px', { lineHeight: '1.4', fontWeight: '500' }],
+        'caption': ['14px', { lineHeight: '1.4', fontWeight: '400' }],
+      },
+      spacing: {
+        'screen': '16px',
+        'card': '20px',
+        'item': '16px',
       },
       borderRadius: {
         'xl': '12px',
         '2xl': '16px',
         '3xl': '20px',
+        'button': '12px',
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        'card-lg': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        'card': '0 2px 8px rgba(0, 0, 0, 0.3)',
+        'card-lg': '0 4px 16px rgba(0, 0, 0, 0.4)',
       }
     },
   },

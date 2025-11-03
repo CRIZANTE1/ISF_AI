@@ -68,7 +68,7 @@ const AuthPage = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-light-background dark:bg-dark-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-brand-green">ISF IA</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#FFFFFF' }}>ISF IA</h1>
             <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 {mode === 'login' ? 'Acesse sua conta' : 'Crie uma nova conta'}
             </p>
@@ -82,7 +82,7 @@ const AuthPage = () => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
             />
           )}
           <input
@@ -91,7 +91,7 @@ const AuthPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
           />
           <input
             type="password"
@@ -99,12 +99,12 @@ const AuthPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+            className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
           />
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+            className="w-full p-3 bg-accent-cyan text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Processando...' : (mode === 'login' ? 'Entrar' : 'Cadastrar')}
           </button>
@@ -114,7 +114,7 @@ const AuthPage = () => {
         {message && <p className="mt-4 text-center text-status-success">{message}</p>}
 
         <div className="mt-6 text-center">
-          <button onClick={toggleMode} className="text-sm text-brand-green hover:underline">
+          <button onClick={toggleMode} className="text-sm hover:underline" style={{ color: '#FFFFFF' }}>
             {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça o login'}
           </button>
         </div>

@@ -16,7 +16,7 @@ const PageHeader = ({ title, children }: PageHeaderProps) => {
           onClick={() => navigate(-1)}
           className="p-2 -ml-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary transition-colors"
         >
-          <ChevronLeft size={24} />
+          <ChevronLeft size={24} color="#B0B0B0" />
         </button>
         <h1 className="text-xl font-bold text-light-text-primary dark:text-dark-text-primary truncate transition-colors duration-200">
           {title}

@@ -66,10 +66,10 @@ const PlanPaymentPage = () => {
       <main className="p-4">
         <div className="max-w-md mx-auto space-y-6">
           {/* Plano Atual */}
-          <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border-2 border-brand-green">
+          <div className="p-6 bg-dark-surface rounded-lg border border-accent-cyan/30" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(0, 200, 255, 0.2)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-bold text-brand-green flex items-center gap-2">
+                <h2 className="text-xl font-bold text-accent-cyan flex items-center gap-2">
                   <Crown size={24} />
                   {planInfo.name}
                 </h2>
@@ -78,7 +78,7 @@ const PlanPaymentPage = () => {
                 </p>
               </div>
               {planInfo.isCurrent && (
-                <span className="px-3 py-1 bg-brand-green/20 text-brand-green rounded-full text-xs font-semibold">
+                <span className="px-3 py-1 bg-accent-cyan/20 text-accent-cyan rounded-full text-xs font-semibold">
                   Atual
                 </span>
               )}
@@ -97,7 +97,7 @@ const PlanPaymentPage = () => {
             )}
 
             <div className="mt-4">
-              <p className="text-3xl font-bold text-brand-green">{planInfo.price}</p>
+              <p className="text-3xl font-bold text-accent-cyan">{planInfo.price}</p>
               {planInfo.period && (
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                   {planInfo.period}
@@ -108,7 +108,7 @@ const PlanPaymentPage = () => {
             <ul className="mt-6 space-y-2">
               {planInfo.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
-                  <Check size={18} className="text-brand-green flex-shrink-0 mt-0.5" />
+                  <Check size={18} className="text-accent-cyan flex-shrink-0 mt-0.5" />
                   <span>{feature}</span>
                 </li>
               ))}
@@ -125,7 +125,7 @@ const PlanPaymentPage = () => {
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
-                className="w-full flex items-center justify-center gap-2 p-3 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 p-3 bg-accent-cyan text-white font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {upgrading ? 'Processando...' : (
                   <>

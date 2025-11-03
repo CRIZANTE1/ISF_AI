@@ -3,7 +3,7 @@ interface SkeletonProps {
 }
 
 const Skeleton = ({ className = '' }: SkeletonProps) => {
-  return <div className={`bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse ${className}`} />;
+  return <div className={`rounded-md animate-pulse ${className}`} style={{ backgroundColor: '#2A2A2A' }} />;
 };
 
 export default Skeleton;

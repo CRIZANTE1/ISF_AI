@@ -20,7 +20,8 @@ const ChecklistItem = ({ question, value, onChange }: ChecklistItemProps) => {
             value="Conforme"
             checked={value === 'Conforme'}
             onChange={() => onChange('Conforme')}
-            className="w-4 h-4 text-brand-green focus:ring-brand-green"
+            className="w-4 h-4"
+            style={{ color: '#00C8FF', accentColor: '#00C8FF' }}
           />
           <span className="text-sm">Conforme</span>
         </label>

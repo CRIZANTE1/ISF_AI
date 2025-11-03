@@ -14,7 +14,7 @@ const AlarmForm = ({ register }: AlarmFormProps) => {
         <input
           id="localizacao"
           {...register('localizacao', { required: 'Localização é obrigatória' })}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
       <div className="mb-4">
@@ -22,7 +22,7 @@ const AlarmForm = ({ register }: AlarmFormProps) => {
         <input
           id="marca"
           {...register('marca')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
       <div className="mb-4">
@@ -30,7 +30,7 @@ const AlarmForm = ({ register }: AlarmFormProps) => {
         <input
           id="modelo"
           {...register('modelo')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none"
         />
       </div>
     </>

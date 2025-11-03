@@ -109,9 +109,9 @@ const SettingsPage = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {darkMode ? (
-                    <Moon size={20} className="text-brand-green" />
+                    <Moon size={20} color="#00C8FF" />
                   ) : (
-                    <Sun size={20} className="text-brand-green" />
+                    <Sun size={20} color="#00C8FF" />
                   )}
                   <div>
                     <p className="font-medium">Modo Escuro</p>
@@ -123,7 +123,7 @@ const SettingsPage = () => {
                 <button
                   onClick={toggleDarkMode}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    darkMode ? 'bg-brand-green' : 'bg-gray-300'
+                    darkMode ? 'bg-accent-cyan' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -137,7 +137,7 @@ const SettingsPage = () => {
               {/* Notificações */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Bell size={20} className="text-brand-green" />
+                  <Bell size={20} color="#00C8FF" />
                   <div>
                     <p className="font-medium">Notificações</p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
@@ -148,7 +148,7 @@ const SettingsPage = () => {
                 <button
                   onClick={toggleNotifications}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notifications ? 'bg-brand-green' : 'bg-gray-300'
+                    notifications ? 'bg-accent-cyan' : 'bg-gray-300'
                   }`}
                 >
                   <span

@@ -168,7 +168,7 @@ const AddEquipmentPage = () => {
             <input
               id={idField.name}
               {...register(idField.name, { required: `${idField.label} é obrigatório` })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
             />
             {errors[idField.name as keyof typeof errors] && (
               <p className="text-sm text-status-error mt-1">
@@ -183,7 +183,7 @@ const AddEquipmentPage = () => {
               <input
                 id="localizacao"
                 {...register('localizacao')}
-                className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
               />
             </div>
           )}
@@ -195,7 +195,7 @@ const AddEquipmentPage = () => {
                 <input
                   id="marca"
                   {...register('marca')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                 />
               </div>
               <div className="mb-4">
@@ -203,7 +203,7 @@ const AddEquipmentPage = () => {
                 <input
                   id="modelo"
                   {...register('modelo')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                 />
               </div>
             </>
@@ -216,7 +216,7 @@ const AddEquipmentPage = () => {
                 <input
                   id="marca"
                   {...register('marca')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                 />
               </div>
               <div className="mb-4">
@@ -224,7 +224,7 @@ const AddEquipmentPage = () => {
                 <input
                   id="modelo"
                   {...register('modelo')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                 />
               </div>
             </>
@@ -237,7 +237,7 @@ const AddEquipmentPage = () => {
                 <input
                   id="cliente"
                   {...register('cliente')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                 />
               </div>
               <div className="mb-4">
@@ -245,7 +245,7 @@ const AddEquipmentPage = () => {
                 <input
                   id="local"
                   {...register('local')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                 />
               </div>
             </>
@@ -258,7 +258,7 @@ const AddEquipmentPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+            className="w-full p-3 bg-accent-cyan text-white font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Salvando...' : 'Salvar Equipamento'}
           </button>

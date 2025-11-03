@@ -204,14 +204,14 @@ const AdminUsersPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
                 <div className="flex items-center gap-2 mb-2">
-                  <Users size={20} className="text-brand-green" />
+                  <Users size={20} className="text-accent-cyan" />
                   <span className="text-sm font-medium">Total</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
                 <div className="flex items-center gap-2 mb-2">
-                  <Crown size={20} className="text-brand-green" />
+                  <Crown size={20} color="#00C8FF" />
                   <span className="text-sm font-medium">Premium</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.premium}</p>
@@ -247,7 +247,7 @@ const AdminUsersPage = () => {
                 onClick={() => setActiveTab('users')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'users'
-                    ? 'text-brand-green border-b-2 border-brand-green'
+                    ? 'text-accent-cyan border-b border-accent-cyan/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -258,7 +258,7 @@ const AdminUsersPage = () => {
                 onClick={() => setActiveTab('action-logs')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'action-logs'
-                    ? 'text-brand-green border-b-2 border-brand-green'
+                    ? 'text-accent-cyan border-b border-accent-cyan/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -269,7 +269,7 @@ const AdminUsersPage = () => {
                 onClick={() => setActiveTab('access-logs')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'access-logs'
-                    ? 'text-brand-green border-b-2 border-brand-green'
+                    ? 'text-accent-cyan border-b border-accent-cyan/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -307,7 +307,7 @@ const AdminUsersPage = () => {
                 {filteredUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors cursor-pointer"
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors cursor-pointer"
                     onClick={() => {
                       setSelectedUser(user);
                       setShowUserModal(true);
@@ -315,8 +315,8 @@ const AdminUsersPage = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-brand-green/20 rounded-full flex items-center justify-center">
-                          <Users size={20} className="text-brand-green" />
+                        <div className="w-10 h-10 bg-accent-cyan/20 rounded-full flex items-center justify-center">
+                          <Users size={20} color="#00C8FF" />
                         </div>
                         <div>
                           <p className="font-medium">{user.profile?.full_name || 'Sem nome'}</p>
@@ -330,7 +330,7 @@ const AdminUsersPage = () => {
                           </span>
                         )}
                         {user.profile?.plan === 'premium' ? (
-                          <span className="px-2 py-1 bg-brand-green/20 text-brand-green rounded-full text-xs font-semibold">
+                          <span className="px-2 py-1 bg-accent-cyan/20 text-accent-cyan rounded-full text-xs font-semibold">
                             Premium
                           </span>
                         ) : (
@@ -529,7 +529,7 @@ const AdminUsersPage = () => {
                         disabled={selectedUser.profile?.plan === 'premium'}
                         className={`px-4 py-2 rounded-lg border transition-colors ${
                           selectedUser.profile?.plan === 'premium'
-                            ? 'bg-brand-green/20 border-brand-green text-brand-green'
+                            ? 'bg-accent-cyan/20 border-accent-cyan/30 text-accent-cyan'
                             : 'bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >

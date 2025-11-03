@@ -146,36 +146,35 @@ const AlertsList = ({ userId }: AlertsListProps) => {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.8 }}
-        className="text-lg font-bold text-light-text-primary dark:text-dark-text-primary mb-4 flex items-center gap-2 transition-colors duration-200"
+        className="text-section-title font-display mb-6" 
+        style={{ fontSize: '20px', fontWeight: 500, color: '#FFFFFF' }}
       >
-        <AlertTriangle className="text-status-warning" size={20} />
         Alertas Críticos
       </motion.h3>
-      <div className="mt-3 space-y-3">
+      <div className="space-y-3" style={{ gap: '12px' }}>
         {loading ? (
           Array.from({ length: 2 }).map((_, index) => (
-            <Skeleton key={index} className="h-12 w-full rounded-xl" />
+            <Skeleton key={index} className="h-16 w-full rounded-2xl" />
           ))
         ) : alerts.length > 0 ? (
           <AnimatePresence>
             {alerts.map((alert, index) => (
               <motion.div
                 key={alert.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02, x: 5 }}
-                className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 shadow-lg transition-all duration-200 cursor-pointer group"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ scale: 1.01 }}
+                className="rounded-2xl p-5 shadow-card border transition-all duration-200 cursor-pointer"
+                style={{ 
+                  backgroundColor: '#1A1A1A', 
+                  borderColor: 'rgba(255, 168, 0, 0.3)',
+                  borderWidth: '1px'
+                }}
               >
-                <p className="text-sm font-medium text-red-700 dark:text-red-400 flex items-center gap-2 transition-colors duration-200">
-                  <motion.span
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                    className="text-status-warning text-xl"
-                  >
-                    ⚠️
-                  </motion.span>
+                <p className="text-body font-medium flex items-center gap-3" style={{ fontSize: '16px', color: '#FFA800' }}>
+                  <AlertTriangle size={18} strokeWidth={2} color="#FFA800" />
                   {alert.message}
                 </p>
               </motion.div>
@@ -183,16 +182,22 @@ const AlertsList = ({ userId }: AlertsListProps) => {
           </AnimatePresence>
         ) : (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.9 }}
-            className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-6 text-center shadow-lg transition-colors duration-200"
+            className="rounded-2xl p-6 text-center shadow-card border"
+            style={{ 
+              backgroundColor: '#1A1A1A', 
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: '1px'
+            }}
           >
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center justify-center gap-2 transition-colors duration-200"
+              className="text-body font-medium flex items-center justify-center gap-2"
+              style={{ fontSize: '16px', color: '#FFFFFF' }}
             >
               <span className="text-xl">✓</span>
               Nenhum alerta crítico no momento.

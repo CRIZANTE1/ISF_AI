@@ -104,34 +104,43 @@ const Dashboard = () => {
   const isLoading = authLoading || loadingStats;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-dark-background dark:via-dark-background dark:to-dark-background transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-dark-primary" style={{ backgroundColor: '#121212' }}>
       <DashboardHeader />
-      <main className="p-4 flex-grow">
+      <main className="px-screen flex-grow" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-6"
+          className="mb-8"
         >
           {isLoading ? (
-            <Skeleton className="h-7 w-1/2 mb-2" />
+            <Skeleton className="h-9 w-2/3 mb-4" />
           ) : (
             <motion.h2 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl font-bold text-light-text-primary dark:text-dark-text-primary mb-2 transition-colors duration-200"
+              className="text-section-title font-display text-text-primary mb-2" 
+              style={{ fontSize: '20px', fontWeight: 500, color: '#FFFFFF' }}
             >
-              Olá, <span className="bg-gradient-to-r from-brand-blue to-brand-purple bg-clip-text text-transparent font-bold">{profile?.full_name ?? 'Usuário'}</span>
+              Olá, {profile?.full_name ?? 'Usuário'}
             </motion.h2>
           )}
           <TrialStatusBar profile={profile} />
         </motion.div>
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl mb-4 transition-colors duration-200" role="alert">
-            <strong className="font-bold">Erro: </strong>
-            <span className="block sm:inline">{error}</span>
+          <div 
+            className="bg-dark-surface border rounded-2xl px-5 py-4 mb-6" 
+            style={{ 
+              backgroundColor: '#1A1A1A', 
+              borderColor: '#FF3B30',
+              borderWidth: '1px'
+            }}
+            role="alert"
+          >
+            <strong className="font-semibold text-status-error" style={{ color: '#FF3B30' }}>Erro: </strong>
+            <span className="text-text-primary block sm:inline" style={{ color: '#FFFFFF' }}>{error}</span>
           </div>
         )}
 
@@ -139,10 +148,11 @@ const Dashboard = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, staggerChildren: 0.1 }}
-          className="grid grid-cols-3 gap-4 mb-6"
+          className="grid grid-cols-3 gap-4 mb-8"
+          style={{ gap: '16px', marginBottom: '32px' }}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
           >
@@ -151,11 +161,11 @@ const Dashboard = () => {
               value={stats?.total ?? null} 
               isLoading={isLoading} 
               percentage={stats?.total ? (stats.total / (stats.total || 1)) * 100 : 0}
-              color="orange"
+              color="cyan"
             />
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5 }}
           >
@@ -168,7 +178,7 @@ const Dashboard = () => {
             />
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6 }}
           >
@@ -177,7 +187,7 @@ const Dashboard = () => {
               value={stats?.pendente ?? null} 
               isLoading={isLoading}
               percentage={stats?.pendente && stats?.total ? (stats.pendente / stats.total) * 100 : 0}
-              color="blue"
+              color="orange"
             />
           </motion.div>
         </motion.div>

@@ -76,7 +76,7 @@ const PhotoUpload = ({
               onClick={handleRemove}
               className="absolute top-2 right-2 p-2 bg-status-error text-white rounded-full hover:bg-red-600 transition-colors"
             >
-              <X size={16} />
+              <X size={16} color="#FFFFFF" />
             </button>
           </div>
           <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
@@ -86,9 +86,12 @@ const PhotoUpload = ({
       ) : (
         <div
           onClick={handleClick}
-          className="w-full h-48 border-2 border-dashed border-light-border dark:border-dark-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-brand-green transition-colors"
+          className="w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors"
+          style={{ borderColor: '#2A2A2A' }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#00C8FF'}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2A2A2A'}
         >
-          <ImageIcon size={48} className="text-light-text-secondary dark:text-dark-text-secondary mb-2" />
+          <ImageIcon size={48} color="#B0B0B0" className="mb-2" />
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
             Clique para selecionar uma foto
           </p>

@@ -18,14 +18,14 @@ const InspectionCategory = ({ title, icon, children }: InspectionCategoryProps) 
         className="w-full flex items-center justify-between p-4 text-left"
       >
         <div className="flex items-center gap-4">
-          <div className="text-brand-green">{icon}</div>
+          <div style={{ color: '#00C8FF' }}>{icon}</div>
           <span className="font-semibold text-lg">{title}</span>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown size={20} className="text-light-text-secondary dark:text-dark-text-secondary" />
+          <ChevronDown size={20} color="#B0B0B0" />
         </motion.div>
       </button>
       <AnimatePresence initial={false}>

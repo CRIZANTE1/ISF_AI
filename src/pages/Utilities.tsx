@@ -12,9 +12,9 @@ const Utilities = () => {
         <div className="max-w-md mx-auto space-y-4">
           <button
             onClick={() => navigate('/utilities/users')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
           >
-            <Users size={24} className="text-brand-green" />
+            <Users size={24} color="#00C8FF" />
             <div>
               <p className="font-semibold">Gestão de Usuários</p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
@@ -25,9 +25,9 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/system-settings')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
           >
-            <Settings size={24} className="text-brand-green" />
+            <Settings size={24} color="#00C8FF" />
             <div>
               <p className="font-semibold">Configurações do Sistema</p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
@@ -38,9 +38,9 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/security-audit')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
           >
-            <Shield size={24} className="text-brand-green" />
+            <Shield size={24} color="#00C8FF" />
             <div>
               <p className="font-semibold">Segurança e Auditoria</p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
@@ -51,9 +51,9 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/security-policies')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
           >
-            <Lock size={24} className="text-brand-green" />
+            <Lock size={24} color="#00C8FF" />
             <div>
               <p className="font-semibold">Políticas de Segurança</p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">

@@ -118,7 +118,7 @@ const EquipmentListPage = () => {
               
               return (
                 <li key={itemId}>
-                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors">
+                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors">
                     <div>
                       <p className="font-semibold">{itemId}</p>
                       {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{location}</p>}

@@ -83,7 +83,7 @@ const MyDataPage = () => {
             <input
               id="full_name"
               {...register('full_name', { required: 'Nome é obrigatório' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
             />
             {errors.full_name && (
               <p className="text-sm text-status-error mt-1">{errors.full_name.message}</p>
@@ -107,7 +107,7 @@ const MyDataPage = () => {
                   },
                 })}
                 disabled={!isEditingEmail}
-                className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none disabled:opacity-50"
+                className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none disabled:opacity-50"
               />
               {!isEditingEmail && (
                 <button
@@ -157,7 +157,7 @@ const MyDataPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-accent-cyan text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
             >
               <Save size={18} />
               {loading ? 'Salvando...' : 'Salvar Alterações'}

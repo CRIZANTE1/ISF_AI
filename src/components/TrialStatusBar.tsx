@@ -12,10 +12,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
   if (plan === 'premium') {
     return (
       <div className="mt-2">
-        <div className="w-full bg-brand-green/30 rounded-full h-1.5">
-          <div className="bg-brand-green h-1.5 rounded-full" style={{ width: '100%' }}></div>
+        <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'rgba(0, 217, 126, 0.2)' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#00D97E' }}></div>
         </div>
-        <p className="text-xs text-brand-green mt-1">Acesso total ao Plano Premium.</p>
+        <p className="text-xs mt-1" style={{ color: '#FFFFFF' }}>Acesso total ao Plano Premium.</p>
       </div>
     );
   }
@@ -23,10 +23,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
   if (!trial_ends_at) {
     return (
       <div className="mt-2">
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
-          <div className="bg-status-error h-1.5 rounded-full" style={{ width: '100%' }}></div>
+        <div className="w-full rounded-full h-1.5" style={{ backgroundColor: '#2A2A2A' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FF3B30' }}></div>
         </div>
-        <p className="text-xs text-status-error mt-1">Período de teste expirado.</p>
+        <p className="text-xs mt-1" style={{ color: '#FF3B30' }}>Período de teste expirado.</p>
       </div>
     );
   }
@@ -39,10 +39,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
   if (diffDays <= 0) {
     return (
       <div className="mt-2">
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
-          <div className="bg-status-error h-1.5 rounded-full" style={{ width: '100%' }}></div>
+        <div className="w-full rounded-full h-1.5" style={{ backgroundColor: '#2A2A2A' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FF3B30' }}></div>
         </div>
-        <p className="text-xs text-status-error mt-1">Período de teste expirado.</p>
+        <p className="text-xs mt-1" style={{ color: '#FF3B30' }}>Período de teste expirado.</p>
       </div>
     );
   }
@@ -52,10 +52,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
 
   return (
     <div className="mt-2">
-      <div className="w-full bg-gray-200 rounded-full h-1.5">
-        <div className="bg-status-warning h-1.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+      <div className="w-full rounded-full h-1.5" style={{ backgroundColor: '#2A2A2A' }}>
+        <div className="h-1.5 rounded-full" style={{ width: `${percentage}%`, backgroundColor: '#FFA800' }}></div>
       </div>
-      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 transition-colors duration-200">
+      <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
         {diffDays} dia{diffDays !== 1 ? 's' : ''} restante{diffDays !== 1 ? 's' : ''} no período de teste.
       </p>
     </div>

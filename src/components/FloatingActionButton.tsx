@@ -9,7 +9,8 @@ const FloatingActionButton = ({ to }: FloatingActionButtonProps) => {
   return (
     <Link
       to={to}
-      className="fixed bottom-20 right-4 z-20 w-14 h-14 bg-brand-green rounded-full flex items-center justify-center text-white shadow-lg hover:bg-green-600 transition-colors"
+      className="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-colors"
+      style={{ backgroundColor: '#00C8FF' }}
       aria-label="Adicionar novo item"
     >
       <Plus size={28} />

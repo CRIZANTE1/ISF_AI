@@ -155,7 +155,7 @@ const AdminSecurityPoliciesPage = () => {
               onClick={() => setActiveTab('policies')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'policies'
-                  ? 'text-brand-green border-b-2 border-brand-green'
+                  ? 'text-accent-cyan border-b border-accent-cyan/30'
                   : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
               }`}
             >
@@ -166,7 +166,7 @@ const AdminSecurityPoliciesPage = () => {
               onClick={() => setActiveTab('blocked')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'blocked'
-                  ? 'text-brand-green border-b-2 border-brand-green'
+                  ? 'text-accent-cyan border-b border-accent-cyan/30'
                   : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
               }`}
             >
@@ -186,7 +186,7 @@ const AdminSecurityPoliciesPage = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Shield size={24} className="text-brand-green" />
+                        <Shield size={24} className="text-accent-cyan" />
                         <h3 className="text-xl font-bold">{policy.policy_name}</h3>
                         {policy.enabled ? (
                           <span className="px-2 py-1 bg-status-success/20 text-status-success rounded-full text-xs font-semibold">
@@ -227,7 +227,7 @@ const AdminSecurityPoliciesPage = () => {
                           policy.enabled ? 'translate-x-6' : 'translate-x-1'
                         }`} />
                         <span className={`absolute inset-0 rounded-full transition-colors ${
-                          policy.enabled ? 'bg-brand-green' : 'bg-gray-300'
+                          policy.enabled ? 'bg-accent-cyan' : 'bg-gray-300'
                         }`} />
                       </label>
                     </div>
@@ -247,13 +247,13 @@ const AdminSecurityPoliciesPage = () => {
                             // Invalid JSON, don't update
                           }
                         }}
-                        className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none font-mono text-xs"
+                        className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none font-mono text-xs"
                         rows={8}
                       />
                       <button
                         onClick={() => handleUpdatePolicyConfig(policy.id, editingPolicy.config)}
                         disabled={saving}
-                        className="mt-2 px-4 py-2 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+                        className="mt-2 px-4 py-2 bg-accent-cyan text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Save size={16} className="inline mr-2" />
                         Salvar Configuração
@@ -271,7 +271,7 @@ const AdminSecurityPoliciesPage = () => {
               {/* Formulário para bloquear novo IP */}
               <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Ban size={20} className="text-brand-green" />
+                  <Ban size={20} className="text-accent-cyan" />
                   Bloquear Novo IP
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -282,7 +282,7 @@ const AdminSecurityPoliciesPage = () => {
                       value={newIP}
                       onChange={(e) => setNewIP(e.target.value)}
                       placeholder="192.168.1.1"
-                      className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                      className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -292,7 +292,7 @@ const AdminSecurityPoliciesPage = () => {
                       value={blockReason}
                       onChange={(e) => setBlockReason(e.target.value)}
                       placeholder="Tentativas de login suspeitas"
-                      className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+                      className="w-full p-3 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
                     />
                   </div>
                 </div>

@@ -138,8 +138,8 @@ const Profile = () => {
       case 'premium':
         return {
           name: '✨ Plano Premium',
-          textColor: 'text-brand-green',
-          bgColor: 'bg-brand-green/10 dark:bg-brand-green/20',
+          textColor: 'text-accent-cyan',
+          bgColor: 'bg-accent-cyan/10 dark:bg-accent-cyan/20',
         };
       case 'trial':
         return {
@@ -249,18 +249,19 @@ const Profile = () => {
           <img
             src={profile.avatar_url}
             alt={profile.full_name || 'Avatar'}
-            className="w-24 h-24 rounded-full object-cover border-4 border-brand-green/20"
+            className="w-24 h-24 rounded-full object-cover border-2"
+            style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}
           />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-brand-green/20 flex items-center justify-center border-4 border-brand-green/20">
-            <span className="text-4xl font-bold text-brand-green">
+          <div className="w-24 h-24 rounded-full bg-dark-surface flex items-center justify-center border-2" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+            <span className="text-4xl font-bold text-accent-cyan">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </span>
           </div>
         )}
         <label
           htmlFor="avatar-upload"
-          className="absolute bottom-0 right-0 w-8 h-8 bg-brand-green rounded-full flex items-center justify-center cursor-pointer hover:bg-green-600 transition-colors"
+          className="absolute bottom-0 right-0 w-8 h-8 bg-accent-cyan rounded-full flex items-center justify-center cursor-pointer hover:opacity-90 transition-colors"
           title="Alterar foto"
         >
           <Camera size={16} className="text-white" />
@@ -290,7 +291,7 @@ const Profile = () => {
             <input
               id="full_name"
               {...register('full_name', { required: 'Nome é obrigatório' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-brand-green focus:outline-none"
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none"
             />
             {errors.full_name && (
               <p className="text-sm text-status-error mt-1 text-left">{errors.full_name.message}</p>
@@ -299,7 +300,7 @@ const Profile = () => {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-brand-green text-white rounded-lg hover:bg-green-600 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-accent-cyan text-white rounded-lg hover:opacity-90 transition-colors"
             >
               <Save size={16} />
               Salvar
@@ -337,7 +338,7 @@ const Profile = () => {
           )}
           <button
             onClick={() => setIsEditing(true)}
-            className="mt-3 flex items-center gap-2 text-sm text-brand-green hover:text-green-600 transition-colors"
+            className="mt-3 flex items-center gap-2 text-sm text-accent-cyan hover:opacity-90 transition-colors"
           >
             <Edit2 size={14} />
             Editar Perfil
@@ -366,13 +367,13 @@ const Profile = () => {
           </h3>
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
-              <p className="text-2xl font-bold text-brand-green">{stats.totalEquipment}</p>
+              <p className="text-2xl font-bold text-accent-cyan">{stats.totalEquipment}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Equipamentos
               </p>
             </div>
             <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
-              <p className="text-2xl font-bold text-brand-green">{stats.totalInspections}</p>
+              <p className="text-2xl font-bold text-accent-cyan">{stats.totalInspections}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Inspeções
               </p>
@@ -391,23 +392,23 @@ const Profile = () => {
       <div className="mt-8 w-full max-w-sm space-y-2">
         <button 
           onClick={() => navigate('/profile/my-data')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
         >
-          <User size={18} className="text-brand-green" />
+          <User size={18} color="#00C8FF" />
           <span>Meus Dados</span>
         </button>
         <button 
           onClick={() => navigate('/profile/plan-payment')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
         >
-          <CreditCard size={18} className="text-brand-green" />
+          <CreditCard size={18} color="#00C8FF" />
           <span>Plano e Pagamento</span>
         </button>
         <button 
           onClick={() => navigate('/profile/settings')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-brand-green transition-colors flex items-center gap-3"
+          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border hover:border-accent-cyan/30 transition-colors flex items-center gap-3"
         >
-          <Settings size={18} className="text-brand-green" />
+          <Settings size={18} color="#00C8FF" />
           <span>Configurações</span>
         </button>
       </div>

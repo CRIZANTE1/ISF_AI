@@ -31,36 +31,38 @@ const BottomNav = () => {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed bottom-4 left-4 right-4 h-16 bg-white dark:bg-dark-surface rounded-3xl shadow-2xl border border-light-border dark:border-dark-border flex items-center justify-around px-2 z-50 backdrop-blur-xl bg-opacity-95 dark:bg-opacity-95"
+      className="fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-4 z-50 border-t"
+      style={{ 
+        backgroundColor: '#121212', 
+        borderTopColor: '#2A2A2A',
+        borderTopWidth: '1px',
+        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.5)'
+      }}
     >
-      {navItems.slice(0, 2).map((item, index) => (
+      {navItems.slice(0, 2).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
-          className={({ isActive }) =>
-            `relative flex flex-col items-center justify-center h-full px-3 rounded-xl transition-all duration-300 ${
-              isActive 
-                ? 'text-brand-blue dark:text-brand-blue' 
-                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-blue dark:hover:text-brand-blue'
-            }`
-          }
+          className="relative flex flex-col items-center justify-center h-full px-4 transition-all duration-200"
         >
           {({ isActive }) => (
             <>
               <motion.div
                 initial={false}
-                animate={isActive ? { scale: 1.2 } : { scale: 1 }}
+                animate={isActive ? { scale: 1.1 } : { scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                className="relative"
+                className="relative mb-1"
               >
                 <item.icon 
-                  className={`w-6 h-6 mb-1 ${isActive ? 'text-brand-blue dark:text-brand-blue' : ''}`}
-                  strokeWidth={isActive ? 2.5 : 2} 
+                  className="w-6 h-6"
+                  strokeWidth={isActive ? 2.5 : 2}
+                  color={isActive ? '#00C8FF' : '#B0B0B0'}
                 />
               </motion.div>
               <motion.span 
-                animate={{ fontSize: isActive ? '0.75rem' : '0.7rem', fontWeight: isActive ? 700 : 500 }}
-                className={`text-xs relative z-10 ${isActive ? 'text-brand-blue dark:text-brand-blue' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}
+                animate={{ fontSize: isActive ? '0.7rem' : '0.65rem', fontWeight: isActive ? 600 : 400 }}
+                className="text-xs relative z-10"
+                style={{ color: isActive ? '#00C8FF' : '#B0B0B0' }}
               >
                 {item.label}
               </motion.span>
@@ -72,46 +74,41 @@ const BottomNav = () => {
       {/* Botão central de adicionar */}
       <motion.button
         onClick={() => navigate('/inspections')}
-        whileHover={{ scale: 1.1, rotate: 90 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-brand-blue via-brand-purple to-brand-blue rounded-full shadow-2xl transition-all relative overflow-hidden group"
+        className="flex items-center justify-center w-14 h-14 rounded-full shadow-card-lg transition-all"
+        style={{ 
+          backgroundColor: '#00C8FF',
+          boxShadow: '0 4px 16px rgba(0, 200, 255, 0.4)'
+        }}
       >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 bg-gradient-to-br from-brand-blue via-brand-purple to-brand-blue opacity-0 group-hover:opacity-100 transition-opacity"
-        />
-        <Plus className="w-6 h-6 text-white relative z-10" strokeWidth={3} />
+        <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
       </motion.button>
 
       {navItems.slice(2).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
-          className={({ isActive }) =>
-            `relative flex flex-col items-center justify-center h-full px-3 rounded-xl transition-all duration-300 ${
-              isActive 
-                ? 'text-brand-purple dark:text-brand-purple' 
-                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-purple dark:hover:text-brand-purple'
-            }`
-          }
+          className="relative flex flex-col items-center justify-center h-full px-4 transition-all duration-200"
         >
           {({ isActive }) => (
             <>
               <motion.div
                 initial={false}
-                animate={isActive ? { scale: 1.2 } : { scale: 1 }}
+                animate={isActive ? { scale: 1.1 } : { scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                className="relative"
+                className="relative mb-1"
               >
                 <item.icon 
-                  className={`w-6 h-6 mb-1 ${isActive ? 'text-brand-purple dark:text-brand-purple' : ''}`}
-                  strokeWidth={isActive ? 2.5 : 2} 
+                  className="w-6 h-6"
+                  strokeWidth={isActive ? 2.5 : 2}
+                  color={isActive ? '#00C8FF' : '#B0B0B0'}
                 />
               </motion.div>
               <motion.span 
-                animate={{ fontSize: isActive ? '0.75rem' : '0.7rem', fontWeight: isActive ? 700 : 500 }}
-                className={`text-xs relative z-10 ${isActive ? 'text-brand-purple dark:text-brand-purple' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}
+                animate={{ fontSize: isActive ? '0.7rem' : '0.65rem', fontWeight: isActive ? 600 : 400 }}
+                className="text-xs relative z-10"
+                style={{ color: isActive ? '#00C8FF' : '#B0B0B0' }}
               >
                 {item.label}
               </motion.span>
