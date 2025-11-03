@@ -44,6 +44,17 @@ export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promis
       .insert(hose);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', hose.id_mangueira, {
+        type: 'mangueira',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar mangueira:', error);

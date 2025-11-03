@@ -79,6 +79,17 @@ export async function saveNewFoamChamber(
       .insert(chamber);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', chamber.id_camara, {
+        type: 'camara_espuma',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar câmara de espuma:', error);
@@ -113,6 +124,19 @@ export async function saveFoamChamberInspection(
       });
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.id_camara, {
+        type: 'camara_espuma',
+        tipo_inspecao: inspection.tipo_inspecao,
+        status: inspection.status_geral,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção de câmara de espuma:', error);

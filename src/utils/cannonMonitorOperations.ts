@@ -52,6 +52,17 @@ export async function saveNewCannonMonitor(
       .insert(cannon);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', cannon.id_equipamento, {
+        type: 'canhao_monitor',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar canhão monitor:', error);
@@ -88,6 +99,19 @@ export async function saveCannonMonitorInspection(
       });
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.id_equipamento, {
+        type: 'canhao_monitor',
+        tipo_inspecao: inspection.tipo_inspecao,
+        status: inspection.status_geral,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção de canhão monitor:', error);

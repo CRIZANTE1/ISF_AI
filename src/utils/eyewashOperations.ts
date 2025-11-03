@@ -81,6 +81,17 @@ export async function saveNewEyewashStation(
       .insert(station);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', station.id_equipamento, {
+        type: 'chuveiro_lavaolhos',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar chuveiro/lava-olhos:', error);
@@ -115,6 +126,18 @@ export async function saveEyewashInspection(
       });
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.id_equipamento, {
+        type: 'chuveiro_lavaolhos',
+        status: inspection.status_geral,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção de chuveiro/lava-olhos:', error);

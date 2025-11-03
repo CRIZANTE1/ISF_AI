@@ -48,6 +48,17 @@ export async function saveNewShelter(
       .insert(shelter);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', shelter.id_abrigo, {
+        type: 'abrigo',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar abrigo:', error);
@@ -67,6 +78,18 @@ export async function saveShelterInspection(
       .insert(inspection);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.id_abrigo, {
+        type: 'abrigo',
+        status: inspection.status_geral,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção de abrigo:', error);

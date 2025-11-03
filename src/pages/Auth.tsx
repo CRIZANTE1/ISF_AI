@@ -48,7 +48,17 @@ const AuthPage = () => {
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          // Log failed login
+          try {
+            const { logUserAccess } = await import('../utils/adminOperations');
+            await logUserAccess('login', false, error.message);
+          } catch (logError) {
+            console.error('Failed to log login error:', logError);
+          }
+          throw error;
+        }
+        // Successful login will be logged in AuthContext onAuthStateChange
         navigate('/');
       }
     } catch (err: any) {

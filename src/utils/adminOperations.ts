@@ -297,8 +297,8 @@ export async function getAccessLogs(
   };
 }
 
-// Log user action (helper function)
-async function logUserAction(
+// Log user action (exported function)
+export async function logUserAction(
   actionType: string,
   resourceType?: string,
   resourceId?: string,
@@ -313,6 +313,27 @@ async function logUserAction(
     });
   } catch (error) {
     console.error('Failed to log user action:', error);
+    // Don't throw - logging failures shouldn't break the app
+  }
+}
+
+// Log user access (login/logout)
+export async function logUserAccess(
+  action: 'login' | 'logout' | 'session_start' | 'session_end',
+  success: boolean = true,
+  errorMessage?: string
+): Promise<void> {
+  try {
+    await supabase.rpc('log_user_access', {
+      p_action: action,
+      p_ip_address: null, // IP será obtido no backend se necessário
+      p_user_agent: navigator.userAgent,
+      p_session_id: null,
+      p_success: success,
+      p_error_message: errorMessage || null,
+    });
+  } catch (error) {
+    console.error('Failed to log user access:', error);
     // Don't throw - logging failures shouldn't break the app
   }
 }

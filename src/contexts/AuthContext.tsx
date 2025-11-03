@@ -41,6 +41,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Log access events
+        if (event === 'SIGNED_IN' && session) {
+          try {
+            const { logUserAccess } = await import('../utils/adminOperations');
+            await logUserAccess('login', true);
+          } catch (error) {
+            console.error('Failed to log login:', error);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          try {
+            const { logUserAccess } = await import('../utils/adminOperations');
+            await logUserAccess('logout', true);
+          } catch (error) {
+            console.error('Failed to log logout:', error);
+          }
+        }
       }
     );
 
@@ -96,6 +113,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const signOut = async () => {
+    try {
+      const { logUserAccess } = await import('../utils/adminOperations');
+      await logUserAccess('logout', true);
+    } catch (error) {
+      console.error('Failed to log logout:', error);
+    }
     await supabase.auth.signOut();
   };
 

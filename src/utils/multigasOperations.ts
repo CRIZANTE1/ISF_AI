@@ -71,6 +71,17 @@ export async function saveNewMultigasDetector(
       .insert(detector);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', detector.id_equipamento, {
+        type: 'multigas',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar detector multigás:', error);
@@ -254,6 +265,19 @@ export async function saveMultigasInspection(
       .insert(inspection);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.id_equipamento, {
+        type: 'multigas',
+        tipo_teste: inspection.tipo_teste,
+        resultado: inspection.resultado_teste,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção multigás:', error);

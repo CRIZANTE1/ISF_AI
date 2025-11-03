@@ -55,6 +55,17 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
       .insert(scba);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', scba.numero_serie_equipamento, {
+        type: 'scba',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar SCBA:', error);
@@ -111,6 +122,18 @@ export async function saveSCBAVisualInspection(
       .insert(inspection);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.numero_serie_equipamento, {
+        type: 'scba',
+        status: inspection.status_geral,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção SCBA:', error);

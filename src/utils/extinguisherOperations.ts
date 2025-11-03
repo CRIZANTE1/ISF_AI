@@ -303,6 +303,17 @@ export async function saveNewExtinguisher(
       .insert(extinguisher);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', extinguisher.numero_identificacao, {
+        type: 'extintor',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar extintor:', error);
@@ -347,6 +358,19 @@ export async function saveExtinguisherInspection(
       .insert(inspectionData);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.numero_identificacao, {
+        type: 'extintor',
+        tipo_servico: inspection.tipo_servico,
+        aprovado: inspection.aprovado_inspecao,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção de extintor:', error);

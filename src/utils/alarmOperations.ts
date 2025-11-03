@@ -103,6 +103,17 @@ export async function saveNewAlarmSystem(
       .insert(alarm);
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'equipment', alarm.id_sistema, {
+        type: 'alarme',
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar sistema de alarme:', error);
@@ -143,6 +154,18 @@ export async function saveAlarmInspection(
       });
 
     if (error) throw error;
+    
+    // Log action
+    try {
+      const { logUserAction } = await import('./adminOperations');
+      await logUserAction('create', 'inspection', inspection.id_sistema, {
+        type: 'alarme',
+        status: inspection.status_geral,
+      });
+    } catch (logError) {
+      console.error('Failed to log action:', logError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao salvar inspeção de alarme:', error);
