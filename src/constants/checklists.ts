@@ -98,6 +98,82 @@ export const FOAM_CHAMBER_CHECKLIST: Record<string, Record<string, string[]>> = 
       "Funcionamento do sistema confirmado",
     ],
   },
+  // Modelos Ansuul e Naffco
+  "FOAM-200": {
+    "Condições Gerais": [
+      "Pintura e estrutura sem corrosão ou amassados",
+      "Sem vazamentos visíveis no tanque e conexões",
+      "Válvulas em bom estado e lubrificadas",
+    ],
+    "Componentes da Câmara": [
+      "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)",
+      "Selo de vedação íntegro e bem fixado",
+      "Junta de vedação em boas condições",
+      "Defletor e barragem de espuma íntegros",
+    ],
+    "Linhas e Conexões": [
+      "Tomadas de solução e linhas sem obstrução",
+      "Drenos livres e estanques",
+      "Ejetores e orifícios desobstruídos",
+      "Placa de orifício íntegra e sem obstruções",
+      "Placa de orifício compatível com o modelo da câmara",
+    ],
+    "Teste Funcional": [
+      "Verificação de fluxo de água/espuma",
+      "Verificação de estanqueidade da linha",
+      "Funcionamento do sistema confirmado",
+    ],
+  },
+  "FOAM-300": {
+    "Condições Gerais": [
+      "Pintura e estrutura sem corrosão ou amassados",
+      "Sem vazamentos visíveis no tanque e conexões",
+      "Válvulas em bom estado e lubrificadas",
+    ],
+    "Componentes da Câmara": [
+      "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)",
+      "Selo de vedação íntegro e bem fixado",
+      "Junta de vedação em boas condições",
+      "Defletor e barragem de espuma íntegros",
+    ],
+    "Linhas e Conexões": [
+      "Tomadas de solução e linhas sem obstrução",
+      "Drenos livres e estanques",
+      "Ejetores e orifícios desobstruídos",
+      "Placa de orifício íntegra e sem obstruções",
+      "Placa de orifício compatível com o modelo da câmara",
+    ],
+    "Teste Funcional": [
+      "Verificação de fluxo de água/espuma",
+      "Verificação de estanqueidade da linha",
+      "Funcionamento do sistema confirmado",
+    ],
+  },
+  "FOAM-500": {
+    "Condições Gerais": [
+      "Pintura e estrutura sem corrosão ou amassados",
+      "Sem vazamentos visíveis no tanque e conexões",
+      "Válvulas em bom estado e lubrificadas",
+    ],
+    "Componentes da Câmara": [
+      "Câmara de espuma íntegra (sem trincas, deformações ou corrosão)",
+      "Selo de vedação íntegro e bem fixado",
+      "Junta de vedação em boas condições",
+      "Defletor e barragem de espuma íntegros",
+    ],
+    "Linhas e Conexões": [
+      "Tomadas de solução e linhas sem obstrução",
+      "Drenos livres e estanques",
+      "Ejetores e orifícios desobstruídos",
+      "Placa de orifício íntegra e sem obstruções",
+      "Placa de orifício compatível com o modelo da câmara",
+    ],
+    "Teste Funcional": [
+      "Verificação de fluxo de água/espuma",
+      "Verificação de estanqueidade da linha",
+      "Funcionamento do sistema confirmado",
+    ],
+  },
 };
 
 export const ALARM_CHECKLIST = {

@@ -13,7 +13,7 @@ import { getAllFoamChambers } from '../utils/foamChamberOperations';
 import { getAllAlarmSystems } from '../utils/alarmOperations';
 import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
 import { getAllSCBAs } from '../utils/scbaOperations';
-import { getAllMultigasDetectors } from '../utils/multigasOperations';
+import { getAllMultigasDetectors, getMultigasDetectorById } from '../utils/multigasOperations';
 import { getAllShelters } from '../utils/shelterOperations';
 import { getAllHoses } from '../utils/hoseOperations';
 
@@ -196,16 +196,16 @@ const EquipmentDetailPage = () => {
             equipmentData = {
               id: scba.numero_serie_equipamento,
               name: scba.numero_serie_equipamento,
-              location: scba.localizacao,
+              location: undefined, // conjuntos_autonomos não tem coluna localizacao
               ...scba,
             };
-            const { data, error: inspError } = await supabase
+            const { data: inspData, error: inspError } = await supabase
               .from('inspecoes_scba')
               .select('*')
               .eq('numero_serie_equipamento', id)
               .order('data_inspecao', { ascending: false });
-            if (!inspError && data) {
-              inspectionsData = data.map(insp => ({
+            if (!inspError && inspData) {
+              inspectionsData = inspData.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
                 status_geral: insp.status_geral,
@@ -213,33 +213,40 @@ const EquipmentDetailPage = () => {
                 link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
               }));
             }
+          } else {
+            console.log('SCBA não encontrado:', id, 'Total de SCBAs:', scbas.length, 'IDs encontrados:', scbas.map(s => s.numero_serie_equipamento));
           }
           break;
         }
         case 'multigas': {
-          const detectors = await getAllMultigasDetectors();
-          const detector = detectors.find(e => e.id_equipamento === id);
+          // Buscar diretamente por ID usando a função específica
+          const detector = await getMultigasDetectorById(id);
           if (detector) {
             equipmentData = {
               id: detector.id_equipamento,
               name: detector.id_equipamento,
-              location: detector.localizacao,
+              location: undefined, // inventario_multigas não tem coluna localizacao
               ...detector,
             };
-            const { data, error: inspError } = await supabase
+            const { data: inspData, error: inspError } = await supabase
               .from('inspecoes_multigas')
               .select('*')
               .eq('id_equipamento', id)
-              .order('data_inspecao', { ascending: false });
-            if (!inspError && data) {
-              inspectionsData = data.map(insp => ({
+              .order('data_teste', { ascending: false });
+            if (!inspError && inspData) {
+              inspectionsData = inspData.map(insp => ({
                 id: insp.id || 0,
-                data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
+                data_inspecao: insp.data_teste || '',
+                status_geral: insp.resultado_teste || '',
                 plano_de_acao: insp.plano_de_acao,
                 link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
               }));
             }
+          } else {
+            console.log('Multigas não encontrado:', id, 'Tentativa de buscar diretamente por ID falhou');
+            // Fallback: tentar buscar todos para debug
+            const allDetectors = await getAllMultigasDetectors();
+            console.log('Total de detectores disponíveis:', allDetectors.length, 'IDs:', allDetectors.map(d => d.id_equipamento));
           }
           break;
         }
@@ -250,16 +257,16 @@ const EquipmentDetailPage = () => {
             equipmentData = {
               id: shelter.id_abrigo,
               name: shelter.id_abrigo,
-              location: shelter.localizacao,
+              location: shelter.local, // abrigos tem coluna 'local' não 'localizacao'
               ...shelter,
             };
-            const { data, error: inspError } = await supabase
+            const { data: inspData, error: inspError } = await supabase
               .from('inspecoes_abrigos')
               .select('*')
               .eq('id_abrigo', id)
               .order('data_inspecao', { ascending: false });
-            if (!inspError && data) {
-              inspectionsData = data.map(insp => ({
+            if (!inspError && inspData) {
+              inspectionsData = inspData.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
                 status_geral: insp.status_geral,
@@ -267,6 +274,8 @@ const EquipmentDetailPage = () => {
                 link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
               }));
             }
+          } else {
+            console.log('Abrigo não encontrado:', id, 'Total de abrigos:', shelters.length, 'IDs encontrados:', shelters.map(s => s.id_abrigo));
           }
           break;
         }
