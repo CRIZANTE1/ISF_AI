@@ -12,28 +12,28 @@ interface MetricCardProps {
 const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: MetricCardProps) => {
   const colorConfig = {
     blue: { 
-      bg: 'rgba(21, 126, 251, 0.4)',          // Fitness Stand translúcido (40%)
-      bgSolid: '#157EFB',                     // Cor sólida para texto
+      bg: '#157EFB',                          // Fitness Stand sólido
+      bgSolid: '#157EFB',
       text: '#FFFFFF',
       accent: '#0066CC',
       shadow: 'rgba(21, 126, 251, 0.3)'
     },
     green: { 
-      bg: 'rgba(83, 215, 105, 0.4)',         // Fitness Exercise translúcido (40%)
+      bg: '#53D769',                          // Fitness Exercise sólido
       bgSolid: '#53D769',
       text: '#FFFFFF',
       accent: '#45C159',
       shadow: 'rgba(83, 215, 105, 0.3)'
     },
     orange: { 
-      bg: 'rgba(252, 61, 57, 0.4)',          // Fitness Move translúcido (40%)
+      bg: '#FC3D39',                          // Fitness Move sólido
       bgSolid: '#FC3D39',
       text: '#FFFFFF',
       accent: '#E02E2A',
       shadow: 'rgba(252, 61, 57, 0.3)'
     },
     purple: { 
-      bg: 'rgba(177, 93, 255, 0.4)',         // Mantido para compatibilidade
+      bg: '#B15DFF',                          // Roxo sólido
       bgSolid: '#B15DFF',
       text: '#FFFFFF',
       accent: '#9A3EE6',
@@ -64,15 +64,14 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
     <motion.div 
       whileHover={{ scale: 1.02, y: -2 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="relative fitness-card-translucent flex flex-col overflow-hidden group cursor-pointer"
+      className="relative apple-card flex flex-col overflow-hidden group cursor-pointer"
       style={{ 
         backgroundColor: config.bg,
         borderRadius: '24px',
         padding: '20px',
         gap: '12px',
         boxShadow: `0 2px 8px ${config.shadow}`,
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: 'none',
       }}
     >
       {/* Header with title and circle */}
@@ -82,7 +81,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
           <div 
             className="font-medium text-xs uppercase tracking-wide opacity-90" 
             style={{ 
-              color: config.bgSolid, 
+              color: '#FFFFFF', 
               fontSize: '12px',
               fontWeight: 500,
               letterSpacing: '0.5px'
@@ -114,7 +113,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke={config.bgSolid}
+              stroke="#FFFFFF"
               strokeWidth={strokeWidth}
               fill="none"
               strokeDasharray={circumference}
@@ -130,7 +129,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
             <span 
               className="font-semibold" 
               style={{ 
-                color: config.bgSolid, 
+                color: '#FFFFFF', 
                 fontSize: '11px',
                 fontWeight: 600
               }}
@@ -149,7 +148,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
           transition={{ delay: 0.3 }}
           className="font-bold leading-none" 
           style={{ 
-            color: config.bgSolid, 
+            color: '#FFFFFF', 
             fontSize: '28px',
             fontWeight: 700,
             lineHeight: '1',
@@ -162,7 +161,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
           <span 
             className="font-medium opacity-80" 
             style={{ 
-              color: config.bgSolid, 
+              color: '#FFFFFF', 
               fontSize: '14px',
               fontWeight: 500,
             }}
@@ -176,7 +175,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
       <div 
         className="absolute inset-0 rounded-ios-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${config.bgSolid}20 0%, transparent 100%)`
+          background: `linear-gradient(135deg, ${config.accent}30 0%, transparent 100%)`
         }}
       />
     </motion.div>
