@@ -8,6 +8,7 @@ import EyewashChecklist from '../components/checklists/EyewashChecklist';
 import FoamChamberChecklist from '../components/checklists/FoamChamberChecklist';
 import AlarmChecklist from '../components/checklists/AlarmChecklist';
 import CannonMonitorChecklist from '../components/checklists/CannonMonitorChecklist';
+import ScbaChecklist from '../components/checklists/ScbaChecklist';
 import { 
   generateActionPlan, 
   calculateNextDates,
@@ -20,7 +21,8 @@ import { saveEyewashInspection, generateEyewashActionPlan, getAllEyewashStations
 import { saveFoamChamberInspection, getAllFoamChambers } from '../utils/foamChamberOperations';
 import { saveAlarmInspection, getAllAlarmSystems } from '../utils/alarmOperations';
 import { saveCannonMonitorInspection, getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { saveMultigasInspection, getAllMultigasDetectors, getMultigasDetectorById } from '../utils/multigasOperations';
+import { saveMultigasInspection, getAllMultigasDetectors, getMultigasDetectorById, updateCylinderValues, verifyBumpTest } from '../utils/multigasOperations';
+import type { CylinderValues } from '../utils/multigasOperations';
 import { saveSCBAVisualInspection, getAllSCBAs, getSCBABySerial } from '../utils/scbaOperations';
 import { saveShelterInspection, getAllShelters } from '../utils/shelterOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
@@ -56,9 +58,23 @@ const AddInspectionPage = () => {
   const [loadingEquipment, setLoadingEquipment] = useState(true);
   const [planAction, setPlanAction] = useState<string>('');
   const [checklistResults, setChecklistResults] = useState<Record<string, string>>({});
+  const [checklistObservations, setChecklistObservations] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [foamChamberInspectionType, setFoamChamberInspectionType] = useState<'Visual Semestral' | 'Funcional Anual'>('Visual Semestral');
   const [cannonMonitorInspectionType, setCannonMonitorInspectionType] = useState<'Visual' | 'Funcional'>('Visual');
+  
+  // Multigas form fields
+  const [multigasTestType, setMultigasTestType] = useState<'Periódico' | 'Extraordinário'>('Periódico');
+  const [multigasReferenceLEL, setMultigasReferenceLEL] = useState<string>('');
+  const [multigasReferenceO2, setMultigasReferenceO2] = useState<string>('');
+  const [multigasReferenceH2S, setMultigasReferenceH2S] = useState<string>('');
+  const [multigasReferenceCO, setMultigasReferenceCO] = useState<string>('');
+  const [multigasFoundLEL, setMultigasFoundLEL] = useState<string>('');
+  const [multigasFoundO2, setMultigasFoundO2] = useState<string>('');
+  const [multigasFoundH2S, setMultigasFoundH2S] = useState<string>('');
+  const [multigasFoundCO, setMultigasFoundCO] = useState<string>('');
+  const [multigasTestTime, setMultigasTestTime] = useState<string>('');
+  const [multigasUpdateCylinder, setMultigasUpdateCylinder] = useState<boolean>(false);
   
   const { register, handleSubmit, formState: { errors }, watch, control } = useForm<AddInspectionFormData>({
     defaultValues: {
@@ -145,7 +161,19 @@ const AddInspectionPage = () => {
                 id: multigasData.id_equipamento,
                 name: multigasData.id_equipamento,
                 location: multigasData.localizacao,
+                marca: multigasData.marca,
+                modelo: multigasData.modelo,
+                numero_serie: multigasData.numero_serie,
+                LEL_cilindro: multigasData.LEL_cilindro,
+                O2_cilindro: multigasData.O2_cilindro,
+                H2S_cilindro: multigasData.H2S_cilindro,
+                CO_cilindro: multigasData.CO_cilindro,
               };
+              // Carregar valores de referência do cilindro
+              setMultigasReferenceLEL(multigasData.LEL_cilindro?.toString() || '');
+              setMultigasReferenceO2(multigasData.O2_cilindro?.toString() || '');
+              setMultigasReferenceH2S(multigasData.H2S_cilindro?.toString() || '');
+              setMultigasReferenceCO(multigasData.CO_cilindro?.toString() || '');
             }
             break;
           case 'scba':
@@ -242,8 +270,8 @@ const AddInspectionPage = () => {
       }
 
       // Determina status geral baseado nos resultados do checklist ou aprovação direta
-      const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme');
-      const hasChecklistForType = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor'].includes(type || '');
+      const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
+      const hasChecklistForType = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba'].includes(type || '');
       const overallStatus = hasChecklistForType
         ? (nonConformities.length > 0 ? 'Reprovado com Pendências' : 'Aprovado')
         : (aprovado === 'Não' || aprovado === 'Reprovado' ? 'Reprovado' : 'Aprovado');
@@ -364,14 +392,47 @@ const AddInspectionPage = () => {
         }
 
         case 'multigas': {
-          // Para multigas, usar tipo_teste padrão como "Bump Test"
+          // Preparar valores de referência e encontrados
+          const referenceValues: CylinderValues = {
+            LEL: parseFloat(multigasReferenceLEL) || 0,
+            O2: parseFloat(multigasReferenceO2) || 0,
+            H2S: parseInt(multigasReferenceH2S) || 0,
+            CO: parseInt(multigasReferenceCO) || 0,
+          };
+
+          const foundValues: CylinderValues = {
+            LEL: parseFloat(multigasFoundLEL) || 0,
+            O2: parseFloat(multigasFoundO2) || 0,
+            H2S: parseInt(multigasFoundH2S) || 0,
+            CO: parseInt(multigasFoundCO) || 0,
+          };
+
+          // Verificar bump test automaticamente
+          const { isApproved, observations } = verifyBumpTest(referenceValues, foundValues);
+          const autoObservations = observations.join(' ');
+
+          // Atualizar valores de referência do cilindro se solicitado
+          if (multigasUpdateCylinder) {
+            const updateSuccess = await updateCylinderValues(id, referenceValues);
+            if (!updateSuccess) {
+              throw new Error('Falha ao atualizar valores de referência do cilindro');
+            }
+          }
+
           const inspectionRecord = {
             id_equipamento: id,
             data_teste: inspectionDate,
-            tipo_teste: 'Bump Test',
-            resultado_teste: overallStatus === 'Aprovado' ? 'Aprovado' : 'Reprovado',
-            plano_de_acao: planAction || (overallStatus === 'Reprovado' ? observacoes || 'Equipamento não aprovado' : undefined),
-            observacoes: observacoes || undefined,
+            tipo_teste: multigasTestType,
+            resultado_teste: isApproved ? 'Aprovado' : 'Reprovado',
+            LEL_referencia: referenceValues.LEL || undefined,
+            O2_referencia: referenceValues.O2 || undefined,
+            H2S_referencia: referenceValues.H2S || undefined,
+            CO_referencia: referenceValues.CO || undefined,
+            LEL_encontrado: foundValues.LEL || undefined,
+            O2_encontrado: foundValues.O2 || undefined,
+            H2S_encontrado: foundValues.H2S || undefined,
+            CO_encontrado: foundValues.CO || undefined,
+            observacoes: autoObservations || observacoes || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proximo_teste: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             user_id: user.id,
@@ -383,12 +444,40 @@ const AddInspectionPage = () => {
         }
 
         case 'scba': {
+          // Estruturar resultados no formato esperado (como no Python)
+          const resultsDict: Record<string, any> = {
+            Cilindro: {},
+            Mascara: {},
+            'Testes Funcionais': {},
+          };
+
+          // Organizar resultados por seção
+          Object.entries(checklistResults).forEach(([key, value]) => {
+            if (key.startsWith('Cilindro.')) {
+              const item = key.replace('Cilindro.', '');
+              resultsDict.Cilindro[item] = value;
+            } else if (key.startsWith('Mascara.')) {
+              const item = key.replace('Mascara.', '');
+              resultsDict.Mascara[item] = value;
+            } else if (key.startsWith('Testes Funcionais.')) {
+              const item = key.replace('Testes Funcionais.', '');
+              resultsDict['Testes Funcionais'][item] = value;
+            }
+          });
+
+          // Adicionar observações
+          if (checklistObservations.Cilindro) {
+            resultsDict.Cilindro['Observações'] = checklistObservations.Cilindro;
+          }
+          if (checklistObservations.Mascara) {
+            resultsDict.Mascara['Observações'] = checklistObservations.Mascara;
+          }
+
           const inspectionRecord = {
             numero_serie_equipamento: id,
             data_inspecao: inspectionDate,
             status_geral: overallStatus,
-            resultados_json: checklistResults,
-            plano_de_acao: planAction,
+            resultados_json: resultsDict,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -442,10 +531,11 @@ const AddInspectionPage = () => {
     );
   }
 
-  const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor'].includes(type || '');
-  const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme');
+  const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba'].includes(type || '');
+  const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
   const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual');
-  const isSafetyEquipment = ['multigas', 'scba', 'abrigo'].includes(type || '');
+  const isMultigasEquipment = type === 'multigas';
+  const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
 
   return (
     <div className="min-h-screen">
@@ -629,7 +719,170 @@ const AddInspectionPage = () => {
             </div>
           )}
 
-          {isSafetyEquipment && (
+          {isMultigasEquipment && equipment && (
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
+                  Tipo de Teste *
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={multigasTestType === 'Periódico'}
+                      onChange={() => setMultigasTestType('Periódico')}
+                      className="w-4 h-4"
+                      style={{ accentColor: '#00C8FF' }}
+                    />
+                    <span style={{ color: '#FFFFFF' }}>Periódico</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={multigasTestType === 'Extraordinário'}
+                      onChange={() => setMultigasTestType('Extraordinário')}
+                      className="w-4 h-4"
+                      style={{ accentColor: '#00C8FF' }}
+                    />
+                    <span style={{ color: '#FFFFFF' }}>Extraordinário</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
+                  Hora do Teste
+                </label>
+                <input
+                  type="time"
+                  value={multigasTestTime}
+                  onChange={(e) => setMultigasTestTime(e.target.value)}
+                  className="w-full p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                />
+              </div>
+
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium" style={{ color: '#B0B0B0' }}>
+                    Valores de Referência do Cilindro
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={multigasUpdateCylinder}
+                      onChange={(e) => setMultigasUpdateCylinder(e.target.checked)}
+                      className="w-4 h-4"
+                      style={{ accentColor: '#00C8FF' }}
+                    />
+                    <span className="text-xs" style={{ color: '#FFFFFF' }}>Atualizar valores permanentemente</span>
+                  </label>
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>LEL (% LEL)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={multigasReferenceLEL}
+                      onChange={(e) => setMultigasReferenceLEL(e.target.value)}
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>O² (% Vol)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={multigasReferenceO2}
+                      onChange={(e) => setMultigasReferenceO2(e.target.value)}
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>H²S (ppm)</label>
+                    <input
+                      type="number"
+                      value={multigasReferenceH2S}
+                      onChange={(e) => setMultigasReferenceH2S(e.target.value)}
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>CO (ppm)</label>
+                    <input
+                      type="number"
+                      value={multigasReferenceCO}
+                      onChange={(e) => setMultigasReferenceCO(e.target.value)}
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+                <label className="block text-sm font-medium mb-3" style={{ color: '#B0B0B0' }}>
+                  Valores Encontrados no Teste
+                </label>
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>LEL</label>
+                    <input
+                      type="text"
+                      value={multigasFoundLEL}
+                      onChange={(e) => setMultigasFoundLEL(e.target.value)}
+                      placeholder="Ex: 50.0"
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>O²</label>
+                    <input
+                      type="text"
+                      value={multigasFoundO2}
+                      onChange={(e) => setMultigasFoundO2(e.target.value)}
+                      placeholder="Ex: 18.0"
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>H²S</label>
+                    <input
+                      type="text"
+                      value={multigasFoundH2S}
+                      onChange={(e) => setMultigasFoundH2S(e.target.value)}
+                      placeholder="Ex: 25"
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>CO</label>
+                    <input
+                      type="text"
+                      value={multigasFoundCO}
+                      onChange={(e) => setMultigasFoundCO(e.target.value)}
+                      placeholder="Ex: 100"
+                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#B0B0B0' }}>
+                  Observações Adicionais
+                </label>
+                <textarea
+                  id="observacoes_gerais"
+                  rows={3}
+                  {...register('observacoes_gerais')}
+                  placeholder="Observações complementares sobre o teste..."
+                  className="w-full p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                />
+              </div>
+            </>
+          )}
+
+          {isSimpleSafetyEquipment && (
             <>
               <div className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1">
@@ -721,6 +974,20 @@ const AddInspectionPage = () => {
                   inspectionType={cannonMonitorInspectionType}
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
+                />
+              )}
+
+              {type === 'scba' && (
+                <ScbaChecklist
+                  results={checklistResults}
+                  onResultChange={handleChecklistChange}
+                  onObservationChange={(section, observation) => {
+                    setChecklistObservations(prev => ({
+                      ...prev,
+                      [section]: observation
+                    }));
+                  }}
+                  observations={checklistObservations}
                 />
               )}
 

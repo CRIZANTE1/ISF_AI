@@ -12,7 +12,7 @@ const InspectionCategory = ({ title, icon, children }: InspectionCategoryProps) 
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-light-border dark:border-dark-border">
+    <div className="border-b" style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 text-left"
