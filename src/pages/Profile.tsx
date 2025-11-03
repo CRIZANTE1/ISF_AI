@@ -138,14 +138,14 @@ const Profile = () => {
       case 'premium':
         return {
           name: '✨ Plano Premium',
-          textColor: 'text-accent-cyan',
-          bgColor: 'bg-accent-cyan/10 dark:bg-accent-cyan/20',
+          textColor: 'text-rally-blue',
+          bgColor: 'bg-rally-blue-translucent/30',
         };
       case 'trial':
         return {
           name: '⏳ Plano Trial',
-          textColor: 'text-status-warning',
-          bgColor: 'bg-status-warning/10 dark:bg-status-warning/20',
+          textColor: 'text-rally-yellow',
+          bgColor: 'bg-rally-yellow-translucent/30',
         };
       default:
         return {
@@ -254,14 +254,15 @@ const Profile = () => {
           />
         ) : (
           <div className="w-24 h-24 rounded-full bg-dark-surface flex items-center justify-center border-2" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>
-            <span className="text-4xl font-bold text-accent-cyan">
+            <span className="text-4xl font-bold" style={{ color: '#72DEFF' }}>
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </span>
           </div>
         )}
         <label
           htmlFor="avatar-upload"
-          className="absolute bottom-0 right-0 w-8 h-8 bg-accent-cyan rounded-full flex items-center justify-center cursor-pointer hover:opacity-90 transition-colors"
+          className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:opacity-90 transition-colors"
+          style={{ backgroundColor: '#72DEFF' }}
           title="Alterar foto"
         >
           <Camera size={16} className="text-white" />
@@ -291,16 +292,17 @@ const Profile = () => {
             <input
               id="full_name"
               {...register('full_name', { required: 'Nome é obrigatório' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              className="w-full p-3 apple-card border rounded-lg focus:ring-2 focus:ring-rally-blue/30 focus:outline-none" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
             />
             {errors.full_name && (
-              <p className="text-sm text-status-error mt-1 text-left">{errors.full_name.message}</p>
+              <p className="text-sm mt-1 text-left" style={{ color: '#FF6859' }}>{errors.full_name.message}</p>
             )}
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-accent-cyan text-white rounded-lg hover:opacity-90 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 p-3 text-white rounded-lg hover:opacity-90 transition-colors"
+              style={{ backgroundColor: '#72DEFF' }}
             >
               <Save size={16} />
               Salvar
@@ -311,7 +313,7 @@ const Profile = () => {
                 setIsEditing(false);
                 reset({ full_name: profile?.full_name || '' });
               }}
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              className="flex-1 flex items-center justify-center gap-2 p-3 apple-card border rounded-lg hover:bg-[var(--bg-current)] transition-colors" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
             >
               <X size={16} />
               Cancelar
@@ -322,7 +324,7 @@ const Profile = () => {
         <>
           <h1 className="text-2xl font-bold font-display">{profile?.full_name ?? 'Nome do Usuário'}</h1>
           {profile?.role === 'admin' && (
-            <span className="mt-2 text-xs font-semibold inline-block py-1 px-2.5 uppercase rounded-full text-status-info bg-status-info/20">
+            <span className="mt-2 text-xs font-semibold inline-block py-1 px-2.5 uppercase rounded-full" style={{ color: '#72DEFF', backgroundColor: 'rgba(114, 222, 255, 0.2)' }}>
               Administrador
             </span>
           )}
@@ -338,7 +340,8 @@ const Profile = () => {
           )}
           <button
             onClick={() => setIsEditing(true)}
-            className="mt-3 flex items-center gap-2 text-sm text-accent-cyan hover:opacity-90 transition-colors"
+            className="mt-3 flex items-center gap-2 text-sm hover:opacity-90 transition-colors"
+            style={{ color: '#72DEFF' }}
           >
             <Edit2 size={14} />
             Editar Perfil
@@ -347,7 +350,7 @@ const Profile = () => {
       )}
 
       {error && (
-        <div className="mt-4 w-full max-w-sm p-3 bg-status-error/20 text-status-error rounded-lg text-sm">
+        <div className="mt-4 w-full max-w-sm p-3 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255, 104, 89, 0.2)', color: '#FF6859' }}>
           {error}
         </div>
       )}
@@ -366,20 +369,20 @@ const Profile = () => {
             Estatísticas
           </h3>
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-              <p className="text-2xl font-bold text-accent-cyan">{stats.totalEquipment}</p>
+            <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+              <p className="text-2xl font-bold" style={{ color: '#72DEFF' }}>{stats.totalEquipment}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Equipamentos
               </p>
             </div>
-            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-              <p className="text-2xl font-bold text-accent-cyan">{stats.totalInspections}</p>
+            <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+              <p className="text-2xl font-bold" style={{ color: '#72DEFF' }}>{stats.totalInspections}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Inspeções
               </p>
             </div>
-            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-              <p className="text-2xl font-bold text-status-warning">{stats.activeAlerts}</p>
+            <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+              <p className="text-2xl font-bold" style={{ color: '#FFCF44' }}>{stats.activeAlerts}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                 Alertas
               </p>
@@ -392,23 +395,23 @@ const Profile = () => {
       <div className="mt-8 w-full max-w-sm space-y-2">
         <button 
           onClick={() => navigate('/profile/my-data')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+          className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
         >
-          <User size={18} color="#00C8FF" />
+          <User size={18} color="#72DEFF" />
           <span>Meus Dados</span>
         </button>
         <button 
           onClick={() => navigate('/profile/plan-payment')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+          className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
         >
-          <CreditCard size={18} color="#00C8FF" />
+          <CreditCard size={18} color="#72DEFF" />
           <span>Plano e Pagamento</span>
         </button>
         <button 
           onClick={() => navigate('/profile/settings')}
-          className="w-full text-left p-3 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+          className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
         >
-          <Settings size={18} color="#00C8FF" />
+          <Settings size={18} color="#72DEFF" />
           <span>Configurações</span>
         </button>
       </div>
@@ -416,7 +419,8 @@ const Profile = () => {
       {/* Botão Sair */}
       <button
         onClick={signOut}
-        className="mt-8 w-full max-w-sm flex items-center justify-center gap-2 p-3 border border-status-error/50 text-status-error rounded-lg hover:bg-status-error/10 transition-colors"
+        className="mt-8 w-full max-w-sm flex items-center justify-center gap-2 p-3 border rounded-lg transition-colors"
+        style={{ borderColor: 'rgba(255, 104, 89, 0.5)', color: '#FF6859', hover: { backgroundColor: 'rgba(255, 104, 89, 0.1)' } }}
       >
         <LogOut size={16} />
         Sair da Conta

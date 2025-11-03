@@ -10,15 +10,15 @@ const PageHeader = ({ title, children }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between h-14 px-4 bg-light-background/95 dark:bg-dark-background/95 backdrop-blur-sm border-b border-light-border dark:border-dark-border transition-colors duration-200">
+    <header className="sticky top-0 z-10 flex items-center justify-between h-14 px-4 frosted-glass border-b border-[var(--border-current)] transition-colors duration-200">
       <div className="flex items-center gap-2">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 -ml-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary transition-colors"
+          className="p-2 -ml-2 text-[var(--text-secondary-current)] hover:text-[var(--text-primary-current)] transition-colors"
         >
-          <ChevronLeft size={24} color="#B0B0B0" />
+          <ChevronLeft size={24} className="text-[var(--text-secondary-current)]" />
         </button>
-        <h1 className="text-xl font-bold text-light-text-primary dark:text-dark-text-primary truncate transition-colors duration-200">
+        <h1 className="text-xl font-bold text-[var(--text-primary-current)] truncate transition-colors duration-200">
           {title}
         </h1>
       </div>

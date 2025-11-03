@@ -139,22 +139,22 @@ const AlertsList = ({ userId }: AlertsListProps) => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ delay: 0.7 }}
-      className="mt-6"
+      transition={{ delay: 0.7, ease: [0.4, 0, 0.2, 1] }}
+      className="mt-ios-6"
     >
       <motion.h3 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.8 }}
-        className="text-section-title font-display mb-6" 
-        style={{ fontSize: '20px', fontWeight: 500, color: '#FFFFFF' }}
+        transition={{ delay: 0.8, ease: [0.4, 0, 0.2, 1] }}
+        className="text-section-title font-semibold text-[var(--text-primary-current)] mb-ios-4"
+        style={{ letterSpacing: '-0.3px' }}
       >
         Alertas Críticos
       </motion.h3>
-      <div className="space-y-3" style={{ gap: '12px' }}>
+      <div className="space-y-ios-3 flex flex-col">
         {loading ? (
           Array.from({ length: 2 }).map((_, index) => (
-            <Skeleton key={index} className="h-16 w-full rounded-2xl" />
+            <Skeleton key={index} className="h-16 w-full rounded-ios-lg" />
           ))
         ) : alerts.length > 0 ? (
           <AnimatePresence>
@@ -164,17 +164,20 @@ const AlertsList = ({ userId }: AlertsListProps) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ scale: 1.01 }}
-                className="rounded-2xl p-5 shadow-card border transition-all duration-200 cursor-pointer"
+                transition={{ delay: index * 0.05, ease: [0.4, 0, 0.2, 1] }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                className="rally-card-translucent cursor-pointer group"
                 style={{ 
-                  backgroundColor: '#1A1A1A', 
-                  borderColor: 'rgba(255, 168, 0, 0.3)',
-                  borderWidth: '1px'
+                  backgroundColor: 'rgba(255, 104, 89, 0.4)', 
+                  borderColor: 'rgba(255, 104, 89, 0.3)',
+                  padding: '16px',
+                  boxShadow: '0 4px 12px rgba(255, 104, 89, 0.25)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
                 }}
               >
-                <p className="text-body font-medium flex items-center gap-3" style={{ fontSize: '16px', color: '#FFA800' }}>
-                  <AlertTriangle size={18} strokeWidth={2} color="#FFA800" />
+                <p className="text-body font-medium flex items-center gap-3" style={{ color: '#FF6859' }}>
+                  <AlertTriangle size={18} strokeWidth={2} style={{ color: '#FF6859' }} />
                   {alert.message}
                 </p>
               </motion.div>
@@ -184,20 +187,15 @@ const AlertsList = ({ userId }: AlertsListProps) => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.9 }}
-            className="rounded-2xl p-6 text-center shadow-card border"
-            style={{ 
-              backgroundColor: '#1A1A1A', 
-              borderColor: '#2A2A2A',
-              borderWidth: '1px'
-            }}
+            transition={{ delay: 0.9, ease: [0.4, 0, 0.2, 1] }}
+            className="apple-card text-center"
+            style={{ padding: '20px' }}
           >
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="text-body font-medium flex items-center justify-center gap-2"
-              style={{ fontSize: '16px', color: '#FFFFFF' }}
+              className="text-body font-medium flex items-center justify-center gap-2 text-[var(--text-primary-current)]"
             >
               <span className="text-xl">✓</span>
               Nenhum alerta crítico no momento.

@@ -1,45 +1,50 @@
 import Skeleton from './Skeleton';
+import { motion } from 'framer-motion';
 
 interface MetricCardProps {
   title: string;
   value: number | null;
   isLoading: boolean;
   percentage?: number;
-  color?: 'cyan' | 'green' | 'orange' | 'purple';
+  color?: 'blue' | 'green' | 'orange' | 'purple';
 }
 
-const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: MetricCardProps) => {
+const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: MetricCardProps) => {
   const colorConfig = {
-    cyan: { 
-      text: '#00C8FF', 
-      bg: 'rgba(0, 200, 255, 0.12)', 
-      border: 'rgba(0, 200, 255, 0.16)',
-      accent: 'rgba(0, 200, 255, 0.08)'
+    blue: { 
+      bg: 'rgba(114, 222, 255, 0.4)',         // Rally Blue translúcido (40%)
+      bgSolid: '#72DEFF',                      // Cor sólida para texto
+      text: '#FFFFFF',
+      accent: '#5BC5E0',
+      shadow: 'rgba(114, 222, 255, 0.25)'
     },
     green: { 
-      text: '#00D97E', 
-      bg: 'rgba(0, 217, 126, 0.12)', 
-      border: 'rgba(0, 217, 126, 0.16)',
-      accent: 'rgba(0, 217, 126, 0.08)'
+      bg: 'rgba(30, 185, 128, 0.4)',          // Rally Green translúcido (40%)
+      bgSolid: '#1EB980',
+      text: '#FFFFFF',
+      accent: '#16A572',
+      shadow: 'rgba(30, 185, 128, 0.25)'
     },
     orange: { 
-      text: '#FFA800', 
-      bg: 'rgba(255, 168, 0, 0.12)', 
-      border: 'rgba(255, 168, 0, 0.16)',
-      accent: 'rgba(255, 168, 0, 0.08)'
+      bg: 'rgba(255, 104, 89, 0.4)',          // Rally Orange translúcido (40%)
+      bgSolid: '#FF6859',
+      text: '#FFFFFF',
+      accent: '#FF4A3A',
+      shadow: 'rgba(255, 104, 89, 0.25)'
     },
     purple: { 
-      text: '#8A3FFC', 
-      bg: 'rgba(138, 63, 252, 0.12)', 
-      border: 'rgba(138, 63, 252, 0.16)',
-      accent: 'rgba(138, 63, 252, 0.08)'
+      bg: 'rgba(177, 93, 255, 0.4)',          // Rally Purple translúcido (40%)
+      bgSolid: '#B15DFF',
+      text: '#FFFFFF',
+      accent: '#9A3EE6',
+      shadow: 'rgba(177, 93, 255, 0.25)'
     },
   };
 
   const config = colorConfig[color];
 
-  const size = 64;
-  const strokeWidth = 4;
+  const size = 56;
+  const strokeWidth = 3.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const percent = percentage !== undefined ? percentage : (value ? Math.min((value / 100) * 100, 100) : 0);
@@ -47,8 +52,8 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
 
   if (isLoading) {
     return (
-      <div className="rounded-xl p-6 flex flex-col gap-4 border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-        <Skeleton className="h-16 w-16 rounded-lg" />
+      <div className="apple-card flex flex-col p-ios-5 gap-ios-4">
+        <Skeleton className="h-14 w-14 rounded-ios-lg" />
         <Skeleton className="h-6 w-20" />
         <Skeleton className="h-4 w-16" />
       </div>
@@ -56,12 +61,18 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
   }
 
   return (
-    <div 
-      className="relative rounded-xl p-6 flex flex-col gap-4 border hover:border-opacity-40 transition-all duration-200 group overflow-hidden"
+    <motion.div 
+      whileHover={{ scale: 1.02, y: -2 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      className="relative rally-card-translucent flex flex-col overflow-hidden group cursor-pointer"
       style={{ 
-        backgroundColor: '#1A1A1A', 
-        borderColor: config.border,
-        borderWidth: '1px'
+        backgroundColor: config.bg,
+        borderRadius: '16px',
+        padding: '20px',
+        gap: '12px',
+        boxShadow: `0 4px 12px ${config.shadow}`,
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
       }}
     >
       {/* Header with title and circle */}
@@ -69,11 +80,12 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
         {/* Title */}
         <div className="flex-1">
           <div 
-            className="font-medium mb-1" 
+            className="font-medium text-xs uppercase tracking-wide opacity-90" 
             style={{ 
-              color: '#B0B0B0', 
-              fontSize: '13px',
-              fontWeight: 500
+              color: config.bgSolid, 
+              fontSize: '12px',
+              fontWeight: 500,
+              letterSpacing: '0.5px'
             }}
           >
             {title}
@@ -93,22 +105,24 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke="#2A2A2A"
+              stroke="rgba(255, 255, 255, 0.25)"
               strokeWidth={strokeWidth}
               fill="none"
             />
             {/* Progress circle */}
-            <circle
+            <motion.circle
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke={config.text}
+              stroke={config.bgSolid}
               strokeWidth={strokeWidth}
               fill="none"
               strokeDasharray={circumference}
               strokeDashoffset={offset}
               strokeLinecap="round"
-              className="transition-all duration-800 ease-out"
+              initial={{ strokeDashoffset: circumference }}
+              animate={{ strokeDashoffset: offset }}
+              transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
             />
           </svg>
           {/* Center value */}
@@ -116,8 +130,8 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
             <span 
               className="font-semibold" 
               style={{ 
-                color: config.text, 
-                fontSize: '13px',
+                color: config.bgSolid, 
+                fontSize: '11px',
                 fontWeight: 600
               }}
             >
@@ -129,25 +143,28 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
 
       {/* Main Value */}
       <div className="flex items-baseline gap-1">
-        <span 
+        <motion.span 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
           className="font-bold leading-none" 
           style={{ 
-            color: '#FFFFFF', 
-            fontSize: '32px',
+            color: config.bgSolid, 
+            fontSize: '28px',
             fontWeight: 700,
-            lineHeight: '1'
+            lineHeight: '1',
+            letterSpacing: '-0.5px'
           }}
         >
           {percentage !== undefined ? Math.round(percentage) : value ?? '-'}
-        </span>
+        </motion.span>
         {percentage !== undefined && (
           <span 
-            className="font-semibold" 
+            className="font-medium opacity-80" 
             style={{ 
-              color: '#B0B0B0', 
-              fontSize: '16px',
-              fontWeight: 600,
-              opacity: 0.6
+              color: config.bgSolid, 
+              fontSize: '14px',
+              fontWeight: 500,
             }}
           >
             %
@@ -155,14 +172,14 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'cyan' }: Met
         )}
       </div>
 
-      {/* Background accent */}
+      {/* Subtle gradient overlay on hover */}
       <div 
-        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+        className="absolute inset-0 rounded-ios-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${config.accent} 0%, transparent 100%)`
+          background: `linear-gradient(135deg, ${config.bgSolid}20 0%, transparent 100%)`
         }}
       />
-    </div>
+    </motion.div>
   );
 };
 

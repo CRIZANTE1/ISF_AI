@@ -19,14 +19,18 @@ const safetyItems = [
 
 const Inspections = () => {
   return (
-    <div>
-      <header className="flex items-center h-14 px-4">
-        <h1 className="text-xl font-bold text-light-text-primary dark:text-dark-text-primary">Inspeções</h1>
+    <div className="min-h-screen bg-[var(--bg-current)]">
+      <header className="sticky top-0 z-10 flex items-center h-14 px-ios-4 frosted-glass border-b border-[var(--border-current)]">
+        <h1 className="text-xl font-bold text-[var(--text-primary-current)]">Inspeções</h1>
       </header>
       <main className="flex flex-col">
         <InspectionCategory title="SCI - Sistema de Combate a Incêndio" icon={<Flame />}>
           {sciItems.map(item => (
-            <Link key={item.name} to={item.link} className="flex items-center gap-4 p-3 rounded-lg hover:bg-light-background dark:hover:bg-dark-background">
+            <Link 
+              key={item.name} 
+              to={item.link} 
+              className="flex items-center gap-4 p-ios-3 rounded-ios-md text-[var(--text-primary-current)] hover:bg-[var(--surface-current)] transition-colors"
+            >
               {item.icon}
               <span>{item.name}</span>
             </Link>
@@ -34,7 +38,11 @@ const Inspections = () => {
         </InspectionCategory>
         <InspectionCategory title="Equipamentos de Segurança" icon={<Construction />}>
           {safetyItems.map(item => (
-            <Link key={item.name} to={item.link} className="flex items-center gap-4 p-3 rounded-lg hover:bg-light-background dark:hover:bg-dark-background">
+            <Link 
+              key={item.name} 
+              to={item.link} 
+              className="flex items-center gap-4 p-ios-3 rounded-ios-md text-[var(--text-primary-current)] hover:bg-[var(--surface-current)] transition-colors"
+            >
               {item.icon}
               <span>{item.name}</span>
             </Link>

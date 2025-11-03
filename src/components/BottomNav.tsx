@@ -19,7 +19,6 @@ const BottomNav = () => {
     if (item.adminOnly) {
       return profile?.role === 'admin';
     }
-    // Remover Profile da navegação inferior (mantém apenas no topo)
     if (item.to === '/profile') {
       return false;
     }
@@ -30,13 +29,10 @@ const BottomNav = () => {
     <motion.nav 
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-4 z-50 border-t"
+      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+      className="fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-4 z-50 frosted-glass border-t border-[var(--border-current)]"
       style={{ 
-        backgroundColor: '#121212', 
-        borderTopColor: '#2A2A2A',
-        borderTopWidth: '1px',
-        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.5)'
+        boxShadow: '0 -2px 20px rgba(0, 0, 0, 0.08)'
       }}
     >
       {navItems.slice(0, 2).map((item) => (
@@ -56,13 +52,20 @@ const BottomNav = () => {
                 <item.icon 
                   className="w-6 h-6"
                   strokeWidth={isActive ? 2.5 : 2}
-                  color={isActive ? '#00C8FF' : '#B0B0B0'}
+                  style={{ 
+                    color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                  }}
                 />
               </motion.div>
               <motion.span 
-                animate={{ fontSize: isActive ? '0.7rem' : '0.65rem', fontWeight: isActive ? 600 : 400 }}
-                className="text-xs relative z-10"
-                style={{ color: isActive ? '#00C8FF' : '#B0B0B0' }}
+                animate={{ 
+                  fontSize: isActive ? '0.7rem' : '0.65rem', 
+                  fontWeight: isActive ? 600 : 400 
+                }}
+                className="text-xs relative z-10 transition-colors"
+                style={{ 
+                  color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                }}
               >
                 {item.label}
               </motion.span>
@@ -71,16 +74,17 @@ const BottomNav = () => {
         </NavLink>
       ))}
       
-      {/* Botão central de adicionar */}
+      {/* Botão central de adicionar estilo Apple */}
       <motion.button
         onClick={() => navigate('/inspections')}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex items-center justify-center w-14 h-14 rounded-full shadow-card-lg transition-all"
+        className="flex items-center justify-center w-14 h-14 rounded-full transition-all shadow-apple-floating"
         style={{ 
-          backgroundColor: '#00C8FF',
-          boxShadow: '0 4px 16px rgba(0, 200, 255, 0.4)'
+          backgroundColor: '#72DEFF',
+          boxShadow: '0 4px 20px rgba(114, 222, 255, 0.35)'
         }}
+        aria-label="Adicionar inspeção"
       >
         <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
       </motion.button>
@@ -102,13 +106,20 @@ const BottomNav = () => {
                 <item.icon 
                   className="w-6 h-6"
                   strokeWidth={isActive ? 2.5 : 2}
-                  color={isActive ? '#00C8FF' : '#B0B0B0'}
+                  style={{ 
+                    color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                  }}
                 />
               </motion.div>
               <motion.span 
-                animate={{ fontSize: isActive ? '0.7rem' : '0.65rem', fontWeight: isActive ? 600 : 400 }}
-                className="text-xs relative z-10"
-                style={{ color: isActive ? '#00C8FF' : '#B0B0B0' }}
+                animate={{ 
+                  fontSize: isActive ? '0.7rem' : '0.65rem', 
+                  fontWeight: isActive ? 600 : 400 
+                }}
+                className="text-xs relative z-10 transition-colors"
+                style={{ 
+                  color: isActive ? '#72DEFF' : 'var(--text-secondary-current)' 
+                }}
               >
                 {item.label}
               </motion.span>

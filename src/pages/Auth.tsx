@@ -65,11 +65,11 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-light-background dark:bg-dark-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-current)] p-4 transition-colors duration-300">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold" style={{ color: '#FFFFFF' }}>ISF IA</h1>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
+            <h1 className="text-3xl font-bold text-[var(--text-primary-current)]">ISF IA</h1>
+            <p className="text-[var(--text-secondary-current)] mt-1">
                 {mode === 'login' ? 'Acesse sua conta' : 'Crie uma nova conta'}
             </p>
         </div>
@@ -82,7 +82,8 @@ const AuthPage = () => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              className="w-full p-3 apple-card border rounded-lg focus:ring-2 focus:ring-rally-blue/30 focus:outline-none text-[var(--text-primary-current)]"
+              style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
             />
           )}
           <input
@@ -91,7 +92,8 @@ const AuthPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            className="w-full p-3 apple-card border rounded-lg focus:ring-2 focus:ring-rally-blue/30 focus:outline-none text-[var(--text-primary-current)]"
+            style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
           />
           <input
             type="password"
@@ -99,22 +101,24 @@ const AuthPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            className="w-full p-3 apple-card border rounded-lg focus:ring-2 focus:ring-rally-blue/30 focus:outline-none text-[var(--text-primary-current)]"
+            style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
           />
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-accent-cyan text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+            className="w-full p-3 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: loading ? '#5BC5E0' : '#72DEFF' }}
           >
             {loading ? 'Processando...' : (mode === 'login' ? 'Entrar' : 'Cadastrar')}
           </button>
         </form>
 
-        {error && <p className="mt-4 text-center text-status-error">{error}</p>}
-        {message && <p className="mt-4 text-center text-status-success">{message}</p>}
+        {error && <p className="mt-4 text-center" style={{ color: '#FF6859' }}>{error}</p>}
+        {message && <p className="mt-4 text-center" style={{ color: '#1EB980' }}>{message}</p>}
 
         <div className="mt-6 text-center">
-          <button onClick={toggleMode} className="text-sm hover:underline" style={{ color: '#FFFFFF' }}>
+          <button onClick={toggleMode} className="text-sm hover:underline text-[var(--text-primary-current)]">
             {mode === 'login' ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça o login'}
           </button>
         </div>

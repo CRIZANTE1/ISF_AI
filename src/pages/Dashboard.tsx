@@ -104,14 +104,14 @@ const Dashboard = () => {
   const isLoading = authLoading || loadingStats;
 
   return (
-    <div className="flex flex-col min-h-screen bg-dark-primary" style={{ backgroundColor: '#121212' }}>
+    <div className="flex flex-col min-h-screen bg-[var(--bg-current)] transition-colors duration-300">
       <DashboardHeader />
-      <main className="px-screen flex-grow" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+      <main className="px-ios-4 flex-grow py-ios-4">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-8"
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          className="mb-ios-6"
         >
           {isLoading ? (
             <Skeleton className="h-9 w-2/3 mb-4" />
@@ -119,9 +119,9 @@ const Dashboard = () => {
             <motion.h2 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-section-title font-display text-text-primary mb-2" 
-              style={{ fontSize: '20px', fontWeight: 500, color: '#FFFFFF' }}
+              transition={{ delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              className="text-section-title font-semibold text-[var(--text-primary-current)] mb-2"
+              style={{ letterSpacing: '-0.3px' }}
             >
               Olá, {profile?.full_name ?? 'Usuário'}
             </motion.h2>
@@ -130,44 +130,46 @@ const Dashboard = () => {
         </motion.div>
 
         {error && (
-          <div 
-            className="bg-dark-surface border rounded-2xl px-5 py-4 mb-6" 
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rally-card-translucent px-ios-5 py-ios-4 mb-ios-6" 
             style={{ 
-              backgroundColor: '#1A1A1A', 
-              borderColor: '#FF3B30',
-              borderWidth: '1px'
+              backgroundColor: 'rgba(255, 104, 89, 0.4)', 
+              borderColor: 'rgba(255, 104, 89, 0.3)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             }}
             role="alert"
           >
-            <strong className="font-semibold text-status-error" style={{ color: '#FF3B30' }}>Erro: </strong>
-            <span className="text-text-primary block sm:inline" style={{ color: '#FFFFFF' }}>{error}</span>
-          </div>
+            <strong className="font-semibold" style={{ color: '#FF6859' }}>Erro: </strong>
+            <span className="block sm:inline" style={{ color: '#FF6859' }}>{error}</span>
+          </motion.div>
         )}
 
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, staggerChildren: 0.1 }}
-          className="grid grid-cols-3 gap-4 mb-8"
-          style={{ gap: '16px', marginBottom: '32px' }}
+          className="grid grid-cols-3 gap-ios-4 mb-ios-6"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
           >
             <MetricCard 
               title="Total" 
               value={stats?.total ?? null} 
               isLoading={isLoading} 
               percentage={stats?.total ? (stats.total / (stats.total || 1)) * 100 : 0}
-              color="cyan"
+              color="blue"
             />
           </motion.div>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
           >
             <MetricCard 
               title="OK" 
@@ -180,7 +182,7 @@ const Dashboard = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.6, ease: [0.4, 0, 0.2, 1] }}
           >
             <MetricCard 
               title="Pendente" 

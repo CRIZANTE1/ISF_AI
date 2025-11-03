@@ -1,4 +1,4 @@
-import { Bell, User } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,45 +14,48 @@ const DashboardHeader = () => {
 
   return (
     <header 
-      className="flex flex-col pt-12 pb-6 border-b" 
+      className="sticky top-0 z-40 frosted-glass border-b border-[var(--border-current)]"
       style={{ 
-        backgroundColor: '#121212', 
-        borderColor: '#2A2A2A',
-        borderBottomWidth: '1px',
         paddingLeft: '16px',
-        paddingRight: '16px'
+        paddingRight: '16px',
+        paddingTop: '12px',
+        paddingBottom: '12px'
       }}
     >
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           className="flex flex-col"
         >
-          <h1 className="mb-2" style={{ fontSize: '28px', fontWeight: 600, color: '#FFFFFF', fontFamily: 'Poppins, Inter, sans-serif' }}>
+          <h1 className="text-screen-title font-semibold text-[var(--text-primary-current)] mb-1" style={{ letterSpacing: '-0.5px' }}>
             {formattedDate.split(',')[0]}
           </h1>
-          <p style={{ fontSize: '16px', color: '#B0B0B0', fontFamily: 'Inter, sans-serif' }}>
+          <p className="text-body text-[var(--text-secondary-current)]">
             {formattedDate.split(',')[1].trim()}
           </p>
         </motion.div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="relative p-3 rounded-full transition-colors"
-            style={{ backgroundColor: 'transparent', color: '#B0B0B0' }}
+            className="relative p-2.5 rounded-full transition-colors hover:bg-[var(--surface-current)]"
+            aria-label="Notificações"
           >
-            <Bell size={22} strokeWidth={2} color="#B0B0B0" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full" style={{ backgroundColor: '#00C8FF' }}></span>
+            <Bell size={22} strokeWidth={2} className="text-[var(--text-secondary-current)]" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor: '#72DEFF' }}></span>
           </motion.button>
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/profile')}
-            className="w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-opacity"
-            style={{ backgroundColor: '#00C8FF' }}
+            className="w-10 h-10 rounded-full flex items-center justify-center shadow-apple-sm transition-all hover:shadow-apple-md"
+            style={{ 
+              backgroundColor: '#72DEFF',
+              boxShadow: '0 2px 8px rgba(114, 222, 255, 0.25)'
+            }}
+            aria-label="Perfil"
           >
             <span className="text-sm font-semibold text-white">{userInitial}</span>
           </motion.button>
