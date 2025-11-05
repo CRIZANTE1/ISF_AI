@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardHeader from '../components/DashboardHeader';
-import MetricCard from '../components/MetricCard';
+import CircularMetric from '../components/CircularMetric';
 import AlertsList from '../components/AlertsList';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
@@ -154,45 +154,53 @@ const Dashboard = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, staggerChildren: 0.1 }}
-          className="grid grid-cols-3 gap-ios-4 mb-ios-6"
+          className="flex flex-wrap justify-center gap-ios-8 mb-ios-6"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            className="flex flex-col items-center"
           >
-            <MetricCard 
-              title="Total" 
+            <CircularMetric 
+              label="TOTAL" 
               value={stats?.total ?? null} 
-              isLoading={isLoading} 
-              percentage={stats?.total ? (stats.total / (stats.total || 1)) * 100 : 0}
+              isLoading={isLoading}
               color="blue"
+              size={160}
+              strokeWidth={18}
             />
           </motion.div>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            className="flex flex-col items-center"
           >
-            <MetricCard 
-              title="OK" 
+            <CircularMetric 
+              label="OK" 
               value={stats?.ok ?? null} 
               isLoading={isLoading}
               percentage={stats?.ok && stats?.total ? (stats.ok / stats.total) * 100 : 0}
               color="green"
+              size={160}
+              strokeWidth={18}
             />
           </motion.div>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6, ease: [0.4, 0, 0.2, 1] }}
+            className="flex flex-col items-center"
           >
-            <MetricCard 
-              title="Pendente" 
+            <CircularMetric 
+              label="PENDENTE" 
               value={stats?.pendente ?? null} 
               isLoading={isLoading}
               percentage={stats?.pendente && stats?.total ? (stats.pendente / stats.total) * 100 : 0}
               color="orange"
+              size={160}
+              strokeWidth={18}
             />
           </motion.div>
         </motion.div>

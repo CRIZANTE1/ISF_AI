@@ -46,7 +46,7 @@ const CircularMetric = ({
   const config = colorConfig[color];
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const percent = percentage !== undefined ? percentage : (value ? Math.min((value / 100) * 100, 100) : 0);
+  const percent = percentage !== undefined ? percentage : 100; // Se não houver percentage, mostra 100% preenchido
   const offset = circumference - (percent / 100) * circumference;
 
   if (isLoading) {
