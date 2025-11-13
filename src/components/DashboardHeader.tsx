@@ -19,12 +19,14 @@ const DashboardHeader = () => {
 
   return (
     <header 
-      className="sticky top-0 z-40 frosted-glass border-b border-[var(--border-current)]"
+      className="sticky top-0 frosted-glass border-b border-[var(--border-current)]"
       style={{ 
         paddingLeft: '16px',
         paddingRight: '16px',
         paddingTop: '12px',
-        paddingBottom: '12px'
+        paddingBottom: '12px',
+        zIndex: 20,
+        position: 'sticky',
       }}
     >
       <div className="flex justify-between items-center">

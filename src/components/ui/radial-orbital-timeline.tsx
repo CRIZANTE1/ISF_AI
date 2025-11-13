@@ -164,7 +164,8 @@ export default function RadialOrbitalTimeline({
 
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden relative"
+      className="w-full h-full flex flex-col items-center justify-center overflow-hidden relative"
+      style={{ backgroundColor: 'transparent' }}
       ref={containerRef}
       onClick={handleContainerClick}
     >
@@ -230,29 +231,53 @@ export default function RadialOrbitalTimeline({
                 <div
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 transform",
-                    isExpanded
-                      ? "bg-white text-black border-white shadow-lg shadow-white/30 scale-150"
-                      : isRelated
-                      ? "bg-white/50 text-black border-white animate-pulse"
-                      : "bg-black text-white border-white/40",
                     isExpanded && "scale-150"
                   )}
+                  style={{
+                    backgroundColor: isExpanded 
+                      ? 'var(--card)' 
+                      : isRelated 
+                        ? 'var(--accent)' 
+                        : 'var(--card)',
+                    color: isExpanded 
+                      ? 'var(--foreground)' 
+                      : 'var(--foreground)',
+                    borderColor: isExpanded 
+                      ? 'var(--ring)' 
+                      : 'var(--border)',
+                    boxShadow: isExpanded 
+                      ? 'var(--shadow-lg)' 
+                      : 'var(--shadow-sm)',
+                  }}
                 >
-                  <Icon size={16} />
+                  <Icon size={16} style={{ color: 'inherit' }} />
                 </div>
 
                 <div
                   className={cn(
                     "absolute top-12 whitespace-nowrap text-xs font-semibold tracking-wider transition-all duration-300",
-                    isExpanded ? "text-white scale-125" : "text-white/70"
+                    isExpanded && "scale-125"
                   )}
+                  style={{
+                    color: isExpanded ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  }}
                 >
                   {item.title}
                 </div>
 
                 {isExpanded && (
-                  <Card className="absolute top-20 left-1/2 -translate-x-1/2 w-64 bg-black/90 backdrop-blur-lg border-white/30 shadow-xl shadow-white/10 overflow-visible z-50">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-px h-3 bg-white/50"></div>
+                  <Card 
+                    className="absolute top-20 left-1/2 -translate-x-1/2 w-64 backdrop-blur-lg overflow-visible z-50"
+                    style={{
+                      backgroundColor: 'var(--card)',
+                      borderColor: 'var(--border)',
+                      boxShadow: 'var(--shadow-xl)',
+                    }}
+                  >
+                    <div 
+                      className="absolute -top-3 left-1/2 -translate-x-1/2 w-px h-3"
+                      style={{ backgroundColor: 'var(--border)' }}
+                    ></div>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-center">
                         {item.status && (
@@ -267,30 +292,33 @@ export default function RadialOrbitalTimeline({
                           </Badge>
                         )}
                         {item.date && (
-                          <span className="text-xs font-mono text-white/50">
+                          <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
                             {item.date}
                           </span>
                         )}
                       </div>
-                      <CardTitle className="text-sm mt-2 text-white">
+                      <CardTitle className="text-sm mt-2" style={{ color: 'var(--foreground)' }}>
                         {item.title}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-xs text-white/80">
+                    <CardContent className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                       {item.content && <p>{item.content}</p>}
 
                       {item.energy !== undefined && (
-                        <div className="mt-4 pt-3 border-t border-white/10">
+                        <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
                           <div className="flex justify-between items-center text-xs mb-1">
-                            <span className="flex items-center text-white/70">
+                            <span className="flex items-center" style={{ color: 'var(--muted-foreground)' }}>
                               Nível
                             </span>
-                            <span className="font-mono text-white">{item.energy}%</span>
+                            <span className="font-mono" style={{ color: 'var(--foreground)' }}>{item.energy}%</span>
                           </div>
-                          <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--muted)' }}>
                             <div
-                              className="h-full bg-white"
-                              style={{ width: `${item.energy}%` }}
+                              className="h-full"
+                              style={{ 
+                                width: `${item.energy}%`,
+                                backgroundColor: 'var(--primary)',
+                              }}
                             ></div>
                           </div>
                         </div>

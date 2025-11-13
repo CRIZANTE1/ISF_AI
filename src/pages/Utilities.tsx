@@ -6,18 +6,33 @@ const Utilities = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen">
+    <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: 'transparent', color: 'var(--foreground)' }}>
       <PageHeader title="Utilitários Administrativos" />
-      <main className="p-4">
+      <main className="p-4 relative" style={{ backgroundColor: 'transparent' }}>
         <div className="max-w-md mx-auto space-y-4">
           <button
             onClick={() => navigate('/utilities/users')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)', 
+              color: 'var(--foreground)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent)';
+              e.currentTarget.style.borderColor = 'var(--ring)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--card)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
           >
-            <Users size={24} color="#00C8FF" />
+            <Users size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold">Gestão de Usuários</p>
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Gestão de Usuários</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 Ver usuários, estatísticas, logs e gerenciar acessos
               </p>
             </div>
@@ -25,12 +40,27 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/system-settings')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)', 
+              color: 'var(--foreground)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent)';
+              e.currentTarget.style.borderColor = 'var(--ring)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--card)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
           >
-            <Settings size={24} color="#00C8FF" />
+            <Settings size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold">Configurações do Sistema</p>
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Configurações do Sistema</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 Configurações gerais e parâmetros do sistema
               </p>
             </div>
@@ -38,12 +68,27 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/security-audit')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)', 
+              color: 'var(--foreground)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent)';
+              e.currentTarget.style.borderColor = 'var(--ring)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--card)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
           >
-            <Shield size={24} color="#00C8FF" />
+            <Shield size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold">Segurança e Auditoria</p>
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Segurança e Auditoria</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 Políticas de segurança e relatórios de auditoria
               </p>
             </div>
@@ -51,12 +96,27 @@ const Utilities = () => {
 
           <button
             onClick={() => navigate('/utilities/security-policies')}
-            className="w-full text-left p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors flex items-center gap-3" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)', 
+              color: 'var(--foreground)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent)';
+              e.currentTarget.style.borderColor = 'var(--ring)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--card)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
           >
-            <Lock size={24} color="#00C8FF" />
+            <Lock size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold">Políticas de Segurança</p>
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Políticas de Segurança</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 Configurar políticas e gerenciar IPs bloqueados
               </p>
             </div>

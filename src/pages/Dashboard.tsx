@@ -95,9 +95,9 @@ const Dashboard = () => {
   const isLoading = authLoading || loadingStats;
 
   return (
-    <div className="flex flex-col min-h-screen bg-black transition-colors duration-300">
+    <div className="flex flex-col min-h-screen transition-colors duration-300 relative" style={{ backgroundColor: 'transparent' }}>
       <DashboardHeader />
-      <main className="px-ios-4 flex-grow py-ios-4">
+      <main className="px-ios-4 flex-grow py-ios-4 relative" style={{ backgroundColor: 'transparent' }}>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

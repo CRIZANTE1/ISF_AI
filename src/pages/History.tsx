@@ -185,21 +185,21 @@ const History = () => {
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
     if (statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
-      return '#53D769'; // Verde Exercise
+      return 'var(--chart-2)'; // Verde
     } else if (statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
-      return '#FC3D39'; // Vermelho Move
+      return 'var(--destructive)'; // Vermelho
     }
-    return '#F59E0B'; // Âmbar (pending)
+    return 'var(--chart-3)'; // Âmbar (pending)
   };
 
   const getStatusIcon = (status: string) => {
     const statusLower = status.toLowerCase();
     if (statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
-      return <CheckCircle size={20} style={{ color: '#53D769' }} />;
+      return <CheckCircle size={20} style={{ color: 'var(--chart-2)' }} />;
     } else if (statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
-      return <XCircle size={20} style={{ color: '#FC3D39' }} />;
+      return <XCircle size={20} style={{ color: 'var(--destructive)' }} />;
     }
-    return <Clock size={20} style={{ color: '#F59E0B' }} />;
+    return <Clock size={20} style={{ color: 'var(--chart-3)' }} />;
   };
 
   const filteredInspections = inspections.filter((insp) => {
@@ -226,9 +226,9 @@ const History = () => {
   }, {} as Record<string, InspectionHistory[]>);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: 'transparent', color: 'var(--foreground)' }}>
       <PageHeader title="Histórico de Inspeções" />
-      <main className="p-ios-4">
+      <main className="p-ios-4 relative" style={{ backgroundColor: 'transparent' }}>
         {/* Filtros */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -237,8 +237,8 @@ const History = () => {
           className="mb-ios-6"
         >
           <div className="flex items-center gap-ios-2 mb-ios-4">
-            <Filter size={18} className="text-[#8E8E93]" />
-            <span className="text-sm font-medium text-[#8E8E93]">Filtrar por:</span>
+            <Filter size={18} style={{ color: 'var(--muted-foreground)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Filtrar por:</span>
           </div>
           <div className="flex gap-ios-2 flex-wrap">
             {[
@@ -250,11 +250,11 @@ const History = () => {
               <button
                 key={option.value}
                 onClick={() => setFilter(option.value as any)}
-                className="px-ios-4 py-ios-2 rounded-ios-lg text-sm font-medium transition-all"
+                className="px-ios-4 py-ios-2 rounded-ios-lg text-sm font-medium transition-all border"
                 style={{
-                  backgroundColor: filter === option.value ? '#157EFB' : 'rgba(28, 28, 30, 0.8)',
-                  color: '#FFFFFF',
-                  border: filter === option.value ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: filter === option.value ? 'var(--primary)' : 'var(--card)',
+                  color: filter === option.value ? 'var(--primary-foreground)' : 'var(--foreground)',
+                  borderColor: filter === option.value ? 'var(--primary)' : 'var(--border)',
                 }}
               >
                 {option.label}
@@ -274,12 +274,12 @@ const History = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="apple-card text-center p-ios-8"
-            style={{ backgroundColor: 'rgba(28, 28, 30, 0.8)' }}
+            className="text-center p-ios-8 rounded-lg border"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
           >
-            <Calendar size={48} className="mx-auto mb-ios-4 text-[#8E8E93]" />
-            <p className="text-white text-lg font-semibold mb-ios-2">Nenhuma inspeção encontrada</p>
-            <p className="text-[#8E8E93] text-sm">
+            <Calendar size={48} className="mx-auto mb-ios-4" style={{ color: 'var(--muted-foreground)' }} />
+            <p className="text-lg font-semibold mb-ios-2" style={{ color: 'var(--foreground)' }}>Nenhuma inspeção encontrada</p>
+            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
               {filter === 'all' 
                 ? 'Ainda não há inspeções registradas.'
                 : `Nenhuma inspeção ${filter === 'approved' ? 'aprovada' : filter === 'rejected' ? 'reprovada' : 'pendente'} encontrada.`
@@ -295,7 +295,7 @@ const History = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <h3 className="text-sm font-semibold text-[#8E8E93] mb-ios-3 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold mb-ios-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
                   {format(new Date(dateInspections[0].date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </h3>
                 <div className="space-y-ios-3">
@@ -308,36 +308,38 @@ const History = () => {
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: index * 0.05 }}
                         whileHover={{ scale: 1.01, y: -2 }}
-                        className="apple-card p-ios-4 cursor-pointer group"
+                        className="p-ios-4 cursor-pointer group rounded-lg border transition-all"
                         style={{
-                          backgroundColor: getStatusColor(insp.status),
-                          borderRadius: '24px',
-                          boxShadow: `0 2px 8px ${getStatusColor(insp.status)}40`,
+                          backgroundColor: 'var(--card)',
+                          borderColor: 'var(--border)',
+                          borderRadius: 'var(--radius)',
+                          boxShadow: 'var(--shadow-sm)',
                         }}
                       >
                         <div className="flex items-start justify-between mb-ios-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-ios-2 mb-ios-1">
                               {getStatusIcon(insp.status)}
-                              <span className="text-white font-semibold text-base">{insp.type}</span>
+                              <span className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{insp.type}</span>
                             </div>
-                            <p className="text-white text-sm opacity-90 mb-ios-1">
-                              Equipamento: <span className="font-medium">{insp.equipmentId}</span>
+                            <p className="text-sm mb-ios-1" style={{ color: 'var(--muted-foreground)' }}>
+                              Equipamento: <span className="font-medium" style={{ color: 'var(--foreground)' }}>{insp.equipmentId}</span>
                             </p>
                             {insp.inspector && (
-                              <p className="text-white text-xs opacity-75">
+                              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                                 Inspetor: {insp.inspector}
                               </p>
                             )}
                           </div>
                           <div className="text-right">
-                            <p className="text-white text-xs opacity-75 mb-ios-1">
+                            <p className="text-xs mb-ios-1" style={{ color: 'var(--muted-foreground)' }}>
                               {format(new Date(insp.date), 'HH:mm', { locale: ptBR })}
                             </p>
                             <span
-                              className="text-xs font-medium px-ios-2 py-ios-1 rounded-full text-white"
+                              className="text-xs font-medium px-ios-2 py-ios-1 rounded-full"
                               style={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                backgroundColor: getStatusColor(insp.status),
+                                color: 'var(--card-foreground)',
                               }}
                             >
                               {insp.status}
@@ -345,8 +347,8 @@ const History = () => {
                           </div>
                         </div>
                         {insp.observations && (
-                          <div className="mt-ios-3 pt-ios-3 border-t border-white/20">
-                            <p className="text-white text-xs opacity-90 line-clamp-2">
+                          <div className="mt-ios-3 pt-ios-3 border-t" style={{ borderColor: 'var(--border)' }}>
+                            <p className="text-xs line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>
                               {typeof insp.observations === 'string' && insp.observations.length > 100
                                 ? insp.observations.substring(0, 100) + '...'
                                 : insp.observations}
