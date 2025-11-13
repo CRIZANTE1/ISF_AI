@@ -259,3 +259,37 @@ svg {
   color: #FFFFFF;
   font-weight: 600;
 }
+
+/* Gaming Login Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes success {
+  0% {
+    background-color: #9333ea;
+  }
+  50% {
+    background-color: #10b981;
+    transform: scale(1.05);
+  }
+  100% {
+    background-color: #9333ea;
+    transform: scale(1);
+  }
+}
+
+.animate-success {
+  animation: success 0.5s ease-in-out;
+}

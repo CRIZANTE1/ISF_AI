@@ -30,9 +30,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Erro ao obter sessão:', error);
+          // Não bloqueia a aplicação se houver erro de rede
+          if (error.message?.includes('Failed to fetch')) {
+            console.warn('⚠️ Erro de conexão ao verificar sessão. Verifique sua internet e configurações do Supabase.');
+          }
+        }
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (err: any) {
+        console.error('Erro inesperado ao obter sessão:', err);
+        // Continua mesmo com erro para não bloquear a aplicação
+        setSession(null);
+        setUser(null);
+      }
       // We will set loading to false after the profile is also fetched.
     };
 

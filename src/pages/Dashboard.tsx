@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardHeader from '../components/DashboardHeader';
-import CircularMetric from '../components/CircularMetric';
 import AlertsList from '../components/AlertsList';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
 import InstructionsPanel from '../components/InstructionsPanel';
+import { AppleActivityCard } from '../components/ui/apple-activity-ring';
+import { calculateEquipmentStats } from '../utils/equipmentStatus';
 import { motion } from 'framer-motion';
 import { getAllExtinguishers } from '../utils/extinguisherOperations';
 import { getAllHoses } from '../utils/hoseOperations';
@@ -75,21 +76,10 @@ const Dashboard = () => {
           ...shelters,
         ].filter((eq: any) => !eq.user_id || eq.user_id === user.id);
 
-        // Calcular estatísticas
-        const total = allEquipment.length;
-        
-        // Para equipamentos, vamos considerar "ok" como padrão se não houver status específico
-        // Isso é uma simplificação - em produção, você pode querer verificar status específicos
-        const ok = allEquipment.length; // Simplificado - todos são considerados ok por padrão
-        const vencido = 0; // Pode ser calculado baseado em datas de validade
-        const pendente = 0; // Pode ser calculado baseado em próximas inspeções
+        // Calcular estatísticas baseado nas datas de validade/inspeção
+        const calculatedStats = calculateEquipmentStats(allEquipment);
 
-        setStats({
-          total,
-          ok,
-          vencido,
-          pendente,
-        });
+        setStats(calculatedStats);
       } catch (err: any) {
         setError(err.message || 'Erro ao buscar estatísticas de equipamentos.');
       } finally {
@@ -132,6 +122,26 @@ const Dashboard = () => {
 
         <InstructionsPanel equipmentType="dashboard" />
 
+        {/* Apple Activity Rings */}
+        {!isLoading && stats && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="mb-ios-6"
+          >
+            <AppleActivityCard
+              title="Status dos Equipamentos"
+              data={{
+                total: stats.total,
+                ok: stats.ok,
+                vencido: stats.vencido,
+                pendente: stats.pendente,
+              }}
+            />
+          </motion.div>
+        )}
+
         {error && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -149,61 +159,6 @@ const Dashboard = () => {
             <span className="block sm:inline" style={{ color: '#FC3D39' }}>{error}</span>
           </motion.div>
         )}
-
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, staggerChildren: 0.1 }}
-          className="flex flex-wrap justify-center gap-ios-8 mb-ios-6"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            className="flex flex-col items-center"
-          >
-            <CircularMetric 
-              label="TOTAL" 
-              value={stats?.total ?? null} 
-              isLoading={isLoading}
-              color="blue"
-              size={160}
-              strokeWidth={18}
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
-            className="flex flex-col items-center"
-          >
-            <CircularMetric 
-              label="OK" 
-              value={stats?.ok ?? null} 
-              isLoading={isLoading}
-              percentage={stats?.ok && stats?.total ? (stats.ok / stats.total) * 100 : 0}
-              color="green"
-              size={160}
-              strokeWidth={18}
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6, ease: [0.4, 0, 0.2, 1] }}
-            className="flex flex-col items-center"
-          >
-            <CircularMetric 
-              label="PENDENTE" 
-              value={stats?.pendente ?? null} 
-              isLoading={isLoading}
-              percentage={stats?.pendente && stats?.total ? (stats.pendente / stats.total) * 100 : 0}
-              color="orange"
-              size={160}
-              strokeWidth={18}
-            />
-          </motion.div>
-        </motion.div>
         
         <AlertsList userId={user?.id} />
       </main>
