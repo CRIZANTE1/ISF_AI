@@ -93,25 +93,25 @@ const EquipmentListPage = () => {
   }, [user, type]);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title={equipmentTypeName} />
-      <main className="px-ios-4 py-ios-4">
+      <main className="px-ios-4 py-ios-4 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
         {type && <InstructionsPanel equipmentType={type} />}
         {loading && (
-          <div className="space-y-3">
+          <div className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
             <Skeleton className="h-16 w-full rounded-lg" />
             <Skeleton className="h-16 w-full rounded-lg" />
             <Skeleton className="h-16 w-full rounded-lg" />
           </div>
         )}
-        {error && <p className="text-center text-status-error">{error}</p>}
+        {error && <p className="text-center text-status-error relative" style={{ zIndex: 10, position: 'relative' }}>{error}</p>}
         {!loading && !error && equipment.length === 0 && (
-          <div className="text-center py-10">
-            <p className="text-light-text-secondary dark:text-dark-text-secondary">Nenhum equipamento cadastrado.</p>
+          <div className="text-center py-10 relative" style={{ zIndex: 10, position: 'relative' }}>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#FFFFFF' }}>Nenhum equipamento cadastrado.</p>
           </div>
         )}
         {!loading && !error && equipment.length > 0 && (
-          <ul className="space-y-3">
+          <ul className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
             {equipment.map((item) => {
               const itemId = item.equipment_id || item.id_mangueira || item.numero_serie_equipamento || 
                            item.id_equipamento || item.id_camara || item.id_sistema || item.id_abrigo || 
@@ -119,13 +119,13 @@ const EquipmentListPage = () => {
               const location = item.localizacao || '';
               
               return (
-                <li key={itemId}>
-                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+                <li key={itemId} className="relative" style={{ zIndex: 10, position: 'relative' }}>
+                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                     <div>
-                      <p className="font-semibold">{itemId}</p>
-                      {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{location}</p>}
+                      <p className="font-semibold" style={{ color: '#FFFFFF' }}>{itemId}</p>
+                      {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>{location}</p>}
                     </div>
-                    <ChevronRight size={20} className="text-light-text-secondary dark:text-dark-text-secondary" />
+                    <ChevronRight size={20} className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }} />
                   </Link>
                 </li>
               );

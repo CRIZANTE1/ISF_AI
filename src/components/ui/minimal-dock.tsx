@@ -48,8 +48,8 @@ const DockItemComponent: React.FC<DockItemProps> = ({ item, isHovered, isActive,
           }
           ${isHovered 
             ? isAddButton
-              ? 'scale-115 bg-white/90 -translate-y-1 shadow-lg shadow-white/20'
-              : 'scale-110 bg-white/10 border-white/20 -translate-y-1 shadow-lg shadow-white/10'
+              ? 'scale-115 bg-white/90 -translate-y-1'
+              : 'scale-110 bg-white/10 border-white/20 -translate-y-1'
             : isAddButton
               ? 'hover:scale-110 hover:bg-white/95 hover:-translate-y-0.5'
               : 'hover:scale-105 hover:bg-white/7 hover:-translate-y-0.5'
@@ -57,19 +57,12 @@ const DockItemComponent: React.FC<DockItemProps> = ({ item, isHovered, isActive,
         `}
         onClick={onClick}
         style={{
-          boxShadow: isHovered || (isActive && !isAddButton)
-            ? isAddButton
-              ? '0 4px 24px 0 rgba(255,255,255,0.3)'
-              : '0 4px 24px 0 rgba(255,255,255,0.08)'
-            : isAddButton
-              ? '0 4px 20px 0 rgba(255,255,255,0.15)'
-              : undefined,
-          transitionProperty: 'box-shadow, transform, background, border-color'
+          transitionProperty: 'transform, background, border-color'
         }}
       >
         <div className={`
           ${isAddButton ? 'text-black' : 'text-white'} transition-all duration-300
-          ${isHovered || isActive ? 'scale-105 drop-shadow-[0_1px_4px_rgba(255,255,255,0.10)]' : ''}
+          ${isHovered || isActive ? 'scale-105' : ''}
         `}>
           {item.icon}
         </div>
@@ -89,7 +82,6 @@ const DockItemComponent: React.FC<DockItemProps> = ({ item, isHovered, isActive,
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 translate-y-1'
         }
-        shadow-sm
       `}>
         {item.label}
         <div className="absolute top-full left-1/2 transform -translate-x-1/2">
@@ -176,7 +168,6 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
           rounded-2xl
           bg-black/40 backdrop-blur-xl
           border border-white/10
-          shadow-2xl
           transition-all duration-500 ease-out
           ${hoveredItem ? 'scale-105' : ''}
         `}>

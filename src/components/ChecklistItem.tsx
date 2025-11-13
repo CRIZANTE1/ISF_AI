@@ -10,7 +10,7 @@ interface ChecklistItemProps {
 
 const ChecklistItem = ({ question, value, onChange }: ChecklistItemProps) => {
   return (
-    <div className="mb-4 p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
+    <div className="mb-4 p-3 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(28, 28, 30, 0.9)', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
       <label className="block text-sm font-medium mb-2">{question}</label>
       <div className="flex gap-4">
         <label className="flex items-center gap-2 cursor-pointer">

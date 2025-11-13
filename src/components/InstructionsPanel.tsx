@@ -65,12 +65,14 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
   };
 
   return (
-    <div className={`mb-ios-6 ${className}`}>
+    <div className={`mb-ios-6 ${className} relative`} style={{ zIndex: 10, position: 'relative' }}>
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-ios-4 rounded-ios-lg transition-all"
+        className="w-full flex items-center justify-between p-ios-4 rounded-ios-lg transition-all relative"
         style={{
-          backgroundColor: isOpen ? 'rgba(28, 28, 30, 0.8)' : 'rgba(28, 28, 30, 0.6)',
+          zIndex: 10,
+          position: 'relative',
+          backgroundColor: isOpen ? 'rgba(28, 28, 30, 0.9)' : 'rgba(28, 28, 30, 0.8)',
           borderRadius: '16px',
         }}
         whileHover={{ backgroundColor: 'rgba(28, 28, 30, 0.9)' }}
@@ -96,9 +98,11 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="mt-ios-3 apple-card p-ios-4"
+            className="mt-ios-3 apple-card p-ios-4 relative"
             style={{
-              backgroundColor: 'rgba(28, 28, 30, 0.8)',
+              zIndex: 10,
+              position: 'relative',
+              backgroundColor: 'rgba(28, 28, 30, 0.95)',
               borderRadius: '24px',
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}

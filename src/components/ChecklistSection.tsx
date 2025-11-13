@@ -13,8 +13,8 @@ interface ChecklistSectionProps {
 
 const ChecklistSection = ({ title, questions, results, onResultChange }: ChecklistSectionProps) => {
   return (
-    <div className="mb-6">
-      <h3 className="text-lg font-semibold mb-3 text-light-text-primary dark:text-dark-text-primary">
+    <div className="mb-6 relative" style={{ zIndex: 10, position: 'relative' }}>
+      <h3 className="text-lg font-semibold mb-3 text-light-text-primary dark:text-dark-text-primary" style={{ color: '#FFFFFF' }}>
         {title}
       </h3>
       <div className="space-y-2">

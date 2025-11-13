@@ -539,12 +539,12 @@ const AddInspectionPage = () => {
   const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title="Registrar Inspeção" />
-      <main className="px-ios-4 py-ios-4 bg-black">
+      <main className="px-ios-4 py-ios-4 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
         {type && <InstructionsPanel equipmentType={type} />}
         {equipment && (
-          <div className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg" style={{ backgroundColor: 'rgba(28, 28, 30, 0.8)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}>
+          <div className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(28, 28, 30, 0.9)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}>
             <p className="font-semibold text-sm text-white">{equipment.name}</p>
             <p className="text-xs text-[#8E8E93]">
               {equipment.location || equipment.localizacao || 'Sem localização'}
@@ -559,16 +559,16 @@ const AddInspectionPage = () => {
 
         {error && <p className="mb-4 text-center text-status-error">{error}</p>}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} className="relative" style={{ zIndex: 10, position: 'relative' }}>
           <div className="mb-4">
-            <label htmlFor="data_inspecao" className="block text-sm font-medium mb-1">
+            <label htmlFor="data_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
               Data da Inspeção *
             </label>
             <input
               type="date"
               id="data_inspecao"
               {...register('data_inspecao', { required: 'Data é obrigatória' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
             />
             {errors.data_inspecao && (
               <p className="text-sm text-status-error mt-1">{errors.data_inspecao.message}</p>
@@ -578,7 +578,7 @@ const AddInspectionPage = () => {
           {type === 'extintor' && (
             <>
               <div className="mb-4">
-                <label htmlFor="tipo_servico" className="block text-sm font-medium mb-1">
+                <label htmlFor="tipo_servico" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Tipo de Serviço *
                 </label>
                 <Controller
@@ -589,7 +589,7 @@ const AddInspectionPage = () => {
                     <select
                       {...field}
                       id="tipo_servico"
-                      className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                      className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                     >
                       <option value="Inspeção">Inspeção</option>
                       <option value="Manutenção Nível 2">Manutenção Nível 2</option>
@@ -601,7 +601,7 @@ const AddInspectionPage = () => {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1">
+                <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Aprovado na Inspeção? *
                 </label>
                 <Controller
@@ -617,7 +617,7 @@ const AddInspectionPage = () => {
                           value="Sim"
                           className="w-4 h-4"
                         />
-                        <span>Sim</span>
+                        <span style={{ color: '#FFFFFF' }}>Sim</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -626,7 +626,7 @@ const AddInspectionPage = () => {
                           value="Não"
                           className="w-4 h-4"
                         />
-                        <span>Não</span>
+                        <span style={{ color: '#FFFFFF' }}>Não</span>
                       </label>
                     </div>
                   )}
@@ -634,7 +634,7 @@ const AddInspectionPage = () => {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1">
+                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Observações Gerais
                 </label>
                 <textarea
@@ -642,12 +642,12 @@ const AddInspectionPage = () => {
                   rows={4}
                   {...register('observacoes_gerais')}
                   placeholder="Descreva problemas encontrados, se houver..."
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                 />
               </div>
 
               {planAction && (
-                <div className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+                <div className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                   <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
@@ -667,7 +667,7 @@ const AddInspectionPage = () => {
 
           {type === 'camara_espuma' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
                 Tipo de Inspeção *
               </label>
               <div className="flex gap-4">
@@ -678,7 +678,7 @@ const AddInspectionPage = () => {
                     onChange={() => setFoamChamberInspectionType('Visual Semestral')}
                     className="w-4 h-4"
                   />
-                  <span>Visual Semestral</span>
+                  <span style={{ color: '#FFFFFF' }}>Visual Semestral</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -687,7 +687,7 @@ const AddInspectionPage = () => {
                     onChange={() => setFoamChamberInspectionType('Funcional Anual')}
                     className="w-4 h-4"
                   />
-                  <span>Funcional Anual</span>
+                  <span style={{ color: '#FFFFFF' }}>Funcional Anual</span>
                 </label>
               </div>
             </div>
@@ -695,7 +695,7 @@ const AddInspectionPage = () => {
 
           {type === 'canhao_monitor' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
                 Tipo de Inspeção *
               </label>
               <div className="flex gap-4">
@@ -706,7 +706,7 @@ const AddInspectionPage = () => {
                     onChange={() => setCannonMonitorInspectionType('Visual')}
                     className="w-4 h-4"
                   />
-                  <span>Visual</span>
+                  <span style={{ color: '#FFFFFF' }}>Visual</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -715,7 +715,7 @@ const AddInspectionPage = () => {
                     onChange={() => setCannonMonitorInspectionType('Funcional')}
                     className="w-4 h-4"
                   />
-                  <span>Funcional</span>
+                  <span style={{ color: '#FFFFFF' }}>Funcional</span>
                 </label>
               </div>
             </div>
@@ -759,11 +759,11 @@ const AddInspectionPage = () => {
                   type="time"
                   value={multigasTestTime}
                   onChange={(e) => setMultigasTestTime(e.target.value)}
-                  className="w-full p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                  className="w-full p-3 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                 />
               </div>
 
-              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+              <div className="mb-4 p-4 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium" style={{ color: '#B0B0B0' }}>
                     Valores de Referência do Cilindro
@@ -787,7 +787,7 @@ const AddInspectionPage = () => {
                       step="0.1"
                       value={multigasReferenceLEL}
                       onChange={(e) => setMultigasReferenceLEL(e.target.value)}
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                   <div>
@@ -797,7 +797,7 @@ const AddInspectionPage = () => {
                       step="0.1"
                       value={multigasReferenceO2}
                       onChange={(e) => setMultigasReferenceO2(e.target.value)}
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                   <div>
@@ -806,7 +806,7 @@ const AddInspectionPage = () => {
                       type="number"
                       value={multigasReferenceH2S}
                       onChange={(e) => setMultigasReferenceH2S(e.target.value)}
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                   <div>
@@ -815,13 +815,13 @@ const AddInspectionPage = () => {
                       type="number"
                       value={multigasReferenceCO}
                       onChange={(e) => setMultigasReferenceCO(e.target.value)}
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+              <div className="mb-4 p-4 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
                 <label className="block text-sm font-medium mb-3" style={{ color: '#B0B0B0' }}>
                   Valores Encontrados no Teste
                 </label>
@@ -833,7 +833,7 @@ const AddInspectionPage = () => {
                       value={multigasFoundLEL}
                       onChange={(e) => setMultigasFoundLEL(e.target.value)}
                       placeholder="Ex: 50.0"
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                   <div>
@@ -843,7 +843,7 @@ const AddInspectionPage = () => {
                       value={multigasFoundO2}
                       onChange={(e) => setMultigasFoundO2(e.target.value)}
                       placeholder="Ex: 18.0"
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                   <div>
@@ -853,7 +853,7 @@ const AddInspectionPage = () => {
                       value={multigasFoundH2S}
                       onChange={(e) => setMultigasFoundH2S(e.target.value)}
                       placeholder="Ex: 25"
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                   <div>
@@ -863,7 +863,7 @@ const AddInspectionPage = () => {
                       value={multigasFoundCO}
                       onChange={(e) => setMultigasFoundCO(e.target.value)}
                       placeholder="Ex: 100"
-                      className="w-full p-2 rounded" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                      className="w-full p-2 rounded relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                     />
                   </div>
                 </div>
@@ -878,7 +878,7 @@ const AddInspectionPage = () => {
                   rows={3}
                   {...register('observacoes_gerais')}
                   placeholder="Observações complementares sobre o teste..."
-                  className="w-full p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                  className="w-full p-3 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                 />
               </div>
             </>
@@ -887,7 +887,7 @@ const AddInspectionPage = () => {
           {isSimpleSafetyEquipment && (
             <>
               <div className="mb-4">
-                <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1">
+                <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Status da Inspeção *
                 </label>
                 <Controller
@@ -903,7 +903,7 @@ const AddInspectionPage = () => {
                           value="Aprovado"
                           className="w-4 h-4"
                         />
-                        <span>Aprovado</span>
+                        <span style={{ color: '#FFFFFF' }}>Aprovado</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -912,7 +912,7 @@ const AddInspectionPage = () => {
                           value="Reprovado"
                           className="w-4 h-4"
                         />
-                        <span>Reprovado</span>
+                        <span style={{ color: '#FFFFFF' }}>Reprovado</span>
                       </label>
                     </div>
                   )}
@@ -920,7 +920,7 @@ const AddInspectionPage = () => {
               </div>
 
               <div className="mb-4">
-                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1">
+                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Observações Gerais
                 </label>
                 <textarea
@@ -928,7 +928,7 @@ const AddInspectionPage = () => {
                   rows={4}
                   {...register('observacoes_gerais')}
                   placeholder="Descreva problemas encontrados, se houver..."
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                 />
               </div>
 
@@ -943,8 +943,8 @@ const AddInspectionPage = () => {
           )}
 
           {hasChecklist && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4 text-light-text-primary dark:text-dark-text-primary">
+            <div className="mb-6 relative" style={{ zIndex: 10, position: 'relative' }}>
+              <h3 className="text-lg font-semibold mb-4 text-light-text-primary dark:text-dark-text-primary" style={{ color: '#FFFFFF' }}>
                 Checklist de Inspeção
               </h3>
 
@@ -994,7 +994,7 @@ const AddInspectionPage = () => {
               )}
 
               {planAction && (
-                <div className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+                <div className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                   <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
@@ -1031,7 +1031,8 @@ const AddInspectionPage = () => {
           <button
             type="submit"
             disabled={loading || (requiresPhoto && !photoFile)}
-            className="w-full p-3 bg-accent-cyan text-white font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full p-3 bg-accent-cyan text-white font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
+            style={{ zIndex: 10, position: 'relative' }}
           >
             {loading ? 'Salvando...' : 'Salvar Inspeção'}
           </button>

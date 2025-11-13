@@ -77,6 +77,22 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
 
   const totalTrialDays = 14;
   const percentage = Math.max(0, (diffDays / totalTrialDays) * 100);
+  
+  // Define a cor baseada nos dias restantes
+  // Verde quando tem mais de 7 dias, laranja quando tem 3-7 dias, vermelho quando tem menos de 3 dias
+  let barColor = '#53D769'; // Verde
+  let barBgColor = 'rgba(83, 215, 105, 0.2)'; // Verde claro
+  let textColor = '#8E8E93'; // Cinza
+  
+  if (diffDays <= 3) {
+    barColor = '#FC3D39'; // Vermelho
+    barBgColor = 'rgba(252, 61, 57, 0.2)'; // Vermelho claro
+    textColor = '#FC3D39'; // Vermelho
+  } else if (diffDays <= 7) {
+    barColor = '#FF9500'; // Laranja
+    barBgColor = 'rgba(255, 149, 0, 0.2)'; // Laranja claro
+    textColor = '#FF9500'; // Laranja
+  }
 
   return (
     <motion.div 
@@ -85,16 +101,16 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
       transition={{ delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className="mt-2"
     >
-      <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(252, 61, 57, 0.2)' }}>
+      <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: barBgColor }}>
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
           className="h-1.5 rounded-full" 
-          style={{ backgroundColor: '#FC3D39' }}
+          style={{ backgroundColor: barColor }}
         />
       </div>
-      <p className="text-xs mt-2 text-[#8E8E93]">
+      <p className="text-xs mt-2" style={{ color: textColor }}>
         {diffDays} dia{diffDays !== 1 ? 's' : ''} restante{diffDays !== 1 ? 's' : ''} no período de teste.
       </p>
     </motion.div>
