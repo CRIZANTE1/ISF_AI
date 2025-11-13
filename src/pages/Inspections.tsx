@@ -1,6 +1,6 @@
 import { Flame, Waves, Droplet, Target, Bell, Gauge, Shield, Home } from 'lucide-react';
 import RadialOrbitalTimeline from '../components/ui/radial-orbital-timeline';
-import { ShaderAnimation } from '../components/ui/shader-animation';
+import { SingularityShaders } from '../components/ui/singularity-shaders';
 
 const sciItems = [
   { name: 'Extintores', link: '/inspections/extintor', icon: Flame, color: '#FC3D39' },
@@ -34,12 +34,20 @@ const Inspections = () => {
 
   return (
     <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: 'transparent', color: 'var(--foreground)' }}>
-      <ShaderAnimation />
+      <div className="fixed inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+        <SingularityShaders 
+          speed={1.0}
+          intensity={1.0}
+          size={1.0}
+          waveStrength={1.0}
+          colorShift={1.0}
+        />
+      </div>
       <header className="sticky top-0 z-20 flex items-center justify-between h-14 px-ios-4 frosted-glass border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
         <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>Inspeções</h1>
       </header>
       
-      <div className="h-[calc(100vh-3.5rem)] relative" style={{ backgroundColor: 'transparent' }}>
+      <div className="h-[calc(100vh-3.5rem)] relative" style={{ backgroundColor: 'transparent', zIndex: 1 }}>
         <RadialOrbitalTimeline timelineData={timelineData} />
       </div>
     </div>
