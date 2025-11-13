@@ -11,7 +11,7 @@ export default defineConfig({
   },
   
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    exclude: ['lucide-react', '@capacitor/core', '@capacitor/push-notifications'],
     include: ['three'],
   },
 });

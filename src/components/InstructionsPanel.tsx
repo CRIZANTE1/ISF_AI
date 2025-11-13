@@ -8,6 +8,138 @@ interface InstructionsPanelProps {
   className?: string;
 }
 
+// Função para converter markdown básico para HTML
+const markdownToHtml = (text: string): string => {
+  if (!text) return '';
+  
+  // Primeiro, converter negrito **texto** para <strong>texto</strong>
+  let html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // Dividir em linhas preservando espaços iniciais para detectar indentação
+  const lines = html.split('\n');
+  
+  const result: string[] = [];
+  let currentList: string[] | null = null;
+  let isNumberedList = false;
+  let currentNestedList: string[] | null = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const originalLine = lines[i];
+    const trimmed = originalLine.trim();
+    if (!trimmed) continue;
+    
+    // Calcular indentação (espaços no início)
+    const indent = originalLine.length - originalLine.trimStart().length;
+    const line = trimmed;
+    
+    // Verificar se é uma lista numerada (1. item)
+    const numberedMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      // Se estávamos em uma lista não numerada, fechar ela
+      if (currentList && !isNumberedList) {
+        if (currentNestedList) {
+          result.push(`<ul class="guide-list">${currentNestedList.join('')}</ul>`);
+          currentNestedList = null;
+        }
+        result.push(`<ul class="guide-list">${currentList.join('')}</ul>`);
+        currentList = [];
+      }
+      
+      // Se estávamos em uma lista numerada e há uma sublista, fechar a sublista
+      if (currentNestedList && currentList) {
+        const lastIndex = currentList.length - 1;
+        if (lastIndex >= 0) {
+          currentList[lastIndex] = currentList[lastIndex].replace('</li>', '') + 
+            `<ul class="guide-list">${currentNestedList.join('')}</ul></li>`;
+        }
+        currentNestedList = null;
+      }
+      
+      // Iniciar ou continuar lista numerada
+      if (!currentList) {
+        currentList = [];
+        isNumberedList = true;
+      }
+      
+      currentList.push(`<li>${numberedMatch[2]}</li>`);
+      continue;
+    }
+    
+    // Verificar se é uma lista com marcadores (- item ou • item)
+    const bulletMatch = line.match(/^[-•]\s+(.+)$/);
+    if (bulletMatch) {
+      // Se estávamos em uma lista numerada e há indentação (sublista)
+      if (currentList && isNumberedList && indent > 2) {
+        if (!currentNestedList) {
+          currentNestedList = [];
+        }
+        currentNestedList.push(`<li>${bulletMatch[1]}</li>`);
+        continue;
+      }
+      
+      // Se estávamos em uma lista numerada sem indentação, fechar ela
+      if (currentList && isNumberedList) {
+        if (currentNestedList) {
+          const lastIndex = currentList.length - 1;
+          if (lastIndex >= 0) {
+            currentList[lastIndex] = currentList[lastIndex].replace('</li>', '') + 
+              `<ul class="guide-list">${currentNestedList.join('')}</ul></li>`;
+          }
+          currentNestedList = null;
+        }
+        result.push(`<ol class="guide-list">${currentList.join('')}</ol>`);
+        currentList = [];
+      }
+      
+      // Iniciar ou continuar lista com marcadores
+      if (!currentList) {
+        currentList = [];
+        isNumberedList = false;
+      }
+      
+      currentList.push(`<li>${bulletMatch[1]}</li>`);
+      continue;
+    }
+    
+    // Se chegou aqui, não é uma lista
+    // Fechar lista atual se existir
+    if (currentList) {
+      if (currentNestedList) {
+        const lastIndex = currentList.length - 1;
+        if (lastIndex >= 0) {
+          currentList[lastIndex] = currentList[lastIndex].replace('</li>', '') + 
+            `<ul class="guide-list">${currentNestedList.join('')}</ul></li>`;
+        }
+        currentNestedList = null;
+      }
+      const listTag = isNumberedList ? 'ol' : 'ul';
+      result.push(`<${listTag} class="guide-list">${currentList.join('')}</${listTag}>`);
+      currentList = null;
+      isNumberedList = false;
+    }
+    
+    // Adicionar como parágrafo
+    if (line) {
+      result.push(`<p>${line}</p>`);
+    }
+  }
+  
+  // Fechar lista se ainda estiver aberta
+  if (currentList) {
+    if (currentNestedList) {
+      const lastIndex = currentList.length - 1;
+      if (lastIndex >= 0) {
+        currentList[lastIndex] = currentList[lastIndex].replace('</li>', '') + 
+          `<ul class="guide-list">${currentNestedList.join('')}</ul></li>`;
+      }
+    }
+    const listTag = isNumberedList ? 'ol' : 'ul';
+    result.push(`<${listTag} class="guide-list">${currentList.join('')}</${listTag}>`);
+  }
+  
+  return result.join('\n');
+};
+
 const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -243,7 +375,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                 {instructions.guide.map((section, index) => {
                   const isExpanded = expandedSections[section.title] ?? section.expanded ?? false;
                   return (
-                    <div key={index}>
+                    <div key={index} className="w-full">
                       <motion.button
                         onClick={() => toggleSection(section.title)}
                         className="w-full flex items-center justify-between p-ios-3 rounded-ios-lg transition-all"
@@ -255,13 +387,13 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                         whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <span className="font-semibold text-white text-sm">
+                        <span className="font-semibold text-white text-sm flex-1 text-left pr-ios-2">
                           {section.title}
                         </span>
                         {isExpanded ? (
-                          <ChevronUp size={18} className="text-[#8E8E93]" />
+                          <ChevronUp size={18} className="text-[#8E8E93] flex-shrink-0" />
                         ) : (
-                          <ChevronDown size={18} className="text-[#8E8E93]" />
+                          <ChevronDown size={18} className="text-[#8E8E93] flex-shrink-0" />
                         )}
                       </motion.button>
                       <AnimatePresence>
@@ -270,20 +402,80 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="mt-ios-2 p-ios-3 rounded-ios-lg"
+                            className="mt-ios-2 w-full rounded-ios-lg overflow-hidden"
                             style={{
                               backgroundColor: 'rgba(255, 255, 255, 0.05)',
                             }}
                           >
                             <div
-                              className="instructions-content"
-                              dangerouslySetInnerHTML={{ __html: section.content }}
+                              className="instructions-content p-ios-3 w-full"
+                              dangerouslySetInnerHTML={{ __html: markdownToHtml(section.content) }}
                               style={{
-                                fontSize: '13px',
-                                lineHeight: '1.6',
-                                color: '#8E8E93',
+                                fontSize: '14px',
+                                lineHeight: '1.7',
+                                color: '#E5E5E7',
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word',
                               }}
                             />
+                            <style>{`
+                              .instructions-content {
+                                width: 100%;
+                                max-width: 100%;
+                                box-sizing: border-box;
+                              }
+                              .instructions-content p {
+                                margin: 0 0 8px 0;
+                                color: #E5E5E7;
+                                line-height: 1.7;
+                                word-wrap: break-word;
+                                overflow-wrap: break-word;
+                              }
+                              .instructions-content p:last-child {
+                                margin-bottom: 0;
+                              }
+                              .instructions-content strong {
+                                color: #FFFFFF;
+                                font-weight: 600;
+                              }
+                              .instructions-content ol.guide-list,
+                              .instructions-content ul.guide-list {
+                                margin: 12px 0;
+                                padding-left: 24px;
+                                color: #E5E5E7;
+                                width: 100%;
+                                max-width: 100%;
+                                box-sizing: border-box;
+                              }
+                              .instructions-content li {
+                                margin: 6px 0;
+                                line-height: 1.7;
+                                word-wrap: break-word;
+                                overflow-wrap: break-word;
+                                padding-left: 4px;
+                              }
+                              .instructions-content li ul.guide-list,
+                              .instructions-content li ol.guide-list {
+                                margin: 8px 0;
+                                padding-left: 20px;
+                              }
+                              .instructions-content ol.guide-list {
+                                list-style-type: decimal;
+                              }
+                              .instructions-content ul.guide-list {
+                                list-style-type: disc;
+                              }
+                              .instructions-content p {
+                                margin: 0 0 12px 0;
+                              }
+                              .instructions-content p:has(+ ol),
+                              .instructions-content p:has(+ ul) {
+                                margin-bottom: 8px;
+                              }
+                              .instructions-content br {
+                                line-height: 1.7;
+                              }
+                            `}</style>
                           </motion.div>
                         )}
                       </AnimatePresence>

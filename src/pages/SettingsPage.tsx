@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import { useNotifications } from '../hooks/useNotifications';
 import { 
   Settings, 
   Moon, 
@@ -20,6 +21,13 @@ import {
 const SettingsPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { 
+    permissionStatus, 
+    isSupported, 
+    isLoading: notificationsLoading,
+    requestPermission,
+    checkPermission 
+  } = useNotifications();
   
   // Inicializar estado do tema baseado na classe atual do documento
   const getInitialTheme = () => {
@@ -34,9 +42,11 @@ const SettingsPage = () => {
   };
 
   const [darkMode, setDarkMode] = useState(getInitialTheme);
-  const [notifications, setNotifications] = useState(true);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  
+  // Estado de notificações baseado na permissão
+  const notifications = permissionStatus.granted;
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -45,9 +55,31 @@ const SettingsPage = () => {
     document.documentElement.classList.toggle('dark', newDarkMode);
   };
 
-  const toggleNotifications = () => {
-    setNotifications(!notifications);
-    // TODO: Salvar preferência no perfil do usuário
+  const toggleNotifications = async () => {
+    if (permissionStatus.granted) {
+      // Se já tem permissão, apenas atualiza o estado local
+      // (não podemos desabilitar permissões programaticamente)
+      alert('Para desativar notificações, acesse as configurações do navegador/dispositivo.');
+      return;
+    }
+
+    if (permissionStatus.denied) {
+      alert('As notificações foram bloqueadas. Para ativá-las, acesse as configurações do navegador/dispositivo e permita notificações para este site/app.');
+      return;
+    }
+
+    // Solicita permissão
+    const granted = await requestPermission();
+    if (granted) {
+      // Salva preferência no localStorage
+      localStorage.setItem('notifications_enabled', 'true');
+      alert('Notificações ativadas com sucesso!');
+    } else {
+      alert('Permissão de notificações negada. Você pode ativá-las nas configurações do navegador/dispositivo.');
+    }
+    
+    // Atualiza o status da permissão
+    await checkPermission();
   };
 
   const handleExportData = async () => {
@@ -141,15 +173,23 @@ const SettingsPage = () => {
                   <div>
                     <p className="font-medium">Notificações</p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                      Receber alertas e notificações
+                      {!isSupported 
+                        ? 'Notificações não suportadas neste dispositivo'
+                        : permissionStatus.granted
+                        ? 'Recebendo alertas e notificações'
+                        : permissionStatus.denied
+                        ? 'Notificações bloqueadas - ative nas configurações'
+                        : 'Receber alertas e notificações'
+                      }
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={toggleNotifications}
+                  disabled={!isSupported || notificationsLoading}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     notifications ? 'bg-accent-cyan' : 'bg-gray-300'
-                  }`}
+                  } ${(!isSupported || notificationsLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
