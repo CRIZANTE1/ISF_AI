@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx';
+import { EquipmentCacheProvider } from './contexts/EquipmentCacheContext.tsx';
 
 // Verificar preferência do usuário e aplicar tema
 const getInitialTheme = () => {
@@ -30,7 +31,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <EquipmentCacheProvider>
+          <App />
+        </EquipmentCacheProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,

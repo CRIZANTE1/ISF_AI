@@ -1,17 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import Skeleton from './Skeleton';
 import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAllExtinguishers } from '../utils/extinguisherOperations';
-import { getAllHoses } from '../utils/hoseOperations';
-import { getAllSCBAs } from '../utils/scbaOperations';
-import { getAllMultigasDetectors } from '../utils/multigasOperations';
-import { getAllFoamChambers } from '../utils/foamChamberOperations';
-import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { getAllEyewashStations } from '../utils/eyewashOperations';
-import { getAllAlarmSystems } from '../utils/alarmOperations';
-import { getAllShelters } from '../utils/shelterOperations';
 
 interface Alert {
   id: string;
@@ -27,6 +18,7 @@ interface AlertsListProps {
 }
 
 const AlertsList = ({ userId }: AlertsListProps) => {
+  const { getAllEquipment, cache } = useEquipmentCache();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,28 +30,16 @@ const AlertsList = ({ userId }: AlertsListProps) => {
       try {
         const allAlerts: Alert[] = [];
 
-        // Buscar equipamentos de todas as tabelas especializadas
-        const [
-          extinguishers,
-          hoses,
-          scbas,
-          multigasDetectors,
-          foamChambers,
-          cannonMonitors,
-          eyewashStations,
-          alarmSystems,
-          shelters,
-        ] = await Promise.all([
-          getAllExtinguishers(),
-          getAllHoses(),
-          getAllSCBAs(),
-          getAllMultigasDetectors(),
-          getAllFoamChambers(),
-          getAllCannonMonitors(),
-          getAllEyewashStations(),
-          getAllAlarmSystems(),
-          getAllShelters(),
-        ]);
+        // Usar dados do cache em vez de fazer novas chamadas
+        const extinguishers = cache.extinguishers;
+        const hoses = cache.hoses;
+        const scbas = cache.scbas;
+        const multigasDetectors = cache.multigasDetectors;
+        const foamChambers = cache.foamChambers;
+        const cannonMonitors = cache.cannonMonitors;
+        const eyewashStations = cache.eyewashStations;
+        const alarmSystems = cache.alarmSystems;
+        const shelters = cache.shelters;
 
         // Filtrar por user_id e identificar alertas
         const checkEquipment = (

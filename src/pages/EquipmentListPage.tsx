@@ -1,21 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import FloatingActionButton from '../components/FloatingActionButton';
 import Skeleton from '../components/Skeleton';
 import InstructionsPanel from '../components/InstructionsPanel';
 import { ChevronRight } from 'lucide-react';
-import { getAllExtinguishers } from '../utils/extinguisherOperations';
-import { getAllHoses } from '../utils/hoseOperations';
-import { getAllSCBAs } from '../utils/scbaOperations';
-import { getAllMultigasDetectors } from '../utils/multigasOperations';
-import { getAllFoamChambers } from '../utils/foamChamberOperations';
-import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { getAllEyewashStations } from '../utils/eyewashOperations';
-import { getAllAlarmSystems } from '../utils/alarmOperations';
-import { getAllShelters } from '../utils/shelterOperations';
 
 type EquipmentItem = {
   id: number | string;
@@ -33,6 +24,7 @@ type EquipmentItem = {
 const EquipmentListPage = () => {
   const { type } = useParams<{ type: string }>();
   const { user } = useAuth();
+  const { getEquipmentByType, cache } = useEquipmentCache();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,46 +32,14 @@ const EquipmentListPage = () => {
   const equipmentTypeName = type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Equipamentos';
 
   useEffect(() => {
-    const fetchEquipment = async () => {
+    const fetchEquipment = () => {
       if (!user || !type) return;
       setLoading(true);
       setError(null);
       
       try {
-        let data: EquipmentItem[] = [];
-        
-        switch (type) {
-          case 'extintor':
-            data = await getAllExtinguishers();
-            break;
-          case 'mangueira':
-            data = await getAllHoses();
-            break;
-          case 'scba':
-            data = await getAllSCBAs();
-            break;
-          case 'multigas':
-            data = await getAllMultigasDetectors();
-            break;
-          case 'camara_espuma':
-            data = await getAllFoamChambers();
-            break;
-          case 'canhao_monitor':
-            data = await getAllCannonMonitors();
-            break;
-          case 'chuveiro_lavaolhos':
-            data = await getAllEyewashStations();
-            break;
-          case 'alarme':
-            data = await getAllAlarmSystems();
-            break;
-          case 'abrigo':
-            data = await getAllShelters();
-            break;
-          default:
-            throw new Error(`Tipo de equipamento '${type}' não suportado.`);
-        }
-        
+        // Usar dados do cache em vez de fazer novas chamadas
+        const data = getEquipmentByType(type);
         setEquipment(data);
       } catch (err: any) {
         setError('Falha ao buscar equipamentos.');
@@ -90,7 +50,7 @@ const EquipmentListPage = () => {
     };
 
     fetchEquipment();
-  }, [user, type]);
+  }, [user, type, getEquipmentByType, cache]);
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>

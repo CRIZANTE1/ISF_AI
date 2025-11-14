@@ -12,6 +12,6 @@ export default defineConfig({
   
   optimizeDeps: {
     exclude: ['lucide-react', '@capacitor/core', '@capacitor/push-notifications'],
-    include: ['three'],
+    include: ['three', '@react-three/fiber'],
   },
 });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Edit2, User, Mail, Calendar, Settings, CreditCard, BarChart3, Save, X, Camera } from 'lucide-react';
@@ -7,15 +8,6 @@ import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
 import PageHeader from '../components/PageHeader';
 import { useForm } from 'react-hook-form';
-import { getAllExtinguishers } from '../utils/extinguisherOperations';
-import { getAllHoses } from '../utils/hoseOperations';
-import { getAllSCBAs } from '../utils/scbaOperations';
-import { getAllMultigasDetectors } from '../utils/multigasOperations';
-import { getAllFoamChambers } from '../utils/foamChamberOperations';
-import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { getAllEyewashStations } from '../utils/eyewashOperations';
-import { getAllAlarmSystems } from '../utils/alarmOperations';
-import { getAllShelters } from '../utils/shelterOperations';
 
 interface ProfileFormData {
   full_name: string;
@@ -29,6 +21,7 @@ interface UserStats {
 
 const Profile = () => {
   const { profile, user, signOut, loading } = useAuth();
+  const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -54,39 +47,10 @@ const Profile = () => {
       if (!user) return;
       setLoadingStats(true);
       try {
-        const [
-          extinguishers,
-          hoses,
-          scbas,
-          multigasDetectors,
-          foamChambers,
-          cannonMonitors,
-          eyewashStations,
-          alarmSystems,
-          shelters,
-        ] = await Promise.all([
-          getAllExtinguishers(),
-          getAllHoses(),
-          getAllSCBAs(),
-          getAllMultigasDetectors(),
-          getAllFoamChambers(),
-          getAllCannonMonitors(),
-          getAllEyewashStations(),
-          getAllAlarmSystems(),
-          getAllShelters(),
-        ]);
-
-        const allEquipment = [
-          ...extinguishers,
-          ...hoses,
-          ...scbas,
-          ...multigasDetectors,
-          ...foamChambers,
-          ...cannonMonitors,
-          ...eyewashStations,
-          ...alarmSystems,
-          ...shelters,
-        ].filter((eq: any) => !eq.user_id || eq.user_id === user.id);
+        // Usar dados do cache em vez de fazer novas chamadas
+        const allEquipment = getAllEquipment().filter(
+          (eq: any) => !eq.user_id || eq.user_id === user.id
+        );
 
         // Contar inspeções de todas as tabelas especializadas
         const inspectionCounts = await Promise.all([
@@ -131,7 +95,7 @@ const Profile = () => {
     };
 
     fetchStats();
-  }, [user]);
+  }, [user, getAllEquipment]);
 
   const getPlanBadge = (plan: 'trial' | 'premium' | undefined) => {
     switch (plan) {

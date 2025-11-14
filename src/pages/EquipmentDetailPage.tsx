@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -9,14 +10,9 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
-import { getAllEyewashStations } from '../utils/eyewashOperations';
-import { getAllFoamChambers } from '../utils/foamChamberOperations';
-import { getAllAlarmSystems } from '../utils/alarmOperations';
-import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { getAllSCBAs } from '../utils/scbaOperations';
-import { getAllMultigasDetectors, getMultigasDetectorById } from '../utils/multigasOperations';
-import { getAllShelters } from '../utils/shelterOperations';
-import { getAllHoses } from '../utils/hoseOperations';
+import { getHoseById } from '../utils/hoseOperations';
+import { getSCBABySerial } from '../utils/scbaOperations';
+import { getMultigasDetectorById } from '../utils/multigasOperations';
 
 type EquipmentInfo = {
   id: string;
@@ -40,6 +36,7 @@ const EquipmentDetailPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { getEquipmentByType } = useEquipmentCache();
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,8 +97,9 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'chuveiro_lavaolhos': {
-          const stations = await getAllEyewashStations();
-          const station = stations.find(e => e.id_equipamento === id);
+          // Usar cache em vez de buscar todos
+          const stations = getEquipmentByType('chuveiro_lavaolhos');
+          const station = stations.find((e: any) => e.id_equipamento === id);
           if (station) {
             equipmentData = {
               id: station.id_equipamento,
@@ -128,8 +126,9 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'camara_espuma': {
-          const chambers = await getAllFoamChambers();
-          const chamber = chambers.find(e => e.id_camara === id);
+          // Usar cache em vez de buscar todos
+          const chambers = getEquipmentByType('camara_espuma');
+          const chamber = chambers.find((e: any) => e.id_camara === id);
           if (chamber) {
             equipmentData = {
               id: chamber.id_camara,
@@ -155,8 +154,9 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'alarme': {
-          const systems = await getAllAlarmSystems();
-          const system = systems.find(e => e.id_sistema === id);
+          // Usar cache em vez de buscar todos
+          const systems = getEquipmentByType('alarme');
+          const system = systems.find((e: any) => e.id_sistema === id);
           if (system) {
             equipmentData = {
               id: system.id_sistema,
@@ -182,8 +182,9 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'canhao_monitor': {
-          const monitors = await getAllCannonMonitors();
-          const monitor = monitors.find(e => e.id_equipamento === id);
+          // Usar cache em vez de buscar todos
+          const monitors = getEquipmentByType('canhao_monitor');
+          const monitor = monitors.find((e: any) => e.id_equipamento === id);
           if (monitor) {
             equipmentData = {
               id: monitor.id_equipamento,
@@ -209,8 +210,8 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'scba': {
-          const scbas = await getAllSCBAs();
-          const scba = scbas.find(e => e.numero_serie_equipamento === id);
+          // Buscar diretamente por ID em vez de buscar todos
+          const scba = await getSCBABySerial(id);
           if (scba) {
             equipmentData = {
               id: scba.numero_serie_equipamento,
@@ -233,7 +234,7 @@ const EquipmentDetailPage = () => {
               }));
             }
           } else {
-            console.log('SCBA não encontrado:', id, 'Total de SCBAs:', scbas.length, 'IDs encontrados:', scbas.map(s => s.numero_serie_equipamento));
+            console.log('SCBA não encontrado:', id);
           }
           break;
         }
@@ -290,9 +291,9 @@ const EquipmentDetailPage = () => {
             console.error(errorMsg);
             setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
             
-            // Fallback: tentar buscar todos para debug
-            const allDetectors = await getAllMultigasDetectors();
-            const log3 = `Total de detectores disponíveis: ${allDetectors.length}, IDs: ${allDetectors.map(d => d.id_equipamento).join(', ')}`;
+            // Fallback: tentar buscar do cache para debug
+            const allDetectors = getEquipmentByType('multigas');
+            const log3 = `Total de detectores disponíveis: ${allDetectors.length}, IDs: ${allDetectors.map((d: any) => d.id_equipamento).join(', ')}`;
             console.log(log3);
             setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${log3}`]);
             
@@ -319,8 +320,9 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'abrigo': {
-          const shelters = await getAllShelters();
-          const shelter = shelters.find(e => e.id_abrigo === id);
+          // Usar cache em vez de buscar todos
+          const shelters = getEquipmentByType('abrigo');
+          const shelter = shelters.find((e: any) => e.id_abrigo === id);
           if (shelter) {
             equipmentData = {
               id: shelter.id_abrigo,
@@ -348,8 +350,8 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'mangueira': {
-          const hoses = await getAllHoses();
-          const hose = hoses.find(e => e.id_mangueira === id);
+          // Buscar diretamente por ID em vez de buscar todos
+          const hose = await getHoseById(id);
           if (hose) {
             equipmentData = {
               id: hose.id_mangueira,

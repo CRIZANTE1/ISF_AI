@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import DashboardHeader from '../components/DashboardHeader';
 import AlertsList from '../components/AlertsList';
 import Skeleton from '../components/Skeleton';
@@ -8,15 +9,6 @@ import InstructionsPanel from '../components/InstructionsPanel';
 import { AppleActivityCard } from '../components/ui/apple-activity-ring';
 import { calculateEquipmentStats } from '../utils/equipmentStatus';
 import { motion } from 'framer-motion';
-import { getAllExtinguishers } from '../utils/extinguisherOperations';
-import { getAllHoses } from '../utils/hoseOperations';
-import { getAllSCBAs } from '../utils/scbaOperations';
-import { getAllMultigasDetectors } from '../utils/multigasOperations';
-import { getAllFoamChambers } from '../utils/foamChamberOperations';
-import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { getAllEyewashStations } from '../utils/eyewashOperations';
-import { getAllAlarmSystems } from '../utils/alarmOperations';
-import { getAllShelters } from '../utils/shelterOperations';
 
 interface Stats {
   total: number;
@@ -27,6 +19,7 @@ interface Stats {
 
 const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
+  const { getAllEquipment, cache, isStale, refreshCache } = useEquipmentCache();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,46 +28,19 @@ const Dashboard = () => {
     const fetchStats = async () => {
       if (!user) return;
 
+      // Se o cache está obsoleto, atualizar primeiro
+      if (isStale() && !cache.isLoading) {
+        await refreshCache();
+      }
+
       setLoadingStats(true);
       setError(null);
 
       try {
-        // Buscar todos os equipamentos de todas as tabelas especializadas
-        const [
-          extinguishers,
-          hoses,
-          scbas,
-          multigasDetectors,
-          foamChambers,
-          cannonMonitors,
-          eyewashStations,
-          alarmSystems,
-          shelters,
-        ] = await Promise.all([
-          getAllExtinguishers(),
-          getAllHoses(),
-          getAllSCBAs(),
-          getAllMultigasDetectors(),
-          getAllFoamChambers(),
-          getAllCannonMonitors(),
-          getAllEyewashStations(),
-          getAllAlarmSystems(),
-          getAllShelters(),
-        ]);
-
-        // Filtrar apenas equipamentos do usuário atual (se aplicável)
-        // Nota: As tabelas especializadas já filtram por user_id nas funções getAll*
-        const allEquipment = [
-          ...extinguishers,
-          ...hoses,
-          ...scbas,
-          ...multigasDetectors,
-          ...foamChambers,
-          ...cannonMonitors,
-          ...eyewashStations,
-          ...alarmSystems,
-          ...shelters,
-        ].filter((eq: any) => !eq.user_id || eq.user_id === user.id);
+        // Usar dados do cache em vez de fazer novas chamadas
+        const allEquipment = getAllEquipment().filter(
+          (eq: any) => !eq.user_id || eq.user_id === user.id
+        );
 
         // Calcular estatísticas baseado nas datas de validade/inspeção
         const calculatedStats = calculateEquipmentStats(allEquipment);
@@ -90,7 +56,7 @@ const Dashboard = () => {
     if (user) {
       fetchStats();
     }
-  }, [user]);
+  }, [user, getAllEquipment, cache.isLoading, isStale, refreshCache]);
 
   const isLoading = authLoading || loadingStats;
 
