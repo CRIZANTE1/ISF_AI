@@ -23,6 +23,8 @@ export interface ShelterInspection {
   resultados_json?: Record<string, any>;
   inspetor?: string;
   data_proxima_inspecao?: string;
+  latitude?: number;
+  longitude?: number;
   created_at?: string;
   user_id?: string;
 }

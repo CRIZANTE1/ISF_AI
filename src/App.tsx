@@ -20,6 +20,7 @@ import AdminUsersPage from './pages/AdminUsersPage';
 import AdminSystemSettingsPage from './pages/AdminSystemSettingsPage';
 import AdminSecurityAuditPage from './pages/AdminSecurityAuditPage';
 import AdminSecurityPoliciesPage from './pages/AdminSecurityPoliciesPage';
+import EquipmentMap from './pages/EquipmentMap';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
         <Route path="profile/plan-payment" element={<PlanPaymentPage />} />
         <Route path="profile/settings" element={<SettingsPage />} />
         <Route path="history" element={<History />} />
+        <Route path="map" element={<EquipmentMap />} />
         <Route 
           path="utilities" 
           element={

@@ -28,6 +28,8 @@ export interface FoamChamberInspection {
   link_foto_nao_conformidade?: string;
   inspetor?: string;
   data_proxima_inspecao?: string;
+  latitude?: number;
+  longitude?: number;
   created_at?: string;
   user_id?: string;
 }

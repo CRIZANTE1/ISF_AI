@@ -2,6 +2,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { getCurrentLocation } from '../hooks/useGeolocation';
 import PageHeader from '../components/PageHeader';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
@@ -77,6 +78,11 @@ const AddInspectionPage = () => {
   const [multigasTestTime, setMultigasTestTime] = useState<string>('');
   const [multigasUpdateCylinder, setMultigasUpdateCylinder] = useState<boolean>(false);
   
+  // Estado para geolocalização
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  
   const { register, handleSubmit, formState: { errors }, watch, control } = useForm<AddInspectionFormData>({
     defaultValues: {
       data_inspecao: new Date().toISOString().split('T')[0],
@@ -88,6 +94,31 @@ const AddInspectionPage = () => {
 
   const aprovado = watch('aprovado_inspecao');
   const observacoes = watch('observacoes_gerais');
+
+  // Captura geolocalização automaticamente quando a página carrega
+  useEffect(() => {
+    const captureLocation = async () => {
+      // Tipos de equipamentos que precisam de geolocalização
+      const needsLocation = ['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '');
+      
+      if (needsLocation) {
+        try {
+          const location = await getCurrentLocation();
+          if (location) {
+            setLatitude(location.latitude);
+            setLongitude(location.longitude);
+            setLocationError(null);
+          } else {
+            setLocationError('Não foi possível obter a localização. Verifique as permissões do dispositivo/navegador.');
+          }
+        } catch (err: any) {
+          setLocationError(err.message || 'Erro ao obter localização');
+        }
+      }
+    };
+
+    captureLocation();
+  }, [type]);
 
   // Busca informações do equipamento baseado no tipo
   useEffect(() => {
@@ -307,6 +338,8 @@ const AddInspectionPage = () => {
             observacoes_gerais: observacoes || '',
             plano_de_acao: planAction,
             link_foto_nao_conformidade: photoLink || undefined,
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
             ...cleanDates,
             user_id: user.id,
           };
@@ -326,6 +359,8 @@ const AddInspectionPage = () => {
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
             user_id: user.id,
           };
 
@@ -347,6 +382,8 @@ const AddInspectionPage = () => {
             data_proxima_inspecao: foamChamberInspectionType === 'Funcional Anual'
               ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
               : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
             user_id: user.id,
           };
 
@@ -365,6 +402,8 @@ const AddInspectionPage = () => {
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
             user_id: user.id,
           };
 
@@ -384,6 +423,8 @@ const AddInspectionPage = () => {
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
             user_id: user.id,
           };
 
@@ -500,6 +541,8 @@ const AddInspectionPage = () => {
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
             user_id: user.id,
           };
 
@@ -558,6 +601,32 @@ const AddInspectionPage = () => {
         )}
 
         {error && <p className="mb-4 text-center text-status-error">{error}</p>}
+
+        {/* Indicador de geolocalização */}
+        {['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') && (
+          <div className="mb-4 p-3 rounded-lg border" style={{ 
+            backgroundColor: latitude && longitude ? 'rgba(83, 215, 105, 0.1)' : 'rgba(252, 61, 57, 0.1)',
+            borderColor: latitude && longitude ? 'rgba(83, 215, 105, 0.3)' : 'rgba(252, 61, 57, 0.3)',
+            borderWidth: '1px'
+          }}>
+            {latitude && longitude ? (
+              <p className="text-sm flex items-center gap-2" style={{ color: '#53D769' }}>
+                <span>✓</span>
+                <span>Localização capturada: {latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+              </p>
+            ) : locationError ? (
+              <p className="text-sm flex items-center gap-2" style={{ color: '#FC3D39' }}>
+                <span>⚠</span>
+                <span>{locationError}</span>
+              </p>
+            ) : (
+              <p className="text-sm flex items-center gap-2" style={{ color: '#8E8E93' }}>
+                <span>⟳</span>
+                <span>Capturando localização...</span>
+              </p>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="relative" style={{ zIndex: 10, position: 'relative' }}>
           <div className="mb-4">

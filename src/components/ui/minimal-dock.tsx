@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutGrid, ClipboardCheck, History, Wrench, Plus, User } from 'lucide-react';
+import { LayoutGrid, ClipboardCheck, History, Wrench, Plus, User, MapPin } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DockItem {
@@ -126,6 +126,12 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
       icon: <History size={20} />, 
       label: 'Histórico',
       to: '/history'
+    },
+    { 
+      id: 'map', 
+      icon: <MapPin size={20} />, 
+      label: 'Mapa',
+      to: '/map'
     },
     { 
       id: 'utilities', 

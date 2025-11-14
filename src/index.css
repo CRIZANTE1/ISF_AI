@@ -4,6 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet CSS Fixes */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
 /* Design System Apple Fitness UI */
 :root {
   /* Paleta Apple Fitness */
