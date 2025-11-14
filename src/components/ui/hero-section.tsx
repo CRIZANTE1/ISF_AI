@@ -75,6 +75,56 @@ const Box = React.memo(({ position, rotation, geometry }: {
 
 Box.displayName = 'Box';
 
+const AnimatedBox = React.memo(({ 
+    position, 
+    rotation, 
+    geometry, 
+    targetScale,
+    delay 
+}: { 
+    position: [number, number, number]; 
+    rotation: [number, number, number];
+    geometry: THREE.ExtrudeGeometry;
+    targetScale: number;
+    delay: number;
+}) => {
+    const meshRef = useRef<THREE.Mesh | null>(null);
+    const currentScale = useRef(0);
+    const startTime = useRef(Date.now() + delay);
+
+    useFrame(() => {
+        if (meshRef.current) {
+            const elapsed = Date.now() - startTime.current;
+            if (elapsed > 0) {
+                const progress = Math.min(elapsed / 400, 1); // 400ms para completar a animação
+                // Easing function para animação suave
+                const eased = progress < 0.5 
+                    ? 2 * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                currentScale.current = eased * targetScale;
+                meshRef.current.scale.set(
+                    currentScale.current,
+                    currentScale.current,
+                    currentScale.current
+                );
+            }
+        }
+    });
+
+    return (
+        <mesh
+            ref={meshRef}
+            geometry={geometry}
+            material={boxMaterial}
+            position={position}
+            rotation={rotation}
+            scale={[0, 0, 0]}
+        />
+    );
+});
+
+AnimatedBox.displayName = 'AnimatedBox';
+
 const AnimatedBoxes = () => {
     const groupRef = useRef<THREE.Group | null>(null);
     
@@ -96,18 +146,21 @@ const AnimatedBoxes = () => {
                 Math.PI / 2,
                 0
             ] as [number, number, number],
-            id: index
+            id: index,
+            delay: index * 50 // Delay progressivo para cada caixa
         })), []
     );
 
     return (
         <group ref={groupRef}>
             {boxes.map((box) => (
-                <Box
+                <AnimatedBox
                     key={box.id}
                     position={box.position}
                     rotation={box.rotation}
                     geometry={sharedGeometry}
+                    targetScale={1}
+                    delay={box.delay}
                 />
             ))}
         </group>
