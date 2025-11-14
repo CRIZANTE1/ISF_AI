@@ -121,11 +121,32 @@ const AdminUsersPage = () => {
 
     try {
       await updateUserPlan(userId, plan);
-      await loadUsers();
-      setShowUserModal(false);
+      
+      // Atualizar o usuário na lista local
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, profile: { ...user.profile, plan } as any }
+            : user
+        )
+      );
+      
+      // Atualizar o usuário selecionado no modal
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser({
+          ...selectedUser,
+          profile: { ...selectedUser.profile, plan } as any
+        });
+      }
+      
+      // Recarregar estatísticas
+      const statsData = await getUserStats();
+      setStats(statsData);
+      
       alert('Plano atualizado com sucesso!');
     } catch (error: any) {
-      alert(`Erro ao atualizar plano: ${error.message}`);
+      console.error('Erro ao atualizar plano:', error);
+      alert(`Erro ao atualizar plano: ${error.message || 'Erro desconhecido'}`);
     }
   };
 
