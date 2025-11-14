@@ -85,9 +85,9 @@ const PlanPaymentPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Planos e Preços" />
-      <main className="py-8 pb-32">
+      <main className="py-8 pb-32" style={{ backgroundColor: '#000000' }}>
         <PricingSection
           plans={plans}
           heading="Planos que Crescem com Você"

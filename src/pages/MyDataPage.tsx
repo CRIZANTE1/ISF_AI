@@ -71,9 +71,9 @@ const MyDataPage = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Meus Dados" />
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <form onSubmit={handleSubmit(handleUpdateProfile)} className="max-w-md mx-auto">
           <div className="mb-6">
             <label htmlFor="full_name" className="block text-sm font-medium mb-2 flex items-center gap-2">
@@ -83,7 +83,7 @@ const MyDataPage = () => {
             <input
               id="full_name"
               {...register('full_name', { required: 'Nome é obrigatório' })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             />
             {errors.full_name && (
               <p className="text-sm text-status-error mt-1">{errors.full_name.message}</p>
@@ -107,7 +107,7 @@ const MyDataPage = () => {
                   },
                 })}
                 disabled={!isEditingEmail}
-                className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none disabled:opacity-50" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none disabled:opacity-50" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
               />
               {!isEditingEmail && (
                 <button
@@ -157,7 +157,7 @@ const MyDataPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-accent-cyan text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
               {loading ? 'Salvando...' : 'Salvar Alterações'}

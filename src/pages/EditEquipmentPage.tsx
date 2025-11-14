@@ -229,9 +229,9 @@ const EditEquipmentPage = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Editar Equipamento" />
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         {loadingData ? (
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />
@@ -248,7 +248,7 @@ const EditEquipmentPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full p-3 bg-accent-cyan text-white font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Salvando...' : 'Salvar Alterações'}
             </button>

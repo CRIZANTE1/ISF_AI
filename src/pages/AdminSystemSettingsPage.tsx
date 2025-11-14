@@ -164,16 +164,16 @@ const AdminSystemSettingsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <RefreshCw className="animate-spin text-accent-cyan" size={32} />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
+        <RefreshCw className="animate-spin text-white" size={32} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Configurações do Sistema" />
-      <main className="p-4">
+      <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Alerts */}
           {error && (
@@ -192,7 +192,7 @@ const AdminSystemSettingsPage = () => {
           {/* Modo de Manutenção */}
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
-              <Server size={24} className="text-accent-cyan" />
+              <Server size={24} className="text-white" />
               <h2 className="text-xl font-bold">Modo de Manutenção</h2>
             </div>
             <div className="space-y-4">
@@ -224,7 +224,7 @@ const AdminSystemSettingsPage = () => {
           {/* Limites do Sistema */}
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
-              <Database size={24} className="text-accent-cyan" />
+              <Database size={24} className="text-white" />
               <h2 className="text-xl font-bold">Limites do Sistema</h2>
             </div>
             <div className="space-y-4">
@@ -238,7 +238,7 @@ const AdminSystemSettingsPage = () => {
                   max="1000"
                   value={settings.max_equipment_per_user}
                   onChange={(e) => setSettings({ ...settings, max_equipment_per_user: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div>
@@ -251,7 +251,7 @@ const AdminSystemSettingsPage = () => {
                   max="1000"
                   value={settings.max_inspections_per_day}
                   onChange={(e) => setSettings({ ...settings, max_inspections_per_day: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div>
@@ -264,7 +264,7 @@ const AdminSystemSettingsPage = () => {
                   max="365"
                   value={settings.trial_duration_days}
                   onChange={(e) => setSettings({ ...settings, trial_duration_days: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div>
@@ -277,7 +277,7 @@ const AdminSystemSettingsPage = () => {
                   step="0.01"
                   value={settings.premium_price}
                   onChange={(e) => setSettings({ ...settings, premium_price: parseFloat(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
             </div>
@@ -286,7 +286,7 @@ const AdminSystemSettingsPage = () => {
           {/* Configurações de Notificações */}
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
-              <Bell size={24} className="text-accent-cyan" />
+              <Bell size={24} className="text-white" />
               <h2 className="text-xl font-bold">Notificações</h2>
             </div>
             <div className="space-y-4">
@@ -308,7 +308,7 @@ const AdminSystemSettingsPage = () => {
                     settings.email_notifications_enabled ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                   <span className={`absolute inset-0 rounded-full transition-colors ${
-                    settings.email_notifications_enabled ? 'bg-accent-cyan' : 'bg-gray-300'
+                    settings.email_notifications_enabled ? 'bg-white' : 'bg-gray-300'
                   }`} />
                 </label>
               </div>
@@ -318,7 +318,7 @@ const AdminSystemSettingsPage = () => {
           {/* Configurações de Backup */}
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
-              <Database size={24} className="text-accent-cyan" />
+              <Database size={24} className="text-white" />
               <h2 className="text-xl font-bold">Backup e Recuperação</h2>
             </div>
             <div className="space-y-4">
@@ -340,7 +340,7 @@ const AdminSystemSettingsPage = () => {
                     settings.backup_enabled ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                   <span className={`absolute inset-0 rounded-full transition-colors ${
-                    settings.backup_enabled ? 'bg-accent-cyan' : 'bg-gray-300'
+                    settings.backup_enabled ? 'bg-white' : 'bg-gray-300'
                   }`} />
                 </label>
               </div>
@@ -355,7 +355,7 @@ const AdminSystemSettingsPage = () => {
                     max="30"
                     value={settings.backup_frequency_days}
                     onChange={(e) => setSettings({ ...settings, backup_frequency_days: parseInt(e.target.value) })}
-                    className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                    className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   />
                 </div>
               )}
@@ -365,7 +365,7 @@ const AdminSystemSettingsPage = () => {
           {/* Configurações de Segurança */}
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
-              <Shield size={24} className="text-accent-cyan" />
+              <Shield size={24} className="text-white" />
               <h2 className="text-xl font-bold">Segurança</h2>
             </div>
             <div className="space-y-4">
@@ -379,7 +379,7 @@ const AdminSystemSettingsPage = () => {
                   max="1440"
                   value={settings.session_timeout_minutes}
                   onChange={(e) => setSettings({ ...settings, session_timeout_minutes: parseInt(e.target.value) })}
-                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="w-full p-3 bg-light-background dark:bg-dark-background border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -400,7 +400,7 @@ const AdminSystemSettingsPage = () => {
                     settings.require_email_verification ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                   <span className={`absolute inset-0 rounded-full transition-colors ${
-                    settings.require_email_verification ? 'bg-accent-cyan' : 'bg-gray-300'
+                    settings.require_email_verification ? 'bg-white' : 'bg-gray-300'
                   }`} />
                 </label>
               </div>
@@ -422,7 +422,7 @@ const AdminSystemSettingsPage = () => {
                     settings.allow_new_registrations ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                   <span className={`absolute inset-0 rounded-full transition-colors ${
-                    settings.allow_new_registrations ? 'bg-accent-cyan' : 'bg-gray-300'
+                    settings.allow_new_registrations ? 'bg-white' : 'bg-gray-300'
                   }`} />
                 </label>
               </div>
@@ -434,7 +434,7 @@ const AdminSystemSettingsPage = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 p-4 bg-accent-cyan text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 p-4 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={20} />
               {saving ? 'Salvando...' : 'Salvar Configurações'}

@@ -226,9 +226,9 @@ const History = () => {
   }, {} as Record<string, InspectionHistory[]>);
 
   return (
-    <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: 'transparent', color: 'var(--foreground)' }}>
+    <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: '#000000', color: '#FFFFFF' }}>
       <PageHeader title="Histórico de Inspeções" />
-      <main className="p-ios-4 pb-32 relative" style={{ backgroundColor: 'transparent' }}>
+      <main className="p-ios-4 pb-32 relative" style={{ backgroundColor: '#000000' }}>
         {/* Filtros */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

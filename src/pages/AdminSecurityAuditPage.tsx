@@ -293,14 +293,14 @@ const AdminSecurityAuditPage = () => {
   const showTableWarning = false; // Tables are created, even if empty
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Segurança e Auditoria" />
-      <main className="p-4">
+      <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Loading State */}
           {loading && (
             <div className="flex items-center justify-center p-8">
-              <RefreshCw className="animate-spin text-accent-cyan" size={32} />
+              <RefreshCw className="animate-spin text-white" size={32} />
               <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">Carregando...</span>
             </div>
           )}
@@ -380,7 +380,7 @@ const AdminSecurityAuditPage = () => {
             </div>
             <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Activity size={20} className="text-accent-cyan" />
+                <Activity size={20} className="text-white" />
                 <span className="text-sm font-medium">Logins Hoje</span>
               </div>
               <p className="text-2xl font-bold">
@@ -402,7 +402,7 @@ const AdminSecurityAuditPage = () => {
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold flex items-center gap-2">
-                <Activity size={20} className="text-accent-cyan" />
+                <Activity size={20} className="text-white" />
                 Relatórios de Segurança
               </h3>
               <button
@@ -474,7 +474,7 @@ const AdminSecurityAuditPage = () => {
                 onClick={() => setActiveTab('security')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'security'
-                    ? 'text-accent-cyan border-b border-accent-cyan/30'
+                    ? 'text-white border-b border-white/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -485,7 +485,7 @@ const AdminSecurityAuditPage = () => {
                 onClick={() => setActiveTab('access')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'access'
-                    ? 'text-accent-cyan border-b border-accent-cyan/30'
+                    ? 'text-white border-b border-white/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -496,7 +496,7 @@ const AdminSecurityAuditPage = () => {
                 onClick={() => setActiveTab('audit')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'audit'
-                    ? 'text-accent-cyan border-b border-accent-cyan/30'
+                    ? 'text-white border-b border-white/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -515,7 +515,7 @@ const AdminSecurityAuditPage = () => {
                 placeholder="Pesquisar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
               />
             </div>
             {activeTab === 'security' && (
@@ -523,7 +523,7 @@ const AdminSecurityAuditPage = () => {
                 <select
                   value={filterSeverity}
                   onChange={(e) => setFilterSeverity(e.target.value)}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <option value="all">Todas as Severidades</option>
                   <option value="critical">Crítico</option>
@@ -534,7 +534,7 @@ const AdminSecurityAuditPage = () => {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
                   <option value="all">Todos os Tipos</option>
                   <option value="failed_login">Login Falho</option>
@@ -548,14 +548,14 @@ const AdminSecurityAuditPage = () => {
                 type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 placeholder="Data Início"
               />
               <input
                 type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 placeholder="Data Fim"
               />
             </div>
@@ -582,7 +582,7 @@ const AdminSecurityAuditPage = () => {
             <div className="space-y-2">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <RefreshCw className="animate-spin text-accent-cyan" size={32} />
+                  <RefreshCw className="animate-spin text-white" size={32} />
                 </div>
               ) : filteredSecurityEvents.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
@@ -656,7 +656,7 @@ const AdminSecurityAuditPage = () => {
             <div className="space-y-2">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <RefreshCw className="animate-spin text-accent-cyan" size={32} />
+                  <RefreshCw className="animate-spin text-white" size={32} />
                 </div>
               ) : accessLogs.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
@@ -704,7 +704,7 @@ const AdminSecurityAuditPage = () => {
             <div className="space-y-2">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <RefreshCw className="animate-spin text-accent-cyan" size={32} />
+                  <RefreshCw className="animate-spin text-white" size={32} />
                 </div>
               ) : actionLogs.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">

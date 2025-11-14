@@ -240,10 +240,10 @@ const EquipmentMap = () => {
   }
 
   return (
-    <main className="min-h-screen pb-32 bg-light-background dark:bg-dark-background">
-      <div className="h-screen flex flex-col">
+    <main className="min-h-screen pb-32" style={{ backgroundColor: '#000000' }}>
+      <div className="h-screen flex flex-col" style={{ backgroundColor: '#000000' }}>
         {/* Header compacto para mobile */}
-        <div className="px-4 py-3 bg-light-background dark:bg-dark-background border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-3 border-b" style={{ backgroundColor: '#000000', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
           <h1 className="text-xl font-bold text-foreground">
             Mapa dos Equipamentos
           </h1>

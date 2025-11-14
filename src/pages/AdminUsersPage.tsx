@@ -195,16 +195,16 @@ const AdminUsersPage = () => {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Gestão de Usuários" />
-      <main className="p-4">
+      <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-6xl mx-auto">
           {/* Estatísticas */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <Users size={20} className="text-accent-cyan" />
+                  <Users size={20} className="text-white" />
                   <span className="text-sm font-medium">Total</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.total}</p>
@@ -247,7 +247,7 @@ const AdminUsersPage = () => {
                 onClick={() => setActiveTab('users')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'users'
-                    ? 'text-accent-cyan border-b border-accent-cyan/30'
+                    ? 'text-white border-b border-white/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -258,7 +258,7 @@ const AdminUsersPage = () => {
                 onClick={() => setActiveTab('action-logs')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'action-logs'
-                    ? 'text-accent-cyan border-b border-accent-cyan/30'
+                    ? 'text-white border-b border-white/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -269,7 +269,7 @@ const AdminUsersPage = () => {
                 onClick={() => setActiveTab('access-logs')}
                 className={`px-4 py-2 font-medium transition-colors ${
                   activeTab === 'access-logs'
-                    ? 'text-accent-cyan border-b border-accent-cyan/30'
+                    ? 'text-white border-b border-white/30'
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
                 }`}
               >
@@ -291,7 +291,7 @@ const AdminUsersPage = () => {
                     placeholder="Pesquisar por email ou nome..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-accent-cyan focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                    className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                   />
                 </div>
                 <button
@@ -307,7 +307,7 @@ const AdminUsersPage = () => {
                 {filteredUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors cursor-pointer" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors cursor-pointer" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                     onClick={() => {
                       setSelectedUser(user);
                       setShowUserModal(true);
@@ -315,7 +315,7 @@ const AdminUsersPage = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-accent-cyan/20 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                           <Users size={20} color="#00C8FF" />
                         </div>
                         <div>
@@ -330,7 +330,7 @@ const AdminUsersPage = () => {
                           </span>
                         )}
                         {user.profile?.plan === 'premium' ? (
-                          <span className="px-2 py-1 bg-accent-cyan/20 text-accent-cyan rounded-full text-xs font-semibold">
+                          <span className="px-2 py-1 bg-white/20 text-white rounded-full text-xs font-semibold">
                             Premium
                           </span>
                         ) : (
@@ -529,7 +529,7 @@ const AdminUsersPage = () => {
                         disabled={selectedUser.profile?.plan === 'premium'}
                         className={`px-4 py-2 rounded-lg border transition-colors ${
                           selectedUser.profile?.plan === 'premium'
-                            ? 'bg-accent-cyan/20 border-accent-cyan/30 text-accent-cyan'
+                            ? 'bg-white/20 border-white/30 text-white'
                             : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >

@@ -527,11 +527,11 @@ const EquipmentDetailPage = () => {
   const modalMessage = `Você tem certeza que deseja excluir este item? Esta ação é irreversível e todos os dados associados serão perdidos.`;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title={loading ? 'Carregando...' : equipment?.name ?? 'Detalhes'}>
         {!loading && equipment && (
           <div className="flex items-center gap-2">
-            <Link to={`/equipment/${type}/${id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors">
+            <Link to={`/equipment/${type}/${id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-white transition-colors">
               <Edit size={20} />
             </Link>
             <button onClick={() => handleDeleteClick('equipment', id)} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors">
@@ -540,7 +540,7 @@ const EquipmentDetailPage = () => {
           </div>
         )}
       </PageHeader>
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         {loading && <Skeleton className="h-48 w-full" />}
         {error && (
           <div className="mb-4">
@@ -579,7 +579,7 @@ const EquipmentDetailPage = () => {
             <div className="mb-6">
               <Link
                 to={`/equipment/${type}/${id}/inspections/new`}
-                className="w-full text-center block p-3 bg-accent-cyan text-white font-bold rounded-lg hover:bg-accent-cyan hover:opacity-90 transition-colors"
+                className="w-full text-center block p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Registrar Nova Inspeção
               </Link>
@@ -606,7 +606,7 @@ const EquipmentDetailPage = () => {
                           </p>
                         )}
                         {insp.link_foto_nao_conformidade && (
-                          <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-accent-cyan mt-1 block">
+                          <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-white mt-1 block">
                             Ver foto de evidência
                           </a>
                         )}

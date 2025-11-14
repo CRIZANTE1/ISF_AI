@@ -55,7 +55,7 @@ const EquipmentListPage = () => {
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title={equipmentTypeName} />
-      <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
+      <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
         {type && <InstructionsPanel equipmentType={type} />}
         {loading && (
           <div className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
@@ -80,7 +80,7 @@ const EquipmentListPage = () => {
               
               return (
                 <li key={itemId} className="relative" style={{ zIndex: 10, position: 'relative' }}>
-                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-accent-cyan/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                     <div>
                       <p className="font-semibold" style={{ color: '#FFFFFF' }}>{itemId}</p>
                       {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>{location}</p>}

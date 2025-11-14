@@ -218,9 +218,9 @@ export default function SupabaseConfigChecker() {
         )}
 
         {configStatus.connectionTest === 'testing' && (
-          <div className="p-4 bg-blue-500/20 border border-blue-500/50 rounded text-blue-300 text-xs">
+          <div className="p-4 bg-white/10 border border-white/20 rounded text-white text-xs">
             <p>⏳ Testando conexão com o Supabase... Isso pode levar alguns segundos.</p>
-            <p className="mt-2 text-blue-400/80">Se demorar mais de 10 segundos, verifique sua conexão com a internet.</p>
+            <p className="mt-2 text-white/80">Se demorar mais de 10 segundos, verifique sua conexão com a internet.</p>
           </div>
         )}
 

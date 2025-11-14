@@ -125,9 +125,9 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Configurações" />
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-md mx-auto space-y-6">
           {/* Preferências de Aparência */}
           <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
@@ -155,7 +155,7 @@ const SettingsPage = () => {
                 <button
                   onClick={toggleDarkMode}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    darkMode ? 'bg-accent-cyan' : 'bg-gray-300'
+                    darkMode ? 'bg-white' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -188,7 +188,7 @@ const SettingsPage = () => {
                   onClick={toggleNotifications}
                   disabled={!isSupported || notificationsLoading}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notifications ? 'bg-accent-cyan' : 'bg-gray-300'
+                    notifications ? 'bg-white' : 'bg-gray-300'
                   } ${(!isSupported || notificationsLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <span

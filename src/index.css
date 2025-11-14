@@ -147,10 +147,10 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-/* Botão estilo Apple Fitness */
+/* Botão estilo Apple Fitness - Preto/Branco/Cinza */
 .apple-button {
-  background: var(--fitness-stand);
-  color: #FFFFFF;
+  background: #FFFFFF;
+  color: #000000;
   border-radius: 24px;
   padding: 12px 24px;
   font-weight: 600;
@@ -158,18 +158,64 @@ body {
   border: none;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(21, 126, 251, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
 }
 
 .apple-button:hover {
-  background: #0066CC;
-  box-shadow: 0 4px 12px rgba(21, 126, 251, 0.4);
+  background: #E5E5EA;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
 .apple-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(21, 126, 251, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+
+/* Botão secundário (cinza claro) */
+.apple-button-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.apple-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.apple-button-secondary:active {
+  transform: translateY(0);
+}
+
+/* Botão terciário (preto com borda branca) */
+.apple-button-tertiary {
+  background: #000000;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.apple-button-tertiary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.apple-button-tertiary:active {
+  transform: translateY(0);
 }
 
 /* Ícones minimalistas */
@@ -183,9 +229,9 @@ svg {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Seleção de texto estilo Apple Fitness */
+/* Seleção de texto estilo Apple Fitness - Cinza claro */
 ::selection {
-  background-color: var(--fitness-stand);
+  background-color: rgba(255, 255, 255, 0.3);
   color: #FFFFFF;
 }
 
@@ -253,12 +299,12 @@ svg {
 }
 
 .instructions-content a {
-  color: var(--fitness-stand);
+  color: #FFFFFF;
   text-decoration: underline;
 }
 
 .instructions-content blockquote {
-  border-left: 3px solid var(--fitness-stand);
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
   padding-left: 12px;
   margin: 12px 0;
   color: #8E8E93;
@@ -374,19 +420,19 @@ svg {
   --card-foreground: #fafafa;
   --popover: #09090b;
   --popover-foreground: #fafafa;
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
   --secondary: #27272a;
   --secondary-foreground: #fafafa;
   --muted: #18181b;
   --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #27272a;
   --input: #27272a;
-  --ring: #3b82f6;
+  --ring: rgba(255, 255, 255, 0.3);
   --chart-1: #265dd9;
   --chart-2: #2eaf80;
   --chart-3: #f28526;
