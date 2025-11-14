@@ -167,7 +167,8 @@ const AnimatedBoxes = () => {
     );
 };
 
-export const Scene = () => {
+// Memoizar o componente Scene para evitar re-renderizações desnecessárias
+export const Scene = React.memo(() => {
     const [cameraPosition] = React.useState<[number, number, number]>([5, 5, 20]);
 
     return (
@@ -188,5 +189,7 @@ export const Scene = () => {
             </Canvas>
         </div>
     );
-};
+});
+
+Scene.displayName = 'Scene';
 

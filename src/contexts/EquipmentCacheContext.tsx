@@ -34,8 +34,8 @@ interface EquipmentCacheContextType {
 
 const EquipmentCacheContext = createContext<EquipmentCacheContextType | undefined>(undefined);
 
-// Tempo de cache: 30 segundos (pode ser ajustado)
-const CACHE_DURATION = 30 * 1000;
+// Tempo de cache: 5 minutos (otimizado para Android - reduz requisições)
+const CACHE_DURATION = 5 * 60 * 1000;
 
 export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -149,12 +149,17 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
     ];
   }, [cache]);
 
-  // Carregar cache quando o usuário estiver disponível
+  // Carregar cache quando o usuário estiver disponível (otimizado)
   useEffect(() => {
     if (user) {
       // Se o cache está vazio ou está obsoleto, buscar dados
-      if (isStale()) {
-        refreshCache();
+      // Usa setTimeout para não bloquear a renderização inicial
+      if (isStale() && !isFetchingRef.current) {
+        // Delay pequeno para não bloquear a UI inicial
+        const timer = setTimeout(() => {
+          refreshCache();
+        }, 100);
+        return () => clearTimeout(timer);
       }
     } else {
       // Limpar cache quando o usuário sair

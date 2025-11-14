@@ -62,46 +62,17 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
             }
           }
 
-          // Tenta obter localização com alta precisão, múltiplas tentativas
-          let bestPosition: any = null;
-          let bestAccuracy = Infinity;
-          
-          // Tenta 3 vezes e pega a mais precisa
-          for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-              const position = await Geolocation.getCurrentPosition({
-                enableHighAccuracy: true,
-                timeout: 20000, // 20 segundos por tentativa
-                maximumAge: 0, // Sempre buscar nova localização
-              });
+          // Obtém localização com alta precisão (otimizado para Android)
+          const position = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 15000, // 15 segundos (reduzido para não bloquear)
+            maximumAge: 5000, // Aceita localização com até 5 segundos (melhora performance)
+          });
 
-              // Se tiver informação de precisão, usa a mais precisa
-              const accuracy = position.coords.accuracy || Infinity;
-              if (accuracy < bestAccuracy) {
-                bestPosition = position;
-                bestAccuracy = accuracy;
-              }
-
-              // Se a precisão for muito boa (menos de 10 metros), aceita imediatamente
-              if (accuracy < 10) {
-                break;
-              }
-
-              // Aguarda um pouco antes da próxima tentativa
-              if (attempt < 2) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            } catch (err) {
-              console.warn(`Tentativa ${attempt + 1} falhou:`, err);
-            }
-          }
-
-          if (bestPosition) {
-            return {
-              latitude: bestPosition.coords.latitude,
-              longitude: bestPosition.coords.longitude,
-            };
-          }
+          return {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
         }
       } catch (error: any) {
         console.error('Erro ao obter localização via Capacitor:', error);
@@ -109,73 +80,28 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
       }
     }
 
-    // Fallback para web API (navegador)
+    // Fallback para web API (navegador) - otimizado
     if (navigator.geolocation) {
       return new Promise((resolve) => {
-        let bestPosition: GeolocationPosition | null = null;
-        let bestAccuracy = Infinity;
-        let attempts = 0;
-        const maxAttempts = 3;
-
-        const tryGetPosition = () => {
-          const options: PositionOptions = {
-            enableHighAccuracy: true,
-            timeout: 20000, // 20 segundos por tentativa
-            maximumAge: 0, // Sempre buscar nova localização, sem cache
-          };
-
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const accuracy = position.coords.accuracy || Infinity;
-              
-              // Se esta posição for mais precisa, guarda
-              if (accuracy < bestAccuracy) {
-                bestPosition = position;
-                bestAccuracy = accuracy;
-              }
-
-              attempts++;
-              
-              // Se a precisão for muito boa (menos de 10 metros) ou já tentou 3 vezes, resolve
-              if (accuracy < 10 || attempts >= maxAttempts) {
-                if (bestPosition) {
-                  resolve({
-                    latitude: bestPosition.coords.latitude,
-                    longitude: bestPosition.coords.longitude,
-                  });
-                } else {
-                  resolve({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                  });
-                }
-              } else {
-                // Tenta novamente após 1 segundo
-                setTimeout(tryGetPosition, 1000);
-              }
-            },
-            (error) => {
-              attempts++;
-              if (attempts >= maxAttempts) {
-                if (bestPosition) {
-                  resolve({
-                    latitude: bestPosition.coords.latitude,
-                    longitude: bestPosition.coords.longitude,
-                  });
-                } else {
-                  console.error('Erro ao obter localização:', error);
-                  resolve(null);
-                }
-              } else {
-                // Tenta novamente após 1 segundo
-                setTimeout(tryGetPosition, 1000);
-              }
-            },
-            options
-          );
+        const options: PositionOptions = {
+          enableHighAccuracy: true,
+          timeout: 15000, // 15 segundos (reduzido)
+          maximumAge: 5000, // Aceita localização com até 5 segundos (melhora performance)
         };
 
-        tryGetPosition();
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.error('Erro ao obter localização:', error);
+            resolve(null);
+          },
+          options
+        );
       });
     }
 

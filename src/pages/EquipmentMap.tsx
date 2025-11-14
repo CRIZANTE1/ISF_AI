@@ -118,20 +118,29 @@ const EquipmentMap = () => {
     const loadEquipment = async () => {
       setLoading(true);
       try {
-        // Carregar localização do usuário
-        const location = await getCurrentLocation();
-        if (location) {
-          setUserLocation(location);
-        }
+        // Carregar localização do usuário de forma assíncrona (não bloqueia)
+        getCurrentLocation().then(location => {
+          if (location) {
+            setUserLocation(location);
+          }
+        }).catch(err => {
+          console.warn('Erro ao obter localização do usuário:', err);
+        });
 
+        // Processar equipamentos de forma otimizada
         const allEquipment = getAllEquipment();
         const equipmentMarkers: EquipmentMarker[] = [];
 
-        // Processar extintores
+        // Processar apenas extintores com localização (otimizado)
         const extinguishers = allEquipment.filter((eq: any) => 
           eq.latitude && eq.longitude && eq.numero_identificacao
         );
-        extinguishers.forEach((ext: any) => {
+        
+        // Limitar processamento para não travar
+        const maxItems = 1000; // Limite de segurança
+        const limitedExtinguishers = extinguishers.slice(0, maxItems);
+        
+        limitedExtinguishers.forEach((ext: any) => {
           equipmentMarkers.push({
             id: ext.numero_identificacao,
             type: 'extintor',
@@ -142,9 +151,6 @@ const EquipmentMap = () => {
             status: ext.aprovado_inspecao || 'N/A',
           });
         });
-
-        // Processar outros tipos de equipamentos que podem ter coordenadas nas inspeções
-        // Por enquanto, vamos focar nos extintores que já têm lat/long na tabela principal
         
         setMarkers(equipmentMarkers);
       } catch (error) {
