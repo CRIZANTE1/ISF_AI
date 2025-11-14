@@ -2,8 +2,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { getCurrentLocation } from '../hooks/useGeolocation';
 import PageHeader from '../components/PageHeader';
+import AnimatedFormField from '../components/AnimatedFormField';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
 import EyewashChecklist from '../components/checklists/EyewashChecklist';
@@ -585,9 +587,23 @@ const AddInspectionPage = () => {
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title="Registrar Inspeção" />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
-        {type && <InstructionsPanel equipmentType={type} />}
+        {type && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <InstructionsPanel equipmentType={type} />
+          </motion.div>
+        )}
         {equipment && (
-          <div className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(28, 28, 30, 0.9)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}>
+          <motion.div 
+            className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg relative" 
+            style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(28, 28, 30, 0.9)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+          >
             <p className="font-semibold text-sm text-white">{equipment.name}</p>
             <p className="text-xs text-[#8E8E93]">
               {equipment.location || equipment.localizacao || 'Sem localização'}
@@ -597,18 +613,33 @@ const AddInspectionPage = () => {
                 Modelo: {equipment.model}
               </p>
             )}
-          </div>
+          </motion.div>
         )}
 
-        {error && <p className="mb-4 text-center text-status-error">{error}</p>}
+        {error && (
+          <motion.p 
+            className="mb-4 text-center text-status-error"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            {error}
+          </motion.p>
+        )}
 
         {/* Indicador de geolocalização */}
         {['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') && (
-          <div className="mb-4 p-3 rounded-lg border" style={{ 
+          <motion.div 
+            className="mb-4 p-3 rounded-lg border" 
+            style={{ 
             backgroundColor: latitude && longitude ? 'rgba(83, 215, 105, 0.1)' : 'rgba(252, 61, 57, 0.1)',
             borderColor: latitude && longitude ? 'rgba(83, 215, 105, 0.3)' : 'rgba(252, 61, 57, 0.3)',
             borderWidth: '1px'
-          }}>
+          }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          >
             {latitude && longitude ? (
               <p className="text-sm flex items-center gap-2" style={{ color: '#53D769' }}>
                 <span>✓</span>
@@ -625,11 +656,18 @@ const AddInspectionPage = () => {
                 <span>Capturando localização...</span>
               </p>
             )}
-          </div>
+          </motion.div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="relative" style={{ zIndex: 10, position: 'relative' }}>
-          <div className="mb-4">
+        <motion.form 
+          onSubmit={handleSubmit(onSubmit)} 
+          className="relative" 
+          style={{ zIndex: 10, position: 'relative' }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <AnimatedFormField delay={0.25} className="mb-4">
             <label htmlFor="data_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
               Data da Inspeção *
             </label>
@@ -642,11 +680,11 @@ const AddInspectionPage = () => {
             {errors.data_inspecao && (
               <p className="text-sm text-status-error mt-1">{errors.data_inspecao.message}</p>
             )}
-          </div>
+          </AnimatedFormField>
 
           {type === 'extintor' && (
             <>
-              <div className="mb-4">
+              <AnimatedFormField delay={0.3} className="mb-4">
                 <label htmlFor="tipo_servico" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Tipo de Serviço *
                 </label>
@@ -667,9 +705,9 @@ const AddInspectionPage = () => {
                     </select>
                   )}
                 />
-              </div>
+              </AnimatedFormField>
 
-              <div className="mb-4">
+              <AnimatedFormField delay={0.35} className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Aprovado na Inspeção? *
                 </label>
@@ -700,9 +738,9 @@ const AddInspectionPage = () => {
                     </div>
                   )}
                 />
-              </div>
+              </AnimatedFormField>
 
-              <div className="mb-4">
+              <AnimatedFormField delay={0.4} className="mb-4">
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Observações Gerais
                 </label>
@@ -713,29 +751,41 @@ const AddInspectionPage = () => {
                   placeholder="Descreva problemas encontrados, se houver..."
                   className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                 />
-              </div>
+              </AnimatedFormField>
 
               {planAction && (
-                <div className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+                <motion.div 
+                  className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" 
+                  style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
                   </p>
-                </div>
+                </motion.div>
               )}
 
               {aprovado === 'Não' && (
-                <PhotoUpload
-                  value={photoFile}
-                  onChange={setPhotoFile}
-                  label="Foto de Não Conformidade"
-                />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.45 }}
+                >
+                  <PhotoUpload
+                    value={photoFile}
+                    onChange={setPhotoFile}
+                    label="Foto de Não Conformidade"
+                  />
+                </motion.div>
               )}
             </>
           )}
 
           {type === 'camara_espuma' && (
-            <div className="mb-4">
+            <AnimatedFormField delay={0.3} className="mb-4">
               <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
                 Tipo de Inspeção *
               </label>
@@ -759,11 +809,11 @@ const AddInspectionPage = () => {
                   <span style={{ color: '#FFFFFF' }}>Funcional Anual</span>
                 </label>
               </div>
-            </div>
+            </AnimatedFormField>
           )}
 
           {type === 'canhao_monitor' && (
-            <div className="mb-4">
+            <AnimatedFormField delay={0.3} className="mb-4">
               <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
                 Tipo de Inspeção *
               </label>
@@ -787,12 +837,12 @@ const AddInspectionPage = () => {
                   <span style={{ color: '#FFFFFF' }}>Funcional</span>
                 </label>
               </div>
-            </div>
+            </AnimatedFormField>
           )}
 
           {isMultigasEquipment && equipment && (
             <>
-              <div className="mb-4">
+              <AnimatedFormField delay={0.3} className="mb-4">
                 <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
                   Tipo de Teste *
                 </label>
@@ -818,9 +868,9 @@ const AddInspectionPage = () => {
                     <span style={{ color: '#FFFFFF' }}>Extraordinário</span>
                   </label>
                 </div>
-              </div>
+              </AnimatedFormField>
 
-              <div className="mb-4">
+              <AnimatedFormField delay={0.35} className="mb-4">
                 <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
                   Hora do Teste
                 </label>
@@ -828,11 +878,17 @@ const AddInspectionPage = () => {
                   type="time"
                   value={multigasTestTime}
                   onChange={(e) => setMultigasTestTime(e.target.value)}
-                  className="w-full p-3 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
+                  className="w-full p-3 rounded-lg relative"                   style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                 />
-              </div>
+              </AnimatedFormField>
 
-              <div className="mb-4 p-4 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+              <motion.div 
+                className="mb-4 p-4 rounded-lg relative" 
+                style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium" style={{ color: '#B0B0B0' }}>
                     Valores de Referência do Cilindro
@@ -888,9 +944,15 @@ const AddInspectionPage = () => {
                     />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="mb-4 p-4 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+              <motion.div 
+                className="mb-4 p-4 rounded-lg relative" 
+                style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.45 }}
+              >
                 <label className="block text-sm font-medium mb-3" style={{ color: '#B0B0B0' }}>
                   Valores Encontrados no Teste
                 </label>
@@ -936,9 +998,9 @@ const AddInspectionPage = () => {
                     />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="mb-4">
+              <AnimatedFormField delay={0.5} className="mb-4">
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#B0B0B0' }}>
                   Observações Adicionais
                 </label>
@@ -949,13 +1011,13 @@ const AddInspectionPage = () => {
                   placeholder="Observações complementares sobre o teste..."
                   className="w-full p-3 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                 />
-              </div>
+              </AnimatedFormField>
             </>
           )}
 
           {isSimpleSafetyEquipment && (
             <>
-              <div className="mb-4">
+              <AnimatedFormField delay={0.3} className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Status da Inspeção *
                 </label>
@@ -986,9 +1048,9 @@ const AddInspectionPage = () => {
                     </div>
                   )}
                 />
-              </div>
+              </AnimatedFormField>
 
-              <div className="mb-4">
+              <AnimatedFormField delay={0.35} className="mb-4">
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   Observações Gerais
                 </label>
@@ -999,20 +1061,32 @@ const AddInspectionPage = () => {
                   placeholder="Descreva problemas encontrados, se houver..."
                   className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                 />
-              </div>
+              </AnimatedFormField>
 
               {aprovado === 'Reprovado' && (
-                <PhotoUpload
-                  value={photoFile}
-                  onChange={setPhotoFile}
-                  label="Foto de Não Conformidade"
-                />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.45 }}
+                >
+                  <PhotoUpload
+                    value={photoFile}
+                    onChange={setPhotoFile}
+                    label="Foto de Não Conformidade"
+                  />
+                </motion.div>
               )}
             </>
           )}
 
           {hasChecklist && (
-            <div className="mb-6 relative" style={{ zIndex: 10, position: 'relative' }}>
+            <motion.div 
+              className="mb-6 relative" 
+              style={{ zIndex: 10, position: 'relative' }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.45 }}
+            >
               <h3 className="text-lg font-semibold mb-4 text-light-text-primary dark:text-dark-text-primary" style={{ color: '#FFFFFF' }}>
                 Checklist de Inspeção
               </h3>
@@ -1063,30 +1137,51 @@ const AddInspectionPage = () => {
               )}
 
               {planAction && (
-                <div className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+                <motion.div 
+                  className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" 
+                  style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
                   </p>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {requiresPhoto && (
-            <div className="mb-4">
+            <motion.div 
+              className="mb-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.45 }}
+            >
               {nonConformities.length > 0 ? (
-                <div className="mb-2 p-3 bg-status-warning/20 text-status-warning rounded-lg">
+                <motion.div 
+                  className="mb-2 p-3 bg-status-warning/20 text-status-warning rounded-lg"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <p className="text-sm font-semibold">
                     {nonConformities.length} não conformidade(s) encontrada(s). Foto obrigatória.
                   </p>
-                </div>
+                </motion.div>
               ) : type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual' ? (
-                <div className="mb-2 p-3 bg-light-background dark:bg-dark-background rounded-lg">
+                <motion.div 
+                  className="mb-2 p-3 bg-light-background dark:bg-dark-background rounded-lg"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <p className="text-sm">
                     Para Testes Funcionais Anuais, anexe uma foto do equipamento durante o teste.
                   </p>
-                </div>
+                </motion.div>
               ) : null}
               <PhotoUpload
                 value={photoFile}
@@ -1094,18 +1189,23 @@ const AddInspectionPage = () => {
                 label="Foto de Evidência"
                 required={requiresPhoto}
               />
-            </div>
+            </motion.div>
           )}
 
-          <button
+          <motion.button
             type="submit"
             disabled={loading || (requiresPhoto && !photoFile)}
             className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
             style={{ zIndex: 10, position: 'relative' }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             {loading ? 'Salvando...' : 'Salvar Inspeção'}
-          </button>
-        </form>
+          </motion.button>
+        </motion.form>
       </main>
     </div>
   );

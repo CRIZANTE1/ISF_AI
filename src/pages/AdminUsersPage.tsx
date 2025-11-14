@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
@@ -508,9 +509,28 @@ const AdminUsersPage = () => {
         </div>
 
         {/* Modal de Detalhes do Usuário */}
-        {showUserModal && selectedUser && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-light-background dark:bg-dark-background rounded-lg border max-w-md w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+        <AnimatePresence>
+          {showUserModal && selectedUser && (
+            <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowUserModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ 
+                type: 'tween', 
+                ease: [0.4, 0, 0.2, 1], 
+                duration: 0.25 
+              }}
+              className="bg-light-background dark:bg-dark-background rounded-lg border max-w-md w-full max-h-[90vh] overflow-y-auto" 
+              style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold">Detalhes do Usuário</h2>
@@ -626,9 +646,10 @@ const AdminUsersPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

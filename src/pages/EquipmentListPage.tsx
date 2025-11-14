@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
@@ -72,14 +73,25 @@ const EquipmentListPage = () => {
         )}
         {!loading && !error && equipment.length > 0 && (
           <ul className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
-            {equipment.map((item) => {
+            {equipment.map((item, index) => {
               const itemId = item.equipment_id || item.id_mangueira || item.numero_serie_equipamento || 
                            item.id_equipamento || item.id_camara || item.id_sistema || item.id_abrigo || 
                            item.numero_identificacao || String(item.id);
               const location = item.localizacao || '';
               
               return (
-                <li key={itemId} className="relative" style={{ zIndex: 10, position: 'relative' }}>
+                <motion.li 
+                  key={itemId} 
+                  className="relative" 
+                  style={{ zIndex: 10, position: 'relative' }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    delay: index * 0.03,
+                    duration: 0.3,
+                    ease: [0.4, 0, 0.2, 1]
+                  }}
+                >
                   <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                     <div>
                       <p className="font-semibold" style={{ color: '#FFFFFF' }}>{itemId}</p>
@@ -87,7 +99,7 @@ const EquipmentListPage = () => {
                     </div>
                     <ChevronRight size={20} className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }} />
                   </Link>
-                </li>
+                </motion.li>
               );
             })}
           </ul>

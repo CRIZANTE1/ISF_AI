@@ -22,9 +22,14 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isLoadi
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 20 }}
+            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{ 
+              type: 'tween', 
+              ease: [0.4, 0, 0.2, 1], 
+              duration: 0.25 
+            }}
             className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-sm m-4 p-6"
             onClick={(e) => e.stopPropagation()}
           >
