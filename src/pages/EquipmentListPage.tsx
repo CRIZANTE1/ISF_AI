@@ -55,7 +55,7 @@ const EquipmentListPage = () => {
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title={equipmentTypeName} />
-      <main className="px-ios-4 py-ios-4 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
+      <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
         {type && <InstructionsPanel equipmentType={type} />}
         {loading && (
           <div className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>

@@ -127,7 +127,7 @@ const SettingsPage = () => {
   return (
     <div className="min-h-screen">
       <PageHeader title="Configurações" />
-      <main className="p-4">
+      <main className="p-4 pb-32">
         <div className="max-w-md mx-auto space-y-6">
           {/* Preferências de Aparência */}
           <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">

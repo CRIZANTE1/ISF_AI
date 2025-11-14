@@ -8,7 +8,7 @@ const Utilities = () => {
   return (
     <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: 'transparent', color: 'var(--foreground)' }}>
       <PageHeader title="Utilitários Administrativos" />
-      <main className="p-4 relative" style={{ backgroundColor: 'transparent' }}>
+      <main className="p-4 pb-32 relative" style={{ backgroundColor: 'transparent' }}>
         <div className="max-w-md mx-auto space-y-4">
           <button
             onClick={() => navigate('/utilities/users')}

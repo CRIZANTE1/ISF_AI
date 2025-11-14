@@ -206,7 +206,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen">
       <PageHeader title="Meu Perfil" />
-      <main className="p-4 flex flex-col items-center text-center">
+      <main className="p-4 pb-32 flex flex-col items-center text-center">
       {/* Avatar e Nome */}
       <div className="relative mb-4">
         {profile?.avatar_url ? (

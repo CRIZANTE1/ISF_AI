@@ -228,7 +228,7 @@ const History = () => {
   return (
     <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: 'transparent', color: 'var(--foreground)' }}>
       <PageHeader title="Histórico de Inspeções" />
-      <main className="p-ios-4 relative" style={{ backgroundColor: 'transparent' }}>
+      <main className="p-ios-4 pb-32 relative" style={{ backgroundColor: 'transparent' }}>
         {/* Filtros */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

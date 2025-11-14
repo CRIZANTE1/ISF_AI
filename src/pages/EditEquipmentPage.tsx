@@ -231,7 +231,7 @@ const EditEquipmentPage = () => {
   return (
     <div className="min-h-screen">
       <PageHeader title="Editar Equipamento" />
-      <main className="p-4">
+      <main className="p-4 pb-32">
         {loadingData ? (
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />

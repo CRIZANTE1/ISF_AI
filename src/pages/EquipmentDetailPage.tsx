@@ -540,7 +540,7 @@ const EquipmentDetailPage = () => {
           </div>
         )}
       </PageHeader>
-      <main className="p-4">
+      <main className="p-4 pb-32">
         {loading && <Skeleton className="h-48 w-full" />}
         {error && (
           <div className="mb-4">

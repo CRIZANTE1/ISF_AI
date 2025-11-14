@@ -161,7 +161,7 @@ const AddEquipmentPage = () => {
   return (
     <div className="min-h-screen">
       <PageHeader title={`Adicionar ${equipmentTypeName}`} />
-      <main className="p-4">
+      <main className="p-4 pb-32">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="mb-4">
             <label htmlFor={idField.name} className="block text-sm font-medium mb-1">{idField.label}</label>

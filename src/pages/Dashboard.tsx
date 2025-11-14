@@ -63,7 +63,7 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300 relative" style={{ backgroundColor: 'transparent' }}>
       <DashboardHeader />
-      <main className="px-ios-4 flex-grow py-ios-4 relative" style={{ backgroundColor: 'transparent' }}>
+      <main className="px-ios-4 flex-grow py-ios-4 pb-32 relative" style={{ backgroundColor: 'transparent' }}>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

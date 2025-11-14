@@ -73,7 +73,7 @@ const MyDataPage = () => {
   return (
     <div className="min-h-screen">
       <PageHeader title="Meus Dados" />
-      <main className="p-4">
+      <main className="p-4 pb-32">
         <form onSubmit={handleSubmit(handleUpdateProfile)} className="max-w-md mx-auto">
           <div className="mb-6">
             <label htmlFor="full_name" className="block text-sm font-medium mb-2 flex items-center gap-2">

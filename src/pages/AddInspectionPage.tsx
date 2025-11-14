@@ -541,7 +541,7 @@ const AddInspectionPage = () => {
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title="Registrar Inspeção" />
-      <main className="px-ios-4 py-ios-4 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
+      <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'transparent' }}>
         {type && <InstructionsPanel equipmentType={type} />}
         {equipment && (
           <div className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(28, 28, 30, 0.9)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}>
