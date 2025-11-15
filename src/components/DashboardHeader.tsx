@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale/pt-BR';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import LazyImage from './LazyImage';
 
 const DashboardHeader = () => {
   const { profile } = useAuth();
@@ -65,7 +66,7 @@ const DashboardHeader = () => {
             aria-label="Perfil"
           >
             {profile?.avatar_url ? (
-              <img 
+              <LazyImage 
                 src={profile.avatar_url} 
                 alt={profile.full_name || 'Avatar'} 
                 className="w-full h-full object-cover"

@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import ProgressiveImage from '../components/ProgressiveImage';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
@@ -599,9 +600,17 @@ const EquipmentDetailPage = () => {
                           </p>
                         )}
                         {insp.link_foto_nao_conformidade && (
-                          <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-white mt-1 block">
-                            Ver foto de evidência
-                          </a>
+                          <div className="mt-2">
+                            <ProgressiveImage
+                              src={insp.link_foto_nao_conformidade}
+                              alt="Foto de evidência"
+                              className="w-full h-32 object-cover rounded-lg cursor-pointer"
+                              onClick={() => window.open(insp.link_foto_nao_conformidade, '_blank')}
+                            />
+                            <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-white mt-1 block">
+                              Ver foto completa
+                            </a>
+                          </div>
                         )}
                       </div>
                       <button onClick={() => handleDeleteClick('inspection', insp.id)} className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors flex-shrink-0">

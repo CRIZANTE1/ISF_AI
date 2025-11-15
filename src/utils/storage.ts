@@ -3,23 +3,26 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { createThumbnail } from './imageCompression';
 
 /**
  * Faz upload de uma foto de evidência para o Supabase Storage
+ * Inclui upload da imagem original e thumbnail
  */
 export async function uploadEvidencePhoto(
   file: File,
   equipmentId: string,
-  folder: string
-): Promise<string | null> {
+  folder: string,
+  createThumb: boolean = true
+): Promise<{ url: string; thumbnailUrl?: string } | null> {
   try {
     // Gera um nome único para o arquivo
     const timestamp = new Date().getTime();
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split('.').pop() || 'webp';
     const fileName = `${equipmentId}_${timestamp}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
 
-    // Faz upload do arquivo
+    // Faz upload do arquivo original
     const { data, error } = await supabase.storage
       .from('evidence-photos')
       .upload(filePath, file, {
@@ -37,7 +40,38 @@ export async function uploadEvidencePhoto(
       .from('evidence-photos')
       .getPublicUrl(filePath);
 
-    return urlData.publicUrl;
+    let thumbnailUrl: string | undefined;
+
+    // Cria e faz upload do thumbnail se solicitado
+    if (createThumb && file.type.startsWith('image/')) {
+      try {
+        const thumbnailBlob = await createThumbnail(file, 200);
+        const thumbnailFileName = `${equipmentId}_${timestamp}_thumb.webp`;
+        const thumbnailPath = `${folder}/thumbnails/${thumbnailFileName}`;
+
+        const { error: thumbError } = await supabase.storage
+          .from('evidence-photos')
+          .upload(thumbnailPath, thumbnailBlob, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (!thumbError) {
+          const { data: thumbUrlData } = supabase.storage
+            .from('evidence-photos')
+            .getPublicUrl(thumbnailPath);
+          thumbnailUrl = thumbUrlData.publicUrl;
+        }
+      } catch (thumbError) {
+        console.warn('Erro ao criar thumbnail:', thumbError);
+        // Não falha o upload principal se o thumbnail falhar
+      }
+    }
+
+    return {
+      url: urlData.publicUrl,
+      thumbnailUrl,
+    };
   } catch (error) {
     console.error('Erro ao fazer upload da foto:', error);
     return null;

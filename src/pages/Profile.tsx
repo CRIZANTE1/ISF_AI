@@ -9,6 +9,8 @@ import TrialStatusBar from '../components/TrialStatusBar';
 import PageHeader from '../components/PageHeader';
 import { useForm } from 'react-hook-form';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { compressImage } from '../utils/imageCompression';
+import LazyImage from '../components/LazyImage';
 
 interface ProfileFormData {
   full_name: string;
@@ -156,14 +158,28 @@ const Profile = () => {
 
     const success = await executeWithFeedback(
       async () => {
-        // Upload da imagem para storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-        const filePath = fileName;
+        // Comprime a imagem antes do upload
+        const compressedBlob = await compressImage(file, {
+          maxWidth: 400,
+          maxHeight: 400,
+          quality: 0.85,
+          format: 'webp',
+          maxSizeMB: 1,
+        });
+
+        // Converte blob para File
+        const compressedFile = new File(
+          [compressedBlob],
+          `${user.id}_${Date.now()}.webp`,
+          { type: compressedBlob.type }
+        );
+
+        // Upload da imagem comprimida para storage
+        const filePath = compressedFile.name;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(filePath, file, {
+          .upload(filePath, compressedFile, {
             cacheControl: '3600',
             upsert: true,
           });
@@ -220,7 +236,7 @@ const Profile = () => {
       {/* Avatar e Nome */}
       <div className="relative mb-4">
         {profile?.avatar_url ? (
-          <img
+          <LazyImage
             src={profile.avatar_url}
             alt={profile.full_name || 'Avatar'}
             className="w-24 h-24 rounded-full object-cover border-2"

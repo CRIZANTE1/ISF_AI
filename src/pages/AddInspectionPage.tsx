@@ -300,7 +300,8 @@ const AddInspectionPage = () => {
           scba: 'nao_conformidade_scba',
           abrigo: 'nao_conformidade_abrigo',
         };
-        photoLink = await uploadEvidencePhoto(photoFile, id, folderMap[type] || 'nao_conformidade');
+        const uploadResult = await uploadEvidencePhoto(photoFile, id, folderMap[type] || 'nao_conformidade');
+        photoLink = uploadResult?.url || null;
       }
 
       // Determina status geral baseado nos resultados do checklist ou aprovação direta
