@@ -1,0 +1,49 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo branco -->
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+  
+  <!-- Escudo Hexagonal Vermelho -->
+  <path d="M512,76 L836,256 L836,768 L512,948 L188,768 L188,256 Z" 
+        fill="#FC3D39" 
+        stroke="#FC3D39" 
+        stroke-width="8"/>
+  
+  <!-- Design de Circuito Branco (dentro do escudo) -->
+  <!-- Linhas horizontais e verticais do circuito -->
+  <path d="M330,330 L430,330 M430,330 L480,380 M480,380 L480,480 M480,480 L430,530 M430,530 L330,530" 
+        fill="none" 
+        stroke="#FFFFFF" 
+        stroke-width="15" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <path d="M544,380 L644,380 M644,380 L694,430 M694,430 L694,530 M694,530 L644,580 M644,580 L544,580" 
+        fill="none" 
+        stroke="#FFFFFF" 
+        stroke-width="15" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <path d="M330,480 L480,480 M480,480 L544,544 M544,544 L694,544" 
+        fill="none" 
+        stroke="#FFFFFF" 
+        stroke-width="15" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <!-- Círculos do circuito (nós) -->
+  <circle cx="330" cy="330" r="25" fill="#FFFFFF"/>
+  <circle cx="480" cy="380" r="25" fill="#FFFFFF"/>
+  <circle cx="480" cy="480" r="25" fill="#FFFFFF"/>
+  <circle cx="544" cy="380" r="25" fill="#FFFFFF"/>
+  <circle cx="694" cy="430" r="25" fill="#FFFFFF"/>
+  <circle cx="694" cy="530" r="25" fill="#FFFFFF"/>
+  <circle cx="544" cy="544" r="25" fill="#FFFFFF"/>
+  
+  <!-- Chama Vermelha no Centro -->
+  <path d="M512,450 C512,450 480,490 480,530 C480,570 496,590 512,590 C528,590 544,570 544,530 C544,490 512,450 512,450 Z" 
+        fill="#FC3D39"/>
+  <path d="M512,470 C512,470 496,500 496,530 C496,550 504,560 512,560 C520,560 528,550 528,530 C528,500 512,470 512,470 Z" 
+        fill="#FF6B6B"/>
+</svg>
+

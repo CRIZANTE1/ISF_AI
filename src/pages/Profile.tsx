@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { compressImage } from '../utils/imageCompression';
 import LazyImage from '../components/LazyImage';
+import { Spinner } from '../components/ui/spinner';
 
 interface ProfileFormData {
   full_name: string;
@@ -26,7 +27,7 @@ const Profile = () => {
   const { profile, user, signOut, loading } = useAuth();
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
-  const { handleError, executeWithFeedback } = useErrorHandler();
+  const { executeWithFeedback } = useErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -47,7 +48,10 @@ const Profile = () => {
   // Busca estatísticas do usuário
   useEffect(() => {
     const fetchStats = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoadingStats(false);
+        return;
+      }
       setLoadingStats(true);
       try {
         // Usar dados do cache em vez de fazer novas chamadas
@@ -66,8 +70,14 @@ const Profile = () => {
           supabase.from('inspecoes_abrigos').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         ]);
 
-        // Somar todas as inspeções
-        const totalInspections = inspectionCounts.reduce((sum, result) => sum + (result.count || 0), 0);
+        // Somar todas as inspeções (ignorar erros nas consultas)
+        const totalInspections = inspectionCounts.reduce((sum, result) => {
+          if (result.error) {
+            console.warn('Erro ao contar inspeções:', result.error);
+            return sum;
+          }
+          return sum + (result.count || 0);
+        }, 0);
 
         // Contar alertas (equipamentos com próxima inspeção vencida)
         const today = new Date();
@@ -77,10 +87,15 @@ const Profile = () => {
         allEquipment.forEach((eq: any) => {
           const nextInspection = eq.proxima_inspecao || eq.data_proxima_inspecao || eq.data_proximo_teste;
           if (nextInspection) {
-            const inspectionDate = new Date(nextInspection);
-            inspectionDate.setHours(0, 0, 0, 0);
-            if (inspectionDate < today) {
-              activeAlerts++;
+            try {
+              const inspectionDate = new Date(nextInspection);
+              inspectionDate.setHours(0, 0, 0, 0);
+              if (inspectionDate < today) {
+                activeAlerts++;
+              }
+            } catch (e) {
+              // Ignorar erros de parsing de data
+              console.warn('Erro ao processar data de inspeção:', e);
             }
           }
         });
@@ -91,7 +106,13 @@ const Profile = () => {
           activeAlerts,
         });
       } catch (err: any) {
-        handleError(err, 'equipment', 'Erro ao buscar estatísticas');
+        console.error('Erro ao buscar estatísticas:', err);
+        // Define estatísticas padrão em caso de erro para não bloquear a tela
+        setStats({
+          totalEquipment: 0,
+          totalInspections: 0,
+          activeAlerts: 0,
+        });
       } finally {
         setLoadingStats(false);
       }
@@ -218,9 +239,11 @@ const Profile = () => {
 
   const planBadge = getPlanBadge(profile?.plan);
 
-  if (loading || loadingStats) {
+  // Mostra loading apenas se estiver carregando o perfil inicialmente
+  // Não bloqueia se estiver apenas carregando estatísticas
+  if (loading) {
     return (
-      <div className="p-4 flex flex-col items-center justify-center text-center min-h-screen">
+      <div className="p-4 flex flex-col items-center justify-center text-center min-h-screen" style={{ backgroundColor: '#000000' }}>
         <Spinner size="lg" color="blue" />
       </div>
     );
@@ -344,12 +367,21 @@ const Profile = () => {
       </div>
 
       {/* Estatísticas */}
-      {stats && (
-        <div className="mt-6 w-full max-w-sm">
-          <h3 className="text-lg font-semibold mb-3 text-left flex items-center gap-2">
-            <BarChart3 size={20} />
-            Estatísticas
-          </h3>
+      <div className="mt-6 w-full max-w-sm">
+        <h3 className="text-lg font-semibold mb-3 text-left flex items-center gap-2">
+          <BarChart3 size={20} />
+          Estatísticas
+        </h3>
+        {loadingStats ? (
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+                <Skeleton className="h-8 w-12 mb-2" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        ) : stats ? (
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
               <p className="text-2xl font-bold" style={{ color: '#72DEFF' }}>{stats.totalEquipment}</p>
@@ -370,8 +402,14 @@ const Profile = () => {
               </p>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="p-3 apple-card rounded-lg border text-center" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              Não foi possível carregar as estatísticas
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Menu de Opções */}
       <div className="mt-8 w-full max-w-sm space-y-2">
@@ -401,8 +439,8 @@ const Profile = () => {
       {/* Botão Sair */}
       <button
         onClick={signOut}
-        className="mt-8 w-full max-w-sm flex items-center justify-center gap-2 p-3 border rounded-lg transition-colors"
-        style={{ borderColor: 'rgba(255, 104, 89, 0.5)', color: '#FF6859', hover: { backgroundColor: 'rgba(255, 104, 89, 0.1)' } }}
+        className="mt-8 w-full max-w-sm flex items-center justify-center gap-2 p-3 border rounded-lg transition-colors hover:opacity-80"
+        style={{ borderColor: 'rgba(255, 104, 89, 0.5)', color: '#FF6859' }}
       >
         <LogOut size={16} />
         Sair da Conta
