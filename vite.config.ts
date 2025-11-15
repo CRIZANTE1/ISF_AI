@@ -14,12 +14,4 @@ export default defineConfig({
     exclude: ['lucide-react', '@capacitor/core', '@capacitor/push-notifications'],
     include: ['three', '@react-three/fiber'],
   },
-  
-  // Configuração para testes
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-    css: true,
-  },
 });
