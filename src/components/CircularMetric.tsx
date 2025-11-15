@@ -22,7 +22,7 @@ const CircularMetric = ({
 }: CircularMetricProps) => {
   const colorConfig = {
     blue: { 
-      primary: '#157EFB',        // Fitness Stand
+      primary: '#FFFFFF',        // Branco (substituído do azul)
       secondary: 'rgba(28, 28, 30, 0.8)', // Surface dark
     },
     green: { 
@@ -38,7 +38,7 @@ const CircularMetric = ({
       secondary: 'rgba(28, 28, 30, 0.8)',
     },
     cyan: { 
-      primary: '#157EFB',        // Usando azul como cyan (similar à imagem)
+      primary: '#FFFFFF',        // Branco (substituído do azul)
       secondary: 'rgba(28, 28, 30, 0.8)',
     },
   };

@@ -12,10 +12,10 @@ export default {
         fitness: {
           move: '#FC3D39',           // Vermelho - Move
           exercise: '#53D769',       // Verde - Exercise
-          stand: '#157EFB',          // Azul - Stand
+          stand: '#FFFFFF',          // Branco (substituído do azul)
           moveTranslucent: 'rgba(252, 61, 57, 0.4)',
           exerciseTranslucent: 'rgba(83, 215, 105, 0.4)',
-          standTranslucent: 'rgba(21, 126, 251, 0.4)',
+          standTranslucent: 'rgba(255, 255, 255, 0.4)',
         },
         // Paleta Apple (iOS/macOS) - mantida para compatibilidade
         apple: {
@@ -34,7 +34,7 @@ export default {
             },
             secondary: '#8E8E93',
           },
-          accent: '#157EFB',          // Fitness Stand
+          accent: '#FFFFFF',          // Branco (substituído do azul)
           success: '#53D769',         // Fitness Exercise
           warning: '#FC3D39',         // Fitness Move
           error: '#FC3D39',           // Fitness Move
@@ -51,8 +51,8 @@ export default {
           system6: '#F5F5F7',
         },
         accent: {
-          blue: '#157EFB',
-          cyan: '#157EFB',
+          blue: '#FFFFFF',           // Branco (substituído do azul)
+          cyan: '#FFFFFF',           // Branco (substituído do azul)
           purple: '#B15DFF',
           orange: '#FC3D39',
           green: '#53D769',
@@ -61,7 +61,7 @@ export default {
           success: '#53D769',
           warning: '#FC3D39',
           error: '#FC3D39',
-          info: '#157EFB',
+          info: '#FFFFFF',            // Branco (substituído do azul)
         },
       },
       fontFamily: {
@@ -104,10 +104,10 @@ export default {
         'apple-sm': '0 2px 8px rgba(0, 0, 0, 0.3)',
         'apple-md': '0 4px 12px rgba(0, 0, 0, 0.3)',
         'apple-lg': '0 8px 24px rgba(0, 0, 0, 0.4)',
-        'apple-floating': '0 4px 20px rgba(21, 126, 251, 0.3)',
+        'apple-floating': '0 4px 20px rgba(255, 255, 255, 0.3)',
         'fitness-move': '0 4px 12px rgba(252, 61, 57, 0.3)',
         'fitness-exercise': '0 4px 12px rgba(83, 215, 105, 0.3)',
-        'fitness-stand': '0 4px 12px rgba(21, 126, 251, 0.3)',
+        'fitness-stand': '0 4px 12px rgba(255, 255, 255, 0.3)',
         'card': '0 2px 8px rgba(0, 0, 0, 0.3)',
         'card-lg': '0 4px 16px rgba(0, 0, 0, 0.4)',
       },

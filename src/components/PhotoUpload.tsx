@@ -109,7 +109,7 @@ const PhotoUpload = ({
       {isCompressing ? (
         <div className="w-full h-48 rounded-lg border border-light-border dark:border-dark-border flex items-center justify-center" style={{ borderColor: '#2A2A2A' }}>
           <div className="flex flex-col items-center gap-2">
-            <Loader2 size={24} className="animate-spin" style={{ color: '#00C8FF' }} />
+            <Loader2 size={24} className="animate-spin" style={{ color: '#FFFFFF' }} />
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
               Comprimindo imagem...
             </p>
@@ -147,7 +147,7 @@ const PhotoUpload = ({
           onClick={handleClick}
           className="w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors"
           style={{ borderColor: '#2A2A2A' }}
-          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#00C8FF'}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FFFFFF'}
           onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2A2A2A'}
         >
           <ImageIcon size={48} color="#B0B0B0" className="mb-2" />

@@ -107,25 +107,29 @@ const ToastItem = ({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
           backgroundColor: 'rgba(52, 199, 89, 0.95)',
           borderColor: 'rgba(52, 199, 89, 0.3)',
           icon: '✓',
+          textColor: '#FFFFFF', // Branco para contraste em fundo verde
         };
       case 'error':
         return {
           backgroundColor: 'rgba(255, 59, 48, 0.95)',
           borderColor: 'rgba(255, 59, 48, 0.3)',
           icon: '✕',
+          textColor: '#FFFFFF', // Branco para contraste em fundo vermelho
         };
       case 'warning':
         return {
           backgroundColor: 'rgba(255, 149, 0, 0.95)',
           borderColor: 'rgba(255, 149, 0, 0.3)',
           icon: '⚠',
+          textColor: '#FFFFFF', // Branco para contraste em fundo laranja
         };
       case 'info':
       default:
         return {
-          backgroundColor: 'rgba(0, 200, 255, 0.95)',
-          borderColor: 'rgba(0, 200, 255, 0.3)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: 'rgba(255, 255, 255, 0.3)',
           icon: 'ℹ',
+          textColor: '#000000', // Preto para contraste em fundo branco
         };
     }
   };
@@ -151,16 +155,20 @@ const ToastItem = ({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       }}
     >
       <div className="flex items-start gap-3">
-        <span className="text-white text-lg font-bold flex-shrink-0" style={{ lineHeight: '1.2' }}>
+        <span className="text-lg font-bold flex-shrink-0" style={{ lineHeight: '1.2', color: styles.textColor || '#FFFFFF' }}>
           {styles.icon}
         </span>
-        <p className="text-white text-sm font-medium flex-1" style={{ lineHeight: '1.4' }}>
+        <p className="text-sm font-medium flex-1" style={{ lineHeight: '1.4', color: styles.textColor || '#FFFFFF' }}>
           {toast.message}
         </p>
         <button
           onClick={() => onRemove(toast.id)}
-          className="flex-shrink-0 text-white/80 hover:text-white transition-colors"
-          style={{ fontSize: '18px', lineHeight: '1' }}
+          className="flex-shrink-0 transition-colors"
+          style={{ 
+            color: styles.textColor ? `${styles.textColor}CC` : 'rgba(255, 255, 255, 0.8)',
+            fontSize: '18px', 
+            lineHeight: '1' 
+          }}
           aria-label="Fechar notificação"
         >
           ×

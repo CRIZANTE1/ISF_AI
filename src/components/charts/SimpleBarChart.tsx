@@ -20,7 +20,7 @@ const SimpleBarChart = ({ data, height = 200, maxValue }: SimpleBarChartProps) =
               <div
                 className="h-full rounded-full transition-all"
                 style={{ 
-                  backgroundColor: item.color || '#00C8FF',
+                  backgroundColor: item.color || '#FFFFFF',
                   width: `${(item.value / max) * 100}%`
                 }}
               />

@@ -44,9 +44,9 @@ export const statusColorTableFitness: Record<
     border: "#53D769",
   },
   "in-progress": {
-    text: "#FFFFFF",
-    bg: "#157EFB", // Azul - Stand (em progresso)
-    border: "#157EFB",
+    text: "#000000", // Preto para contraste em fundo branco
+    bg: "#FFFFFF", // Branco (substituído do azul)
+    border: "#000000", // Preto para borda
   },
   pending: {
     text: "#FFFFFF",

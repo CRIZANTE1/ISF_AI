@@ -859,7 +859,7 @@ const AddInspectionPage = () => {
                       checked={multigasTestType === 'Periódico'}
                       onChange={() => setMultigasTestType('Periódico')}
                       className="w-4 h-4"
-                      style={{ accentColor: '#00C8FF' }}
+                      style={{ accentColor: '#FFFFFF' }}
                     />
                     <span style={{ color: '#FFFFFF' }}>Periódico</span>
                   </label>
@@ -869,7 +869,7 @@ const AddInspectionPage = () => {
                       checked={multigasTestType === 'Extraordinário'}
                       onChange={() => setMultigasTestType('Extraordinário')}
                       className="w-4 h-4"
-                      style={{ accentColor: '#00C8FF' }}
+                      style={{ accentColor: '#FFFFFF' }}
                     />
                     <span style={{ color: '#FFFFFF' }}>Extraordinário</span>
                   </label>
@@ -905,7 +905,7 @@ const AddInspectionPage = () => {
                       checked={multigasUpdateCylinder}
                       onChange={(e) => setMultigasUpdateCylinder(e.target.checked)}
                       className="w-4 h-4"
-                      style={{ accentColor: '#00C8FF' }}
+                      style={{ accentColor: '#FFFFFF' }}
                     />
                     <span className="text-xs" style={{ color: '#FFFFFF' }}>Atualizar valores permanentemente</span>
                   </label>

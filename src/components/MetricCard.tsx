@@ -12,11 +12,11 @@ interface MetricCardProps {
 const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: MetricCardProps) => {
   const colorConfig = {
     blue: { 
-      bg: '#157EFB',                          // Fitness Stand sólido
-      bgSolid: '#157EFB',
-      text: '#FFFFFF',
-      accent: '#0066CC',
-      shadow: 'rgba(21, 126, 251, 0.3)'
+      bg: '#FFFFFF',                          // Branco (substituído do azul)
+      bgSolid: '#FFFFFF',
+      text: '#000000',                        // Preto para contraste
+      accent: '#E5E5EA',
+      shadow: 'rgba(255, 255, 255, 0.3)'
     },
     green: { 
       bg: '#53D769',                          // Fitness Exercise sólido
@@ -81,7 +81,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
           <div 
             className="font-medium text-xs uppercase tracking-wide opacity-90" 
             style={{ 
-              color: '#FFFFFF', 
+              color: config.text, 
               fontSize: '12px',
               fontWeight: 500,
               letterSpacing: '0.5px'
@@ -129,7 +129,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
             <span 
               className="font-semibold" 
               style={{ 
-                color: '#FFFFFF', 
+                color: config.text, 
                 fontSize: '11px',
                 fontWeight: 600
               }}
@@ -148,7 +148,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
           transition={{ delay: 0.3 }}
           className="font-bold leading-none" 
           style={{ 
-            color: '#FFFFFF', 
+            color: config.text, 
             fontSize: '28px',
             fontWeight: 700,
             lineHeight: '1',
@@ -161,7 +161,7 @@ const MetricCard = ({ title, value, isLoading, percentage, color = 'blue' }: Met
           <span 
             className="font-medium opacity-80" 
             style={{ 
-              color: '#FFFFFF', 
+              color: config.text, 
               fontSize: '14px',
               fontWeight: 500,
             }}

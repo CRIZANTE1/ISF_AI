@@ -7,7 +7,7 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
   if (loading) {
     return (
         <div className="flex items-center justify-center h-screen bg-light-background dark:bg-dark-background transition-colors duration-200">
-            <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#00C8FF', borderTopColor: 'transparent' }}></div>
+            <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#FFFFFF', borderTopColor: 'transparent' }}></div>
         </div>
     );
   }

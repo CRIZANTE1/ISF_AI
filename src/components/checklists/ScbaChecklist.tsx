@@ -57,7 +57,7 @@ const ScbaChecklist = ({
                   checked={results["Testes Funcionais.Estanqueidade Alta Pressão"] === 'Aprovado'}
                   onChange={(e) => onResultChange("Testes Funcionais.Estanqueidade Alta Pressão", e.target.value)}
                   className="w-4 h-4"
-                  style={{ accentColor: '#00C8FF' }}
+                  style={{ accentColor: '#FFFFFF' }}
                 />
                 <span style={{ color: '#FFFFFF' }}>Aprovado</span>
               </label>
@@ -69,7 +69,7 @@ const ScbaChecklist = ({
                   checked={results["Testes Funcionais.Estanqueidade Alta Pressão"] === 'Reprovado'}
                   onChange={(e) => onResultChange("Testes Funcionais.Estanqueidade Alta Pressão", e.target.value)}
                   className="w-4 h-4"
-                  style={{ accentColor: '#00C8FF' }}
+                  style={{ accentColor: '#FFFFFF' }}
                 />
                 <span style={{ color: '#FFFFFF' }}>Reprovado</span>
               </label>
@@ -94,7 +94,7 @@ const ScbaChecklist = ({
                   checked={results["Testes Funcionais.Alarme de Baixa Pressão"] === 'Aprovado'}
                   onChange={(e) => onResultChange("Testes Funcionais.Alarme de Baixa Pressão", e.target.value)}
                   className="w-4 h-4"
-                  style={{ accentColor: '#00C8FF' }}
+                  style={{ accentColor: '#FFFFFF' }}
                 />
                 <span style={{ color: '#FFFFFF' }}>Aprovado</span>
               </label>
@@ -106,7 +106,7 @@ const ScbaChecklist = ({
                   checked={results["Testes Funcionais.Alarme de Baixa Pressão"] === 'Reprovado'}
                   onChange={(e) => onResultChange("Testes Funcionais.Alarme de Baixa Pressão", e.target.value)}
                   className="w-4 h-4"
-                  style={{ accentColor: '#00C8FF' }}
+                  style={{ accentColor: '#FFFFFF' }}
                 />
                 <span style={{ color: '#FFFFFF' }}>Reprovado</span>
               </label>
@@ -131,7 +131,7 @@ const ScbaChecklist = ({
                   checked={results["Testes Funcionais.Vedação da Máscara"] === 'Aprovado'}
                   onChange={(e) => onResultChange("Testes Funcionais.Vedação da Máscara", e.target.value)}
                   className="w-4 h-4"
-                  style={{ accentColor: '#00C8FF' }}
+                  style={{ accentColor: '#FFFFFF' }}
                 />
                 <span style={{ color: '#FFFFFF' }}>Aprovado</span>
               </label>
@@ -143,7 +143,7 @@ const ScbaChecklist = ({
                   checked={results["Testes Funcionais.Vedação da Máscara"] === 'Reprovado'}
                   onChange={(e) => onResultChange("Testes Funcionais.Vedação da Máscara", e.target.value)}
                   className="w-4 h-4"
-                  style={{ accentColor: '#00C8FF' }}
+                  style={{ accentColor: '#FFFFFF' }}
                 />
                 <span style={{ color: '#FFFFFF' }}>Reprovado</span>
               </label>
@@ -184,7 +184,7 @@ const ScbaChecklist = ({
                         checked={results[`Cilindro.${item}`] === status}
                         onChange={(e) => onResultChange(`Cilindro.${item}`, e.target.value)}
                         className="w-4 h-4"
-                        style={{ accentColor: '#00C8FF' }}
+                        style={{ accentColor: '#FFFFFF' }}
                       />
                       <span className="text-xs" style={{ color: '#B0B0B0' }}>{status}</span>
                     </label>
@@ -226,7 +226,7 @@ const ScbaChecklist = ({
                         checked={results[`Mascara.${item}`] === status}
                         onChange={(e) => onResultChange(`Mascara.${item}`, e.target.value)}
                         className="w-4 h-4"
-                        style={{ accentColor: '#00C8FF' }}
+                        style={{ accentColor: '#FFFFFF' }}
                       />
                       <span className="text-xs" style={{ color: '#B0B0B0' }}>{status}</span>
                     </label>

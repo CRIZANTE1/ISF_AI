@@ -262,7 +262,7 @@ const AdminUsersPage = () => {
               </div>
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <Crown size={20} color="#00C8FF" />
+                  <Crown size={20} color="#FFFFFF" />
                   <span className="text-sm font-medium">Premium</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.premium}</p>
@@ -367,7 +367,7 @@ const AdminUsersPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                          <Users size={20} color="#00C8FF" />
+                          <Users size={20} color="#FFFFFF" />
                         </div>
                         <div>
                           <p className="font-medium">{user.profile?.full_name || 'Sem nome'}</p>

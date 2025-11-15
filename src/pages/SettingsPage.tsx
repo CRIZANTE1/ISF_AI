@@ -140,9 +140,9 @@ const SettingsPage = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {darkMode ? (
-                    <Moon size={20} color="#00C8FF" />
+                    <Moon size={20} color="#FFFFFF" />
                   ) : (
-                    <Sun size={20} color="#00C8FF" />
+                    <Sun size={20} color="#FFFFFF" />
                   )}
                   <div>
                     <p className="font-medium">Modo Escuro</p>
@@ -168,7 +168,7 @@ const SettingsPage = () => {
               {/* Notificações */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Bell size={20} color="#00C8FF" />
+                  <Bell size={20} color="#FFFFFF" />
                   <div>
                     <p className="font-medium">Notificações</p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">

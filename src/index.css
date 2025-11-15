@@ -23,7 +23,7 @@
   /* Paleta Apple Fitness */
   --fitness-move: #FC3D39;      /* Vermelho - Move */
   --fitness-exercise: #53D769;  /* Verde - Exercise */
-  --fitness-stand: #157EFB;     /* Azul - Stand */
+  --fitness-stand: #FFFFFF;     /* Branco (substituído do azul) */
   
   /* Cores base (modo dark - preto absoluto) */
   --bg-dark: #000000;
@@ -44,13 +44,13 @@
   /* Cores translúcidas (40% opacidade) */
   --fitness-move-translucent: rgba(252, 61, 57, 0.4);
   --fitness-exercise-translucent: rgba(83, 215, 105, 0.4);
-  --fitness-stand-translucent: rgba(21, 126, 251, 0.4);
+  --fitness-stand-translucent: rgba(255, 255, 255, 0.4);
   
   /* Status colors (usando paleta Fitness) */
   --success: var(--fitness-exercise);
   --warning: var(--fitness-move);
   --error: var(--fitness-move);
-  --info: var(--fitness-stand);
+  --info: #FFFFFF;              /* Branco (substituído do azul) */
 }
 
 /* Apple Fitness sempre usa modo dark (preto absoluto) */
@@ -371,8 +371,8 @@ svg {
   --card-foreground: #09090b;
   --popover: #ffffff;
   --popover-foreground: #09090b;
-  --primary: #2563eb;
-  --primary-foreground: #fafafa;
+  --primary: #FFFFFF;
+  --primary-foreground: #000000;
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
   --muted: #f4f4f5;
@@ -383,7 +383,7 @@ svg {
   --destructive-foreground: #ffffff;
   --border: #e4e4e7;
   --input: #d4d4d8;
-  --ring: #3b82f6;
+  --ring: #FFFFFF;
   --chart-1: #f16a50;
   --chart-2: #299d82;
   --chart-3: #253c48;
@@ -391,12 +391,12 @@ svg {
   --chart-5: #f99d58;
   --sidebar: #fafafa;
   --sidebar-foreground: #3f3f46;
-  --sidebar-primary: #18181b;
-  --sidebar-primary-foreground: #fafafa;
+  --sidebar-primary: #FFFFFF;
+  --sidebar-primary-foreground: #000000;
   --sidebar-accent: #f4f4f5;
   --sidebar-accent-foreground: #18181b;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #3b82f6;
+  --sidebar-ring: #FFFFFF;
   --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Source Serif 4", serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
@@ -440,12 +440,12 @@ svg {
   --chart-5: #e82669;
   --sidebar: #18181b;
   --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #2563eb;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary: #FFFFFF;
+  --sidebar-primary-foreground: #000000;
   --sidebar-accent: #27272a;
   --sidebar-accent-foreground: #f4f4f5;
   --sidebar-border: #27272a;
-  --sidebar-ring: #3b82f6;
+  --sidebar-ring: #FFFFFF;
   --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Source Serif 4", serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;

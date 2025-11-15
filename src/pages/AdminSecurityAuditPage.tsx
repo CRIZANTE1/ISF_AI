@@ -34,6 +34,7 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react';
+import { Spinner } from '../components/ui/spinner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -68,8 +69,25 @@ const AdminSecurityAuditPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSecurityEvents();
-    loadSecurityAlerts();
+    // Carregar dados essenciais primeiro, depois logs específicos da tab
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        // Carregar eventos e alertas em paralelo (dados essenciais)
+        await Promise.all([
+          loadSecurityEvents(),
+          loadSecurityAlerts(),
+        ]);
+      } catch (err) {
+        console.error('Erro ao carregar dados iniciais:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+
+    // Carregar logs específicos da tab apenas quando necessário
     if (activeTab === 'access') {
       loadAccessLogs();
     } else if (activeTab === 'audit') {
@@ -113,11 +131,11 @@ const AdminSecurityAuditPage = () => {
 
   const loadSecurityEvents = async () => {
     try {
-      setLoading(true);
+      // Loading é controlado no useEffect principal
       // Filter failed logins and suspicious activity from access logs
       let logs: AccessLog[] = [];
       try {
-        const result = await getAccessLogs(1000);
+        const result = await getAccessLogs(100); // Reduzido de 1000 para 100 para melhor performance
         logs = result.logs;
       } catch (err: any) {
         console.error('Erro ao carregar logs de acesso:', err);
@@ -142,7 +160,7 @@ const AdminSecurityAuditPage = () => {
       // Get permission denied actions from action logs
       let actionLogsData: ActionLog[] = [];
       try {
-        const result = await getActionLogs(1000);
+        const result = await getActionLogs(100); // Reduzido de 1000 para 100 para melhor performance
         actionLogsData = result.logs;
       } catch (err: any) {
         console.error('Erro ao carregar logs de ação:', err);
@@ -164,21 +182,20 @@ const AdminSecurityAuditPage = () => {
           resolved: false,
         }));
 
-      setSecurityEvents([...failedLogins, ...permissionDenied].slice(0, 100));
+      setSecurityEvents([...failedLogins, ...permissionDenied].slice(0, 50)); // Limita a 50 eventos iniciais
       setError(null);
     } catch (error: any) {
       console.error('Erro ao carregar eventos de segurança:', error);
       setError('Erro ao carregar eventos de segurança. Verifique o console para mais detalhes.');
       setSecurityEvents([]);
-    } finally {
-      setLoading(false);
     }
+    // Loading é controlado no useEffect principal
   };
 
   const loadActionLogs = async () => {
     try {
       setLoading(true);
-      const { logs } = await getActionLogs(200);
+      const { logs } = await getActionLogs(50); // Reduzido de 200 para 50
       setActionLogs(logs);
     } catch (error: any) {
       console.error('Erro ao carregar logs de auditoria:', error);
@@ -194,7 +211,7 @@ const AdminSecurityAuditPage = () => {
   const loadAccessLogs = async () => {
     try {
       setLoading(true);
-      const { logs } = await getAccessLogs(200);
+      const { logs } = await getAccessLogs(50); // Reduzido de 200 para 50
       setAccessLogs(logs);
     } catch (error: any) {
       console.error('Erro ao carregar logs de acesso:', error);
@@ -209,7 +226,7 @@ const AdminSecurityAuditPage = () => {
 
   const loadSecurityAlerts = async () => {
     try {
-      const { alerts } = await getSecurityAlerts(100, 0);
+      const { alerts } = await getSecurityAlerts(50, 0); // Reduzido de 100 para 50
       setSecurityAlerts(alerts);
     } catch (error: any) {
       console.error('Erro ao carregar alertas de segurança:', error);
@@ -300,7 +317,7 @@ const AdminSecurityAuditPage = () => {
           {/* Loading State */}
           {loading && (
             <div className="flex items-center justify-center p-8">
-              <RefreshCw className="animate-spin text-white" size={32} />
+              <Spinner size="lg" color="white" />
               <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">Carregando...</span>
             </div>
           )}
@@ -582,7 +599,7 @@ const AdminSecurityAuditPage = () => {
             <div className="space-y-2">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <RefreshCw className="animate-spin text-white" size={32} />
+                  <Spinner size="lg" color="white" />
                 </div>
               ) : filteredSecurityEvents.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
@@ -656,7 +673,7 @@ const AdminSecurityAuditPage = () => {
             <div className="space-y-2">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <RefreshCw className="animate-spin text-white" size={32} />
+                  <Spinner size="lg" color="white" />
                 </div>
               ) : accessLogs.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
@@ -704,7 +721,7 @@ const AdminSecurityAuditPage = () => {
             <div className="space-y-2">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <RefreshCw className="animate-spin text-white" size={32} />
+                  <Spinner size="lg" color="white" />
                 </div>
               ) : actionLogs.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
