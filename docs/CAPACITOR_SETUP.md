@@ -89,3 +89,123 @@ npm run cap:open         # Abre no Android Studio
 
 Depois disso, você pode compilar o APK/AAB normalmente no Android Studio! 🚀
 
+## 🔨 Compilando o APK/AAB
+
+### Opção 1: Via Android Studio (Recomendado)
+
+1. Abra o projeto no Android Studio:
+   ```bash
+   npm run cap:open
+   ```
+
+2. No Android Studio:
+   - Para **APK de debug**: `Build > Build Bundle(s) / APK(s) > Build APK(s)`
+   - Para **AAB (Google Play)**: `Build > Generate Signed Bundle / APK > Android App Bundle`
+   - Para **APK assinado**: `Build > Generate Signed Bundle / APK > APK`
+
+3. O arquivo será gerado em:
+   - **APK Debug**: `android/app/build/outputs/apk/debug/app-debug.apk`
+   - **APK Release**: `android/app/build/outputs/apk/release/app-release.apk`
+   - **AAB**: `android/app/build/outputs/bundle/release/app-release.aab`
+
+### Opção 2: Via Linha de Comando (Gradle)
+
+**Pré-requisitos:**
+- Java JDK instalado
+- Android SDK configurado
+- Variável de ambiente `ANDROID_HOME` configurada
+
+**Comandos:**
+
+```bash
+# Navegar para a pasta android
+cd android
+
+# Compilar APK de debug
+./gradlew assembleDebug
+# O APK estará em: app/build/outputs/apk/debug/app-debug.apk
+
+# Compilar APK de release (requer assinatura)
+./gradlew assembleRelease
+# O APK estará em: app/build/outputs/apk/release/app-release.apk
+
+# Compilar AAB para Google Play
+./gradlew bundleRelease
+# O AAB estará em: app/build/outputs/bundle/release/app-release.aab
+```
+
+**No Windows (PowerShell):**
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+.\gradlew.bat assembleRelease
+.\gradlew.bat bundleRelease
+```
+
+### ⚠️ Assinatura do APK/AAB (Release)
+
+Para publicar na Google Play, você precisa assinar o app:
+
+1. **Gerar uma keystore** (se ainda não tiver):
+   ```bash
+   keytool -genkey -v -keystore isfia-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias isfia
+   ```
+
+2. **Configurar no `android/app/build.gradle`**:
+   ```gradle
+   android {
+       signingConfigs {
+           release {
+               storeFile file('../../isfia-release-key.jks')
+               storePassword 'sua_senha'
+               keyAlias 'isfia'
+               keyPassword 'sua_senha'
+           }
+       }
+       buildTypes {
+           release {
+               signingConfig signingConfigs.release
+           }
+       }
+   }
+   ```
+
+3. **Ou usar variáveis de ambiente** (mais seguro):
+   ```gradle
+   android {
+       signingConfigs {
+           release {
+               storeFile file(System.getenv("KEYSTORE_FILE") ?: "../../isfia-release-key.jks")
+               storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+               keyAlias System.getenv("KEY_ALIAS") ?: "isfia"
+               keyPassword System.getenv("KEY_PASSWORD") ?: ""
+           }
+       }
+   }
+   ```
+
+## 📝 Scripts NPM Disponíveis
+
+- `npm run android:setup` - Faz build, adiciona plataforma Android e sincroniza (primeira vez)
+- `npm run android:build` - Faz build e sincroniza com Android (após setup inicial)
+- `npm run cap:sync` - Sincroniza apenas o build
+- `npm run cap:open` - Abre o projeto no Android Studio
+- `npm run cap:add:android` - Adiciona a plataforma Android
+
+## ⚠️ Avisos Comuns do Gradle
+
+### Aviso sobre `flatDir`
+
+Se você ver o aviso:
+```
+Using flatDir should be avoided because it doesn't support any meta-data formats.
+Affected Modules: app, capacitor-cordova-android-plugins
+```
+
+**Isso é normal e esperado!** O `flatDir` é necessário para plugins Cordova que podem ter bibliotecas JAR locais. Este aviso:
+- ✅ **NÃO impede a compilação**
+- ✅ **NÃO afeta a funcionalidade do app**
+- ✅ É apenas informativo do Gradle
+
+O aviso pode ser ignorado com segurança. A configuração foi otimizada para reduzir o impacto, mas o `flatDir` é necessário para a compatibilidade com plugins Cordova do Capacitor.
+
