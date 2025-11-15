@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutGrid, ClipboardCheck, History, Wrench, Plus, User, MapPin } from 'lucide-react';
+import { LayoutGrid, ClipboardCheck, History, Wrench, MapPin } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DockItem {
@@ -104,28 +104,22 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
 
   const allDockItems: DockItem[] = [
     { 
-      id: 'home', 
-      icon: <LayoutGrid size={20} />, 
-      label: 'Home',
-      to: '/'
-    },
-    { 
       id: 'inspections', 
       icon: <ClipboardCheck size={20} />, 
       label: 'Inspeções',
       to: '/inspections'
     },
     { 
-      id: 'add', 
-      icon: <Plus size={20} />, 
-      label: 'Adicionar',
-      onClick: () => navigate('/inspections')
-    },
-    { 
       id: 'history', 
       icon: <History size={20} />, 
       label: 'Histórico',
       to: '/history'
+    },
+    { 
+      id: 'home', 
+      icon: <LayoutGrid size={20} />, 
+      label: 'Home',
+      to: '/'
     },
     { 
       id: 'map', 
@@ -142,12 +136,22 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
     },
   ];
 
-  const dockItems = allDockItems.filter(item => {
+  const filteredItems = allDockItems.filter(item => {
     if (item.adminOnly) {
       return profile?.role === 'admin';
     }
     return true;
   });
+
+  // Reorganizar para colocar o Home no centro
+  const homeItem = filteredItems.find(item => item.id === 'home');
+  const otherItems = filteredItems.filter(item => item.id !== 'home');
+  const middleIndex = Math.floor(otherItems.length / 2);
+  const dockItems = [
+    ...otherItems.slice(0, middleIndex),
+    ...(homeItem ? [homeItem] : []),
+    ...otherItems.slice(middleIndex)
+  ];
 
   const handleItemClick = (item: DockItem) => {
     if (item.onClick) {

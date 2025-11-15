@@ -105,7 +105,7 @@ const EquipmentListPage = () => {
           </ul>
         )}
       </main>
-      <FloatingActionButton to={`/inspections/${type}/new`} />
+      {type && <FloatingActionButton to={`/inspections/${type}/new`} />}
     </div>
   );
 };
