@@ -4,6 +4,7 @@ import { Icon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { Spinner } from '../components/ui/spinner';
 import { 
   ExtinguisherIcon, 
   FoamChamberIcon, 
@@ -235,8 +236,7 @@ const EquipmentMap = () => {
     return (
       <main className="min-h-screen pb-32 bg-light-background dark:bg-dark-background">
         <div className="flex items-center justify-center h-screen">
-          <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" 
-               style={{ borderColor: '#00C8FF', borderTopColor: 'transparent' }}></div>
+          <Spinner size="xl" color="blue" />
         </div>
       </main>
     );

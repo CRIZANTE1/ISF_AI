@@ -220,11 +220,8 @@ const Profile = () => {
 
   if (loading || loadingStats) {
     return (
-      <div className="p-4 flex flex-col items-center text-center min-h-screen">
-        <Skeleton className="w-24 h-24 rounded-full mb-4" />
-        <Skeleton className="h-8 w-48 mb-2" />
-        <Skeleton className="h-5 w-56 mb-8" />
-        <Skeleton className="h-24 w-full max-w-sm" />
+      <div className="p-4 flex flex-col items-center justify-center text-center min-h-screen">
+        <Spinner size="lg" color="blue" />
       </div>
     );
   }
@@ -267,7 +264,7 @@ const Profile = () => {
         </label>
         {isUploadingAvatar && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#2A2A2A' }}></div>
+            <Spinner size="md" color="white" />
           </div>
         )}
       </div>

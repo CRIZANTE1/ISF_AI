@@ -4,6 +4,7 @@
 
 import { useState, useEffect, ImgHTMLAttributes } from 'react';
 import LazyImage from './LazyImage';
+import { Spinner } from './ui/spinner';
 
 interface ProgressiveImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'loading'> {
   src: string;
@@ -118,9 +119,7 @@ const ProgressiveImage = ({
           className="absolute inset-0 flex items-center justify-center"
           style={{ backgroundColor: '#1A1A1A' }}
         >
-          <div className="animate-pulse text-xs" style={{ color: '#8E8E93' }}>
-            Carregando...
-          </div>
+          <Spinner size="sm" color="slate" />
         </div>
       )}
 

@@ -31,6 +31,7 @@ import type { CylinderValues } from '../utils/multigasOperations';
 import { saveSCBAVisualInspection, getAllSCBAs, getSCBABySerial } from '../utils/scbaOperations';
 import { saveShelterInspection, getAllShelters } from '../utils/shelterOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
+import { Spinner } from '../components/ui/spinner';
 
 type AddInspectionFormData = {
   data_inspecao?: string;
@@ -571,7 +572,9 @@ const AddInspectionPage = () => {
       <div className="min-h-screen">
         <PageHeader title="Registrar Inspeção" />
         <main className="p-4">
-          <p className="text-center text-light-text-secondary dark:text-dark-text-secondary">Carregando...</p>
+          <div className="flex items-center justify-center py-12">
+            <Spinner size="lg" color="blue" />
+          </div>
         </main>
       </div>
     );
@@ -1193,7 +1196,12 @@ const AddInspectionPage = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {loading ? 'Salvando...' : 'Salvar Inspeção'}
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="white" />
+                <span>Salvando...</span>
+              </div>
+            ) : 'Salvar Inspeção'}
           </motion.button>
         </motion.form>
       </main>

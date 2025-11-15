@@ -6,6 +6,7 @@ import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { Spinner } from '../components/ui/spinner';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import ProgressiveImage from '../components/ProgressiveImage';
 import { format } from 'date-fns';
@@ -527,7 +528,7 @@ const EquipmentDetailPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title={loading ? 'Carregando...' : equipment?.name ?? 'Detalhes'}>
+      <PageHeader title={loading ? '' : equipment?.name ?? 'Detalhes'}>
         {!loading && equipment && (
           <div className="flex items-center gap-2">
             <Link to={`/equipment/${type}/${id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-white transition-colors">
@@ -540,7 +541,11 @@ const EquipmentDetailPage = () => {
         )}
       </PageHeader>
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
-        {loading && <Skeleton className="h-48 w-full" />}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Spinner size="lg" color="blue" />
+          </div>
+        )}
         {debugLogs.length > 0 && (
           <div className="mb-4 p-4 rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex justify-between items-center mb-2">
