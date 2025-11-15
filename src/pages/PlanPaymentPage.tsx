@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
@@ -8,6 +8,7 @@ const PlanPaymentPage = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const [upgrading, setUpgrading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleUpgrade = async () => {
     setUpgrading(true);
@@ -83,6 +84,46 @@ const PlanPaymentPage = () => {
       },
     },
   ];
+
+  useEffect(() => {
+    // Verificar se há algum problema
+    try {
+      if (plans.length === 0) {
+        setError('Nenhum plano disponível');
+      }
+    } catch (err) {
+      console.error('Erro ao carregar página de planos:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido ao carregar planos');
+    }
+  }, [plans.length]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
+        <PageHeader title="Planos e Preços" />
+        <main className="py-8 pb-32 flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
+          <div className="text-white text-center">
+            <p className="text-red-500 mb-4">Erro ao carregar planos</p>
+            <p className="text-white/60">{error}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Verificar se plans está definido
+  if (!plans || plans.length === 0) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
+        <PageHeader title="Planos e Preços" />
+        <main className="py-8 pb-32 flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
+          <div className="text-white text-center">
+            <p className="text-white/60">Carregando planos...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Button } from './button';
 import {
@@ -10,7 +8,6 @@ import {
 import { cn } from '../../utils/cn';
 import { CheckCircleIcon, StarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion, Transition } from 'framer-motion';
 
 type FREQUENCY = 'monthly' | 'yearly';
 const frequencies: FREQUENCY[] = ['monthly', 'yearly'];
@@ -107,10 +104,8 @@ export function PricingFrequencyToggle({
         >
           <span className="relative z-10">{freq === 'monthly' ? 'Mensal' : 'Anual'}</span>
           {frequency === freq && (
-            <motion.span
-              layoutId="frequency"
-              transition={{ type: 'spring', duration: 0.4 }}
-              className="bg-white absolute inset-0 z-0 rounded-full"
+            <span
+              className="bg-white absolute inset-0 z-0 rounded-full transition-all duration-300"
               style={{ mixBlendMode: 'difference' }}
             />
           )}
@@ -148,13 +143,7 @@ export function PricingCard({
       {...props}
     >
       {plan.highlighted && (
-        <BorderTrail
-          style={{
-            boxShadow:
-              '0px 0px 60px 30px rgb(255 255 255 / 20%), 0 0 100px 60px rgb(0 0 0 / 50%), 0 0 140px 90px rgb(0 0 0 / 50%)',
-          }}
-          size={100}
-        />
+        <div className="absolute inset-0 rounded-lg border-2 border-white/40 animate-pulse" />
       )}
       <div
         className={cn(
@@ -243,48 +232,4 @@ export function PricingCard({
   );
 }
 
-type BorderTrailProps = {
-  className?: string;
-  size?: number;
-  transition?: Transition;
-  delay?: number;
-  onAnimationComplete?: () => void;
-  style?: React.CSSProperties;
-};
-
-export function BorderTrail({
-  className,
-  size = 60,
-  transition,
-  delay,
-  onAnimationComplete,
-  style,
-}: BorderTrailProps) {
-  const BASE_TRANSITION = {
-    repeat: Infinity,
-    duration: 5,
-    ease: 'linear',
-  };
-
-  return (
-    <div className='pointer-events-none absolute inset-0 rounded-[inherit] border border-transparent [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]'>
-      <motion.div
-        className={cn('absolute aspect-square bg-white/30', className)}
-        style={{
-          width: size,
-          offsetPath: `rect(0 auto auto 0 round ${size}px)`,
-          ...style,
-        }}
-        animate={{
-          offsetDistance: ['0%', '100%'],
-        }}
-        transition={{
-          ...(transition ?? BASE_TRANSITION),
-          delay: delay,
-        }}
-        onAnimationComplete={onAnimationComplete}
-      />
-    </div>
-  );
-}
 
