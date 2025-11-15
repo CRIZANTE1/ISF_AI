@@ -13,6 +13,7 @@
     "cap:add:android": "cap add android",
     "android:build": "npm run build && npm run cap:sync",
     "android:setup": "npm run build && npx cap add android && npm run cap:sync",
+    "copy:icons": "node copy-icons.js",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
