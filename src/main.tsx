@@ -34,7 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <EquipmentCacheProvider>
           <ToastProvider>
-            <App />
+          <App />
           </ToastProvider>
         </EquipmentCacheProvider>
       </AuthProvider>

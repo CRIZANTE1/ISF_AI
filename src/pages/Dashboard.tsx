@@ -107,7 +107,7 @@ const Dashboard = () => {
             />
           </motion.div>
         )}
-
+        
         <AlertsList userId={user?.id} />
       </main>
     </div>

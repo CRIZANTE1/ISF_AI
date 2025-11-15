@@ -1,6 +1,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getCurrentLocation } from '../hooks/useGeolocation';
@@ -59,6 +60,7 @@ const AddInspectionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { handleError, executeWithFeedback } = useErrorHandler();
+  const { getEquipmentByType } = useEquipmentCache();
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [loadingEquipment, setLoadingEquipment] = useState(true);
@@ -127,9 +129,11 @@ const AddInspectionPage = () => {
   // Busca informações do equipamento baseado no tipo
   useEffect(() => {
     const fetchEquipment = async () => {
-      if (!id || !type) return;
+      if (!id || !type) {
+        setLoadingEquipment(false);
+        return;
+      }
       setLoadingEquipment(true);
-      setError(null);
 
       try {
         let equipmentData: EquipmentInfo | null = null;
@@ -146,8 +150,9 @@ const AddInspectionPage = () => {
             }
             break;
           case 'chuveiro_lavaolhos':
-            const eyewashStations = await getAllEyewashStations();
-            const eyewashData = eyewashStations.find(e => e.id_equipamento === id);
+            // Usar cache em vez de buscar todos
+            const eyewashStations = getEquipmentByType('chuveiro_lavaolhos');
+            const eyewashData = eyewashStations.find((e: any) => e.id_equipamento === id);
             if (eyewashData) {
               equipmentData = {
                 id: eyewashData.id_equipamento,
@@ -157,8 +162,9 @@ const AddInspectionPage = () => {
             }
             break;
           case 'camara_espuma':
-            const foamChambers = await getAllFoamChambers();
-            const foamData = foamChambers.find(e => e.id_camara === id);
+            // Usar cache em vez de buscar todos
+            const foamChambers = getEquipmentByType('camara_espuma');
+            const foamData = foamChambers.find((e: any) => e.id_camara === id);
             if (foamData) {
               equipmentData = {
                 id: foamData.id_camara,
@@ -169,8 +175,9 @@ const AddInspectionPage = () => {
             }
             break;
           case 'alarme':
-            const alarmSystems = await getAllAlarmSystems();
-            const alarmData = alarmSystems.find(e => e.id_sistema === id);
+            // Usar cache em vez de buscar todos
+            const alarmSystems = getEquipmentByType('alarme');
+            const alarmData = alarmSystems.find((e: any) => e.id_sistema === id);
             if (alarmData) {
               equipmentData = {
                 id: alarmData.id_sistema,
@@ -180,8 +187,9 @@ const AddInspectionPage = () => {
             }
             break;
           case 'canhao_monitor':
-            const cannonMonitors = await getAllCannonMonitors();
-            const cannonData = cannonMonitors.find(e => e.id_equipamento === id);
+            // Usar cache em vez de buscar todos
+            const cannonMonitors = getEquipmentByType('canhao_monitor');
+            const cannonData = cannonMonitors.find((e: any) => e.id_equipamento === id);
             if (cannonData) {
               equipmentData = {
                 id: cannonData.id_equipamento,
@@ -223,8 +231,9 @@ const AddInspectionPage = () => {
             }
             break;
           case 'abrigo':
-            const shelters = await getAllShelters();
-            const shelterData = shelters.find(s => s.id_abrigo === id);
+            // Usar cache em vez de buscar todos
+            const shelters = getEquipmentByType('abrigo');
+            const shelterData = shelters.find((s: any) => s.id_abrigo === id);
             if (shelterData) {
               equipmentData = {
                 id: shelterData.id_abrigo,
@@ -236,13 +245,17 @@ const AddInspectionPage = () => {
         }
 
         if (!equipmentData) {
-          setError(`Equipamento não encontrado. Verifique se o ID '${id}' está correto.`);
+          handleError(
+            new Error(`Equipamento não encontrado: ${id}`),
+            'equipment',
+            `Equipamento não encontrado. Verifique se o ID '${id}' está correto.`
+          );
         } else {
           setEquipment(equipmentData);
         }
       } catch (err: any) {
         console.error('Erro ao buscar equipamento:', err);
-        setError('Falha ao buscar informações do equipamento.');
+        handleError(err, 'equipment', 'Falha ao buscar informações do equipamento.');
       } finally {
         setLoadingEquipment(false);
       }

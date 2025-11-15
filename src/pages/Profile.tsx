@@ -128,14 +128,14 @@ const Profile = () => {
 
     const success = await executeWithFeedback(
       async () => {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            full_name: formData.full_name,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
-        if (error) throw error;
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.full_name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+      if (error) throw error;
         return true;
       },
       'profile',
@@ -177,30 +177,30 @@ const Profile = () => {
         // Upload da imagem comprimida para storage
         const filePath = compressedFile.name;
 
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
           .upload(filePath, compressedFile, {
-            cacheControl: '3600',
-            upsert: true,
-          });
+          cacheControl: '3600',
+          upsert: true,
+        });
 
-        if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-        // Obtém URL pública
-        const { data: urlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
+      // Obtém URL pública
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
 
-        // Atualiza o perfil com a URL do avatar
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            avatar_url: urlData.publicUrl,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
+      // Atualiza o perfil com a URL do avatar
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: urlData.publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
 
-        if (updateError) throw updateError;
+      if (updateError) throw updateError;
         return true;
       },
       'profile',
