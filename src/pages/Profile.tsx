@@ -8,6 +8,7 @@ import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
 import PageHeader from '../components/PageHeader';
 import { useForm } from 'react-hook-form';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface ProfileFormData {
   full_name: string;
@@ -23,11 +24,11 @@ const Profile = () => {
   const { profile, user, signOut, loading } = useAuth();
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
+  const { handleError, executeWithFeedback } = useErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormData>({
     defaultValues: {
       full_name: profile?.full_name || '',
@@ -88,7 +89,7 @@ const Profile = () => {
           activeAlerts,
         });
       } catch (err: any) {
-        console.error('Erro ao buscar estatísticas:', err);
+        handleError(err, 'equipment', 'Erro ao buscar estatísticas');
       } finally {
         setLoadingStats(false);
       }
@@ -122,24 +123,28 @@ const Profile = () => {
 
   const handleUpdateProfile = async (formData: ProfileFormData) => {
     if (!user) return;
-    setError(null);
 
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.full_name,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+    const success = await executeWithFeedback(
+      async () => {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: formData.full_name,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+        if (error) throw error;
+        return true;
+      },
+      'profile',
+      'Perfil atualizado com sucesso!',
+      'Falha ao atualizar perfil'
+    );
 
-      if (error) throw error;
+    if (success) {
       setIsEditing(false);
       // Força atualização do perfil no contexto
       window.location.reload();
-    } catch (err: any) {
-      setError('Falha ao atualizar perfil.');
-      console.error(err);
     }
   };
 
@@ -148,46 +153,51 @@ const Profile = () => {
     if (!file || !user) return;
 
     setIsUploadingAvatar(true);
-    setError(null);
 
-    try {
-      // Upload da imagem para storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = fileName;
+    const success = await executeWithFeedback(
+      async () => {
+        // Upload da imagem para storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+        const filePath = fileName;
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-        });
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Obtém URL pública
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+        // Obtém URL pública
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
 
-      // Atualiza o perfil com a URL do avatar
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: urlData.publicUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+        // Atualiza o perfil com a URL do avatar
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            avatar_url: urlData.publicUrl,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+        return true;
+      },
+      'profile',
+      'Avatar atualizado com sucesso!',
+      'Falha ao fazer upload do avatar'
+    );
+
+    if (success) {
       // Força atualização do perfil no contexto
       window.location.reload();
-    } catch (err: any) {
-      setError('Falha ao fazer upload do avatar.');
-      console.error(err);
-    } finally {
-      setIsUploadingAvatar(false);
     }
+    
+    setIsUploadingAvatar(false);
   };
 
   const planBadge = getPlanBadge(profile?.plan);
@@ -313,11 +323,6 @@ const Profile = () => {
         </>
       )}
 
-      {error && (
-        <div className="mt-4 w-full max-w-sm p-3 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255, 104, 89, 0.2)', color: '#FF6859' }}>
-          {error}
-        </div>
-      )}
 
       {/* Plano */}
       <div className={`mt-8 w-full max-w-sm ${planBadge.bgColor} p-4 rounded-lg text-left`}>

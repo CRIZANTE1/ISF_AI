@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import PageHeader from '../components/PageHeader';
 import { Mail, User, Save, X } from 'lucide-react';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface MyDataFormData {
   full_name: string;
@@ -14,9 +15,8 @@ interface MyDataFormData {
 const MyDataPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { executeWithFeedback } = useErrorHandler();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<MyDataFormData>({
@@ -29,45 +29,45 @@ const MyDataPage = () => {
   const handleUpdateProfile = async (formData: MyDataFormData) => {
     if (!user) return;
     setLoading(true);
-    setError(null);
-    setSuccess(null);
 
-    try {
-      // Atualiza nome no perfil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.full_name,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+    const success = await executeWithFeedback(
+      async () => {
+        // Atualiza nome no perfil
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: formData.full_name,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
 
-      if (profileError) throw profileError;
+        if (profileError) throw profileError;
 
-      // Atualiza email no auth (se foi alterado)
-      if (formData.email !== user.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: formData.email,
-        });
+        // Atualiza email no auth (se foi alterado)
+        if (formData.email !== user.email) {
+          const { error: emailError } = await supabase.auth.updateUser({
+            email: formData.email,
+          });
 
-        if (emailError) {
-          // Se o email já está em uso ou há outro erro, apenas avisa
-          setError('Não foi possível atualizar o email. Verifique se o email já está em uso ou se você precisa confirmar o novo email.');
-          setLoading(false);
-          return;
+          if (emailError) {
+            throw new Error('Não foi possível atualizar o email. Verifique se o email já está em uso ou se você precisa confirmar o novo email.');
+          }
         }
-      }
 
-      setSuccess('Dados atualizados com sucesso!');
+        return true;
+      },
+      'profile',
+      'Dados atualizados com sucesso!',
+      'Falha ao atualizar dados'
+    );
+
+    if (success) {
       setTimeout(() => {
         navigate('/profile');
       }, 1500);
-    } catch (err: any) {
-      setError(err.message || 'Falha ao atualizar dados.');
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -141,17 +141,6 @@ const MyDataPage = () => {
             )}
           </div>
 
-          {error && (
-            <div className="mb-4 p-3 bg-status-error/20 text-status-error rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-3 bg-status-success/20 text-status-success rounded-lg text-sm">
-              {success}
-            </div>
-          )}
 
           <div className="flex gap-3">
             <button

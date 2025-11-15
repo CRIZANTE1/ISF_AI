@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
@@ -20,8 +21,8 @@ const AddEquipmentPage = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { executeWithFeedback } = useErrorHandler();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors }, watch } = useForm<any>();
 
   const equipmentTypeName = type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Equipamento';
@@ -29,93 +30,91 @@ const AddEquipmentPage = () => {
   const onSubmit = async (formData: any) => {
     if (!user || !type) return;
     setLoading(true);
-    setError(null);
 
-    try {
-      const dataToInsert: any = {
-        ...formData,
-        user_id: user.id,
-        data_cadastro: new Date().toISOString().split('T')[0],
-      };
+    const dataToInsert: any = {
+      ...formData,
+      user_id: user.id,
+      data_cadastro: new Date().toISOString().split('T')[0],
+    };
 
-      let success = false;
+    let saveFunction: (data: any) => Promise<boolean>;
 
-      switch (type) {
-        case 'extintor':
-          success = await saveNewExtinguisher({
-            numero_identificacao: formData.numero_identificacao || formData.equipment_id,
-            ...dataToInsert,
-          });
-          break;
-        case 'mangueira':
-          success = await saveNewHose({
-            id_mangueira: formData.id_mangueira || formData.equipment_id,
-            ...dataToInsert,
-          });
-          break;
-        case 'scba':
-          success = await saveNewSCBA({
-            numero_serie_equipamento: formData.numero_serie_equipamento || formData.equipment_id,
-            ...dataToInsert,
-          });
-          break;
-        case 'multigas':
-          success = await saveNewMultigasDetector({
-            id_equipamento: formData.id_equipamento || formData.equipment_id,
-            ...dataToInsert,
-          });
-          break;
-        case 'camara_espuma':
-          success = await saveNewFoamChamber({
-            id_camara: formData.id_camara || formData.equipment_id,
-            localizacao: formData.localizacao,
-            ...dataToInsert,
-          });
-          break;
-        case 'canhao_monitor':
-          success = await saveNewCannonMonitor({
-            id_equipamento: formData.id_equipamento || formData.equipment_id,
-            localizacao: formData.localizacao,
-            ...dataToInsert,
-          });
-          break;
-        case 'chuveiro_lavaolhos':
-          success = await saveNewEyewashStation({
-            id_equipamento: formData.id_equipamento || formData.equipment_id,
-            localizacao: formData.localizacao,
-            ...dataToInsert,
-          });
-          break;
-        case 'alarme':
-          success = await saveNewAlarmSystem({
-            id_sistema: formData.id_sistema || formData.equipment_id,
-            localizacao: formData.localizacao || '',
-            ...dataToInsert,
-          });
-          break;
-        case 'abrigo':
-          success = await saveNewShelter({
-            id_abrigo: formData.id_abrigo || formData.equipment_id,
-            ...dataToInsert,
-          });
-          break;
-        default:
-          setError('Tipo de equipamento não suportado.');
-          setLoading(false);
-          return;
-      }
-
-      if (success) {
-        navigate(`/inspections/${type}`);
-      } else {
-        setError('Falha ao cadastrar equipamento. Verifique se o ID já existe.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Falha ao cadastrar equipamento. Verifique se o ID já existe.');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    switch (type) {
+      case 'extintor':
+        saveFunction = () => saveNewExtinguisher({
+          numero_identificacao: formData.numero_identificacao || formData.equipment_id,
+          ...dataToInsert,
+        });
+        break;
+      case 'mangueira':
+        saveFunction = () => saveNewHose({
+          id_mangueira: formData.id_mangueira || formData.equipment_id,
+          ...dataToInsert,
+        });
+        break;
+      case 'scba':
+        saveFunction = () => saveNewSCBA({
+          numero_serie_equipamento: formData.numero_serie_equipamento || formData.equipment_id,
+          ...dataToInsert,
+        });
+        break;
+      case 'multigas':
+        saveFunction = () => saveNewMultigasDetector({
+          id_equipamento: formData.id_equipamento || formData.equipment_id,
+          ...dataToInsert,
+        });
+        break;
+      case 'camara_espuma':
+        saveFunction = () => saveNewFoamChamber({
+          id_camara: formData.id_camara || formData.equipment_id,
+          localizacao: formData.localizacao,
+          ...dataToInsert,
+        });
+        break;
+      case 'canhao_monitor':
+        saveFunction = () => saveNewCannonMonitor({
+          id_equipamento: formData.id_equipamento || formData.equipment_id,
+          localizacao: formData.localizacao,
+          ...dataToInsert,
+        });
+        break;
+      case 'chuveiro_lavaolhos':
+        saveFunction = () => saveNewEyewashStation({
+          id_equipamento: formData.id_equipamento || formData.equipment_id,
+          localizacao: formData.localizacao,
+          ...dataToInsert,
+        });
+        break;
+      case 'alarme':
+        saveFunction = () => saveNewAlarmSystem({
+          id_sistema: formData.id_sistema || formData.equipment_id,
+          localizacao: formData.localizacao || '',
+          ...dataToInsert,
+        });
+        break;
+      case 'abrigo':
+        saveFunction = () => saveNewShelter({
+          id_abrigo: formData.id_abrigo || formData.equipment_id,
+          ...dataToInsert,
+        });
+        break;
+      default:
+        setLoading(false);
+        return;
     }
+
+    const success = await executeWithFeedback(
+      saveFunction,
+      'equipment',
+      'Equipamento cadastrado com sucesso!',
+      'Falha ao cadastrar equipamento. Verifique se o ID já existe.'
+    );
+
+    if (success) {
+      navigate(`/inspections/${type}`);
+    }
+    
+    setLoading(false);
   };
 
   const renderSpecificForm = () => {
@@ -252,8 +251,6 @@ const AddEquipmentPage = () => {
           )}
 
           {renderSpecificForm()}
-
-          {error && <p className="mb-4 text-center text-status-error">{error}</p>}
 
           <button
             type="submit"

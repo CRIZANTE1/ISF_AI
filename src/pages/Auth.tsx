@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { logUserAccess } from '../utils/adminOperations';
 import LoginPage from '../components/ui/gaming-login';
 import { DottedSurface } from '../components/ui/DottedSurface';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
@@ -20,6 +21,7 @@ const AuthPage = () => {
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { handleError, showSuccess } = useErrorHandler();
 
   useEffect(() => {
     if (session) {
@@ -56,7 +58,9 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
-        setMessage('Cadastro realizado! Verifique seu e-mail para confirmar a conta e depois faça o login.');
+        const successMsg = 'Cadastro realizado! Verifique seu e-mail para confirmar a conta e depois faça o login.';
+        setMessage(successMsg);
+        showSuccess(successMsg);
         setMode('login'); // Switch to login view after successful signup
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -74,22 +78,11 @@ const AuthPage = () => {
         navigate('/');
       }
     } catch (err: any) {
-      console.error('Erro de autenticação:', err);
-      
-      // Tratamento específico para erros de rede
-      if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError') || err?.name === 'TypeError') {
-        setError('Erro de conexão. Verifique sua internet e as configurações do Supabase (URL e chave no arquivo .env).');
-      } else if (err?.message?.includes('Invalid API key')) {
-        setError('Chave da API inválida. Verifique o arquivo .env.');
-      } else if (err?.message?.includes('Invalid login credentials')) {
-        setError('E-mail ou senha incorretos.');
-      } else if (err?.error_description) {
-        setError(err.error_description);
-      } else if (err?.message) {
-        setError(err.message);
-      } else {
-        setError('Erro desconhecido ao fazer login. Tente novamente.');
-      }
+      // Usar o sistema centralizado de tratamento de erros
+      const appError = handleError(err, mode === 'signup' ? 'auth' : 'auth', 
+        mode === 'signup' ? 'Erro ao criar conta' : 'Erro ao fazer login'
+      );
+      setError(appError.userMessage || appError.message);
     } finally {
       setLoading(false);
     }

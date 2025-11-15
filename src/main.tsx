@@ -5,6 +5,7 @@ import './index.css'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { EquipmentCacheProvider } from './contexts/EquipmentCacheContext.tsx';
+import { ToastProvider } from './contexts/ToastContext.tsx';
 
 // Verificar preferência do usuário e aplicar tema
 const getInitialTheme = () => {
@@ -32,7 +33,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <EquipmentCacheProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </EquipmentCacheProvider>
       </AuthProvider>
     </BrowserRouter>

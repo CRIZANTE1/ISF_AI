@@ -9,6 +9,7 @@ import InstructionsPanel from '../components/InstructionsPanel';
 import { AppleActivityCard } from '../components/ui/apple-activity-ring';
 import { calculateEquipmentStats } from '../utils/equipmentStatus';
 import { motion } from 'framer-motion';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface Stats {
   total: number;
@@ -20,9 +21,9 @@ interface Stats {
 const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { getAllEquipment, cache, isStale, refreshCache } = useEquipmentCache();
+  const { handleError } = useErrorHandler();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -34,7 +35,6 @@ const Dashboard = () => {
       }
 
       setLoadingStats(true);
-      setError(null);
 
       try {
         // Usar dados do cache em vez de fazer novas chamadas
@@ -47,7 +47,7 @@ const Dashboard = () => {
 
         setStats(calculatedStats);
       } catch (err: any) {
-        setError(err.message || 'Erro ao buscar estatísticas de equipamentos.');
+        handleError(err, 'equipment', 'Erro ao buscar estatísticas de equipamentos');
       } finally {
         setLoadingStats(false);
       }
@@ -108,24 +108,6 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="fitness-card-translucent px-ios-5 py-ios-4 mb-ios-6" 
-            style={{ 
-              backgroundColor: 'rgba(252, 61, 57, 0.4)', 
-              borderColor: 'rgba(252, 61, 57, 0.3)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            }}
-            role="alert"
-          >
-            <strong className="font-semibold" style={{ color: '#FC3D39' }}>Erro: </strong>
-            <span className="block sm:inline" style={{ color: '#FC3D39' }}>{error}</span>
-          </motion.div>
-        )}
-        
         <AlertsList userId={user?.id} />
       </main>
     </div>

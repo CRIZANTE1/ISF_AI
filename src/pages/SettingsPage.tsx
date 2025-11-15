@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import { 
   Settings, 
   Moon, 
@@ -21,6 +22,7 @@ import {
 const SettingsPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { handleError } = useErrorHandler();
   const { 
     permissionStatus, 
     isSupported, 
@@ -87,8 +89,7 @@ const SettingsPage = () => {
       // TODO: Implementar exportação de dados
       alert('Funcionalidade de exportação de dados em desenvolvimento.');
     } catch (error) {
-      console.error('Erro ao exportar dados:', error);
-      alert('Falha ao exportar dados. Tente novamente.');
+      handleError(error, 'storage', 'Falha ao exportar dados');
     }
   };
 
@@ -97,8 +98,7 @@ const SettingsPage = () => {
       // TODO: Implementar importação de dados
       alert('Funcionalidade de importação de dados em desenvolvimento.');
     } catch (error) {
-      console.error('Erro ao importar dados:', error);
-      alert('Falha ao importar dados. Tente novamente.');
+      handleError(error, 'storage', 'Falha ao importar dados');
     }
   };
 
@@ -119,8 +119,7 @@ const SettingsPage = () => {
       // 3. Deletar conta de autenticação
       alert('Funcionalidade de exclusão de conta em desenvolvimento. Entre em contato com o suporte.');
     } catch (error) {
-      console.error('Erro ao excluir conta:', error);
-      alert('Falha ao excluir conta. Entre em contato com o suporte.');
+      handleError(error, 'profile', 'Falha ao excluir conta. Entre em contato com o suporte.');
     }
   };
 

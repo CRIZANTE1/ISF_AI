@@ -6,6 +6,7 @@ import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
@@ -37,10 +38,10 @@ const EquipmentDetailPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { getEquipmentByType } = useEquipmentCache();
+  const { handleError } = useErrorHandler();
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   // State for deletion modal
@@ -61,13 +62,12 @@ const EquipmentDetailPage = () => {
       const errorMsg = 'Usuário não autenticado';
       console.error(errorMsg);
       setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
-      setError('Você precisa estar autenticado para acessar este equipamento.');
+      handleError(new Error(errorMsg), 'auth', 'Você precisa estar autenticado para acessar este equipamento.');
       setLoading(false);
       return;
     }
     
     setLoading(true);
-    setError(null);
 
     try {
       let equipmentData: EquipmentInfo | null = null;
@@ -282,7 +282,7 @@ const EquipmentDetailPage = () => {
             console.error(permMsg);
             setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${permMsg}`]);
             if (!equipmentData) {
-              setError(permMsg);
+              handleError(new Error(permMsg), 'permission');
             }
           }
           
@@ -369,9 +369,9 @@ const EquipmentDetailPage = () => {
         // Verificar se foi um erro de permissão
         const lastLog = debugLogs[debugLogs.length - 1];
         if (lastLog && (lastLog.includes('permissão') || lastLog.includes('permission'))) {
-          setError(lastLog);
+          handleError(new Error(lastLog), 'permission');
         } else {
-          setError(`Equipamento não encontrado. Verifique se o ID '${id}' está correto e se você tem permissão para acessá-lo.`);
+          handleError(new Error(`Equipamento não encontrado`), 'equipment', `Equipamento não encontrado. Verifique se o ID '${id}' está correto e se você tem permissão para acessá-lo.`);
         }
       } else {
         setEquipment(equipmentData);
@@ -379,8 +379,7 @@ const EquipmentDetailPage = () => {
       }
     } catch (err: any) {
       const errorMsg = `Falha ao buscar detalhes do equipamento: ${err?.message || JSON.stringify(err)}`;
-      setError(errorMsg);
-      console.error(err);
+      handleError(err, 'equipment', 'Falha ao buscar detalhes do equipamento');
       setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERRO: ${errorMsg}`]);
     } finally {
       setLoading(false);
@@ -412,7 +411,6 @@ const EquipmentDetailPage = () => {
   const handleConfirmDelete = async () => {
     if (!itemToDelete || !type) return;
     setIsDeleting(true);
-    setError(null);
 
     try {
       if (itemToDelete.type === 'equipment') {
@@ -505,7 +503,7 @@ const EquipmentDetailPage = () => {
         }
       }
     } catch (err) {
-      setError(`Falha ao excluir o item. Tente novamente.`);
+      handleError(err, 'equipment', 'Falha ao excluir o item. Tente novamente.');
       console.error(err);
     } finally {
       setIsDeleting(false);
@@ -542,28 +540,23 @@ const EquipmentDetailPage = () => {
       </PageHeader>
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         {loading && <Skeleton className="h-48 w-full" />}
-        {error && (
-          <div className="mb-4">
-            <p className="text-center text-status-error mb-2" style={{ color: '#FF3B30' }}>{error}</p>
-            {debugLogs.length > 0 && (
-              <div className="mt-4 p-4 rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Logs de Debug:</h4>
-                  <button
-                    onClick={downloadLogs}
-                    className="px-3 py-1 text-xs rounded hover:opacity-90"
-                    style={{ backgroundColor: '#00C8FF', color: '#FFFFFF' }}
-                  >
-                    Baixar Logs
-                  </button>
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  <pre className="text-xs font-mono whitespace-pre-wrap" style={{ color: '#FFFFFF' }}>
-                    {debugLogs.join('\n')}
-                  </pre>
-                </div>
-              </div>
-            )}
+        {debugLogs.length > 0 && (
+          <div className="mb-4 p-4 rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>Logs de Debug:</h4>
+              <button
+                onClick={downloadLogs}
+                className="px-3 py-1 text-xs rounded hover:opacity-90"
+                style={{ backgroundColor: '#00C8FF', color: '#FFFFFF' }}
+              >
+                Baixar Logs
+              </button>
+            </div>
+            <div className="max-h-64 overflow-y-auto">
+              <pre className="text-xs font-mono whitespace-pre-wrap" style={{ color: '#FFFFFF' }}>
+                {debugLogs.join('\n')}
+              </pre>
+            </div>
           </div>
         )}
         {!loading && equipment && (

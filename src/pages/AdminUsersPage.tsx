@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import {
   getAllUsers,
   getUserStats,
@@ -47,6 +48,7 @@ type TabType = 'users' | 'action-logs' | 'access-logs';
 const AdminUsersPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { handleError, executeWithFeedback, showSuccess } = useErrorHandler();
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserWithProfile[]>([]);
@@ -71,7 +73,7 @@ const AdminUsersPage = () => {
       setUsers(usersData);
       setStats(statsData);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      handleError(error, 'equipment', 'Erro ao carregar usuários');
     } finally {
       setLoading(false);
     }
@@ -84,7 +86,7 @@ const AdminUsersPage = () => {
       setActionLogs(logs);
       setActionLogsTotal(total);
     } catch (error) {
-      console.error('Erro ao carregar logs de ação:', error);
+      handleError(error, 'equipment', 'Erro ao carregar logs de ação');
     } finally {
       setLoading(false);
     }
@@ -97,7 +99,7 @@ const AdminUsersPage = () => {
       setAccessLogs(logs);
       setAccessLogsTotal(total);
     } catch (error) {
-      console.error('Erro ao carregar logs de acesso:', error);
+      handleError(error, 'equipment', 'Erro ao carregar logs de acesso');
     } finally {
       setLoading(false);
     }
@@ -144,10 +146,9 @@ const AdminUsersPage = () => {
       const statsData = await getUserStats();
       setStats(statsData);
       
-      alert('Plano atualizado com sucesso!');
+      showSuccess('Plano atualizado com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao atualizar plano:', error);
-      alert(`Erro ao atualizar plano: ${error.message || 'Erro desconhecido'}`);
+      handleError(error, 'equipment', 'Erro ao atualizar plano do usuário');
     }
   };
 
@@ -157,12 +158,19 @@ const AdminUsersPage = () => {
     }
 
     try {
-      await updateUserRole(userId, role);
-      await loadUsers();
+      await executeWithFeedback(
+        async () => {
+          await updateUserRole(userId, role);
+          await loadUsers();
+          return true;
+        },
+        'equipment',
+        'Role atualizada com sucesso!',
+        'Erro ao atualizar role'
+      );
       setShowUserModal(false);
-      alert('Role atualizada com sucesso!');
     } catch (error: any) {
-      alert(`Erro ao atualizar role: ${error.message}`);
+      handleError(error, 'equipment', 'Erro ao atualizar role');
     }
   };
 
@@ -172,23 +180,37 @@ const AdminUsersPage = () => {
     }
 
     try {
-      await disableUser(userId);
-      await loadUsers();
+      await executeWithFeedback(
+        async () => {
+          await disableUser(userId);
+          await loadUsers();
+          return true;
+        },
+        'equipment',
+        'Usuário desabilitado com sucesso!',
+        'Erro ao desabilitar usuário'
+      );
       setShowUserModal(false);
-      alert('Usuário desabilitado com sucesso!');
     } catch (error: any) {
-      alert(`Erro ao desabilitar usuário: ${error.message}`);
+      handleError(error, 'equipment', 'Erro ao desabilitar usuário');
     }
   };
 
   const handleEnableUser = async (userId: string) => {
     try {
-      await enableUser(userId);
-      await loadUsers();
+      await executeWithFeedback(
+        async () => {
+          await enableUser(userId);
+          await loadUsers();
+          return true;
+        },
+        'equipment',
+        'Usuário habilitado com sucesso!',
+        'Erro ao habilitar usuário'
+      );
       setShowUserModal(false);
-      alert('Usuário habilitado com sucesso!');
     } catch (error: any) {
-      alert(`Erro ao habilitar usuário: ${error.message}`);
+      handleError(error, 'equipment', 'Erro ao habilitar usuário');
     }
   };
 
@@ -202,12 +224,19 @@ const AdminUsersPage = () => {
     }
 
     try {
-      await deleteUser(userId);
-      await loadUsers();
+      await executeWithFeedback(
+        async () => {
+          await deleteUser(userId);
+          await loadUsers();
+          return true;
+        },
+        'equipment',
+        'Usuário excluído com sucesso!',
+        'Erro ao excluir usuário'
+      );
       setShowUserModal(false);
-      alert('Usuário excluído com sucesso!');
     } catch (error: any) {
-      alert(`Erro ao excluir usuário: ${error.message}`);
+      handleError(error, 'equipment', 'Erro ao excluir usuário');
     }
   };
 

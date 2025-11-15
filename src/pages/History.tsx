@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { CheckCircle, XCircle, Clock, Calendar, Filter } from 'lucide-react';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface InspectionHistory {
   id: string | number;
@@ -21,6 +22,7 @@ interface InspectionHistory {
 
 const History = () => {
   const { user } = useAuth();
+  const { handleError } = useErrorHandler();
   const [inspections, setInspections] = useState<InspectionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
@@ -173,7 +175,7 @@ const History = () => {
 
         setInspections(allInspections);
       } catch (error) {
-        console.error('Erro ao buscar histórico de inspeções:', error);
+        handleError(error, 'inspection', 'Erro ao buscar histórico de inspeções');
       } finally {
         setLoading(false);
       }

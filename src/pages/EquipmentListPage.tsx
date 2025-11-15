@@ -8,6 +8,7 @@ import FloatingActionButton from '../components/FloatingActionButton';
 import Skeleton from '../components/Skeleton';
 import InstructionsPanel from '../components/InstructionsPanel';
 import { ChevronRight } from 'lucide-react';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 type EquipmentItem = {
   id: number | string;
@@ -26,9 +27,9 @@ const EquipmentListPage = () => {
   const { type } = useParams<{ type: string }>();
   const { user } = useAuth();
   const { getEquipmentByType, cache } = useEquipmentCache();
+  const { handleError } = useErrorHandler();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const equipmentTypeName = type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Equipamentos';
 
@@ -36,15 +37,13 @@ const EquipmentListPage = () => {
     const fetchEquipment = () => {
       if (!user || !type) return;
       setLoading(true);
-      setError(null);
       
       try {
         // Usar dados do cache em vez de fazer novas chamadas
         const data = getEquipmentByType(type);
         setEquipment(data);
       } catch (err: any) {
-        setError('Falha ao buscar equipamentos.');
-        console.error(err);
+        handleError(err, 'equipment', 'Falha ao buscar equipamentos');
       } finally {
         setLoading(false);
       }
@@ -65,13 +64,12 @@ const EquipmentListPage = () => {
             <Skeleton className="h-16 w-full rounded-lg" />
           </div>
         )}
-        {error && <p className="text-center text-status-error relative" style={{ zIndex: 10, position: 'relative' }}>{error}</p>}
-        {!loading && !error && equipment.length === 0 && (
+        {!loading && equipment.length === 0 && (
           <div className="text-center py-10 relative" style={{ zIndex: 10, position: 'relative' }}>
             <p className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#FFFFFF' }}>Nenhum equipamento cadastrado.</p>
           </div>
         )}
-        {!loading && !error && equipment.length > 0 && (
+        {!loading && equipment.length > 0 && (
           <ul className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
             {equipment.map((item, index) => {
               const itemId = item.equipment_id || item.id_mangueira || item.numero_serie_equipamento || 

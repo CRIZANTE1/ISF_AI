@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getCurrentLocation } from '../hooks/useGeolocation';
 import PageHeader from '../components/PageHeader';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import AnimatedFormField from '../components/AnimatedFormField';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
@@ -56,8 +57,8 @@ const AddInspectionPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { handleError, executeWithFeedback } = useErrorHandler();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [loadingEquipment, setLoadingEquipment] = useState(true);
   const [planAction, setPlanAction] = useState<string>('');
@@ -282,7 +283,6 @@ const AddInspectionPage = () => {
   const onSubmit = async (formData: AddInspectionFormData) => {
     if (!user || !id || !type || !equipment) return;
     setLoading(true);
-    setError(null);
 
     try {
       const inspectionDate = formData.data_inspecao || new Date().toISOString().split('T')[0];
@@ -559,8 +559,7 @@ const AddInspectionPage = () => {
 
       navigate(`/inspections/${type}`);
     } catch (err: any) {
-      setError(err.message || 'Falha ao registrar inspeção.');
-      console.error(err);
+      handleError(err, 'inspection', 'Falha ao registrar inspeção');
     } finally {
       setLoading(false);
     }
@@ -616,16 +615,6 @@ const AddInspectionPage = () => {
           </motion.div>
         )}
 
-        {error && (
-          <motion.p 
-            className="mb-4 text-center text-status-error"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            {error}
-          </motion.p>
-        )}
 
         {/* Indicador de geolocalização */}
         {['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') && (

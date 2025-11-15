@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
@@ -28,9 +29,9 @@ type EquipmentData = Record<string, any>;
 const EditEquipmentPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
+  const { handleError, executeWithFeedback } = useErrorHandler();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null);
   
   const { register, handleSubmit, formState: { errors }, reset } = useForm<EquipmentData>();
@@ -39,7 +40,6 @@ const EditEquipmentPage = () => {
     const fetchEquipment = async () => {
       if (!id || !type) return;
       setLoadingData(true);
-      setError(null);
 
       try {
         let data: EquipmentData | null = null;
@@ -119,14 +119,13 @@ const EditEquipmentPage = () => {
         }
 
         if (!data) {
-          setError('Equipamento não encontrado.');
+          handleError(new Error('Equipamento não encontrado'), 'equipment');
         } else {
           setEquipmentData(data);
           reset(data);
         }
       } catch (err: any) {
-        setError('Erro ao buscar equipamento.');
-        console.error(err);
+        handleError(err, 'equipment', 'Erro ao buscar equipamento');
       } finally {
         setLoadingData(false);
       }
@@ -138,67 +137,72 @@ const EditEquipmentPage = () => {
   const onSubmit = async (formData: EquipmentData) => {
     if (!id || !type) return;
     setLoading(true);
-    setError(null);
 
-    try {
-      let tableName = '';
-      let idColumn = '';
-      const { id: _, created_at, user_id, ...dataToUpdate } = formData;
+    let tableName = '';
+    let idColumn = '';
+    const { id: _, created_at, user_id, ...dataToUpdate } = formData;
 
-      switch (type) {
-        case 'extintor':
-          tableName = 'extintores';
-          idColumn = 'numero_identificacao';
-          break;
-        case 'mangueira':
-          tableName = 'mangueiras';
-          idColumn = 'id_mangueira';
-          break;
-        case 'scba':
-          tableName = 'conjuntos_autonomos';
-          idColumn = 'numero_serie_equipamento';
-          break;
-        case 'multigas':
-          tableName = 'inventario_multigas';
-          idColumn = 'id_equipamento';
-          break;
-        case 'camara_espuma':
-          tableName = 'inventario_camaras_espuma';
-          idColumn = 'id_camara';
-          break;
-        case 'canhao_monitor':
-          tableName = 'inventario_canhoes_monitores';
-          idColumn = 'id_equipamento';
-          break;
-        case 'chuveiro_lavaolhos':
-          tableName = 'inventario_chuveiros_lava_olhos';
-          idColumn = 'id_equipamento';
-          break;
-        case 'alarme':
-          tableName = 'inventario_alarmes';
-          idColumn = 'id_sistema';
-          break;
-        case 'abrigo':
-          tableName = 'abrigos';
-          idColumn = 'id_abrigo';
-          break;
-        default:
-          throw new Error('Tipo de equipamento desconhecido.');
-      }
-
-      const { error } = await supabase
-        .from(tableName as any)
-        .update(dataToUpdate)
-        .eq(idColumn, id);
-
-      if (error) throw error;
-      navigate(`/equipment/${type}/${id}`);
-    } catch (err: any) {
-      setError('Falha ao atualizar equipamento.');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    switch (type) {
+      case 'extintor':
+        tableName = 'extintores';
+        idColumn = 'numero_identificacao';
+        break;
+      case 'mangueira':
+        tableName = 'mangueiras';
+        idColumn = 'id_mangueira';
+        break;
+      case 'scba':
+        tableName = 'conjuntos_autonomos';
+        idColumn = 'numero_serie_equipamento';
+        break;
+      case 'multigas':
+        tableName = 'inventario_multigas';
+        idColumn = 'id_equipamento';
+        break;
+      case 'camara_espuma':
+        tableName = 'inventario_camaras_espuma';
+        idColumn = 'id_camara';
+        break;
+      case 'canhao_monitor':
+        tableName = 'inventario_canhoes_monitores';
+        idColumn = 'id_equipamento';
+        break;
+      case 'chuveiro_lavaolhos':
+        tableName = 'inventario_chuveiros_lava_olhos';
+        idColumn = 'id_equipamento';
+        break;
+      case 'alarme':
+        tableName = 'inventario_alarmes';
+        idColumn = 'id_sistema';
+        break;
+      case 'abrigo':
+        tableName = 'abrigos';
+        idColumn = 'id_abrigo';
+        break;
+      default:
+        setLoading(false);
+        return;
     }
+
+    const success = await executeWithFeedback(
+      async () => {
+        const { error } = await supabase
+          .from(tableName as any)
+          .update(dataToUpdate)
+          .eq(idColumn, id);
+        if (error) throw error;
+        return true;
+      },
+      'equipment',
+      'Equipamento atualizado com sucesso!',
+      'Falha ao atualizar equipamento'
+    );
+
+    if (success) {
+      navigate(`/equipment/${type}/${id}`);
+    }
+    
+    setLoading(false);
   };
 
   const renderSpecificForm = () => {
@@ -242,8 +246,6 @@ const EditEquipmentPage = () => {
         ) : equipmentData ? (
           <form onSubmit={handleSubmit(onSubmit)}>
             {renderSpecificForm()}
-
-            {error && <p className="mb-4 text-center text-status-error">{error}</p>}
 
             <button
               type="submit"

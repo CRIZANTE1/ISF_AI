@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Icon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import { 
   ExtinguisherIcon, 
   FoamChamberIcon, 
@@ -110,6 +111,7 @@ function MapBounds({ bounds }: { bounds: LatLngBounds | null }) {
 const EquipmentMap = () => {
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
+  const { handleError } = useErrorHandler();
   const [markers, setMarkers] = useState<EquipmentMarker[]>([]);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,6 +126,7 @@ const EquipmentMap = () => {
             setUserLocation(location);
           }
         }).catch(err => {
+          // Erro de localização não é crítico, apenas loga
           console.warn('Erro ao obter localização do usuário:', err);
         });
 
@@ -154,7 +157,7 @@ const EquipmentMap = () => {
         
         setMarkers(equipmentMarkers);
       } catch (error) {
-        console.error('Erro ao carregar equipamentos:', error);
+        handleError(error, 'equipment', 'Erro ao carregar equipamentos no mapa');
       } finally {
         setLoading(false);
       }
