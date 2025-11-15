@@ -2,7 +2,7 @@
  * Componente indicador de status offline
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { getOfflineStats, cleanExpiredCache } from '../utils/offlineDB';
 import { syncPendingOperations } from '../utils/offlineSync';
@@ -39,26 +39,7 @@ const OfflineIndicator = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Sincroniza automaticamente quando volta online
-  useEffect(() => {
-    if (wasOffline && isOnline && stats.pendingOperations > 0) {
-      handleSync();
-    }
-  }, [wasOffline, isOnline, stats.pendingOperations]);
-
-  // Limpa cache expirado periodicamente
-  useEffect(() => {
-    const cleanCache = async () => {
-      await cleanExpiredCache();
-    };
-
-    cleanCache();
-    const interval = setInterval(cleanCache, 60 * 60 * 1000); // A cada hora
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     if (!isOnline || isSyncing) return;
 
     setIsSyncing(true);
@@ -79,7 +60,26 @@ const OfflineIndicator = () => {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [isOnline, isSyncing]);
+
+  // Sincroniza automaticamente quando volta online
+  useEffect(() => {
+    if (wasOffline && isOnline && stats.pendingOperations > 0) {
+      handleSync();
+    }
+  }, [wasOffline, isOnline, stats.pendingOperations, handleSync]);
+
+  // Limpa cache expirado periodicamente
+  useEffect(() => {
+    const cleanCache = async () => {
+      await cleanExpiredCache();
+    };
+
+    cleanCache();
+    const interval = setInterval(cleanCache, 60 * 60 * 1000); // A cada hora
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Não mostra nada se estiver online e não houver operações pendentes
   if (isOnline && stats.pendingOperations === 0) {

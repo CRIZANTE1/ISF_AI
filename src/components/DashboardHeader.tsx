@@ -27,9 +27,17 @@ const DashboardHeader = () => {
   const today = new Date();
   let formattedDate = '';
   try {
-    formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR });
+    formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR }) || '';
   } catch (error) {
-    formattedDate = today.toLocaleDateString('pt-BR');
+    formattedDate = today.toLocaleDateString('pt-BR') || '';
+  }
+  // Garantir que formattedDate nunca seja undefined ou null
+  if (!formattedDate || typeof formattedDate !== 'string') {
+    formattedDate = today.toLocaleDateString('pt-BR', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long' 
+    }) || 'Data não disponível';
   }
   const userInitial = profile?.full_name?.charAt(0).toUpperCase() || 'U';
 
@@ -141,10 +149,10 @@ const DashboardHeader = () => {
           className="flex flex-col"
         >
           <h1 className="text-screen-title font-semibold text-white mb-1" style={{ letterSpacing: '-0.5px' }}>
-            {formattedDate.split(',')[0] || formattedDate}
+            {formattedDate && formattedDate.includes(',') ? formattedDate.split(',')[0] : formattedDate}
           </h1>
           <p className="text-body text-[#8E8E93]">
-            {formattedDate.split(',')[1]?.trim() || ''}
+            {formattedDate && formattedDate.includes(',') ? formattedDate.split(',')[1]?.trim() || '' : ''}
           </p>
         </motion.div>
         <div className="flex items-center gap-3">

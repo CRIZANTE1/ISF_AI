@@ -181,37 +181,22 @@ export const logError = (error: AppError, additionalInfo?: Record<string, any>) 
 };
 
 /**
- * Hook para tratamento de erros com toast
+ * Função helper para tratamento de erros sem toast (para uso em utilitários)
+ * 
+ * NOTA: Para uso em componentes React, use o hook useErrorHandler de src/hooks/useErrorHandler.ts
+ * que integra automaticamente com o ToastContext.
  * 
  * Uso:
- * const { handleError } = useErrorHandler();
- * try {
- *   await someOperation();
- * } catch (error) {
- *   handleError(error, 'equipment');
- * }
+ * const appError = handleErrorWithoutToast(error, 'equipment');
  */
-export const useErrorHandler = () => {
-  // Note: Este hook precisa ser usado dentro de um componente que tenha acesso ao ToastContext
-  // Por isso, vamos criar uma versão que aceita showError como parâmetro
-  const handleError = (
-    error: unknown,
-    context: ErrorContext = 'unknown',
-    customMessage?: string,
-    showToast?: (message: string) => void
-  ) => {
-    const appError = processError(error, context, customMessage);
-    logError(appError);
-
-    // Mostrar toast se disponível
-    if (showToast) {
-      showToast(appError.userMessage || appError.message);
-    }
-
-    return appError;
-  };
-
-  return { handleError };
+export const handleErrorWithoutToast = (
+  error: unknown,
+  context: ErrorContext = 'unknown',
+  customMessage?: string
+): AppError => {
+  const appError = processError(error, context, customMessage);
+  logError(appError);
+  return appError;
 };
 
 /**

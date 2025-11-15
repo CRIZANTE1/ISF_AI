@@ -7,12 +7,8 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
-  android: {
-    buildOptions: {
-      keystorePath: undefined,
-      keystoreAlias: undefined,
-    }
-  }
+  // Removido buildOptions para evitar conflito com build.gradle
+  // A assinatura será gerenciada diretamente no android/app/build.gradle
 };
 
 export default config;

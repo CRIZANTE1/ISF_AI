@@ -154,7 +154,8 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
     if (user) {
       // Se o cache está vazio ou está obsoleto, buscar dados
       // Usa setTimeout para não bloquear a renderização inicial
-      if (isStale() && !isFetchingRef.current) {
+      const isCacheStale = !cache.lastFetch || (Date.now() - cache.lastFetch > CACHE_DURATION);
+      if (isCacheStale && !isFetchingRef.current) {
         // Delay pequeno para não bloquear a UI inicial
         const timer = setTimeout(() => {
           refreshCache();
@@ -177,7 +178,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         isLoading: false,
       });
     }
-  }, [user, isStale, refreshCache]);
+  }, [user, cache.lastFetch, refreshCache]);
 
   const value: EquipmentCacheContextType = {
     cache,
