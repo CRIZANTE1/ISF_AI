@@ -34,7 +34,7 @@ const DockItemComponent: React.FC<DockItemProps> = ({ item, isHovered, isActive,
       <div
         className={`
           relative flex items-center justify-center
-          ${isAddButton ? 'w-12 h-12 rounded-full' : 'w-11 h-11 rounded-lg'}
+          ${isAddButton ? 'w-10 h-10 rounded-full' : 'w-9 h-9 rounded-lg'}
           ${isAddButton 
             ? 'bg-white text-black' 
             : 'bg-white/5 backdrop-blur-[2px] border border-white/10'
@@ -105,31 +105,31 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
   const allDockItems: DockItem[] = [
     { 
       id: 'inspections', 
-      icon: <ClipboardCheck size={20} />, 
+      icon: <ClipboardCheck size={16} />, 
       label: 'Inspeções',
       to: '/inspections'
     },
     { 
       id: 'history', 
-      icon: <History size={20} />, 
+      icon: <History size={16} />, 
       label: 'Histórico',
       to: '/history'
     },
     { 
       id: 'home', 
-      icon: <LayoutGrid size={20} />, 
+      icon: <LayoutGrid size={16} />, 
       label: 'Home',
       to: '/'
     },
     { 
       id: 'map', 
-      icon: <MapPin size={20} />, 
+      icon: <MapPin size={16} />, 
       label: 'Mapa',
       to: '/map'
     },
     { 
       id: 'utilities', 
-      icon: <Wrench size={20} />, 
+      icon: <Wrench size={16} />, 
       label: 'Utilitários',
       to: '/utilities',
       adminOnly: true
@@ -174,7 +174,7 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
       <div className="relative">
         {/* Dock Container */}
         <div className={`
-          flex items-end gap-3 px-6 py-4
+          flex items-end gap-2 px-4 py-3
           rounded-2xl
           bg-black/40 backdrop-blur-xl
           border border-white/10
@@ -196,7 +196,7 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
         {/* Reflection Effect */}
         <div className="absolute top-full left-0 right-0 h-16 overflow-hidden pointer-events-none">
           <div className={`
-            flex items-start gap-3 px-6 py-4
+            flex items-start gap-2 px-4 py-3
             rounded-2xl
             bg-black/20 backdrop-blur-xl
             border border-white/5
@@ -210,7 +210,7 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
                 key={`reflection-${item.id}`}
                 className={`
                   flex items-center justify-center
-                  w-11 h-11 rounded-lg
+                  w-9 h-9 rounded-lg
                   bg-white/5
                   transition-all duration-300 ease-out
                   ${hoveredItem === item.id 
