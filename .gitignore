@@ -33,6 +33,12 @@ android/
 ios/
 .capacitor/
 
+# Android Keystore (NUNCA commitar!)
+*.jks
+*.keystore
+android/app/*.jks
+android/app/*.keystore
+
 # Test Results (fora do diretório do app)
 ../test-results/
 

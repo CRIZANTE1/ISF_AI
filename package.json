@@ -13,6 +13,8 @@
     "cap:add:android": "cap add android",
     "android:build": "npm run build && npm run cap:sync",
     "android:setup": "npm run build && npx cap add android && npm run cap:sync",
+    "android:build:release": "npm run build && npm run cap:sync && cd android && ./gradlew bundleRelease",
+    "android:build:apk": "npm run build && npm run cap:sync && cd android && ./gradlew assembleRelease",
     "copy:icons": "node copy-icons.js",
     "clean:icons": "node clean-icons.js",
     "test": "vitest",
