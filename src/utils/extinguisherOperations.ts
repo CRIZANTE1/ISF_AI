@@ -299,11 +299,13 @@ export async function saveNewExtinguisher(
       throw new Error(`Extintor com ID '${extinguisher.numero_identificacao}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('extintores')
-      .insert(extinguisher);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('extintores', extinguisher);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar extintor');
+    }
     
     // Log action
     try {
@@ -353,11 +355,13 @@ export async function saveExtinguisherInspection(
       ...nextDates,
     };
 
-    const { error } = await supabase
-      .from('extintores')
-      .insert(inspectionData);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('extintores', inspectionData);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

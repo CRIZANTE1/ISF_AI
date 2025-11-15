@@ -51,11 +51,13 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
       throw new Error(`SCBA com número de série '${scba.numero_serie_equipamento}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('conjuntos_autonomos')
-      .insert(scba);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('conjuntos_autonomos', scba);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar SCBA');
+    }
     
     // Log action
     try {
@@ -117,11 +119,13 @@ export async function saveSCBAVisualInspection(
   inspection: Omit<SCBAInspection, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('inspecoes_scba')
-      .insert(inspection);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_scba', inspection);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

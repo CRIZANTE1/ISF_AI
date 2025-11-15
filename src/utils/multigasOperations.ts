@@ -67,11 +67,13 @@ export async function saveNewMultigasDetector(
       throw new Error(`Detector com ID '${detector.id_equipamento}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('inventario_multigas')
-      .insert(detector);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inventario_multigas', detector);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar detector multigás');
+    }
     
     // Log action
     try {
@@ -260,11 +262,13 @@ export async function saveMultigasInspection(
   inspection: Omit<MultigasInspection, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('inspecoes_multigas')
-      .insert(inspection);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_multigas', inspection);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

@@ -40,11 +40,13 @@ export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promis
       throw new Error(`Mangueira com ID '${hose.id_mangueira}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('mangueiras')
-      .insert(hose);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('mangueiras', hose);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar mangueira');
+    }
     
     // Log action
     try {

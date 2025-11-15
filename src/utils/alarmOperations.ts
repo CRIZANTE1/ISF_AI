@@ -101,11 +101,13 @@ export async function saveNewAlarmSystem(
       throw new Error(`Sistema de alarme com ID '${alarm.id_sistema}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('inventario_alarmes')
-      .insert(alarm);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inventario_alarmes', alarm);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar sistema de alarme');
+    }
     
     // Log action
     try {
@@ -148,14 +150,16 @@ export async function saveAlarmInspection(
 
     const planoDeAcao = generateAlarmActionPlan(nonConformities);
 
-    const { error } = await supabase
-      .from('inspecoes_alarmes')
-      .insert({
-        ...inspection,
-        plano_de_acao: planoDeAcao,
-      });
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_alarmes', {
+      ...inspection,
+      plano_de_acao: planoDeAcao,
+    });
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

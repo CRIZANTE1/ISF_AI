@@ -75,11 +75,13 @@ export async function saveShelterInspection(
   inspection: Omit<ShelterInspection, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('inspecoes_abrigos')
-      .insert(inspection);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_abrigos', inspection);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

@@ -77,11 +77,13 @@ export async function saveNewFoamChamber(
       throw new Error(`Câmara com ID '${chamber.id_camara}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('inventario_camaras_espuma')
-      .insert(chamber);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inventario_camaras_espuma', chamber);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar câmara de espuma');
+    }
     
     // Log action
     try {
@@ -118,14 +120,16 @@ export async function saveFoamChamberInspection(
 
     const planoDeAcao = generateFoamChamberActionPlan(nonConformities);
 
-    const { error } = await supabase
-      .from('inspecoes_camaras_espuma')
-      .insert({
-        ...inspection,
-        plano_de_acao: planoDeAcao,
-      });
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_camaras_espuma', {
+      ...inspection,
+      plano_de_acao: planoDeAcao,
+    });
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

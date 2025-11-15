@@ -50,11 +50,13 @@ export async function saveNewCannonMonitor(
       throw new Error(`Canhão monitor com ID '${cannon.id_equipamento}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('inventario_canhoes_monitores')
-      .insert(cannon);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inventario_canhoes_monitores', cannon);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar canhão monitor');
+    }
     
     // Log action
     try {
@@ -93,14 +95,16 @@ export async function saveCannonMonitorInspection(
       ? "Corrigir itens não conformes."
       : "Manter monitoramento periódico.";
 
-    const { error } = await supabase
-      .from('inspecoes_canhoes_monitores')
-      .insert({
-        ...inspection,
-        plano_de_acao: planoDeAcao,
-      });
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_canhoes_monitores', {
+      ...inspection,
+      plano_de_acao: planoDeAcao,
+    });
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {

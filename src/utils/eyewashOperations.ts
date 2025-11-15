@@ -79,11 +79,13 @@ export async function saveNewEyewashStation(
       throw new Error(`Chuveiro/lava-olhos com ID '${station.id_equipamento}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('inventario_chuveiros_lava_olhos')
-      .insert(station);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inventario_chuveiros_lava_olhos', station);
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar chuveiro/lava-olhos');
+    }
     
     // Log action
     try {
@@ -120,14 +122,16 @@ export async function saveEyewashInspection(
 
     const planoDeAcao = generateEyewashActionPlan(nonConformities);
 
-    const { error } = await supabase
-      .from('inspecoes_chuveiros_lava_olhos')
-      .insert({
-        ...inspection,
-        plano_de_acao: planoDeAcao,
-      });
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_chuveiros_lava_olhos', {
+      ...inspection,
+      plano_de_acao: planoDeAcao,
+    });
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
     
     // Log action
     try {
