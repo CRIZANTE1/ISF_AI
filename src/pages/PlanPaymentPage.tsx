@@ -1,23 +1,87 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import PageHeader from '../components/PageHeader';
 import { PricingSection } from '../components/ui/pricing';
+import { useBilling, PRODUCT_IDS } from '../hooks/useBilling';
 
 const PlanPaymentPage = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [frequency, setFrequency] = useState<'monthly' | 'yearly'>('monthly');
+  
+  const {
+    isAvailable,
+    isInitialized,
+    isInitializing,
+    products,
+    loading: billingLoading,
+    purchase,
+    getProductPrice,
+  } = useBilling();
 
   const handleUpgrade = async () => {
+    // Verificar se estamos no Android
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
+      alert('As compras in-app estão disponíveis apenas no aplicativo Android. Por favor, use o aplicativo para fazer upgrade.');
+      return;
+    }
+
+    // Verificar se o billing está disponível
+    if (!isAvailable || !isInitialized) {
+      alert('Google Play Billing não está disponível. Verifique sua conexão e tente novamente.');
+      return;
+    }
+
     setUpgrading(true);
-    // TODO: Implementar integração com sistema de pagamento
-    // Por enquanto, apenas simula o upgrade
-    setTimeout(() => {
-      alert('Funcionalidade de upgrade em desenvolvimento. Entre em contato com o suporte para atualizar seu plano.');
+    setError(null);
+
+    try {
+      const productId = frequency === 'monthly' 
+        ? PRODUCT_IDS.PREMIUM_MONTHLY 
+        : PRODUCT_IDS.PREMIUM_YEARLY;
+
+      const purchaseResult = await purchase(productId);
+      
+      if (purchaseResult) {
+        // A compra foi processada com sucesso
+        // O plano será atualizado automaticamente pelo billingService
+        // Recarregar a página após um breve delay para atualizar o perfil
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao processar compra';
+      setError(errorMessage);
+      alert(errorMessage);
+    } finally {
       setUpgrading(false);
-    }, 1000);
+    }
+  };
+
+  // Função auxiliar para extrair preço numérico do formato "R$ 24,90"
+  const parsePrice = (priceString: string): number => {
+    if (!priceString) return 0;
+    // Remove "R$", espaços e substitui vírgula por ponto
+    const cleaned = priceString.replace(/R\$\s?/g, '').replace(',', '.').trim();
+    return parseFloat(cleaned) || 0;
+  };
+
+  // Obter preços dos produtos do Google Play ou usar fallback
+  const getPremiumPrice = (freq: 'monthly' | 'yearly'): number => {
+    const priceString = getProductPrice(PRODUCT_IDS.PREMIUM_MONTHLY, freq);
+    const parsed = parsePrice(priceString);
+    
+    if (parsed > 0) {
+      return parsed;
+    }
+    
+    // Fallback para preços padrão
+    return freq === 'monthly' ? 24.90 : Math.round(24.90 * 12 * (1 - 0.12));
   };
 
   const plans = [
@@ -45,8 +109,8 @@ const PlanPaymentPage = () => {
       name: 'Premium',
       info: 'Para pequenas e médias empresas',
       price: {
-        monthly: 24.90,
-        yearly: Math.round(24.90 * 12 * (1 - 0.12)),
+        monthly: getPremiumPrice('monthly'),
+        yearly: getPremiumPrice('yearly'),
       },
       features: [
         { text: 'Gestão ilimitada de equipamentos' },
@@ -57,9 +121,19 @@ const PlanPaymentPage = () => {
         { text: 'Exportação de dados' },
       ],
       btn: {
-        text: profile?.plan === 'premium' ? 'Plano Atual' : upgrading ? 'Processando...' : 'Fazer Upgrade',
+        text: profile?.plan === 'premium' 
+          ? 'Plano Atual' 
+          : (upgrading || billingLoading || isInitializing)
+          ? 'Processando...' 
+          : (!isAvailable || !isInitialized)
+          ? 'Indisponível'
+          : 'Fazer Upgrade',
         href: '#',
-        onClick: profile?.plan === 'premium' ? undefined : handleUpgrade,
+        onClick: profile?.plan === 'premium' 
+          ? undefined 
+          : (!isAvailable || !isInitialized || upgrading || billingLoading || isInitializing)
+          ? undefined
+          : handleUpgrade,
       },
     },
     {
@@ -125,10 +199,39 @@ const PlanPaymentPage = () => {
     );
   }
 
+  // Mostrar mensagem se não estiver no Android
+  const isAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title="Planos e Preços" />
       <main className="py-8 pb-32" style={{ backgroundColor: '#000000' }}>
+        {!isAndroid && (
+          <div className="mx-auto max-w-4xl mb-6 px-4">
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center">
+              <p className="text-yellow-400 text-sm">
+                💡 As compras in-app estão disponíveis apenas no aplicativo Android. 
+                Por favor, use o aplicativo para fazer upgrade do seu plano.
+              </p>
+            </div>
+          </div>
+        )}
+        {isAndroid && !isAvailable && (
+          <div className="mx-auto max-w-4xl mb-6 px-4">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
+              <p className="text-red-400 text-sm">
+                ⚠️ Google Play Billing não está disponível. Verifique sua conexão e tente novamente.
+              </p>
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="mx-auto max-w-4xl mb-6 px-4">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
         <PricingSection
           plans={plans}
           heading="Planos que Crescem com Você"
