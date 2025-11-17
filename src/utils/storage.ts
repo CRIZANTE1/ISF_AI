@@ -18,7 +18,7 @@ export async function uploadEvidencePhoto(
   try {
     // Gera um nome único para o arquivo
     const timestamp = new Date().getTime();
-    const fileExt = file.name.split('.').pop() || 'webp';
+    const fileExt = file.name?.split('.').pop() || 'webp';
     const fileName = `${equipmentId}_${timestamp}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
 
@@ -89,7 +89,7 @@ export async function uploadFile(
 ): Promise<string | null> {
   try {
     const timestamp = new Date().getTime();
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name?.split('.').pop() || 'bin';
     const finalFileName = fileName || `file_${timestamp}.${fileExt}`;
     const filePath = folder ? `${folder}/${finalFileName}` : finalFileName;
 
