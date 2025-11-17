@@ -9,20 +9,13 @@ import { logger } from './logger';
 export interface Hose {
   id?: number;
   id_mangueira: string;
-  marca?: string;
-  diametro?: number;
-  tipo?: string;
-  comprimento?: number;
-  ano_fabricacao?: number;
-  data_inspecao?: string;
-  data_proximo_teste?: string;
-  resultado?: string;
-  link_certificado_pdf?: string;
-  registrado_por?: string;
-  empresa_executante?: string;
-  resp_tecnico_certificado?: string;
+  marca?: string | null;
+  diametro?: number | null;
+  tipo?: string | null;
+  comprimento?: number | null;
+  ano_fabricacao?: number | null;
   created_at?: string;
-  user_id?: string;
+  user_id?: string | null;
 }
 
 /**
@@ -120,6 +113,94 @@ export async function updateHose(
   } catch (error) {
     logger.error('Erro ao atualizar mangueira', 'equipment', error);
     return false;
+  }
+}
+
+/**
+ * Salva uma inspeção/teste de mangueira
+ */
+export interface HoseInspection {
+  id?: number;
+  id_mangueira: string;
+  data_inspecao: string;
+  resultado: string;
+  status_geral?: string;
+  plano_de_acao?: string;
+  resultados_json?: Record<string, any>;
+  observacoes?: string;
+  link_foto_nao_conformidade?: string;
+  inspetor?: string;
+  data_proxima_inspecao?: string;
+  latitude?: number;
+  longitude?: number;
+  created_at?: string;
+  user_id?: string;
+}
+
+export async function saveHoseInspection(inspection: Omit<HoseInspection, 'id' | 'created_at'>): Promise<boolean> {
+  try {
+    // Calcula próxima data de teste (1 ano após a inspeção atual)
+    const inspectionDate = new Date(inspection.data_inspecao);
+    const nextTestDate = new Date(inspectionDate);
+    nextTestDate.setFullYear(nextTestDate.getFullYear() + 1);
+
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('inspecoes_mangueiras', {
+      id_mangueira: inspection.id_mangueira,
+      data_inspecao: inspection.data_inspecao,
+      resultado: inspection.resultado,
+      status_geral: inspection.status_geral || inspection.resultado,
+      plano_de_acao: inspection.plano_de_acao,
+      resultados_json: inspection.resultados_json || null,
+      observacoes: inspection.observacoes || null,
+      link_foto_nao_conformidade: inspection.link_foto_nao_conformidade || null,
+      inspetor: inspection.inspetor || null,
+      data_proxima_inspecao: inspection.data_proxima_inspecao || nextTestDate.toISOString().split('T')[0],
+      latitude: inspection.latitude || null,
+      longitude: inspection.longitude || null,
+      user_id: inspection.user_id || null,
+    });
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
+
+    // Log action
+    try {
+      await logUserAction('create', 'inspection', inspection.id_mangueira, {
+        type: 'mangueira',
+        resultado: inspection.resultado,
+        data_inspecao: inspection.data_inspecao,
+      });
+    } catch (logError) {
+      logger.error('Failed to log action', 'equipment', logError);
+    }
+
+    return true;
+  } catch (error) {
+    logger.error('Erro ao salvar inspeção de mangueira', 'equipment', error);
+    return false;
+  }
+}
+
+/**
+ * Busca todas as inspeções de uma mangueira
+ */
+export async function getHoseInspections(idMangueira: string): Promise<HoseInspection[]> {
+  try {
+    // Usar query direta já que a tabela ainda não está nos tipos gerados
+    const { data, error } = await supabase
+      .from('inspecoes_mangueiras' as any)
+      .select('*')
+      .eq('id_mangueira', idMangueira)
+      .order('data_inspecao', { ascending: false });
+
+    if (error) throw error;
+    return (data as any) || [];
+  } catch (error) {
+    logger.error('Erro ao buscar inspeções de mangueira', 'equipment', error);
+    return [];
   }
 }
 

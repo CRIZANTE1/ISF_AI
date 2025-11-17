@@ -16,6 +16,7 @@ import FoamChamberChecklist from '../components/checklists/FoamChamberChecklist'
 import AlarmChecklist from '../components/checklists/AlarmChecklist';
 import CannonMonitorChecklist from '../components/checklists/CannonMonitorChecklist';
 import ScbaChecklist from '../components/checklists/ScbaChecklist';
+import HoseChecklist from '../components/checklists/HoseChecklist';
 import { logger } from '../utils/logger';
 import { 
   generateActionPlan, 
@@ -33,6 +34,7 @@ import { saveMultigasInspection, getAllMultigasDetectors, getMultigasDetectorByI
 import type { CylinderValues } from '../utils/multigasOperations';
 import { saveSCBAVisualInspection, getAllSCBAs, getSCBABySerial } from '../utils/scbaOperations';
 import { saveShelterInspection, getAllShelters } from '../utils/shelterOperations';
+import { getHoseById, saveHoseInspection } from '../utils/hoseOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
 import { Spinner } from '../components/ui/spinner';
 
@@ -118,10 +120,10 @@ const AddInspectionPage = () => {
             setLongitude(location.longitude);
             setLocationError(null);
           } else {
-            setLocationError('Não foi possível obter a localização. Verifique as permissões do dispositivo/navegador.');
+            setLocationError(t('common.locationError'));
           }
         } catch (err: any) {
-          setLocationError(err.message || 'Erro ao obter localização');
+          setLocationError(err.message || t('common.locationError'));
         }
       }
     };
@@ -149,6 +151,16 @@ const AddInspectionPage = () => {
                 id: extData.numero_identificacao,
                 name: extData.numero_identificacao,
                 location: extData.local_id || undefined,
+              };
+            }
+            break;
+          case 'mangueira':
+            const hoseData = await getHoseById(id);
+            if (hoseData) {
+              equipmentData = {
+                id: hoseData.id_mangueira,
+                name: hoseData.id_mangueira,
+                location: undefined,
               };
             }
             break;
@@ -287,6 +299,17 @@ const AddInspectionPage = () => {
         .map(([question, _]) => question);
       const plan = generateEyewashActionPlan(nonConformities);
       setPlanAction(plan);
+    } else if (type === 'mangueira') {
+      const nonConformities = Object.entries(checklistResults)
+        .filter(([_, status]) => status === 'Não Conforme')
+        .map(([question, _]) => question);
+      
+      if (nonConformities.length > 0) {
+        const plan = `Corrigir os seguintes itens não conformes:\n${nonConformities.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
+        setPlanAction(plan);
+      } else {
+        setPlanAction('Mangueira aprovada. Manter monitoramento periódico.');
+      }
     }
   }, [checklistResults, type]);
 
@@ -323,7 +346,7 @@ const AddInspectionPage = () => {
 
       // Determina status geral baseado nos resultados do checklist ou aprovação direta
       const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
-      const hasChecklistForType = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba'].includes(type || '');
+      const hasChecklistForType = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '');
       const overallStatus = hasChecklistForType
         ? (nonConformities.length > 0 ? 'Reprovado com Pendências' : 'Aprovado')
         : (aprovado === 'Não' || aprovado === 'Reprovado' ? 'Reprovado' : 'Aprovado');
@@ -551,6 +574,35 @@ const AddInspectionPage = () => {
           break;
         }
 
+        case 'mangueira': {
+          // Determina resultado baseado no checklist ou aprovação direta
+          const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme');
+          const resultado = nonConformities.length > 0 || aprovado === 'Não' || aprovado === 'Reprovado' 
+            ? 'Reprovado' 
+            : 'Aprovado';
+          const statusGeral = nonConformities.length > 0 ? 'Reprovado com Pendências' : 'Aprovado';
+
+          const inspectionRecord = {
+            id_mangueira: id,
+            data_inspecao: inspectionDate,
+            resultado: resultado,
+            status_geral: statusGeral,
+            plano_de_acao: planAction || undefined,
+            resultados_json: Object.keys(checklistResults).length > 0 ? checklistResults : undefined,
+            observacoes: observacoes || undefined,
+            link_foto_nao_conformidade: photoLink || undefined,
+            inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
+            data_proxima_inspecao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            latitude: latitude || undefined,
+            longitude: longitude || undefined,
+            user_id: user.id,
+          };
+
+          const success = await saveHoseInspection(inspectionRecord);
+          if (!success) throw new Error('Falha ao salvar inspeção');
+          break;
+        }
+
         case 'abrigo': {
           const inspectionRecord = {
             id_abrigo: id,
@@ -596,7 +648,7 @@ const AddInspectionPage = () => {
     );
   }
 
-  const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba'].includes(type || '');
+  const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '');
   const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
   const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual');
   const isMultigasEquipment = type === 'multigas';
@@ -604,7 +656,7 @@ const AddInspectionPage = () => {
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
-      <PageHeader title="Registrar Inspeção" />
+      <PageHeader title={t('inspection.register')} />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
         {type && (
           <motion.div
@@ -625,11 +677,11 @@ const AddInspectionPage = () => {
           >
             <p className="font-semibold text-sm text-white">{equipment.name}</p>
             <p className="text-xs text-[#8E8E93]">
-              {equipment.location || equipment.localizacao || 'Sem localização'}
+              {equipment.location || equipment.localizacao || t('inspection.noLocation')}
             </p>
             {equipment.model && (
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                Modelo: {equipment.model}
+                {t('inspection.model')} {equipment.model}
               </p>
             )}
           </motion.div>
@@ -652,7 +704,7 @@ const AddInspectionPage = () => {
             {latitude && longitude ? (
               <p className="text-sm flex items-center gap-2" style={{ color: '#53D769' }}>
                 <span>✓</span>
-                <span>Localização capturada: {latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+                <span>{t('inspection.locationCaptured')} {latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
               </p>
             ) : locationError ? (
               <p className="text-sm flex items-center gap-2" style={{ color: '#FC3D39' }}>
@@ -662,7 +714,7 @@ const AddInspectionPage = () => {
             ) : (
               <p className="text-sm flex items-center gap-2" style={{ color: '#8E8E93' }}>
                 <span>⟳</span>
-                <span>Capturando localização...</span>
+                <span>{t('inspection.capturingLocation')}</span>
               </p>
             )}
           </motion.div>
@@ -678,12 +730,12 @@ const AddInspectionPage = () => {
         >
           <AnimatedFormField delay={0.25} className="mb-4">
             <label htmlFor="data_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              Data da Inspeção *
+              {t('inspection.dateRequired')}
             </label>
             <input
               type="date"
               id="data_inspecao"
-              {...register('data_inspecao', { required: 'Data é obrigatória' })}
+              {...register('data_inspecao', { required: t('inspection.dateRequiredError') })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
             />
             {errors.data_inspecao && (
@@ -695,22 +747,22 @@ const AddInspectionPage = () => {
             <>
               <AnimatedFormField delay={0.3} className="mb-4">
                 <label htmlFor="tipo_servico" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  Tipo de Serviço *
+                  {t('inspection.serviceType')}
                 </label>
                 <Controller
                   name="tipo_servico"
                   control={control}
-                  rules={{ required: 'Tipo de serviço é obrigatório' }}
+                  rules={{ required: t('inspection.serviceTypeRequired') }}
                   render={({ field }) => (
                     <select
                       {...field}
                       id="tipo_servico"
                       className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                     >
-                      <option value="Inspeção">Inspeção</option>
-                      <option value="Manutenção Nível 2">Manutenção Nível 2</option>
-                      <option value="Manutenção Nível 3">Manutenção Nível 3</option>
-                      <option value="Substituição">Substituição</option>
+                      <option value="Inspeção">{t('inspection.serviceTypeInspection')}</option>
+                      <option value="Manutenção Nível 2">{t('inspection.serviceTypeMaintenanceN2')}</option>
+                      <option value="Manutenção Nível 3">{t('inspection.serviceTypeMaintenanceN3')}</option>
+                      <option value="Substituição">{t('inspection.serviceTypeReplacement')}</option>
                     </select>
                   )}
                 />
@@ -718,12 +770,12 @@ const AddInspectionPage = () => {
 
               <AnimatedFormField delay={0.35} className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  Aprovado na Inspeção? *
+                  {t('inspection.approvedInspection')}
                 </label>
                 <Controller
                   name="aprovado_inspecao"
                   control={control}
-                  rules={{ required: 'Aprovação é obrigatória' }}
+                  rules={{ required: t('inspection.approvedRequired') }}
                   render={({ field }) => (
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2">
@@ -733,7 +785,7 @@ const AddInspectionPage = () => {
                           value="Sim"
                           className="w-4 h-4"
                         />
-                        <span style={{ color: '#FFFFFF' }}>Sim</span>
+                        <span style={{ color: '#FFFFFF' }}>{t('common.yes')}</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -742,7 +794,7 @@ const AddInspectionPage = () => {
                           value="Não"
                           className="w-4 h-4"
                         />
-                        <span style={{ color: '#FFFFFF' }}>Não</span>
+                        <span style={{ color: '#FFFFFF' }}>{t('common.no')}</span>
                       </label>
                     </div>
                   )}
@@ -751,13 +803,13 @@ const AddInspectionPage = () => {
 
               <AnimatedFormField delay={0.4} className="mb-4">
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  Observações Gerais
+                  {t('inspection.generalObservations')}
                 </label>
                 <textarea
                   id="observacoes_gerais"
                   rows={4}
                   {...register('observacoes_gerais')}
-                  placeholder="Descreva problemas encontrados, se houver..."
+                  placeholder={t('inspection.observationsPlaceholder')}
                   className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                 />
               </AnimatedFormField>
@@ -770,7 +822,7 @@ const AddInspectionPage = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
+                  <p className="text-sm font-semibold mb-1">{t('inspection.actionPlanGenerated')}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
                   </p>
@@ -786,7 +838,7 @@ const AddInspectionPage = () => {
                   <PhotoUpload
                     value={photoFile}
                     onChange={setPhotoFile}
-                    label="Foto de Não Conformidade"
+                    label={t('inspection.nonConformityPhoto')}
                   />
                 </motion.div>
               )}
@@ -796,7 +848,7 @@ const AddInspectionPage = () => {
           {type === 'camara_espuma' && (
             <AnimatedFormField delay={0.3} className="mb-4">
               <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                Tipo de Inspeção *
+                {t('inspection.inspectionType')}
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
@@ -806,7 +858,7 @@ const AddInspectionPage = () => {
                     onChange={() => setFoamChamberInspectionType('Visual Semestral')}
                     className="w-4 h-4"
                   />
-                  <span style={{ color: '#FFFFFF' }}>Visual Semestral</span>
+                  <span style={{ color: '#FFFFFF' }}>{t('inspection.inspectionTypeVisualSemestral')}</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -815,7 +867,7 @@ const AddInspectionPage = () => {
                     onChange={() => setFoamChamberInspectionType('Funcional Anual')}
                     className="w-4 h-4"
                   />
-                  <span style={{ color: '#FFFFFF' }}>Funcional Anual</span>
+                  <span style={{ color: '#FFFFFF' }}>{t('inspection.inspectionTypeFunctionalAnnual')}</span>
                 </label>
               </div>
             </AnimatedFormField>
@@ -824,7 +876,7 @@ const AddInspectionPage = () => {
           {type === 'canhao_monitor' && (
             <AnimatedFormField delay={0.3} className="mb-4">
               <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                Tipo de Inspeção *
+                {t('inspection.inspectionType')}
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
@@ -834,7 +886,7 @@ const AddInspectionPage = () => {
                     onChange={() => setCannonMonitorInspectionType('Visual')}
                     className="w-4 h-4"
                   />
-                  <span style={{ color: '#FFFFFF' }}>Visual</span>
+                  <span style={{ color: '#FFFFFF' }}>{t('inspection.inspectionTypeVisual')}</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -843,7 +895,7 @@ const AddInspectionPage = () => {
                     onChange={() => setCannonMonitorInspectionType('Funcional')}
                     className="w-4 h-4"
                   />
-                  <span style={{ color: '#FFFFFF' }}>Funcional</span>
+                  <span style={{ color: '#FFFFFF' }}>{t('inspection.inspectionTypeFunctional')}</span>
                 </label>
               </div>
             </AnimatedFormField>
@@ -853,7 +905,7 @@ const AddInspectionPage = () => {
             <>
               <AnimatedFormField delay={0.3} className="mb-4">
                 <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-                  Tipo de Teste *
+                  {t('inspection.testType')}
                 </label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2">
@@ -864,7 +916,7 @@ const AddInspectionPage = () => {
                       className="w-4 h-4"
                       style={{ accentColor: '#FFFFFF' }}
                     />
-                    <span style={{ color: '#FFFFFF' }}>Periódico</span>
+                    <span style={{ color: '#FFFFFF' }}>{t('inspection.testTypePeriodic')}</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -874,14 +926,14 @@ const AddInspectionPage = () => {
                       className="w-4 h-4"
                       style={{ accentColor: '#FFFFFF' }}
                     />
-                    <span style={{ color: '#FFFFFF' }}>Extraordinário</span>
+                    <span style={{ color: '#FFFFFF' }}>{t('inspection.testTypeExtraordinary')}</span>
                   </label>
                 </div>
               </AnimatedFormField>
 
               <AnimatedFormField delay={0.35} className="mb-4">
                 <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-                  Hora do Teste
+                  {t('inspection.testTime')}
                 </label>
                 <input
                   type="time"
@@ -900,7 +952,7 @@ const AddInspectionPage = () => {
               >
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium" style={{ color: '#B0B0B0' }}>
-                    Valores de Referência do Cilindro
+                    {t('inspection.referenceValuesTitle')}
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -910,7 +962,7 @@ const AddInspectionPage = () => {
                       className="w-4 h-4"
                       style={{ accentColor: '#FFFFFF' }}
                     />
-                    <span className="text-xs" style={{ color: '#FFFFFF' }}>Atualizar valores permanentemente</span>
+                    <span className="text-xs" style={{ color: '#FFFFFF' }}>{t('inspection.updateValuesPermanently')}</span>
                   </label>
                 </div>
                 <div className="grid grid-cols-4 gap-3">
@@ -963,7 +1015,7 @@ const AddInspectionPage = () => {
                 transition={{ duration: 0.3, delay: 0.45 }}
               >
                 <label className="block text-sm font-medium mb-3" style={{ color: '#B0B0B0' }}>
-                  Valores Encontrados no Teste
+                  {t('inspection.foundValuesTitle')}
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
@@ -1011,13 +1063,13 @@ const AddInspectionPage = () => {
 
               <AnimatedFormField delay={0.5} className="mb-4">
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#B0B0B0' }}>
-                  Observações Adicionais
+                  {t('inspection.additionalObservations')}
                 </label>
                 <textarea
                   id="observacoes_gerais"
                   rows={3}
                   {...register('observacoes_gerais')}
-                  placeholder="Observações complementares sobre o teste..."
+                  placeholder={t('inspection.observationsPlaceholderMultigas')}
                   className="w-full p-3 rounded-lg relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
                 />
               </AnimatedFormField>
@@ -1028,12 +1080,12 @@ const AddInspectionPage = () => {
             <>
               <AnimatedFormField delay={0.3} className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  Status da Inspeção *
+                  {t('inspection.statusInspection')}
                 </label>
                 <Controller
                   name="aprovado_inspecao"
                   control={control}
-                  rules={{ required: 'Status é obrigatório' }}
+                  rules={{ required: t('inspection.statusRequired') }}
                   render={({ field }) => (
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2">
@@ -1043,7 +1095,7 @@ const AddInspectionPage = () => {
                           value="Aprovado"
                           className="w-4 h-4"
                         />
-                        <span style={{ color: '#FFFFFF' }}>Aprovado</span>
+                        <span style={{ color: '#FFFFFF' }}>{t('inspection.approved')}</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -1052,7 +1104,7 @@ const AddInspectionPage = () => {
                           value="Reprovado"
                           className="w-4 h-4"
                         />
-                        <span style={{ color: '#FFFFFF' }}>Reprovado</span>
+                        <span style={{ color: '#FFFFFF' }}>{t('inspection.rejected')}</span>
                       </label>
                     </div>
                   )}
@@ -1061,13 +1113,13 @@ const AddInspectionPage = () => {
 
               <AnimatedFormField delay={0.35} className="mb-4">
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  Observações Gerais
+                  {t('inspection.generalObservations')}
                 </label>
                 <textarea
                   id="observacoes_gerais"
                   rows={4}
                   {...register('observacoes_gerais')}
-                  placeholder="Descreva problemas encontrados, se houver..."
+                  placeholder={t('inspection.observationsPlaceholder')}
                   className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                 />
               </AnimatedFormField>
@@ -1081,7 +1133,7 @@ const AddInspectionPage = () => {
                   <PhotoUpload
                     value={photoFile}
                     onChange={setPhotoFile}
-                    label="Foto de Não Conformidade"
+                    label={t('inspection.nonConformityPhoto')}
                   />
                 </motion.div>
               )}
@@ -1097,7 +1149,7 @@ const AddInspectionPage = () => {
               transition={{ duration: 0.3, delay: 0.45 }}
             >
               <h3 className="text-lg font-semibold mb-4 text-light-text-primary dark:text-dark-text-primary" style={{ color: '#FFFFFF' }}>
-                Checklist de Inspeção
+                {t('inspection.checklistTitle')}
               </h3>
 
               {type === 'chuveiro_lavaolhos' && (
@@ -1145,6 +1197,13 @@ const AddInspectionPage = () => {
                 />
               )}
 
+              {type === 'mangueira' && (
+                <HoseChecklist
+                  results={checklistResults}
+                  onResultChange={handleChecklistChange}
+                />
+              )}
+
               {planAction && (
                 <motion.div 
                   className="mt-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" 
@@ -1153,7 +1212,7 @@ const AddInspectionPage = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className="text-sm font-semibold mb-1">Plano de Ação Gerado:</p>
+                  <p className="text-sm font-semibold mb-1">{t('inspection.actionPlanGenerated')}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     {planAction}
                   </p>
@@ -1177,7 +1236,7 @@ const AddInspectionPage = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <p className="text-sm font-semibold">
-                    {nonConformities.length} não conformidade(s) encontrada(s). Foto obrigatória.
+                    {t('inspection.nonConformitiesFound', { count: nonConformities.length })}
                   </p>
                 </motion.div>
               ) : type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual' ? (
@@ -1188,14 +1247,14 @@ const AddInspectionPage = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <p className="text-sm">
-                    Para Testes Funcionais Anuais, anexe uma foto do equipamento durante o teste.
+                    {t('inspection.functionalTestPhotoRequired')}
                   </p>
                 </motion.div>
               ) : null}
               <PhotoUpload
                 value={photoFile}
                 onChange={setPhotoFile}
-                label="Foto de Evidência"
+                label={t('inspection.evidencePhoto')}
                 required={requiresPhoto}
               />
             </motion.div>

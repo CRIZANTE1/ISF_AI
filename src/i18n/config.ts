@@ -115,6 +115,13 @@ i18n
     interpolation: {
       escapeValue: false, // React já faz escape
     },
+    // Configurações para melhorar o fallback de traduções
+    returnObjects: false,
+    returnEmptyString: false,
+    returnNull: false,
+    // Retorna a chave quando não encontra tradução (padrão do i18next)
+    // Isso permite que detectemos quando uma tradução não foi encontrada
+    missingKeyHandler: false, // Desabilita o handler padrão para usar nossa própria lógica
     detection: {
       // Ordem de detecção: localStorage > dispositivo > navegador
       // A detecção automática já foi feita em getInitialLanguage()

@@ -46,6 +46,7 @@ const History = () => {
           eyewashInspections,
           alarmInspections,
           shelterInspections,
+          hoseInspections,
         ] = await Promise.all([
           supabase.from('inspecoes_scba').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_multigas').select('*').eq('user_id', user.id).order('data_teste', { ascending: false }),
@@ -54,6 +55,7 @@ const History = () => {
           supabase.from('inspecoes_chuveiros_lava_olhos').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_alarmes').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_abrigos').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
+          supabase.from('inspecoes_mangueiras').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
         ]);
 
         // Processar inspeções SCBA
@@ -163,6 +165,22 @@ const History = () => {
               status: insp.status_geral || 'pendente',
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
+              created_at: insp.created_at,
+            });
+          });
+        }
+
+        // Processar inspeções Mangueiras
+        if (hoseInspections.data) {
+          hoseInspections.data.forEach((insp: any) => {
+            allInspections.push({
+              id: insp.id,
+              type: 'Mangueira',
+              equipmentId: insp.id_mangueira,
+              date: insp.data_inspecao || insp.created_at,
+              status: insp.status_geral || insp.resultado || 'pendente',
+              inspector: insp.inspetor,
+              observations: insp.observacoes || (insp.resultados_json ? JSON.stringify(insp.resultados_json) : null),
               created_at: insp.created_at,
             });
           });

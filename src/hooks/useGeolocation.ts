@@ -138,7 +138,8 @@ export function useGeolocation() {
         setState({
           latitude: null,
           longitude: null,
-          error: 'Não foi possível obter a localização. Verifique as permissões do dispositivo.',
+          // Retorna uma chave de tradução que será traduzida pelo componente que usa o hook
+          error: 'common.locationError',
           loading: false,
         });
       }

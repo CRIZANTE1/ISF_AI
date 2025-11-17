@@ -9,6 +9,7 @@ import { Capacitor } from '@capacitor/core';
 import { QRCodeSVG } from 'qrcode.react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { logger } from '../utils/logger';
+import { useTranslation } from '../hooks/useTranslation';
 
 // Função para carregar plugins do Capacitor dinamicamente (opcionais)
 // Nota: Para usar no Android, instale: npm install @capacitor/filesystem @capacitor/share
@@ -68,6 +69,7 @@ type GeneratorMode = 'integrated' | 'manual';
 
 const QrGeneratorPage = () => {
   const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { cache } = useEquipmentCache();
   const [mode, setMode] = useState<GeneratorMode>('integrated');
@@ -158,7 +160,7 @@ const QrGeneratorPage = () => {
       // Obtém o SVG renderizado
       const svgElement = tempDiv.querySelector('svg');
       if (!svgElement) {
-        throw new Error('Erro ao gerar QR Code');
+        throw new Error(t('qr.errorGeneratingQr'));
       }
       
       // Converte SVG para PNG usando canvas
@@ -168,7 +170,7 @@ const QrGeneratorPage = () => {
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        throw new Error('Não foi possível criar contexto do canvas');
+        throw new Error(t('qr.errorCreatingCanvas'));
       }
       
       // Preenche fundo branco
@@ -195,9 +197,9 @@ const QrGeneratorPage = () => {
       document.body.removeChild(tempDiv);
       
       // Converte canvas para blob
-      canvas.toBlob(async (blob) => {
+        canvas.toBlob(async (blob) => {
         if (!blob) {
-          throw new Error('Erro ao gerar imagem');
+          throw new Error(t('qr.errorGeneratingImage'));
         }
         
         const isNative = Capacitor.isNativePlatform();
@@ -225,9 +227,9 @@ const QrGeneratorPage = () => {
                 try {
                   await Share.share({
                     title: `QR Code ${id}`,
-                    text: `QR Code gerado para ${id}`,
+                    text: `${t('qr.qrGeneratedFor')} ${id}`,
                     url: result.uri,
-                    dialogTitle: 'Compartilhar QR Code',
+                    dialogTitle: t('qr.shareQrCode'),
                   });
                   return; // Sucesso, não precisa continuar
                 } catch (shareError) {
@@ -248,7 +250,7 @@ const QrGeneratorPage = () => {
         downloadQrCodeWeb(blob, fileName);
       }, 'image/png');
     } catch (error) {
-      handleError(error, 'storage', 'Erro ao baixar QR Code. Tente novamente.');
+      handleError(error, 'storage', t('qr.errorDownloadingQr'));
     }
   };
 
@@ -308,7 +310,7 @@ const QrGeneratorPage = () => {
               }}
             >
               <Package size={20} className="inline mr-2" />
-              Gerar para Itens Cadastrados
+              {t('qr.generateForRegistered')}
             </button>
             <button
               onClick={() => {
@@ -326,7 +328,7 @@ const QrGeneratorPage = () => {
               }}
             >
               <FileText size={20} className="inline mr-2" />
-              Gerar a partir de Texto
+              {t('qr.generateFromText')}
             </button>
           </div>
 
@@ -339,28 +341,28 @@ const QrGeneratorPage = () => {
             >
               <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}>
                 <p className="text-sm" style={{ color: '#B0B0B0' }}>
-                  Selecione um ou mais extintores do seu inventário para gerar QR Codes no formato industrial padrão.
+                  {t('qr.selectExtinguishersDescription')}
                 </p>
               </div>
 
               {extinguishers.length === 0 ? (
                 <div className="p-6 rounded-lg border text-center" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
                   <p className="mb-4" style={{ color: '#FFFFFF' }}>
-                    Nenhum extintor cadastrado.
+                    {t('qr.noExtinguishersRegistered')}
                   </p>
                   <button
                     onClick={() => navigate('/inspections/extintor/new')}
                     className="px-4 py-2 rounded-lg font-semibold"
                     style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
                   >
-                    Cadastrar Extintor
+                    {t('qr.registerExtinguisher')}
                   </button>
                 </div>
               ) : (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                      Código de Local/Planta
+                      {t('qr.locationCode')}
                     </label>
                     <input
                       type="text"
@@ -378,7 +380,7 @@ const QrGeneratorPage = () => {
 
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                      Selecione os Extintores
+                      {t('qr.selectExtinguishers')}
                     </label>
                     <div className="space-y-2 max-h-64 overflow-y-auto p-2 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
                       {extinguishers.map((ext: any) => (
@@ -417,14 +419,14 @@ const QrGeneratorPage = () => {
                   {selectedExtinguishers.length > 0 && (
                     <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
                       <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
-                        <strong>{selectedExtinguishers.length}</strong> extintor(es) selecionado(s)
+                        <strong>{selectedExtinguishers.length}</strong> {t('qr.extinguishersSelected')}
                       </p>
                       <button
                         onClick={() => setSelectedExtinguishers([])}
                         className="text-xs underline"
                         style={{ color: '#FC3D39' }}
                       >
-                        Limpar seleção
+                        {t('qr.clearSelection')}
                       </button>
                     </div>
                   )}
@@ -442,13 +444,13 @@ const QrGeneratorPage = () => {
             >
               <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}>
                 <p className="text-sm" style={{ color: '#B0B0B0' }}>
-                  Use esta opção para gerar QR Codes com texto simples. Útil para IDs provisórios ou outros fins.
+                  {t('qr.manualDescription')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                  Insira os IDs (um por linha)
+                  {t('qr.enterIdsOnePerLine')}
                 </label>
                 <textarea
                   value={manualText}
@@ -470,7 +472,7 @@ const QrGeneratorPage = () => {
                 className="w-full p-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
               >
-                Gerar QR Codes
+                {t('qr.generateQrCodes')}
               </button>
             </motion.div>
           )}
@@ -484,7 +486,7 @@ const QrGeneratorPage = () => {
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold" style={{ color: '#FFFFFF' }}>
-                  QR Codes Gerados
+                  {t('qr.qrCodesGenerated')}
                 </h3>
                 <button
                   onClick={downloadAllQrCodes}
@@ -493,7 +495,7 @@ const QrGeneratorPage = () => {
                   style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
                 >
                   <Download size={18} />
-                  <span>{loading ? 'Gerando...' : 'Baixar Todos (ZIP)'}</span>
+                  <span>{loading ? t('qr.generating') : t('qr.downloadAllZip')}</span>
                 </button>
               </div>
 
@@ -508,7 +510,7 @@ const QrGeneratorPage = () => {
                   >
                     <div className="text-center mb-3">
                       <p className="font-semibold mb-2" style={{ color: '#FFFFFF' }}>
-                        ID: {id.replace('manual_', '')}
+                        {t('common.id')}: {id.replace('manual_', '')}
                       </p>
                       <QRCodeDisplay value={qrString} size={180} />
                     </div>
@@ -524,7 +526,7 @@ const QrGeneratorPage = () => {
                         style={{ backgroundColor: '#2A2A2A', color: '#FFFFFF' }}
                       >
                         <Download size={16} />
-                        <span>Baixar PNG</span>
+                        <span>{t('qr.downloadPng')}</span>
                       </button>
                     </div>
                   </motion.div>

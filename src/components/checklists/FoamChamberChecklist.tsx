@@ -4,6 +4,7 @@
 
 import ChecklistSection from '../ChecklistSection';
 import { FOAM_CHAMBER_CHECKLIST } from '../../constants/checklists';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface FoamChamberChecklistProps {
   model?: string;
@@ -18,10 +19,12 @@ const FoamChamberChecklist = ({
   results,
   onResultChange,
 }: FoamChamberChecklistProps) => {
+  const { t } = useTranslation();
+  
   if (!model || !FOAM_CHAMBER_CHECKLIST[model]) {
     return (
       <div className="p-4 bg-status-warning/20 text-status-warning rounded-lg">
-        <p>Modelo não reconhecido. Não é possível gerar o checklist de inspeção.</p>
+        <p>{t('checklist.modelNotRecognized')}</p>
       </div>
     );
   }

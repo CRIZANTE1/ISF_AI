@@ -234,7 +234,26 @@ export const CANNON_MONITOR_CHECKLIST_FUNCIONAL = {
   "Teste Funcional": [
     "Fluxo de água adequado",
     "Controle de direção funcionando",
-    "Sistema de elevação funcionando",
+  ],
+};
+
+export const HOSE_CHECKLIST = {
+  "Corrosão": [
+    "A mangueira apresenta sinais de corrosão?",
+    "Os componentes metálicos estão corroídos?",
+    "Há presença de ferrugem visível?",
+  ],
+  "Conectores": [
+    "Os conectores estão íntegros e funcionais?",
+    "As conexões estão firmes e sem vazamentos?",
+    "Os conectores apresentam desgaste ou danos?",
+    "As roscas dos conectores estão em bom estado?",
+  ],
+  "Selos de Inspeção": [
+    "Os selos de inspeção estão presentes e íntegros?",
+    "Os selos de inspeção estão legíveis?",
+    "Os selos de inspeção estão na posição correta?",
+    "Há evidência de violação dos selos?",
   ],
 };
 

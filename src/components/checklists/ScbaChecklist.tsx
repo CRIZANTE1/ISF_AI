@@ -19,6 +19,35 @@ const ScbaChecklist = ({
   observations 
 }: ScbaChecklistProps) => {
   const { t } = useTranslation();
+  
+  // Helper para gerar chave de tradução
+  const getItemKey = (item: string): string => {
+    return item
+      .toLowerCase()
+      .replace(/[–—]/g, '-')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacríticos
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  };
+  
+  // Helper para traduzir itens
+  const translateItem = (item: string): string => {
+    const key = getItemKey(item);
+    const questionKey = `checklist.questions.${key}`;
+    
+    // Tenta buscar a tradução
+    const translated = t(questionKey);
+    
+    // Se a tradução retornou a própria chave ou contém o namespace, usar o texto original
+    // Caso contrário, usar a tradução
+    return (translated === questionKey || 
+            (typeof translated === 'string' && translated.includes('checklist.questions.')))
+      ? item 
+      : translated;
+  };
+  
   const cilindroItems = [
     "Integridade Cilindro",
     "Registro e Valvulas",
@@ -43,12 +72,12 @@ const ScbaChecklist = ({
       {/* Testes Funcionais */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-4" style={{ color: '#FFFFFF' }}>
-          Testes Funcionais
+          {t('checklist.functionalTests')}
         </h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              1. Teste de Estanqueidade (Vedação Alta Pressão)
+              {t('checklist.testSeal')}
             </label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2">
@@ -61,7 +90,7 @@ const ScbaChecklist = ({
                   className="w-4 h-4"
                   style={{ accentColor: '#FFFFFF' }}
                 />
-                <span style={{ color: '#FFFFFF' }}>Aprovado</span>
+                <span style={{ color: '#FFFFFF' }}>{t('checklist.approved')}</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -73,7 +102,7 @@ const ScbaChecklist = ({
                   className="w-4 h-4"
                   style={{ accentColor: '#FFFFFF' }}
                 />
-                <span style={{ color: '#FFFFFF' }}>Reprovado</span>
+                <span style={{ color: '#FFFFFF' }}>{t('checklist.rejected')}</span>
               </label>
             </div>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
@@ -85,7 +114,7 @@ const ScbaChecklist = ({
 
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              2. Teste do Alarme Sonoro de Baixa Pressão
+              {t('checklist.testLowPressureAlarm')}
             </label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2">
@@ -98,7 +127,7 @@ const ScbaChecklist = ({
                   className="w-4 h-4"
                   style={{ accentColor: '#FFFFFF' }}
                 />
-                <span style={{ color: '#FFFFFF' }}>Aprovado</span>
+                <span style={{ color: '#FFFFFF' }}>{t('checklist.approved')}</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -110,7 +139,7 @@ const ScbaChecklist = ({
                   className="w-4 h-4"
                   style={{ accentColor: '#FFFFFF' }}
                 />
-                <span style={{ color: '#FFFFFF' }}>Reprovado</span>
+                <span style={{ color: '#FFFFFF' }}>{t('checklist.rejected')}</span>
               </label>
             </div>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
@@ -122,7 +151,7 @@ const ScbaChecklist = ({
 
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              3. Teste de Vedação da Peça Facial (Pressão Negativa)
+              {t('checklist.testMaskSeal')}
             </label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2">
@@ -135,7 +164,7 @@ const ScbaChecklist = ({
                   className="w-4 h-4"
                   style={{ accentColor: '#FFFFFF' }}
                 />
-                <span style={{ color: '#FFFFFF' }}>Aprovado</span>
+                <span style={{ color: '#FFFFFF' }}>{t('checklist.approved')}</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -147,7 +176,7 @@ const ScbaChecklist = ({
                   className="w-4 h-4"
                   style={{ accentColor: '#FFFFFF' }}
                 />
-                <span style={{ color: '#FFFFFF' }}>Reprovado</span>
+                <span style={{ color: '#FFFFFF' }}>{t('checklist.rejected')}</span>
               </label>
             </div>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
@@ -164,31 +193,35 @@ const ScbaChecklist = ({
       {/* Inspeção Visual dos Componentes */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-4" style={{ color: '#FFFFFF' }}>
-          Inspeção Visual dos Componentes
+          {t('checklist.visualInspection')}
         </h3>
 
         {/* Cilindro */}
         <div className="mb-6">
           <h4 className="text-md font-semibold mb-3" style={{ color: '#FFFFFF' }}>
-            Item 1.0 - Cilindro de Ar
+            {t('checklist.cylinder')}
           </h4>
           <div className="space-y-2">
             {cilindroItems.map((item) => (
               <div key={item} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-                <span style={{ color: '#FFFFFF' }}>{item}</span>
+                <span style={{ color: '#FFFFFF' }}>{translateItem(item)}</span>
                 <div className="flex gap-2">
-                  {['C', 'N/C', 'N/A'].map((status) => (
-                    <label key={status} className="flex items-center gap-1">
+                  {[
+                    { value: 'C', label: t('checklist.conformShort') },
+                    { value: 'N/C', label: t('checklist.nonConformShort') },
+                    { value: 'N/A', label: t('checklist.notApplicable') }
+                  ].map(({ value, label }) => (
+                    <label key={value} className="flex items-center gap-1">
                       <input
                         type="radio"
                         name={`cil_${item}`}
-                        value={status}
-                        checked={results[`Cilindro.${item}`] === status}
+                        value={value}
+                        checked={results[`Cilindro.${item}`] === value}
                         onChange={(e) => onResultChange(`Cilindro.${item}`, e.target.value)}
                         className="w-4 h-4"
                         style={{ accentColor: '#FFFFFF' }}
                       />
-                      <span className="text-xs" style={{ color: '#B0B0B0' }}>{status}</span>
+                      <span className="text-xs" style={{ color: '#B0B0B0' }}>{label}</span>
                     </label>
                   ))}
                 </div>
@@ -197,7 +230,7 @@ const ScbaChecklist = ({
           </div>
           <div className="mt-3">
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              Observações - Cilindro de Ar
+              {t('checklist.observationsCylinderLabel')}
             </label>
             <textarea
               value={observations.Cilindro || ''}
@@ -212,25 +245,29 @@ const ScbaChecklist = ({
         {/* Máscara */}
         <div className="mb-6">
           <h4 className="text-md font-semibold mb-3" style={{ color: '#FFFFFF' }}>
-            Item 2.0 - Máscara Facial
+            {t('checklist.mask')}
           </h4>
           <div className="space-y-2">
             {mascaraItems.map((item) => (
               <div key={item} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-                <span style={{ color: '#FFFFFF' }}>{item}</span>
+                <span style={{ color: '#FFFFFF' }}>{translateItem(item)}</span>
                 <div className="flex gap-2">
-                  {['C', 'N/C', 'N/A'].map((status) => (
-                    <label key={status} className="flex items-center gap-1">
+                  {[
+                    { value: 'C', label: t('checklist.conformShort') },
+                    { value: 'N/C', label: t('checklist.nonConformShort') },
+                    { value: 'N/A', label: t('checklist.notApplicable') }
+                  ].map(({ value, label }) => (
+                    <label key={value} className="flex items-center gap-1">
                       <input
                         type="radio"
                         name={`masc_${item}`}
-                        value={status}
-                        checked={results[`Mascara.${item}`] === status}
+                        value={value}
+                        checked={results[`Mascara.${item}`] === value}
                         onChange={(e) => onResultChange(`Mascara.${item}`, e.target.value)}
                         className="w-4 h-4"
                         style={{ accentColor: '#FFFFFF' }}
                       />
-                      <span className="text-xs" style={{ color: '#B0B0B0' }}>{status}</span>
+                      <span className="text-xs" style={{ color: '#B0B0B0' }}>{label}</span>
                     </label>
                   ))}
                 </div>
@@ -239,7 +276,7 @@ const ScbaChecklist = ({
           </div>
           <div className="mt-3">
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              Observações - Máscara Facial
+              {t('checklist.observationsMaskLabel')}
             </label>
             <textarea
               value={observations.Mascara || ''}
