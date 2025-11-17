@@ -37,6 +37,14 @@ import { saveShelterInspection, getAllShelters } from '../utils/shelterOperation
 import { getHoseById, saveHoseInspection } from '../utils/hoseOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
 import { Spinner } from '../components/ui/spinner';
+import { 
+  EYEWASH_CHECKLIST, 
+  FOAM_CHAMBER_CHECKLIST, 
+  ALARM_CHECKLIST, 
+  CANNON_MONITOR_CHECKLIST_VISUAL, 
+  CANNON_MONITOR_CHECKLIST_FUNCIONAL,
+  HOSE_CHECKLIST 
+} from '../constants/checklists';
 
 type AddInspectionFormData = {
   data_inspecao?: string;
@@ -278,6 +286,125 @@ const AddInspectionPage = () => {
 
     fetchEquipment();
   }, [id, type]);
+
+  // Inicializa checklist com todos os itens como "Conforme" por padrão
+  useEffect(() => {
+    if (!type || !equipment) return;
+
+    const initializeChecklist = () => {
+      const initialResults: Record<string, string> = {};
+
+      switch (type) {
+        case 'chuveiro_lavaolhos': {
+          Object.entries(EYEWASH_CHECKLIST).forEach(([_, questions]) => {
+            questions.forEach((question) => {
+              initialResults[question] = 'Conforme';
+            });
+          });
+          break;
+        }
+
+        case 'camara_espuma': {
+          const model = equipment.model;
+          if (model && FOAM_CHAMBER_CHECKLIST[model]) {
+            const checklist = FOAM_CHAMBER_CHECKLIST[model];
+            const sections = foamChamberInspectionType === 'Visual Semestral'
+              ? Object.keys(checklist).filter(s => s !== 'Teste Funcional')
+              : Object.keys(checklist);
+            
+            sections.forEach((section) => {
+              checklist[section].forEach((question) => {
+                initialResults[question] = 'Conforme';
+              });
+            });
+          }
+          break;
+        }
+
+        case 'alarme': {
+          Object.entries(ALARM_CHECKLIST).forEach(([_, questions]) => {
+            questions.forEach((question) => {
+              initialResults[question] = 'Conforme';
+            });
+          });
+          break;
+        }
+
+        case 'canhao_monitor': {
+          const checklist = cannonMonitorInspectionType === 'Visual'
+            ? CANNON_MONITOR_CHECKLIST_VISUAL
+            : CANNON_MONITOR_CHECKLIST_FUNCIONAL;
+          
+          Object.entries(checklist).forEach(([_, questions]) => {
+            questions.forEach((question) => {
+              initialResults[question] = 'Conforme';
+            });
+          });
+          break;
+        }
+
+        case 'mangueira': {
+          Object.entries(HOSE_CHECKLIST).forEach(([_, questions]) => {
+            questions.forEach((question) => {
+              initialResults[question] = 'Conforme';
+            });
+          });
+          break;
+        }
+
+        case 'scba': {
+          // Testes Funcionais - inicializa como "Aprovado"
+          initialResults['Testes Funcionais.Estanqueidade Alta Pressão'] = 'Aprovado';
+          initialResults['Testes Funcionais.Alarme de Baixa Pressão'] = 'Aprovado';
+          initialResults['Testes Funcionais.Vedação da Máscara'] = 'Aprovado';
+
+          // Itens do Cilindro - inicializa como "C" (Conforme)
+          const cilindroItems = [
+            'Integridade Cilindro',
+            'Registro e Valvulas',
+            'Manômetro do Cilindro',
+            'Pressão Manômetro',
+            'Mangueiras e Conexões',
+            'Correias/ Tirantes e Alças'
+          ];
+          cilindroItems.forEach((item) => {
+            initialResults[`Cilindro.${item}`] = 'C';
+          });
+
+          // Itens da Máscara - inicializa como "C" (Conforme)
+          const mascaraItems = [
+            'Integridade da Máscara',
+            'Visor ou Lente',
+            'Borrachas de Vedação',
+            'Conector da válvula de Inalação',
+            'Correias/ Tirantes',
+            'Fivelas e Alças',
+            'Válvula de Exalação'
+          ];
+          mascaraItems.forEach((item) => {
+            initialResults[`Mascara.${item}`] = 'C';
+          });
+          break;
+        }
+      }
+
+      // Só atualiza se ainda não houver valores definidos
+      if (Object.keys(initialResults).length > 0) {
+        setChecklistResults(prev => {
+          // Mescla com valores existentes, mas só adiciona novos se não existirem
+          const merged = { ...prev };
+          Object.entries(initialResults).forEach(([key, value]) => {
+            if (!(key in merged)) {
+              merged[key] = value;
+            }
+          });
+          return merged;
+        });
+      }
+    };
+
+    initializeChecklist();
+  }, [type, equipment, foamChamberInspectionType, cannonMonitorInspectionType]);
 
   // Gera plano de ação para extintores
   useEffect(() => {
