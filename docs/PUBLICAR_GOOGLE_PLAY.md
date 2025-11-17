@@ -8,7 +8,7 @@ Este guia explica passo a passo como publicar o app **ISF IA** no Google Play Co
 
 - **Nome do App**: ISF IA
 - **Package Name**: `com.isfia.app`
-- **Versão Atual**: 1.0 (versionCode: 1)
+- **Versão Atual**: 1.0 (versionCode: 2)
 - **Ícone Play Store**: `icons/android/play_store_512.png`
 
 ## 📋 Pré-requisitos
@@ -107,7 +107,7 @@ Edite `android/app/build.gradle`:
 ```gradle
 defaultConfig {
     // ... código existente ...
-    versionCode 1  // Incremente a cada publicação (1, 2, 3, ...)
+    versionCode 2  // Incremente a cada publicação (1, 2, 3, ...)
     versionName "1.0"  // Versão visível aos usuários (ex: "1.0", "1.1", "2.0")
 }
 ```
