@@ -161,34 +161,45 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
     
     // Traduzir guias
     if (translated.guide) {
-      translated.guide = translated.guide.map(section => {
+      translated.guide = translated.guide.map((section, index) => {
         const sectionKey = section.title.toLowerCase();
         let translatedSection = { ...section };
         
-        // Tentar traduzir baseado no índice e conteúdo
-        const titleKey = sectionKey.includes('inspeção') || sectionKey.includes('inspection') 
-          ? `guides.${guideKey}.howToRegisterInspection`
-          : sectionKey.includes('teste') || sectionKey.includes('test')
-          ? `guides.${guideKey}.howToRegisterTest`
-          : sectionKey.includes('cadastrar') || sectionKey.includes('register') || sectionKey.includes('novo') || sectionKey.includes('new')
-          ? (t(`guides.${guideKey}.howToRegister`) ? `guides.${guideKey}.howToRegister` : `guides.${guideKey}.howToRegisterEquipment`)
-          : sectionKey.includes('você vê') || sectionKey.includes('you see') || sectionKey.includes('what you see')
-          ? `guides.${guideKey}.whatYouSee`
-          : sectionKey.includes('usar') || sectionKey.includes('use') || sectionKey.includes('how to use')
-          ? `guides.${guideKey}.howToUse`
-          : null;
+        // Tentar traduzir baseado no título e conteúdo
+        let titleKey: string | null = null;
+        let contentKey: string | null = null;
         
+        // Verificar diferentes padrões de título
+        if (sectionKey.includes('inspeção') || sectionKey.includes('inspection')) {
+          titleKey = `guides.${guideKey}.howToRegisterInspection`;
+          contentKey = `guides.${guideKey}.howToRegisterInspectionContent`;
+        } else if (sectionKey.includes('teste') || sectionKey.includes('test')) {
+          titleKey = `guides.${guideKey}.howToRegisterTest`;
+          contentKey = `guides.${guideKey}.howToRegisterTestContent`;
+        } else if (sectionKey.includes('cadastrar') || sectionKey.includes('register') || sectionKey.includes('novo') || sectionKey.includes('new')) {
+          // Tentar howToRegister primeiro, depois howToRegisterEquipment
+          if (t(`guides.${guideKey}.howToRegister`) && t(`guides.${guideKey}.howToRegister`) !== `guides.${guideKey}.howToRegister`) {
+            titleKey = `guides.${guideKey}.howToRegister`;
+            contentKey = `guides.${guideKey}.howToRegisterContent`;
+          } else {
+            titleKey = `guides.${guideKey}.howToRegisterEquipment`;
+            contentKey = `guides.${guideKey}.howToRegisterEquipmentContent`;
+          }
+        } else if (sectionKey.includes('você vê') || sectionKey.includes('you see') || sectionKey.includes('what you see')) {
+          titleKey = `guides.${guideKey}.whatYouSee`;
+          contentKey = `guides.${guideKey}.whatYouSeeContent`;
+        } else if (sectionKey.includes('usar') || sectionKey.includes('use') || sectionKey.includes('how to use')) {
+          titleKey = `guides.${guideKey}.howToUse`;
+          contentKey = `guides.${guideKey}.howToUseContent`;
+        }
+        
+        // Aplicar traduções se encontradas
         if (titleKey && t(titleKey) && t(titleKey) !== titleKey) {
           translatedSection.title = t(titleKey);
-          const contentKey = titleKey.replace('howToRegisterInspection', 'howToRegisterInspectionContent')
-                                     .replace('howToRegisterTest', 'howToRegisterTestContent')
-                                     .replace('howToRegister', 'howToRegisterContent')
-                                     .replace('howToRegisterEquipment', 'howToRegisterEquipmentContent')
-                                     .replace('whatYouSee', 'whatYouSeeContent')
-                                     .replace('howToUse', 'howToUseContent');
-          if (t(contentKey) && t(contentKey) !== contentKey) {
-            translatedSection.content = t(contentKey);
-          }
+        }
+        
+        if (contentKey && t(contentKey) && t(contentKey) !== contentKey) {
+          translatedSection.content = t(contentKey);
         }
         
         return translatedSection;
