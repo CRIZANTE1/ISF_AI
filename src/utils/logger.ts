@@ -7,17 +7,8 @@
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  context?: string;
-  data?: any;
-  timestamp: string;
-}
-
 class Logger {
-  private isDev = import.meta.env.DEV;
-  private isProd = import.meta.env.PROD;
+  private isDev = (import.meta as any).env?.DEV ?? true;
   private enabled = true;
 
   /**
@@ -37,32 +28,47 @@ class Logger {
   private log(level: LogLevel, message: string, context?: string, data?: any) {
     if (!this.enabled) return;
 
-    const entry: LogEntry = {
-      level,
-      message,
-      context,
-      data,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Em desenvolvimento, log no console
-    if (this.isDev) {
+    // Em desenvolvimento ou Android (sempre logar no console para debug)
+    // No Android/Capacitor, console.log aparece no Logcat
+    if (this.isDev || this.isAndroidNative()) {
       const prefix = context ? `[${context}]` : '';
       const logMessage = `${prefix} ${message}`;
 
-      switch (level) {
-        case 'debug':
-          console.debug(logMessage, data || '');
-          break;
-        case 'info':
-          console.info(logMessage, data || '');
-          break;
-        case 'warn':
-          console.warn(logMessage, data || '');
-          break;
-        case 'error':
-          console.error(logMessage, data || '');
-          break;
+      // Usar console.log como fallback se métodos específicos não estiverem disponíveis
+      try {
+        switch (level) {
+          case 'debug':
+            if (typeof console.debug === 'function') {
+              console.debug(logMessage, data || '');
+            } else {
+              console.log(`[DEBUG] ${logMessage}`, data || '');
+            }
+            break;
+          case 'info':
+            if (typeof console.info === 'function') {
+              console.info(logMessage, data || '');
+            } else {
+              console.log(`[INFO] ${logMessage}`, data || '');
+            }
+            break;
+          case 'warn':
+            if (typeof console.warn === 'function') {
+              console.warn(logMessage, data || '');
+            } else {
+              console.log(`[WARN] ${logMessage}`, data || '');
+            }
+            break;
+          case 'error':
+            if (typeof console.error === 'function') {
+              console.error(logMessage, data || '');
+            } else {
+              console.log(`[ERROR] ${logMessage}`, data || '');
+            }
+            break;
+        }
+      } catch (e) {
+        // Fallback absoluto - sempre funciona
+        console.log(`[${level.toUpperCase()}] ${logMessage}`, data || '');
       }
     }
 
@@ -71,6 +77,21 @@ class Logger {
     // if (this.isProd && level === 'error') {
     //   // Enviar para serviço de monitoramento
     // }
+  }
+
+  /**
+   * Verifica se está rodando em Android nativo (Capacitor)
+   */
+  private isAndroidNative(): boolean {
+    try {
+      if (typeof window !== 'undefined' && (window as any).Capacitor) {
+        const Capacitor = (window as any).Capacitor;
+        return Capacitor.isNativePlatform && Capacitor.isNativePlatform();
+      }
+    } catch {
+      // Ignorar erros
+    }
+    return false;
   }
 
   /**

@@ -152,21 +152,42 @@ export const processError = (
  * Em produção, isso pode ser integrado com serviços como Sentry
  */
 export const logError = (error: AppError, additionalInfo?: Record<string, any>) => {
+  // Verifica se está em ambiente Android/Capacitor
+  const isAndroidNative = (() => {
+    try {
+      if (typeof window !== 'undefined' && (window as any).Capacitor) {
+        const Capacitor = (window as any).Capacitor;
+        return Capacitor.isNativePlatform && Capacitor.isNativePlatform();
+      }
+    } catch {
+      // Ignorar erros
+    }
+    return false;
+  })();
+
   const logData = {
     message: error.message,
     context: error.context,
     code: error.code,
     timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent,
-    url: window.location.href,
+    // Informações do ambiente (com fallback seguro para Android)
+    userAgent: typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Android Native',
+    url: typeof window !== 'undefined' && window.location ? window.location.href : 'capacitor://app',
+    platform: isAndroidNative ? 'android' : 'web',
     ...additionalInfo,
   };
 
-  // Em desenvolvimento, log no console
-  if (import.meta.env.DEV) {
-    console.error('🚨 Erro capturado:', logData);
-    if (error.originalError) {
-      console.error('Erro original:', error.originalError);
+  // Em desenvolvimento ou Android (sempre logar para debug)
+  // No Android, console.error aparece no Logcat
+  if (import.meta.env.DEV || isAndroidNative) {
+    try {
+      console.error('🚨 Erro capturado:', logData);
+      if (error.originalError) {
+        console.error('Erro original:', error.originalError);
+      }
+    } catch (e) {
+      // Fallback absoluto
+      console.log('[ERROR] Erro capturado:', JSON.stringify(logData));
     }
   }
 
