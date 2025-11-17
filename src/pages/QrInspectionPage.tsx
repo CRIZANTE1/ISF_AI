@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import { parseQrCodeData } from '../utils/qrInspectionUtils';
-import { getExtinguisherById } from '../utils/extinguisherOperations';
+import { findEquipmentByIdentifier, getEquipmentTypeName } from '../utils/qrGeneratorUtils';
 import { QrCode, Camera, Search, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { motion } from 'framer-motion';
@@ -14,22 +15,37 @@ import { useTranslation } from '../hooks/useTranslation';
 type QrStep = 'start' | 'scan' | 'manual' | 'found' | 'not_found';
 
 const QrInspectionPage = () => {
-  const { type } = useParams<{ type: string }>();
+  const { type } = useParams<{ type?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
+  const { cache } = useEquipmentCache();
   const { t } = useTranslation();
   
   const [step, setStep] = useState<QrStep>('start');
   const [manualInput, setManualInput] = useState('');
   const [parsedId, setParsedId] = useState<string | null>(null);
   const [equipment, setEquipment] = useState<any>(null);
+  const [equipmentType, setEquipmentType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<string>('');
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerRef = useRef<HTMLDivElement>(null);
+
+  // Todos os equipamentos disponíveis
+  const allEquipment = useMemo(() => ({
+    extinguishers: cache.extinguishers || [],
+    hoses: cache.hoses || [],
+    scbas: cache.scbas || [],
+    multigasDetectors: cache.multigasDetectors || [],
+    foamChambers: cache.foamChambers || [],
+    cannonMonitors: cache.cannonMonitors || [],
+    eyewashStations: cache.eyewashStations || [],
+    alarmSystems: cache.alarmSystems || [],
+    shelters: cache.shelters || [],
+  }), [cache]);
 
   const stopScanner = useCallback(() => {
     if (scannerRef.current) {
@@ -68,28 +84,26 @@ const QrInspectionPage = () => {
       
       setParsedId(extractedId);
 
-      // Busca o extintor
-      const extData = await getExtinguisherById(extractedId);
+      // Busca o equipamento em todos os tipos
+      const found = findEquipmentByIdentifier(allEquipment, extractedId);
       
-      if (extData) {
-        setEquipment(extData);
+      if (found) {
+        setEquipment(found.equipment);
+        setEquipmentType(found.type);
         setStep('found');
       } else {
+        setEquipmentType(null);
         setStep('not_found');
       }
     } catch (err: any) {
-      // Se o erro for porque não encontrou (erro 406 ou similar), apenas mostra not_found
-      if (err.code === 'PGRST116' || err.message?.includes('No rows')) {
-        setStep('not_found');
-      } else {
-        handleError(err, 'equipment', 'Erro ao buscar equipamento');
-        setStep('not_found');
-      }
+      handleError(err, 'equipment', 'Erro ao buscar equipamento');
+      setEquipmentType(null);
+      setStep('not_found');
     } finally {
       setLoading(false);
       setScanStatus('');
     }
-  }, [stopScanner, handleError, type]);
+  }, [stopScanner, handleError, allEquipment, t]);
 
   const startScanner = useCallback(async () => {
     if (!scannerContainerRef.current) return;
@@ -178,31 +192,29 @@ const QrInspectionPage = () => {
       
       setParsedId(extractedId);
 
-      // Busca o extintor
-      const extData = await getExtinguisherById(extractedId);
+      // Busca o equipamento em todos os tipos
+      const found = findEquipmentByIdentifier(allEquipment, extractedId);
       
-      if (extData) {
-        setEquipment(extData);
+      if (found) {
+        setEquipment(found.equipment);
+        setEquipmentType(found.type);
         setStep('found');
       } else {
+        setEquipmentType(null);
         setStep('not_found');
       }
     } catch (err: any) {
-      // Se o erro for porque não encontrou (erro 406 ou similar), apenas mostra not_found
-      if (err.code === 'PGRST116' || err.message?.includes('No rows')) {
-        setStep('not_found');
-      } else {
-        handleError(err, 'equipment', 'Erro ao buscar equipamento');
-        setStep('not_found');
-      }
+      handleError(err, 'equipment', 'Erro ao buscar equipamento');
+      setEquipmentType(null);
+      setStep('not_found');
     } finally {
       setLoading(false);
     }
   };
 
   const handleStartInspection = () => {
-    if (parsedId && type) {
-      navigate(`/equipment/${type}/${parsedId}/inspections/new`);
+    if (parsedId && equipmentType) {
+      navigate(`/equipment/${equipmentType}/${parsedId}/inspections/new`);
     }
   };
 
@@ -212,6 +224,7 @@ const QrInspectionPage = () => {
     setManualInput('');
     setParsedId(null);
     setEquipment(null);
+    setEquipmentType(null);
     setCameraError(null);
     setScanStatus('');
   };
@@ -284,8 +297,8 @@ const QrInspectionPage = () => {
               style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}
             >
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>
-                <strong>{t('guides.tip')}</strong> {t('guides.qr.tipFormat')} 
-                ou formato simples. O sistema extrairá automaticamente o número do cilindro.
+                <strong>{t('guides.tip')}</strong> O QR Code pode estar no formato industrial (ex: 2#7036#EXT#008851#47#31) 
+                ou formato simples (apenas o ID/série). O sistema buscará automaticamente em todos os tipos de equipamentos.
               </p>
             </motion.div>
           </div>
@@ -301,7 +314,7 @@ const QrInspectionPage = () => {
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
           <div className="space-y-4">
             <p className="text-center text-light-text-secondary dark:text-dark-text-secondary mb-4" style={{ color: '#B0B0B0' }}>
-              Aponte a câmera para o QR Code do extintor
+              Aponte a câmera para o QR Code do equipamento
             </p>
             
             {/* Scanner de QR Code */}
@@ -484,27 +497,69 @@ const QrInspectionPage = () => {
             </div>
 
             <div className="p-6 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
-              <h3 className="text-xl font-bold mb-4" style={{ color: '#FFFFFF' }}>
-                Extintor {parsedId}
+              <h3 className="text-xl font-bold mb-2" style={{ color: '#FFFFFF' }}>
+                {equipmentType ? getEquipmentTypeName(equipmentType, t) : 'Equipamento'} {parsedId}
               </h3>
               
               <div className="space-y-2 text-sm">
-                {equipment.tipo_agente && (
+                {equipmentType === 'extintor' && (
+                  <>
+                    {equipment.tipo_agente && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Tipo:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.tipo_agente}</span>
+                      </div>
+                    )}
+                    {equipment.capacidade && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Capacidade:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.capacidade}L</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {equipmentType === 'mangueira' && (
+                  <>
+                    {equipment.diametro && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Diâmetro:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.diametro}mm</span>
+                      </div>
+                    )}
+                    {equipment.comprimento && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Comprimento:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.comprimento}m</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {equipmentType === 'scba' && equipment.marca && (
                   <div className="flex justify-between">
-                    <span style={{ color: '#B0B0B0' }}>Tipo:</span>
-                    <span style={{ color: '#FFFFFF' }}>{equipment.tipo_agente}</span>
+                    <span style={{ color: '#B0B0B0' }}>Marca:</span>
+                    <span style={{ color: '#FFFFFF' }}>{equipment.marca}</span>
                   </div>
                 )}
-                {equipment.capacidade && (
-                  <div className="flex justify-between">
-                    <span style={{ color: '#B0B0B0' }}>Capacidade:</span>
-                    <span style={{ color: '#FFFFFF' }}>{equipment.capacidade}L</span>
-                  </div>
+                {equipmentType === 'multigas' && (
+                  <>
+                    {equipment.marca && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Marca:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.marca}</span>
+                      </div>
+                    )}
+                    {equipment.modelo && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Modelo:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.modelo}</span>
+                      </div>
+                    )}
+                  </>
                 )}
-                {equipment.localizacao && (
+                {(equipment.localizacao || equipment.local) && (
                   <div className="flex justify-between">
                     <span style={{ color: '#B0B0B0' }}>Localização:</span>
-                    <span style={{ color: '#FFFFFF' }}>{equipment.localizacao}</span>
+                    <span style={{ color: '#FFFFFF' }}>{equipment.localizacao || equipment.local}</span>
                   </div>
                 )}
               </div>
@@ -557,10 +612,10 @@ const QrInspectionPage = () => {
                 {t('qr.notFound')}
               </h3>
               <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4" style={{ color: '#B0B0B0' }}>
-                {t('qr.equipmentNotFound', { defaultValue: 'Nenhum extintor encontrado com o ID' })}: <strong>{parsedId}</strong>
+                {t('qr.equipmentNotFound', { defaultValue: 'Nenhum equipamento encontrado com o ID' })}: <strong>{parsedId}</strong>
               </p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>
-                {t('qr.equipmentNotFound', { defaultValue: 'Verifique se o número está correto ou cadastre o equipamento primeiro.' })}
+                Verifique se o número está correto ou cadastre o equipamento primeiro.
               </p>
             </div>
 
@@ -573,19 +628,17 @@ const QrInspectionPage = () => {
                 {t('qr.scanAgain', { defaultValue: 'Tentar Novamente' })}
               </button>
               
-              {type && (
-                <button
-                  onClick={() => navigate(`/inspections/${type}/new`)}
-                  className="w-full p-4 rounded-lg border flex items-center justify-center space-x-2"
-                  style={{ 
-                    backgroundColor: 'rgba(26, 26, 26, 0.95)', 
-                    borderColor: '#2A2A2A',
-                    color: '#FFFFFF'
-                  }}
-                >
-                  <span>{t('equipment.add', { defaultValue: 'Cadastrar Novo Equipamento' })}</span>
-                </button>
-              )}
+              <button
+                onClick={() => navigate('/inspections')}
+                className="w-full p-4 rounded-lg border flex items-center justify-center space-x-2"
+                style={{ 
+                  backgroundColor: 'rgba(26, 26, 26, 0.95)', 
+                  borderColor: '#2A2A2A',
+                  color: '#FFFFFF'
+                }}
+              >
+                <span>{t('equipment.add', { defaultValue: 'Ver Equipamentos Cadastrados' })}</span>
+              </button>
             </div>
           </motion.div>
         </main>
