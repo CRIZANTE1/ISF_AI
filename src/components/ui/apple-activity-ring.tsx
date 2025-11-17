@@ -159,11 +159,12 @@ const DetailedActivityInfo = ({ activities }: { activities: ActivityData[] }) =>
 };
 
 export function AppleActivityCard({
-  title = "Atividade",
+  title,
   className,
   data,
 }: AppleActivityCardProps) {
   const { t } = useTranslation();
+  const cardTitle = title || t('activity.title');
   
   // Calcular valores baseados nos dados fornecidos ou usar valores padrão
   const total = data?.total || 0;
@@ -223,7 +224,7 @@ export function AppleActivityCard({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {title}
+          {cardTitle}
         </motion.h2>
         <div className="flex items-center">
           <div className="relative w-[180px] h-[180px]">

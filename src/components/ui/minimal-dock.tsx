@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutGrid, ClipboardCheck, History, Wrench, MapPin, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface DockItem {
   id: string;
@@ -98,6 +99,7 @@ interface MinimalistDockProps {
 
 const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -106,37 +108,37 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
     { 
       id: 'inspections', 
       icon: <ClipboardCheck size={16} />, 
-      label: 'Inspeções',
+      label: t('navigation.inspections'),
       to: '/inspections'
     },
     { 
       id: 'history', 
       icon: <History size={16} />, 
-      label: 'Histórico',
+      label: t('navigation.history'),
       to: '/history'
     },
     { 
       id: 'home', 
       icon: <LayoutGrid size={16} />, 
-      label: 'Home',
+      label: t('navigation.home'),
       to: '/'
     },
     { 
       id: 'map', 
       icon: <MapPin size={16} />, 
-      label: 'Mapa',
+      label: t('navigation.map'),
       to: '/map'
     },
     { 
       id: 'utilities', 
       icon: <Wrench size={16} />, 
-      label: 'Utilitários',
+      label: t('navigation.utilities'),
       to: '/utilities'
     },
     { 
       id: 'admin', 
       icon: <Shield size={16} />, 
-      label: 'Administração',
+      label: t('navigation.administration'),
       to: '/admin/utilities',
       adminOnly: true
     },

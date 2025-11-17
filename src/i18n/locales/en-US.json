@@ -61,7 +61,8 @@
     "alreadyHaveAccount": "Already have an account? Login",
     "forgotPasswordButton": "Forgot my password",
     "hidePassword": "Hide password",
-    "showPassword": "Show password"
+    "showPassword": "Show password",
+    "loggingIn": "Logging in..."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -111,7 +112,6 @@
     "edit": "Edit Inspection",
     "delete": "Delete Inspection",
     "history": "Inspection History",
-    "saveSuccess": "Save Inspection",
     "date": "Inspection Date",
     "inspector": "Inspector",
     "result": "Result",
@@ -217,7 +217,6 @@
     "policies": "Policies",
     "systemSettings": "System Settings",
     "utilities": "Utilities",
-    "logs": "Logs",
     "accessLogs": "Access Logs",
     "securityAlerts": "Security Alerts",
     "active": "Active",
@@ -305,6 +304,33 @@
     "noAlerts": "No critical alerts at the moment.",
     "inspectionExpired": "{{id}} has expired inspection.",
     "hasPending": "{{id}} has pending items."
+  },
+  "navigation": {
+    "inspections": "Inspections",
+    "history": "History",
+    "home": "Home",
+    "map": "Map",
+    "utilities": "Utilities",
+    "administration": "Administration"
+  },
+  "pricing": {
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "month": "month",
+    "year": "year",
+    "popular": "Popular",
+    "off": "% off",
+    "access": "Access"
+  },
+  "timeline": {
+    "completed": "COMPLETE",
+    "inProgress": "IN PROGRESS",
+    "pending": "PENDING",
+    "level": "Level",
+    "access": "Access"
+  },
+  "activity": {
+    "title": "Activity"
   }
 }
 

@@ -6,6 +6,7 @@ import { Badge } from "./badge";
 import { Button } from "./button";
 import { Card, CardContent, CardHeader, CardTitle } from "./card";
 import { cn } from "../../utils/cn";
+import { useTranslation } from "../../hooks/useTranslation";
 
 interface TimelineItem {
   id: number;
@@ -30,6 +31,7 @@ export default function RadialOrbitalTimeline({
   timelineData,
   onItemSelect,
 }: RadialOrbitalTimelineProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [rotationAngle, setRotationAngle] = useState<number>(0);
@@ -285,10 +287,10 @@ export default function RadialOrbitalTimeline({
                             className={cn("px-2 text-xs", getStatusStyles(item.status))}
                           >
                             {item.status === "completed"
-                              ? "COMPLETO"
+                              ? t('timeline.completed')
                               : item.status === "in-progress"
-                              ? "EM PROGRESSO"
-                              : "PENDENTE"}
+                              ? t('timeline.inProgress')
+                              : t('timeline.pending')}
                           </Badge>
                         )}
                         {item.date && (
@@ -308,7 +310,7 @@ export default function RadialOrbitalTimeline({
                         <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
                           <div className="flex justify-between items-center text-xs mb-1">
                             <span className="flex items-center" style={{ color: 'var(--muted-foreground)' }}>
-                              Nível
+                              {t('timeline.level')}
                             </span>
                             <span className="font-mono" style={{ color: 'var(--foreground)' }}>{item.energy}%</span>
                           </div>
@@ -335,7 +337,7 @@ export default function RadialOrbitalTimeline({
                               handleItemClick(item);
                             }}
                           >
-                            Acessar
+                            {t('timeline.access')}
                           </Button>
                         </div>
                       )}

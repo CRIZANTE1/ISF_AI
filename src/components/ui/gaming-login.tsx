@@ -397,7 +397,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className={`w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40`}
           >
-            {loading ? 'Entrando...' : 'Login'}
+            {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </form>
       )}

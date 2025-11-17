@@ -8,6 +8,7 @@ import {
 import { cn } from '../../utils/cn';
 import { CheckCircleIcon, StarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type FREQUENCY = 'monthly' | 'yearly';
 const frequencies: FREQUENCY[] = ['monthly', 'yearly'];
@@ -88,6 +89,7 @@ export function PricingFrequencyToggle({
   setFrequency,
   ...props
 }: PricingFrequencyToggleProps) {
+  const { t } = useTranslation();
   return (
     <div
       className={cn(
@@ -102,7 +104,7 @@ export function PricingFrequencyToggle({
           onClick={() => setFrequency(freq)}
           className="relative px-4 py-1 text-sm capitalize text-white"
         >
-          <span className="relative z-10">{freq === 'monthly' ? 'Mensal' : 'Anual'}</span>
+          <span className="relative z-10">{freq === 'monthly' ? t('pricing.monthly') : t('pricing.yearly')}</span>
           {frequency === freq && (
             <span
               className="bg-white absolute inset-0 z-0 rounded-full transition-all duration-300"
@@ -126,6 +128,7 @@ export function PricingCard({
   frequency = frequencies[0],
   ...props
 }: PricingCardProps) {
+  const { t } = useTranslation();
   const price = plan.price[frequency];
   const isYearly = frequency === 'yearly';
   const discount = isYearly 
@@ -155,12 +158,12 @@ export function PricingCard({
           {plan.highlighted && (
             <p className="bg-black flex items-center gap-1 rounded-md border border-white/20 px-2 py-0.5 text-xs text-white">
               <StarIcon className="h-3 w-3 fill-current" />
-              Popular
+              {t('pricing.popular')}
             </p>
           )}
           {isYearly && discount > 0 && (
             <p className="bg-white text-black flex items-center gap-1 rounded-md border border-white/20 px-2 py-0.5 text-xs font-semibold">
-              {discount}% off
+              {discount}{t('pricing.off')}
             </p>
           )}
         </div>
@@ -173,7 +176,7 @@ export function PricingCard({
           </span>
           <span className="text-white/60">
             {plan.name !== 'Trial'
-              ? '/' + (frequency === 'monthly' ? 'mês' : 'ano')
+              ? '/' + (frequency === 'monthly' ? t('pricing.month') : t('pricing.year'))
               : ''}
           </span>
         </h3>

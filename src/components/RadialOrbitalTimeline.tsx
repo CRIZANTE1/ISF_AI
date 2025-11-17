@@ -4,6 +4,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { statusColorTable } from "../constants/statusColors";
+import { useTranslation } from "../hooks/useTranslation";
 
 export interface TimelineItem {
   id: number;
@@ -24,6 +25,7 @@ interface RadialOrbitalTimelineProps {
 export default function RadialOrbitalTimeline({
   timelineData,
 }: RadialOrbitalTimelineProps) {
+  const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>(
     {}
   );
@@ -257,10 +259,10 @@ export default function RadialOrbitalTimeline({
                           }}
                         >
                           {item.status === "completed"
-                            ? "COMPLETE"
+                            ? t('timeline.completed')
                             : item.status === "in-progress"
-                            ? "IN PROGRESS"
-                            : "PENDING"}
+                            ? t('timeline.inProgress')
+                            : t('timeline.pending')}
                         </Badge>
                         <span className="text-xs font-mono text-white/50">
                           {item.date}
