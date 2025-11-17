@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import { buildIndustrialQrString, type ExtinguisherQrData } from '../utils/qrInspectionUtils';
-import { Download, FileText, Package } from 'lucide-react';
+import { 
+  getEquipmentIdentifier, 
+  findEquipmentByIdentifier, 
+  generateQrString,
+  getEquipmentTypeName,
+  getIdentifierFieldName
+} from '../utils/qrGeneratorUtils';
+import { Download, FileText, Package, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { QRCodeSVG } from 'qrcode.react';
@@ -65,46 +72,126 @@ const QRCodeDisplay = ({ value, size = 200 }: { value: string; size?: number }) 
   );
 };
 
-type GeneratorMode = 'integrated' | 'manual';
+type GeneratorMode = 'search' | 'manual' | 'select';
+
+interface SelectedEquipment {
+  id: string;
+  type: string;
+  identifier: string;
+  displayName: string;
+}
 
 const QrGeneratorPage = () => {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { cache } = useEquipmentCache();
-  const [mode, setMode] = useState<GeneratorMode>('integrated');
-  const [selectedExtinguishers, setSelectedExtinguishers] = useState<string[]>([]);
+  const { cache, getAllEquipment } = useEquipmentCache();
+  const [mode, setMode] = useState<GeneratorMode>('select');
+  const [selectedEquipmentType, setSelectedEquipmentType] = useState<string>('extintor');
+  const [selectedEquipment, setSelectedEquipment] = useState<SelectedEquipment[]>([]);
   const [locationCode, setLocationCode] = useState('7036');
   const [manualText, setManualText] = useState('');
-  const [generatedQrs, setGeneratedQrs] = useState<Record<string, { data: string; qrString: string }>>({});
+  const [searchText, setSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState<SelectedEquipment[]>([]);
+  const [generatedQrs, setGeneratedQrs] = useState<Record<string, { data: string; qrString: string; type: string; identifier: string }>>({});
   const [loading, setLoading] = useState(false);
 
-  const extinguishers = cache.extinguishers || [];
+  // Todos os equipamentos disponíveis
+  const allEquipment = useMemo(() => ({
+    extinguishers: cache.extinguishers || [],
+    hoses: cache.hoses || [],
+    scbas: cache.scbas || [],
+    multigasDetectors: cache.multigasDetectors || [],
+    foamChambers: cache.foamChambers || [],
+    cannonMonitors: cache.cannonMonitors || [],
+    eyewashStations: cache.eyewashStations || [],
+    alarmSystems: cache.alarmSystems || [],
+    shelters: cache.shelters || [],
+  }), [cache]);
+
+  // Buscar equipamentos por ID ou número de série
+  const handleSearch = () => {
+    if (!searchText.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const searchTerm = searchText.trim().toLowerCase();
+    const results: SelectedEquipment[] = [];
+
+    // Busca em todos os tipos de equipamentos
+    const types = [
+      { list: allEquipment.extinguishers, type: 'extintor' },
+      { list: allEquipment.hoses, type: 'mangueira' },
+      { list: allEquipment.scbas, type: 'scba' },
+      { list: allEquipment.multigasDetectors, type: 'multigas' },
+      { list: allEquipment.foamChambers, type: 'camara_espuma' },
+      { list: allEquipment.cannonMonitors, type: 'canhao_monitor' },
+      { list: allEquipment.eyewashStations, type: 'chuveiro_lavaolhos' },
+      { list: allEquipment.alarmSystems, type: 'alarme' },
+      { list: allEquipment.shelters, type: 'abrigo' },
+    ];
+
+    types.forEach(({ list, type }) => {
+      list.forEach((equipment: any) => {
+        const identifier = getEquipmentIdentifier(equipment, type);
+        if (identifier && identifier.toString().toLowerCase().includes(searchTerm)) {
+          const typeName = getEquipmentTypeName(type, t);
+          const fieldName = getIdentifierFieldName(type, t);
+          results.push({
+            id: `${type}_${identifier}`,
+            type,
+            identifier: identifier.toString(),
+            displayName: `${typeName} - ${fieldName}: ${identifier}`,
+          });
+        }
+      });
+    });
+
+    setSearchResults(results);
+  };
 
   useEffect(() => {
-    if (mode === 'integrated' && selectedExtinguishers.length > 0) {
-      generateIntegratedQrs();
+    if (mode === 'search' && searchText) {
+      handleSearch();
+    } else if (mode === 'search' && !searchText) {
+      setSearchResults([]);
     }
-  }, [selectedExtinguishers, locationCode, mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText, allEquipment, mode]);
 
-  const generateIntegratedQrs = () => {
-    const newQrs: Record<string, { data: string; qrString: string }> = {};
+  // Gerar QR codes para equipamentos selecionados
+  useEffect(() => {
+    if (selectedEquipment.length > 0) {
+      generateQrCodes();
+    }
+  }, [selectedEquipment, locationCode]);
+
+  const generateQrCodes = () => {
+    const newQrs: Record<string, { data: string; qrString: string; type: string; identifier: string }> = {};
     
-    selectedExtinguishers.forEach((id) => {
-      const extinguisher = extinguishers.find((ext: any) => ext.numero_identificacao === id);
-      if (extinguisher) {
-        const qrData: ExtinguisherQrData = {
-          numero_identificacao: extinguisher.numero_identificacao,
-          tipo_agente: extinguisher.tipo_agente,
-          capacidade: extinguisher.capacidade,
-          localizacao: extinguisher.localizacao,
-        };
+    selectedEquipment.forEach(({ id, type, identifier }) => {
+      // Busca o equipamento completo
+      const found = findEquipmentByIdentifier(allEquipment, identifier);
+      
+      if (found) {
+        // Formato industrial é sempre usado quando disponível (extintores)
+        // Para outros tipos, usa o ID/série diretamente
+        const qrString = generateQrString(
+          found.equipment,
+          type,
+          locationCode,
+          type === 'extintor' // Sempre usa formato industrial para extintores
+        );
         
-        const qrString = buildIndustrialQrString(qrData, locationCode);
-        newQrs[id] = {
-          data: qrString,
-          qrString: qrString,
-        };
+        if (qrString) {
+          newQrs[id] = {
+            data: qrString,
+            qrString: qrString,
+            type,
+            identifier,
+          };
+        }
       }
     });
     
@@ -115,15 +202,38 @@ const QrGeneratorPage = () => {
     if (!manualText.trim()) return;
     
     const items = manualText.split('\n').filter(line => line.trim());
-    const newQrs: Record<string, { data: string; qrString: string }> = {};
+    const newQrs: Record<string, { data: string; qrString: string; type: string; identifier: string }> = {};
     
     items.forEach((item, index) => {
       const trimmed = item.trim();
       if (trimmed) {
-        newQrs[`manual_${index}`] = {
-          data: trimmed,
-          qrString: trimmed,
-        };
+        // Tenta encontrar o equipamento pelo ID/série digitado
+        const found = findEquipmentByIdentifier(allEquipment, trimmed);
+        
+        if (found) {
+          // Se encontrou, gera QR code do equipamento
+          // Formato industrial é sempre usado para extintores
+          const qrString = generateQrString(
+            found.equipment,
+            found.type,
+            locationCode,
+            found.type === 'extintor' // Sempre usa formato industrial para extintores
+          );
+          newQrs[`manual_${index}`] = {
+            data: qrString || trimmed,
+            qrString: qrString || trimmed,
+            type: found.type,
+            identifier: getEquipmentIdentifier(found.equipment, found.type) || trimmed,
+          };
+        } else {
+          // Se não encontrou, usa o texto como está
+          newQrs[`manual_${index}`] = {
+            data: trimmed,
+            qrString: trimmed,
+            type: 'manual',
+            identifier: trimmed,
+          };
+        }
       }
     });
     
@@ -293,31 +403,52 @@ const QrGeneratorPage = () => {
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
         <div className="space-y-6">
           {/* Tabs para escolher modo */}
-          <div className="flex space-x-2 border-b" style={{ borderColor: '#2A2A2A' }}>
+          <div className="flex space-x-2 border-b overflow-x-auto" style={{ borderColor: '#2A2A2A' }}>
             <button
               onClick={() => {
-                setMode('integrated');
+                setMode('select');
                 setGeneratedQrs({});
+                setSelectedEquipment([]);
               }}
-              className={`px-4 py-2 font-semibold transition-colors ${
-                mode === 'integrated'
+              className={`px-4 py-2 font-semibold transition-colors whitespace-nowrap ${
+                mode === 'select'
                   ? 'border-b-2'
                   : ''
               }`}
               style={{
-                color: mode === 'integrated' ? '#FC3D39' : '#B0B0B0',
-                borderColor: mode === 'integrated' ? '#FC3D39' : 'transparent',
+                color: mode === 'select' ? '#FC3D39' : '#B0B0B0',
+                borderColor: mode === 'select' ? '#FC3D39' : 'transparent',
               }}
             >
               <Package size={20} className="inline mr-2" />
-              {t('qr.generateForRegistered')}
+              Selecionar Equipamentos
+            </button>
+            <button
+              onClick={() => {
+                setMode('search');
+                setGeneratedQrs({});
+                setSelectedEquipment([]);
+              }}
+              className={`px-4 py-2 font-semibold transition-colors whitespace-nowrap ${
+                mode === 'search'
+                  ? 'border-b-2'
+                  : ''
+              }`}
+              style={{
+                color: mode === 'search' ? '#FC3D39' : '#B0B0B0',
+                borderColor: mode === 'search' ? '#FC3D39' : 'transparent',
+              }}
+            >
+              <Search size={20} className="inline mr-2" />
+              Buscar por ID/Série
             </button>
             <button
               onClick={() => {
                 setMode('manual');
                 setGeneratedQrs({});
+                setSelectedEquipment([]);
               }}
-              className={`px-4 py-2 font-semibold transition-colors ${
+              className={`px-4 py-2 font-semibold transition-colors whitespace-nowrap ${
                 mode === 'manual'
                   ? 'border-b-2'
                   : ''
@@ -332,8 +463,8 @@ const QrGeneratorPage = () => {
             </button>
           </div>
 
-          {/* Modo Integrado */}
-          {mode === 'integrated' && (
+          {/* Modo Seleção por Tipo */}
+          {mode === 'select' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -341,96 +472,293 @@ const QrGeneratorPage = () => {
             >
               <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}>
                 <p className="text-sm" style={{ color: '#B0B0B0' }}>
-                  {t('qr.selectExtinguishersDescription')}
+                  Selecione o tipo de equipamento e escolha os itens para gerar QR codes.
                 </p>
               </div>
 
-              {extinguishers.length === 0 ? (
-                <div className="p-6 rounded-lg border text-center" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
-                  <p className="mb-4" style={{ color: '#FFFFFF' }}>
-                    {t('qr.noExtinguishersRegistered')}
-                  </p>
-                  <button
-                    onClick={() => navigate('/inspections/extintor/new')}
-                    className="px-4 py-2 rounded-lg font-semibold"
-                    style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
-                  >
-                    {t('qr.registerExtinguisher')}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                      {t('qr.locationCode')}
-                    </label>
-                    <input
-                      type="text"
-                      value={locationCode}
-                      onChange={(e) => setLocationCode(e.target.value)}
-                      placeholder="7036"
-                      className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
-                      style={{
-                        backgroundColor: 'rgba(26, 26, 26, 0.95)',
-                        borderColor: '#2A2A2A',
-                        color: '#FFFFFF',
-                      }}
-                    />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                  Tipo de Equipamento
+                </label>
+                <select
+                  value={selectedEquipmentType}
+                  onChange={(e) => {
+                    setSelectedEquipmentType(e.target.value);
+                    setSelectedEquipment([]);
+                  }}
+                  className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white"
+                  style={{
+                    backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                    borderColor: '#2A2A2A',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  <option value="extintor">{t('equipment.extinguisher')}</option>
+                  <option value="mangueira">{t('equipment.hose')}</option>
+                  <option value="scba">{t('equipment.scba')}</option>
+                  <option value="multigas">{t('equipment.multigas')}</option>
+                  <option value="camara_espuma">{t('equipment.foamChamber')}</option>
+                  <option value="canhao_monitor">{t('equipment.cannonMonitor')}</option>
+                  <option value="chuveiro_lavaolhos">{t('equipment.eyewash')}</option>
+                  <option value="alarme">{t('equipment.alarm')}</option>
+                  <option value="abrigo">{t('equipment.shelter')}</option>
+                </select>
+              </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                      {t('qr.selectExtinguishers')}
-                    </label>
-                    <div className="space-y-2 max-h-64 overflow-y-auto p-2 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
-                      {extinguishers.map((ext: any) => (
-                        <label
-                          key={ext.numero_identificacao}
-                          className="flex items-center space-x-3 p-2 rounded hover:bg-white/5 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedExtinguishers.includes(ext.numero_identificacao)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedExtinguishers([...selectedExtinguishers, ext.numero_identificacao]);
-                              } else {
-                                setSelectedExtinguishers(selectedExtinguishers.filter(id => id !== ext.numero_identificacao));
-                              }
-                            }}
-                            className="w-5 h-5 rounded"
-                            style={{ accentColor: '#FC3D39' }}
-                          />
-                          <div className="flex-1">
-                            <p className="font-semibold" style={{ color: '#FFFFFF' }}>
-                              {ext.numero_identificacao}
-                            </p>
-                            {ext.tipo_agente && (
-                              <p className="text-xs" style={{ color: '#B0B0B0' }}>
-                                {ext.tipo_agente} - {ext.capacidade}L
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+              {(() => {
+                const equipmentList = allEquipment[
+                  selectedEquipmentType === 'extintor' ? 'extinguishers' :
+                  selectedEquipmentType === 'mangueira' ? 'hoses' :
+                  selectedEquipmentType === 'scba' ? 'scbas' :
+                  selectedEquipmentType === 'multigas' ? 'multigasDetectors' :
+                  selectedEquipmentType === 'camara_espuma' ? 'foamChambers' :
+                  selectedEquipmentType === 'canhao_monitor' ? 'cannonMonitors' :
+                  selectedEquipmentType === 'chuveiro_lavaolhos' ? 'eyewashStations' :
+                  selectedEquipmentType === 'alarme' ? 'alarmSystems' :
+                  'shelters'
+                ] as any[];
 
-                  {selectedExtinguishers.length > 0 && (
-                    <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
-                      <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
-                        <strong>{selectedExtinguishers.length}</strong> {t('qr.extinguishersSelected')}
+                if (equipmentList.length === 0) {
+                  return (
+                    <div className="p-6 rounded-lg border text-center" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
+                      <p className="mb-4" style={{ color: '#FFFFFF' }}>
+                        Nenhum {getEquipmentTypeName(selectedEquipmentType, t).toLowerCase()} cadastrado.
                       </p>
                       <button
-                        onClick={() => setSelectedExtinguishers([])}
-                        className="text-xs underline"
-                        style={{ color: '#FC3D39' }}
+                        onClick={() => navigate(`/inspections/${selectedEquipmentType}/new`)}
+                        className="px-4 py-2 rounded-lg font-semibold"
+                        style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
                       >
-                        {t('qr.clearSelection')}
+                        Cadastrar {getEquipmentTypeName(selectedEquipmentType, t)}
                       </button>
                     </div>
-                  )}
+                  );
+                }
+
+                return (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                        {getEquipmentTypeName(selectedEquipmentType, t)} ({equipmentList.length} disponível(is))
+                      </label>
+                      <div className="space-y-2 max-h-96 overflow-y-auto p-2 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
+                        {equipmentList.map((equipment: any) => {
+                          const identifier = getEquipmentIdentifier(equipment, selectedEquipmentType);
+                          const equipmentId = `${selectedEquipmentType}_${identifier}`;
+                          const isSelected = selectedEquipment.some(eq => eq.id === equipmentId);
+                          
+                          return (
+                            <label
+                              key={equipmentId}
+                              className="flex items-center space-x-3 p-3 rounded hover:bg-white/5 cursor-pointer border"
+                              style={{ 
+                                borderColor: isSelected ? '#FC3D39' : 'transparent',
+                                backgroundColor: isSelected ? 'rgba(252, 61, 57, 0.1)' : 'transparent'
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    const typeName = getEquipmentTypeName(selectedEquipmentType, t);
+                                    const fieldName = getIdentifierFieldName(selectedEquipmentType, t);
+                                    setSelectedEquipment([...selectedEquipment, {
+                                      id: equipmentId,
+                                      type: selectedEquipmentType,
+                                      identifier: identifier || '',
+                                      displayName: `${typeName} - ${fieldName}: ${identifier}`,
+                                    }]);
+                                  } else {
+                                    setSelectedEquipment(selectedEquipment.filter(eq => eq.id !== equipmentId));
+                                  }
+                                }}
+                                className="w-5 h-5 rounded"
+                                style={{ accentColor: '#FC3D39' }}
+                              />
+                              <div className="flex-1">
+                                <p className="font-semibold" style={{ color: '#FFFFFF' }}>
+                                  {identifier}
+                                </p>
+                                {equipment.localizacao && (
+                                  <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                                    📍 {equipment.localizacao}
+                                  </p>
+                                )}
+                                {selectedEquipmentType === 'extintor' && equipment.tipo_agente && (
+                                  <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                                    {equipment.tipo_agente} - {equipment.capacidade}L
+                                  </p>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {selectedEquipment.length > 0 && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                            {t('qr.locationCode')} <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={locationCode}
+                            onChange={(e) => setLocationCode(e.target.value)}
+                            placeholder="7036"
+                            className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
+                            style={{
+                              backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                              borderColor: '#2A2A2A',
+                              color: '#FFFFFF',
+                            }}
+                          />
+                          <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
+                            Extintores serão gerados no formato industrial: 2#[código]#EXT#[ID]#[capacidade]#31
+                          </p>
+                        </div>
+
+                        <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
+                          <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
+                            <strong>{selectedEquipment.length}</strong> equipamento(s) selecionado(s)
+                          </p>
+                          <button
+                            onClick={() => setSelectedEquipment([])}
+                            className="text-xs underline"
+                            style={{ color: '#FC3D39' }}
+                          >
+                            Limpar seleção
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </motion.div>
+          )}
+
+          {/* Modo Busca */}
+          {mode === 'search' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}>
+                <p className="text-sm" style={{ color: '#B0B0B0' }}>
+                  Busque equipamentos por ID ou número de série. Todos os tipos de equipamentos são suportados.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                  Buscar por ID ou Número de Série
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    placeholder="Digite ID ou número de série..."
+                    className="flex-1 p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
+                    style={{
+                      backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                      borderColor: '#2A2A2A',
+                      color: '#FFFFFF',
+                    }}
+                  />
+                  <button
+                    onClick={handleSearch}
+                    className="px-4 py-3 rounded-lg font-semibold"
+                    style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
+                  >
+                    <Search size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {searchResults.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                    Resultados da Busca ({searchResults.length})
+                  </label>
+                  <div className="space-y-2 max-h-64 overflow-y-auto p-2 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
+                    {searchResults.map((result) => (
+                      <label
+                        key={result.id}
+                        className="flex items-center space-x-3 p-2 rounded hover:bg-white/5 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEquipment.some(eq => eq.id === result.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedEquipment([...selectedEquipment, result]);
+                            } else {
+                              setSelectedEquipment(selectedEquipment.filter(eq => eq.id !== result.id));
+                            }
+                          }}
+                          className="w-5 h-5 rounded"
+                          style={{ accentColor: '#FC3D39' }}
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm" style={{ color: '#FFFFFF' }}>
+                            {result.displayName}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedEquipment.length > 0 && (
+                <>
+                    <div>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                        {t('qr.locationCode')} <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={locationCode}
+                        onChange={(e) => setLocationCode(e.target.value)}
+                        placeholder="7036"
+                        className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
+                        style={{
+                          backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                          borderColor: '#2A2A2A',
+                          color: '#FFFFFF',
+                        }}
+                      />
+                      <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
+                        Extintores serão gerados no formato industrial: 2#[código]#EXT#[ID]#[capacidade]#31
+                      </p>
+                    </div>
+
+                  <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
+                    <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
+                      <strong>{selectedEquipment.length}</strong> equipamento(s) selecionado(s)
+                    </p>
+                    <button
+                      onClick={() => setSelectedEquipment([])}
+                      className="text-xs underline"
+                      style={{ color: '#FC3D39' }}
+                    >
+                      Limpar seleção
+                    </button>
+                  </div>
                 </>
+              )}
+
+              {searchText && searchResults.length === 0 && (
+                <div className="p-4 rounded-lg border text-center" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
+                  <p style={{ color: '#B0B0B0' }}>
+                    Nenhum equipamento encontrado com "{searchText}"
+                  </p>
+                </div>
               )}
             </motion.div>
           )}
@@ -455,7 +783,7 @@ const QrGeneratorPage = () => {
                 <textarea
                   value={manualText}
                   onChange={(e) => setManualText(e.target.value)}
-                  placeholder="ID-PROVISORIO-01&#10;ID-PROVISORIO-02&#10;..."
+                  placeholder="Digite IDs ou números de série, um por linha&#10;Exemplo:&#10;8851&#10;MANG-001&#10;SCBA-123"
                   rows={8}
                   className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500 font-mono text-sm"
                   style={{
@@ -464,6 +792,27 @@ const QrGeneratorPage = () => {
                     color: '#FFFFFF',
                   }}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                  {t('qr.locationCode')} <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
+                </label>
+                <input
+                  type="text"
+                  value={locationCode}
+                  onChange={(e) => setLocationCode(e.target.value)}
+                  placeholder="7036"
+                  className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
+                  style={{
+                    backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                    borderColor: '#2A2A2A',
+                    color: '#FFFFFF',
+                  }}
+                />
+                <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
+                  Extintores encontrados serão gerados no formato industrial: 2#[código]#EXT#[ID]#[capacidade]#31
+                </p>
               </div>
 
               <button
@@ -500,37 +849,43 @@ const QrGeneratorPage = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(generatedQrs).map(([id, { qrString }]) => (
-                  <motion.div
-                    key={id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-4 rounded-lg border"
-                    style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}
-                  >
-                    <div className="text-center mb-3">
-                      <p className="font-semibold mb-2" style={{ color: '#FFFFFF' }}>
-                        {t('common.id')}: {id.replace('manual_', '')}
-                      </p>
-                      <QRCodeDisplay value={qrString} size={180} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="p-2 rounded bg-black/50">
-                        <p className="text-xs font-mono break-all" style={{ color: '#B0B0B0' }}>
-                          {qrString}
+                {Object.entries(generatedQrs).map(([id, { qrString, type, identifier }]) => {
+                  const typeName = getEquipmentTypeName(type, t);
+                  return (
+                    <motion.div
+                      key={id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 rounded-lg border"
+                      style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}
+                    >
+                      <div className="text-center mb-3">
+                        <p className="text-xs mb-1" style={{ color: '#B0B0B0' }}>
+                          {typeName}
                         </p>
+                        <p className="font-semibold mb-2" style={{ color: '#FFFFFF' }}>
+                          {id.startsWith('manual_') ? id.replace('manual_', '') : identifier}
+                        </p>
+                        <QRCodeDisplay value={qrString} size={180} />
                       </div>
-                      <button
-                        onClick={() => downloadQrCode(id, qrString)}
-                        className="w-full px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center space-x-2"
-                        style={{ backgroundColor: '#2A2A2A', color: '#FFFFFF' }}
-                      >
-                        <Download size={16} />
-                        <span>{t('qr.downloadPng')}</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="space-y-2">
+                        <div className="p-2 rounded bg-black/50">
+                          <p className="text-xs font-mono break-all" style={{ color: '#B0B0B0' }}>
+                            {qrString}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => downloadQrCode(id, qrString)}
+                          className="w-full px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center space-x-2"
+                          style={{ backgroundColor: '#2A2A2A', color: '#FFFFFF' }}
+                        >
+                          <Download size={16} />
+                          <span>{t('qr.downloadPng')}</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
           )}
