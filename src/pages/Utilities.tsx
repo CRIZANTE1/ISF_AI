@@ -2,13 +2,15 @@ import { useNavigate } from 'react-router-dom';
 import { QrCode } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../hooks/useTranslation';
 
 const Utilities = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: '#000000', color: '#FFFFFF' }}>
-      <PageHeader title="Utilitários" />
+      <PageHeader title={{ key: 'utilities.title' }} />
       <main className="p-4 pb-32 relative" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-md mx-auto space-y-4">
           <motion.div
@@ -37,9 +39,9 @@ const Utilities = () => {
             >
               <QrCode size={24} style={{ color: 'var(--primary)' }} />
               <div>
-                <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Gerador de QR Codes</p>
+                <p className="font-semibold" style={{ color: 'var(--foreground)' }}>{t('utilities.qrGenerator')}</p>
                 <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Gerar QR Codes para equipamentos no formato industrial
+                  {t('utilities.qrGeneratorDescription')}
                 </p>
               </div>
             </button>

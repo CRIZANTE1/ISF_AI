@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
@@ -30,6 +31,7 @@ const EditEquipmentPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { handleError, executeWithFeedback } = useErrorHandler();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null);
@@ -234,7 +236,7 @@ const EditEquipmentPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Editar Equipamento" />
+      <PageHeader title={{ key: 'equipment.edit', defaultValue: 'Editar Equipamento' }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         {loadingData ? (
           <div className="space-y-4">
@@ -252,11 +254,11 @@ const EditEquipmentPage = () => {
               disabled={loading}
               className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
+              {loading ? t('common.loading') : t('common.save')}
             </button>
           </form>
         ) : (
-          <p className="text-center text-status-error">Equipamento não encontrado.</p>
+          <p className="text-center text-status-error">{t('equipment.noEquipment')}</p>
         )}
       </main>
     </div>

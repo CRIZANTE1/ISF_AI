@@ -160,12 +160,13 @@ const SettingsPage = () => {
 
   const handleDeleteAccount = async () => {
     if (!user) {
-      showWarning('Você precisa estar autenticado para excluir a conta.');
+      showWarning(t('settings.deleteAccountConfirm'));
       return;
     }
 
-    if (deleteConfirmation !== 'DELETAR') {
-      showWarning('Digite "DELETAR" para confirmar a exclusão da conta.');
+    const confirmationText = currentLanguage === 'pt-BR' ? 'DELETAR' : 'DELETE';
+    if (deleteConfirmation !== confirmationText) {
+      showWarning(t('settings.deleteAccountConfirm'));
       return;
     }
 
@@ -204,7 +205,7 @@ const SettingsPage = () => {
           <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Settings size={20} />
-              Preferências
+              {t('settings.preferences')}
             </h3>
             
             <div className="space-y-4">
@@ -217,9 +218,9 @@ const SettingsPage = () => {
                     <Sun size={20} color="#FFFFFF" />
                   )}
                   <div>
-                    <p className="font-medium">Modo Escuro</p>
+                    <p className="font-medium">{t('settings.darkMode')}</p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                      Alternar entre tema claro e escuro
+                      {t('settings.darkModeDescription')}
                     </p>
                   </div>
                 </div>
@@ -297,23 +298,23 @@ const SettingsPage = () => {
           <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Shield size={20} />
-              Segurança
+              {t('settings.security')}
             </h3>
             
             <div className="space-y-3">
               <button
-                onClick={() => showInfo('Funcionalidade em desenvolvimento')}
+                onClick={() => showInfo(t('settings.featureInDevelopment'))}
                 className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3"
               >
                 <Lock size={18} />
-                <span>Alterar Senha</span>
+                <span>{t('settings.changePassword')}</span>
               </button>
               <button
-                onClick={() => showInfo('Funcionalidade em desenvolvimento')}
+                onClick={() => showInfo(t('settings.featureInDevelopment'))}
                 className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3"
               >
                 <Eye size={18} />
-                <span>Histórico de Sessões</span>
+                <span>{t('settings.sessionHistory')}</span>
               </button>
             </div>
           </div>
@@ -322,7 +323,7 @@ const SettingsPage = () => {
           <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border border-light-border dark:border-dark-border">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Database size={20} />
-              Dados
+              {t('settings.data')}
             </h3>
             
             <div className="space-y-3">
@@ -339,7 +340,7 @@ const SettingsPage = () => {
                 className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download size={18} />
-                <span>{exporting ? 'Exportando...' : 'Exportar Meus Dados'}</span>
+                <span>{exporting ? t('settings.exporting') : t('settings.exportMyData')}</span>
               </button>
               <button
                 onClick={handleImportData}
@@ -347,7 +348,7 @@ const SettingsPage = () => {
                 className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={18} />
-                <span>{importing ? 'Importando...' : 'Importar Dados'}</span>
+                <span>{importing ? t('settings.importing') : t('settings.importData')}</span>
               </button>
             </div>
           </div>
@@ -356,7 +357,7 @@ const SettingsPage = () => {
           <div className="p-4 bg-status-error/10 border-2 border-status-error rounded-lg">
             <h3 className="text-lg font-semibold mb-4 text-status-error flex items-center gap-2">
               <Trash2 size={20} />
-              Zona Perigosa
+              {t('settings.dangerZone')}
             </h3>
             
             {!showDeleteAccount ? (
@@ -364,16 +365,16 @@ const SettingsPage = () => {
                 onClick={() => setShowDeleteAccount(true)}
                 className="w-full p-3 bg-status-error text-white rounded-lg hover:bg-red-600 transition-colors font-semibold"
               >
-                Excluir Minha Conta
+                {t('settings.deleteAccount')}
               </button>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-status-error">
-                  ⚠️ Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.
+                  {t('settings.deleteAccountWarning')}
                 </p>
                 <input
                   type="text"
-                  placeholder='Digite "DELETAR" para confirmar'
+                  placeholder={t('settings.deleteConfirmationPlaceholder')}
                   value={deleteConfirmation}
                   onChange={(e) => setDeleteConfirmation(e.target.value)}
                   className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-status-error rounded-lg focus:ring-2 focus:ring-status-error focus:outline-none"
@@ -381,10 +382,10 @@ const SettingsPage = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={handleDeleteAccount}
-                    disabled={deleteConfirmation !== 'DELETAR'}
+                    disabled={deleteConfirmation !== (currentLanguage === 'pt-BR' ? 'DELETAR' : 'DELETE')}
                     className="flex-1 p-3 bg-status-error text-white rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
                   >
-                    Confirmar Exclusão
+                    {t('settings.confirmDeletion')}
                   </button>
                   <button
                     onClick={() => {
@@ -393,7 +394,7 @@ const SettingsPage = () => {
                     }}
                     className="flex-1 p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>

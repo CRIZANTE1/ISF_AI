@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { Spinner } from '../components/ui/spinner';
+import PageHeader from '../components/PageHeader';
+import { useTranslation } from '../hooks/useTranslation';
 import { 
   ExtinguisherIcon, 
   FoamChamberIcon, 
@@ -111,6 +113,7 @@ function MapBounds({ bounds }: { bounds: LatLngBounds | null }) {
 }
 
 const EquipmentMap = () => {
+  const { t } = useTranslation();
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
@@ -223,12 +226,12 @@ const EquipmentMap = () => {
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      extintor: 'Extintor',
-      camara_espuma: 'Câmara de Espuma',
-      canhao_monitor: 'Canhão Monitor',
-      chuveiro_lavaolhos: 'Chuveiro/Lava-olhos',
-      alarme: 'Alarme',
-      abrigo: 'Abrigo',
+      extintor: t('equipment.extinguisher'),
+      camara_espuma: t('equipment.foamChamber'),
+      canhao_monitor: t('equipment.cannonMonitor'),
+      chuveiro_lavaolhos: t('equipment.eyewash'),
+      alarme: t('equipment.alarm'),
+      abrigo: t('equipment.shelter'),
     };
     return labels[type] || type;
   };
@@ -249,7 +252,7 @@ const EquipmentMap = () => {
         {/* Header compacto para mobile */}
         <div className="px-4 py-3 border-b" style={{ backgroundColor: '#000000', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
           <h1 className="text-xl font-bold text-foreground">
-            Mapa dos Equipamentos
+            {t('equipmentMap.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             {markers.length > 0 

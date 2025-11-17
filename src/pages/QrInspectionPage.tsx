@@ -9,6 +9,7 @@ import { QrCode, Camera, Search, X, CheckCircle2, AlertCircle, Loader2 } from 'l
 import { logger } from '../utils/logger';
 import { motion } from 'framer-motion';
 import { Html5Qrcode } from 'html5-qrcode';
+import { useTranslation } from '../hooks/useTranslation';
 
 type QrStep = 'start' | 'scan' | 'manual' | 'found' | 'not_found';
 
@@ -17,6 +18,7 @@ const QrInspectionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
   
   const [step, setStep] = useState<QrStep>('start');
   const [manualInput, setManualInput] = useState('');
@@ -51,14 +53,14 @@ const QrInspectionPage = () => {
     stopScanner();
     
     setLoading(true);
-    setScanStatus('QR Code detectado! Processando...');
+    setScanStatus(t('qr.qrDetected', { defaultValue: 'QR Code detectado! Processando...' }));
 
     try {
       // Faz o parsing do QR code
       const extractedId = parseQrCodeData(decodedText);
       
       if (!extractedId) {
-        handleError(new Error('ID inválido'), 'validation', 'Não foi possível extrair o ID do QR Code');
+        handleError(new Error('ID inválido'), 'validation', t('qr.invalidQrId', { defaultValue: 'Não foi possível extrair o ID do QR Code' }));
         setLoading(false);
         setStep('manual'); // Vai para modo manual para tentar novamente
         return;
@@ -128,7 +130,7 @@ const QrInspectionPage = () => {
         }
       );
 
-      setScanStatus('Câmera ativa - Aponte para o QR Code');
+      setScanStatus(t('qr.cameraActive', { defaultValue: 'Câmera ativa - Aponte para o QR Code' }));
     } catch (err: any) {
       logger.error('Erro ao iniciar scanner', 'qr_generator', err);
       setScanning(false);
@@ -169,7 +171,7 @@ const QrInspectionPage = () => {
       const extractedId = parseQrCodeData(manualInput.trim());
       
       if (!extractedId) {
-        handleError(new Error('ID inválido'), 'validation', 'Não foi possível extrair o ID do QR Code');
+        handleError(new Error('ID inválido'), 'validation', t('qr.invalidQrId', { defaultValue: 'Não foi possível extrair o ID do QR Code' }));
         setLoading(false);
         return;
       }
@@ -218,7 +220,7 @@ const QrInspectionPage = () => {
   if (step === 'start') {
     return (
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
-        <PageHeader title="Inspeção por QR Code" />
+        <PageHeader title={{ key: 'qr.scan', defaultValue: 'Inspeção por QR Code' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
           <div className="space-y-6">
             <motion.div
@@ -236,7 +238,7 @@ const QrInspectionPage = () => {
                 Inspeção Rápida
               </h2>
               <p className="text-light-text-secondary dark:text-dark-text-secondary mb-8" style={{ color: '#B0B0B0' }}>
-                Escaneie o QR Code do extintor ou digite o número do cilindro
+                {t('qr.scan')}
               </p>
             </motion.div>
 
@@ -254,7 +256,7 @@ const QrInspectionPage = () => {
                 }}
               >
                 <Camera size={24} />
-                <span className="font-semibold">Escanear QR Code</span>
+                <span className="font-semibold">{t('qr.scan')}</span>
               </motion.button>
 
               <motion.button
@@ -270,7 +272,7 @@ const QrInspectionPage = () => {
                 }}
               >
                 <Search size={24} />
-                <span className="font-semibold">Digitar Manualmente</span>
+                <span className="font-semibold">{t('qr.manual')}</span>
               </motion.button>
             </div>
 
@@ -295,7 +297,7 @@ const QrInspectionPage = () => {
   if (step === 'scan') {
     return (
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
-        <PageHeader title="Escanear QR Code" />
+        <PageHeader title={{ key: 'qr.scan', defaultValue: 'Escanear QR Code' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
           <div className="space-y-4">
             <p className="text-center text-light-text-secondary dark:text-dark-text-secondary mb-4" style={{ color: '#B0B0B0' }}>
@@ -343,7 +345,7 @@ const QrInspectionPage = () => {
                       }}
                       className="px-4 py-2 rounded-lg bg-white text-black text-sm font-semibold"
                     >
-                      Tentar Novamente
+                      {t('qr.scanAgain', { defaultValue: 'Tentar Novamente' })}
                     </button>
                   </div>
                 </div>
@@ -401,7 +403,7 @@ const QrInspectionPage = () => {
               }}
             >
               <X size={20} />
-              <span>Cancelar</span>
+              <span>{t('common.cancel')}</span>
             </button>
           </div>
         </main>
@@ -412,12 +414,12 @@ const QrInspectionPage = () => {
   if (step === 'manual') {
     return (
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
-        <PageHeader title="Digitar ID" />
+        <PageHeader title={{ key: 'qr.manual', defaultValue: 'Digitar ID' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                ID do Equipamento ou QR Code
+                {t('qr.manual')}
               </label>
               <input
                 type="text"
@@ -434,7 +436,7 @@ const QrInspectionPage = () => {
                 autoFocus
               />
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2" style={{ color: '#B0B0B0' }}>
-                Digite o QR Code completo ou apenas o número do cilindro
+                {t('qr.manual')}
               </p>
             </div>
 
@@ -444,7 +446,7 @@ const QrInspectionPage = () => {
               className="w-full p-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
             >
-              {loading ? 'Buscando...' : 'Buscar Equipamento'}
+              {loading ? t('common.loading') : t('common.search')}
             </button>
 
             <button
@@ -457,7 +459,7 @@ const QrInspectionPage = () => {
               }}
             >
               <X size={20} />
-              <span>Voltar</span>
+              <span>{t('common.back')}</span>
             </button>
           </div>
         </main>
@@ -468,7 +470,7 @@ const QrInspectionPage = () => {
   if (step === 'found' && equipment) {
     return (
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
-        <PageHeader title="Equipamento Encontrado" />
+        <PageHeader title={{ key: 'qr.found', defaultValue: 'Equipamento Encontrado' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -513,7 +515,7 @@ const QrInspectionPage = () => {
               className="w-full p-4 rounded-lg font-semibold transition-colors"
               style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
             >
-              Iniciar Inspeção
+              {t('inspection.add', { defaultValue: 'Iniciar Inspeção' })}
             </button>
 
             <button
@@ -526,7 +528,7 @@ const QrInspectionPage = () => {
               }}
             >
               <X size={20} />
-              <span>Escanear Outro</span>
+              <span>{t('qr.scanAgain', { defaultValue: 'Escanear Outro' })}</span>
             </button>
           </motion.div>
         </main>
@@ -537,7 +539,7 @@ const QrInspectionPage = () => {
   if (step === 'not_found') {
     return (
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
-        <PageHeader title="Equipamento Não Encontrado" />
+        <PageHeader title={{ key: 'qr.notFound', defaultValue: 'Equipamento Não Encontrado' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -552,13 +554,13 @@ const QrInspectionPage = () => {
 
             <div className="p-6 rounded-lg border text-center" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
               <h3 className="text-xl font-bold mb-2" style={{ color: '#FFFFFF' }}>
-                Equipamento não encontrado
+                {t('qr.notFound')}
               </h3>
               <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4" style={{ color: '#B0B0B0' }}>
-                Nenhum extintor encontrado com o ID: <strong>{parsedId}</strong>
+                {t('qr.equipmentNotFound', { defaultValue: 'Nenhum extintor encontrado com o ID' })}: <strong>{parsedId}</strong>
               </p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>
-                Verifique se o número está correto ou cadastre o equipamento primeiro.
+                {t('qr.equipmentNotFound', { defaultValue: 'Verifique se o número está correto ou cadastre o equipamento primeiro.' })}
               </p>
             </div>
 
@@ -568,7 +570,7 @@ const QrInspectionPage = () => {
                 className="w-full p-4 rounded-lg font-semibold transition-colors"
                 style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
               >
-                Tentar Novamente
+                {t('qr.scanAgain', { defaultValue: 'Tentar Novamente' })}
               </button>
               
               {type && (
@@ -581,7 +583,7 @@ const QrInspectionPage = () => {
                     color: '#FFFFFF'
                   }}
                 >
-                  <span>Cadastrar Novo Equipamento</span>
+                  <span>{t('equipment.add', { defaultValue: 'Cadastrar Novo Equipamento' })}</span>
                 </button>
               )}
             </div>

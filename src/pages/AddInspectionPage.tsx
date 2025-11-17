@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { getCurrentLocation } from '../hooks/useGeolocation';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 import AnimatedFormField from '../components/AnimatedFormField';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
@@ -62,6 +63,7 @@ const AddInspectionPage = () => {
   const { user } = useAuth();
   const { handleError, executeWithFeedback } = useErrorHandler();
   const { getEquipmentByType } = useEquipmentCache();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [loadingEquipment, setLoadingEquipment] = useState(true);
@@ -584,7 +586,7 @@ const AddInspectionPage = () => {
   if (loadingEquipment) {
     return (
       <div className="min-h-screen">
-        <PageHeader title="Registrar Inspeção" />
+        <PageHeader title={{ key: 'inspection.add', defaultValue: 'Registrar Inspeção' }} />
         <main className="p-4">
           <div className="flex items-center justify-center py-12">
             <Spinner size="lg" color="blue" />
@@ -1213,9 +1215,9 @@ const AddInspectionPage = () => {
             {loading ? (
               <div className="flex items-center gap-2">
                 <Spinner size="sm" color="white" />
-                <span>Salvando...</span>
+                <span>{t('common.loading')}</span>
               </div>
-            ) : 'Salvar Inspeção'}
+            ) : t('inspection.saveSuccess', { defaultValue: 'Salvar Inspeção' })}
           </motion.button>
         </motion.form>
       </main>

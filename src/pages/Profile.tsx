@@ -13,6 +13,7 @@ import { compressImage } from '../utils/imageCompression';
 import LazyImage from '../components/LazyImage';
 import { Spinner } from '../components/ui/spinner';
 import { logger } from '../utils/logger';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface ProfileFormData {
   full_name: string;
@@ -28,6 +29,7 @@ const Profile = () => {
   const { profile, user, signOut, loading } = useAuth();
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
+  const { t, currentLanguage } = useTranslation();
   const { executeWithFeedback } = useErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -126,19 +128,19 @@ const Profile = () => {
     switch (plan) {
       case 'premium':
         return {
-          name: '✨ Plano Premium',
+          name: t('profile.premiumPlan'),
           textColor: 'text-rally-blue',
           bgColor: 'bg-rally-blue-translucent/30',
         };
       case 'trial':
         return {
-          name: '⏳ Plano Trial',
+          name: t('profile.trialPlan'),
           textColor: 'text-rally-yellow',
           bgColor: 'bg-rally-yellow-translucent/30',
         };
       default:
         return {
-          name: 'Plano Desconhecido',
+          name: t('profile.unknownPlan'),
           textColor: 'text-light-text-secondary dark:text-dark-text-secondary',
           bgColor: 'bg-gray-200 dark:bg-gray-700',
         };
@@ -252,7 +254,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Meu Perfil" />
+      <PageHeader title={{ key: 'profile.myProfile' }} />
       <main className="p-4 pb-32 flex flex-col items-center text-center" style={{ backgroundColor: '#000000' }}>
       {/* Avatar e Nome */}
       <div className="relative mb-4">
@@ -274,7 +276,7 @@ const Profile = () => {
           htmlFor="avatar-upload"
           className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:opacity-90 transition-colors"
           style={{ backgroundColor: '#72DEFF' }}
-          title="Alterar foto"
+          title={t('profile.changeAvatar')}
         >
           <Camera size={16} className="text-white" />
           <input
@@ -298,11 +300,11 @@ const Profile = () => {
         <form onSubmit={handleSubmit(handleUpdateProfile)} className="w-full max-w-sm">
           <div className="mb-4">
             <label htmlFor="full_name" className="block text-sm font-medium mb-1 text-left">
-              Nome Completo
+              {t('profile.name')}
             </label>
             <input
               id="full_name"
-              {...register('full_name', { required: 'Nome é obrigatório' })}
+              {...register('full_name', { required: t('auth.emailRequired') })}
               className="w-full p-3 apple-card border rounded-lg focus:ring-2 focus:ring-rally-blue/30 focus:outline-none" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
             />
             {errors.full_name && (
@@ -316,7 +318,7 @@ const Profile = () => {
               style={{ backgroundColor: '#72DEFF' }}
             >
               <Save size={16} />
-              Salvar
+              {t('common.save')}
             </button>
             <button
               type="button"
@@ -327,16 +329,16 @@ const Profile = () => {
               className="flex-1 flex items-center justify-center gap-2 p-3 apple-card border rounded-lg hover:bg-[var(--bg-current)] transition-colors" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
             >
               <X size={16} />
-              Cancelar
+              {t('common.cancel')}
             </button>
           </div>
         </form>
       ) : (
         <>
-          <h1 className="text-2xl font-bold font-display">{profile?.full_name ?? 'Nome do Usuário'}</h1>
+          <h1 className="text-2xl font-bold font-display">{profile?.full_name ?? t('profile.user')}</h1>
           {profile?.role === 'admin' && (
             <span className="mt-2 text-xs font-semibold inline-block py-1 px-2.5 uppercase rounded-full" style={{ color: '#72DEFF', backgroundColor: 'rgba(114, 222, 255, 0.2)' }}>
-              Administrador
+              {t('profile.admin')}
             </span>
           )}
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center justify-center gap-2">
@@ -346,7 +348,7 @@ const Profile = () => {
           {user?.created_at && (
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center justify-center gap-1">
               <Calendar size={12} />
-              Membro desde {new Date(user.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+              {t('profile.memberSince')} {new Date(user.created_at).toLocaleDateString(currentLanguage === 'pt-BR' ? 'pt-BR' : 'en-US', { month: 'short', year: 'numeric' })}
             </p>
           )}
           <button
@@ -355,7 +357,7 @@ const Profile = () => {
             style={{ color: '#72DEFF' }}
           >
             <Edit2 size={14} />
-            Editar Perfil
+            {t('profile.editProfile')}
           </button>
         </>
       )}
@@ -371,7 +373,7 @@ const Profile = () => {
       <div className="mt-6 w-full max-w-sm">
         <h3 className="text-lg font-semibold mb-3 text-left flex items-center gap-2">
           <BarChart3 size={20} />
-          Estatísticas
+          {t('profile.statistics')}
         </h3>
         {loadingStats ? (
           <div className="grid grid-cols-3 gap-3">
@@ -387,19 +389,19 @@ const Profile = () => {
             <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
               <p className="text-2xl font-bold" style={{ color: '#72DEFF' }}>{stats.totalEquipment}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                Equipamentos
+                {t('profile.totalEquipment')}
               </p>
             </div>
             <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
               <p className="text-2xl font-bold" style={{ color: '#72DEFF' }}>{stats.totalInspections}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                Inspeções
+                {t('profile.totalInspections')}
               </p>
             </div>
             <div className="p-3 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
               <p className="text-2xl font-bold" style={{ color: '#FFCF44' }}>{stats.activeAlerts}</p>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                Alertas
+                {t('profile.activeAlerts')}
               </p>
             </div>
           </div>
@@ -426,7 +428,7 @@ const Profile = () => {
           className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
         >
           <CreditCard size={18} color="#72DEFF" />
-          <span>Plano e Pagamento</span>
+          <span>{t('profile.planAndPayment')}</span>
         </button>
         <button 
           onClick={() => navigate('/profile/settings')}
@@ -444,7 +446,7 @@ const Profile = () => {
         style={{ borderColor: 'rgba(255, 104, 89, 0.5)', color: '#FF6859' }}
       >
         <LogOut size={16} />
-        Sair da Conta
+        {t('profile.signOut')}
       </button>
       </main>
     </div>

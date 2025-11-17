@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import { useTranslation } from '../hooks/useTranslation';
 import { supabase } from '../lib/supabase';
 import {
   getAllSystemSettings,
@@ -42,6 +43,7 @@ interface SystemSettings {
 const AdminSystemSettingsPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SystemSettings>({
@@ -173,7 +175,7 @@ const AdminSystemSettingsPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Configurações do Sistema" />
+      <PageHeader title={{ key: 'admin.systemSettings', defaultValue: 'Configurações do Sistema' }} />
       <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Alerts */}
@@ -194,14 +196,14 @@ const AdminSystemSettingsPage = () => {
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Server size={24} className="text-white" />
-              <h2 className="text-xl font-bold">Modo de Manutenção</h2>
+              <h2 className="text-xl font-bold">{t('admin.maintenanceMode', { defaultValue: 'Modo de Manutenção' })}</h2>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Ativar Modo de Manutenção</p>
+                  <p className="font-medium">{t('admin.enableMaintenanceMode', { defaultValue: 'Ativar Modo de Manutenção' })}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Desativa o acesso de usuários não-administradores ao sistema
+                    {t('admin.enableMaintenanceModeDesc', { defaultValue: 'Desativa o acesso de usuários não-administradores ao sistema' })}
                   </p>
                 </div>
                 <label className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer">
@@ -226,12 +228,12 @@ const AdminSystemSettingsPage = () => {
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Database size={24} className="text-white" />
-              <h2 className="text-xl font-bold">Limites do Sistema</h2>
+              <h2 className="text-xl font-bold">{t('admin.systemLimits')}</h2>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Máximo de Equipamentos por Usuário
+                  {t('admin.maxEquipmentPerUser')}
                 </label>
                 <input
                   type="number"
@@ -244,7 +246,7 @@ const AdminSystemSettingsPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Máximo de Inspeções por Dia
+                  {t('admin.maxInspectionsPerDay')}
                 </label>
                 <input
                   type="number"
@@ -257,7 +259,7 @@ const AdminSystemSettingsPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Duração do Trial (dias)
+                  {t('admin.trialDuration')}
                 </label>
                 <input
                   type="number"
@@ -270,7 +272,7 @@ const AdminSystemSettingsPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Preço do Plano Premium (R$)
+                  {t('admin.premiumPrice')}
                 </label>
                 <input
                   type="number"
@@ -288,14 +290,14 @@ const AdminSystemSettingsPage = () => {
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Bell size={24} className="text-white" />
-              <h2 className="text-xl font-bold">Notificações</h2>
+              <h2 className="text-xl font-bold">{t('admin.notifications')}</h2>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Notificações por Email</p>
+                  <p className="font-medium">{t('admin.emailNotifications')}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Enviar notificações importantes por email
+                    {t('admin.emailNotificationsDesc')}
                   </p>
                 </div>
                 <label className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer">
@@ -320,14 +322,14 @@ const AdminSystemSettingsPage = () => {
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Database size={24} className="text-white" />
-              <h2 className="text-xl font-bold">Backup e Recuperação</h2>
+              <h2 className="text-xl font-bold">{t('admin.backup')}</h2>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Backup Automático</p>
+                  <p className="font-medium">{t('admin.automaticBackup')}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Realizar backups automáticos do banco de dados
+                    {t('admin.automaticBackupDesc')}
                   </p>
                 </div>
                 <label className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer">
@@ -348,7 +350,7 @@ const AdminSystemSettingsPage = () => {
               {settings.backup_enabled && (
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Frequência de Backup (dias)
+                    {t('admin.backupFrequency')}
                   </label>
                   <input
                     type="number"
@@ -367,12 +369,12 @@ const AdminSystemSettingsPage = () => {
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
             <div className="flex items-center gap-3 mb-4">
               <Shield size={24} className="text-white" />
-              <h2 className="text-xl font-bold">Segurança</h2>
+              <h2 className="text-xl font-bold">{t('admin.security')}</h2>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Timeout de Sessão (minutos)
+                  {t('admin.sessionTimeout')}
                 </label>
                 <input
                   type="number"
@@ -385,9 +387,9 @@ const AdminSystemSettingsPage = () => {
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Requer Verificação de Email</p>
+                  <p className="font-medium">{t('admin.requireEmailVerification')}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Usuários devem verificar email antes de usar o sistema
+                    {t('admin.requireEmailVerificationDesc')}
                   </p>
                 </div>
                 <label className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer">
@@ -407,9 +409,9 @@ const AdminSystemSettingsPage = () => {
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Permitir Novos Cadastros</p>
+                  <p className="font-medium">{t('admin.allowNewRegistrations', { defaultValue: 'Permitir Novos Cadastros' })}</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Permitir que novos usuários se registrem no sistema
+                    {t('admin.allowNewRegistrationsDesc', { defaultValue: 'Permitir que novos usuários se registrem no sistema' })}
                   </p>
                 </div>
                 <label className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer">
@@ -438,7 +440,7 @@ const AdminSystemSettingsPage = () => {
               className="flex-1 flex items-center justify-center gap-2 p-4 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={20} />
-              {saving ? 'Salvando...' : 'Salvar Configurações'}
+              {saving ? t('common.loading') : t('admin.saveSettings', { defaultValue: 'Salvar Configurações' })}
             </button>
             <button
               onClick={handleReset}

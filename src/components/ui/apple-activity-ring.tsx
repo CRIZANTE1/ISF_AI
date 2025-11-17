@@ -13,6 +13,7 @@
  */
 import { motion } from "framer-motion";
 import { cn } from "../../utils/cn";
+import { useTranslation } from "../../hooks/useTranslation";
 
 interface ActivityData {
   label: string;
@@ -162,6 +163,8 @@ export function AppleActivityCard({
   className,
   data,
 }: AppleActivityCardProps) {
+  const { t } = useTranslation();
+  
   // Calcular valores baseados nos dados fornecidos ou usar valores padrão
   const total = data?.total || 0;
   const ok = data?.ok || 0;
@@ -176,7 +179,7 @@ export function AppleActivityCard({
   // Cores: Verde para OK, Vermelho para VENCIDO, Amarelo para PENDENTE
   const activities: ActivityData[] = [
     {
-      label: "OK",
+      label: t('equipment.statusOk', { defaultValue: 'OK' }),
       value: okPercent,
       color: "#53D769", // Verde (Apple Fitness Exercise)
       size: 200,
@@ -185,7 +188,7 @@ export function AppleActivityCard({
       unit: "",
     },
     {
-      label: "VENCIDO",
+      label: t('equipment.statusExpired', { defaultValue: 'VENCIDO' }),
       value: vencidoPercent,
       color: "#FC3D39", // Vermelho (Apple Fitness Move)
       size: 160,
@@ -194,7 +197,7 @@ export function AppleActivityCard({
       unit: "",
     },
     {
-      label: "PENDENTE",
+      label: t('equipment.statusPending', { defaultValue: 'PENDENTE' }),
       value: pendentePercent,
       color: "#FFD60A", // Amarelo
       size: 120,

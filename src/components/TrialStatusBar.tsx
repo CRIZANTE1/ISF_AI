@@ -1,11 +1,14 @@
 import { Profile } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface TrialStatusBarProps {
   profile: Profile | null;
 }
 
 const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
+  const { t } = useTranslation();
+  
   if (!profile) return null;
 
   const { plan, trial_ends_at } = profile;
@@ -28,7 +31,7 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
           />
         </div>
         <p className="text-xs mt-2 text-[#8E8E93]">
-          Acesso total ao Plano Premium.
+          {t('profile.premiumAccess', { defaultValue: 'Acesso total ao Plano Premium.' })}
         </p>
       </motion.div>
     );
@@ -46,7 +49,7 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
           <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FC3D39' }} />
         </div>
         <p className="text-xs mt-2" style={{ color: '#FC3D39' }}>
-          Período de teste expirado.
+          {t('profile.trialExpired', { defaultValue: 'Período de teste expirado.' })}
         </p>
       </motion.div>
     );
@@ -69,7 +72,7 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
           <div className="h-1.5 rounded-full" style={{ width: '100%', backgroundColor: '#FC3D39' }} />
         </div>
         <p className="text-xs mt-2" style={{ color: '#FC3D39' }}>
-          Período de teste expirado.
+          {t('profile.trialExpired', { defaultValue: 'Período de teste expirado.' })}
         </p>
       </motion.div>
     );
@@ -111,7 +114,10 @@ const TrialStatusBar = ({ profile }: TrialStatusBarProps) => {
         />
       </div>
       <p className="text-xs mt-2" style={{ color: textColor }}>
-        {diffDays} dia{diffDays !== 1 ? 's' : ''} restante{diffDays !== 1 ? 's' : ''} no período de teste.
+        {t('profile.trialDaysRemaining', { 
+          count: diffDays, 
+          defaultValue: `${diffDays} dia${diffDays !== 1 ? 's' : ''} restante${diffDays !== 1 ? 's' : ''} no período de teste.` 
+        })}
       </p>
     </motion.div>
   );

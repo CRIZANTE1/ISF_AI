@@ -7,6 +7,7 @@ import LoginPage from '../components/ui/gaming-login';
 import { DottedSurface } from '../components/ui/DottedSurface';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { logger } from '../utils/logger';
+import { useTranslation } from '../hooks/useTranslation';
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
@@ -23,6 +24,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { handleError, showSuccess } = useErrorHandler();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (session) {
@@ -230,7 +232,7 @@ const AuthPage = () => {
       </div>
 
       <footer className="absolute bottom-4 left-0 right-0 text-center text-white/60 text-sm z-20">
-        © 2025 ISF IA. All rights reserved.
+        © 2025 ISF IA. {t('common.allRightsReserved', { defaultValue: 'All rights reserved.' })}
       </footer>
     </div>
   );

@@ -10,9 +10,10 @@ import { Spinner } from '../components/ui/spinner';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import ProgressiveImage from '../components/ProgressiveImage';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
 import { logger } from '../utils/logger';
+import { useTranslation } from '../hooks/useTranslation';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
@@ -42,6 +43,7 @@ const EquipmentDetailPage = () => {
   const { user } = useAuth();
   const { getEquipmentByType } = useEquipmentCache();
   const { handleError } = useErrorHandler();
+  const { t, currentLanguage } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -487,12 +489,12 @@ const EquipmentDetailPage = () => {
     return 'bg-gray-200 dark:bg-gray-700';
   };
 
-  const modalTitle = itemToDelete?.type === 'equipment' ? 'Excluir Equipamento' : 'Excluir Inspeção';
-  const modalMessage = `Você tem certeza que deseja excluir este item? Esta ação é irreversível e todos os dados associados serão perdidos.`;
+  const modalTitle = itemToDelete?.type === 'equipment' ? t('equipment.delete') : t('inspection.delete', { defaultValue: 'Excluir Inspeção' });
+  const modalMessage = t('common.deleteConfirm', { defaultValue: 'Você tem certeza que deseja excluir este item? Esta ação é irreversível e todos os dados associados serão perdidos.' });
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title={loading ? '' : equipment?.name ?? 'Detalhes'}>
+      <PageHeader title={loading ? '' : equipment?.name ?? t('equipment.details')}>
         {!loading && equipment && (
           <div className="flex items-center gap-2">
             <Link to={`/equipment/${type}/${id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-white transition-colors">
@@ -513,10 +515,10 @@ const EquipmentDetailPage = () => {
         {!loading && equipment && (
           <>
             <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border mb-6" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-              <h2 className="font-bold text-lg mb-2">Detalhes</h2>
+              <h2 className="font-bold text-lg mb-2">{t('equipment.details')}</h2>
               <p><span className="font-semibold">ID:</span> {equipment.name}</p>
               {equipment.location && (
-                <p><span className="font-semibold">Localização:</span> {equipment.location}</p>
+                <p><span className="font-semibold">{t('equipment.location')}:</span> {equipment.location}</p>
               )}
             </div>
 
@@ -525,19 +527,19 @@ const EquipmentDetailPage = () => {
                 to={`/equipment/${type}/${id}/inspections/new`}
                 className="w-full text-center block p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Registrar Nova Inspeção
+                {t('inspection.add')}
               </Link>
             </div>
 
             <div>
-              <h2 className="font-bold text-lg mb-2">Histórico de Inspeções</h2>
+              <h2 className="font-bold text-lg mb-2">{t('inspection.history')}</h2>
               {inspections.length > 0 ? (
                 <ul className="space-y-3">
                   {inspections.map(insp => (
                     <li key={insp.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border flex justify-between items-start gap-4" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                       <div className="flex-grow">
                         <div className="flex justify-between items-start">
-                          <p className="font-semibold">{format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: ptBR })}</p>
+                          <p className="font-semibold">{format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</p>
                           {insp.status_geral && (
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.status_geral)}`}>
                               {insp.status_geral}
@@ -558,7 +560,7 @@ const EquipmentDetailPage = () => {
                               onClick={() => window.open(insp.link_foto_nao_conformidade, '_blank')}
                             />
                             <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-white mt-1 block">
-                              Ver foto completa
+                              {t('common.viewFullPhoto', { defaultValue: 'Ver foto completa' })}
                             </a>
                           </div>
                         )}
@@ -570,7 +572,7 @@ const EquipmentDetailPage = () => {
                   ))}
                 </ul>
               ) : (
-                <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary py-4">Nenhuma inspeção registrada.</p>
+                <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary py-4">{t('inspection.noInspections')}</p>
               )}
             </div>
           </>

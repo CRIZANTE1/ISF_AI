@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
@@ -22,10 +23,26 @@ const AddEquipmentPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { executeWithFeedback } = useErrorHandler();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, formState: { errors }, watch } = useForm<any>();
 
-  const equipmentTypeName = type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Equipamento';
+  const getEquipmentTypeName = (type: string) => {
+    const typeMap: Record<string, string> = {
+      extintor: t('equipment.extinguisher'),
+      mangueira: t('equipment.hose'),
+      camara_espuma: t('equipment.foamChamber'),
+      canhao_monitor: t('equipment.cannonMonitor'),
+      chuveiro_lavaolhos: t('equipment.eyewash'),
+      alarme: t('equipment.alarm'),
+      multigas: t('equipment.multigas'),
+      scba: t('equipment.scba'),
+      abrigo: t('equipment.shelter'),
+    };
+    return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+  };
+
+  const equipmentTypeName = type ? getEquipmentTypeName(type) : t('equipment.title');
 
   const onSubmit = async (formData: any) => {
     if (!user || !type) return;
@@ -159,7 +176,7 @@ const AddEquipmentPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title={`Adicionar ${equipmentTypeName}`} />
+      <PageHeader title={{ key: 'equipment.add', defaultValue: `Adicionar ${equipmentTypeName}` }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="mb-4">
@@ -178,7 +195,7 @@ const AddEquipmentPage = () => {
           
           {(type === 'camara_espuma' || type === 'canhao_monitor' || type === 'chuveiro_lavaolhos' || type === 'alarme') && (
             <div className="mb-4">
-              <label htmlFor="localizacao" className="block text-sm font-medium mb-1">Localização</label>
+              <label htmlFor="localizacao" className="block text-sm font-medium mb-1">{t('equipment.location')}</label>
               <input
                 id="localizacao"
                 {...register('localizacao')}
@@ -232,7 +249,7 @@ const AddEquipmentPage = () => {
           {type === 'abrigo' && (
             <>
               <div className="mb-4">
-                <label htmlFor="cliente" className="block text-sm font-medium mb-1">Cliente</label>
+                <label htmlFor="cliente" className="block text-sm font-medium mb-1">{t('equipment.client', { defaultValue: 'Cliente' })}</label>
                 <input
                   id="cliente"
                   {...register('cliente')}
@@ -240,7 +257,7 @@ const AddEquipmentPage = () => {
                 />
               </div>
               <div className="mb-4">
-                <label htmlFor="local" className="block text-sm font-medium mb-1">Local</label>
+                <label htmlFor="local" className="block text-sm font-medium mb-1">{t('equipment.location')}</label>
                 <input
                   id="local"
                   {...register('local')}
@@ -257,7 +274,7 @@ const AddEquipmentPage = () => {
             disabled={loading}
             className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Salvando...' : 'Salvar Equipamento'}
+            {loading ? t('common.loading') : t('equipment.saveSuccess', { defaultValue: 'Salvar Equipamento' })}
           </button>
         </form>
       </main>

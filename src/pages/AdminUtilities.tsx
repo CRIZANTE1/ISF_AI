@@ -1,13 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { Users, Settings, Shield, Lock } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
+import { useTranslation } from '../hooks/useTranslation';
 
 const AdminUtilities = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: '#000000', color: '#FFFFFF' }}>
-      <PageHeader title="Utilitários Administrativos" />
+      <PageHeader title={{ key: 'admin.utilities', defaultValue: 'Utilitários Administrativos' }} />
       <main className="p-4 pb-32 relative" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-md mx-auto space-y-4">
           <button
@@ -31,9 +33,9 @@ const AdminUtilities = () => {
           >
             <Users size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Gestão de Usuários</p>
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>{t('admin.users')}</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                Ver usuários, estatísticas, logs e gerenciar acessos
+                {t('admin.users')}
               </p>
             </div>
           </button>
@@ -59,9 +61,9 @@ const AdminUtilities = () => {
           >
             <Settings size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Configurações do Sistema</p>
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>{t('admin.systemSettings')}</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                Configurações gerais e parâmetros do sistema
+                {t('admin.systemSettings')}
               </p>
             </div>
           </button>
@@ -87,9 +89,9 @@ const AdminUtilities = () => {
           >
             <Shield size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Segurança e Auditoria</p>
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>{t('admin.audit')}</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                Políticas de segurança e relatórios de auditoria
+                {t('admin.audit')}
               </p>
             </div>
           </button>
@@ -115,9 +117,9 @@ const AdminUtilities = () => {
           >
             <Lock size={24} style={{ color: 'var(--primary)' }} />
             <div>
-              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Políticas de Segurança</p>
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>{t('admin.policies')}</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                Configurar políticas e gerenciar IPs bloqueados
+                {t('admin.policies')}
               </p>
             </div>
           </button>

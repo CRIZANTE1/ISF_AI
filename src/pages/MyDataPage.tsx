@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import PageHeader from '../components/PageHeader';
 import { Mail, User, Save, X } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface MyDataFormData {
   full_name: string;
@@ -16,6 +17,7 @@ const MyDataPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { executeWithFeedback } = useErrorHandler();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
 
@@ -72,17 +74,17 @@ const MyDataPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Meus Dados" />
+      <PageHeader title={{ key: 'myData.title' }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <form onSubmit={handleSubmit(handleUpdateProfile)} className="max-w-md mx-auto">
           <div className="mb-6">
             <label htmlFor="full_name" className="block text-sm font-medium mb-2 flex items-center gap-2">
               <User size={18} />
-              Nome Completo *
+              {t('profile.name')} *
             </label>
             <input
               id="full_name"
-              {...register('full_name', { required: 'Nome é obrigatório' })}
+              {...register('full_name', { required: t('auth.emailRequired') })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             />
             {errors.full_name && (
@@ -93,17 +95,17 @@ const MyDataPage = () => {
           <div className="mb-6">
             <label htmlFor="email" className="block text-sm font-medium mb-2 flex items-center gap-2">
               <Mail size={18} />
-              Email *
+              {t('auth.email')} *
             </label>
             <div className="flex gap-2">
               <input
                 id="email"
                 type="email"
                 {...register('email', {
-                  required: 'Email é obrigatório',
+                  required: t('auth.emailRequired'),
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Email inválido',
+                    message: t('errors.validation'),
                   },
                 })}
                 disabled={!isEditingEmail}
@@ -115,7 +117,7 @@ const MyDataPage = () => {
                   onClick={() => setIsEditingEmail(true)}
                   className="px-4 py-3 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
-                  Editar
+                  {t('common.edit')}
                 </button>
               )}
               {isEditingEmail && (
@@ -149,7 +151,7 @@ const MyDataPage = () => {
               className="flex-1 flex items-center justify-center gap-2 p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
+              {loading ? t('common.loading') : t('common.save')}
             </button>
             <button
               type="button"

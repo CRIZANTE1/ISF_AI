@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   getAllUsers,
   getUserStats,
@@ -41,7 +42,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
 
 type TabType = 'users' | 'action-logs' | 'access-logs';
 
@@ -49,6 +50,7 @@ const AdminUsersPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { handleError, executeWithFeedback, showSuccess } = useErrorHandler();
+  const { t, currentLanguage } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserWithProfile[]>([]);
@@ -118,7 +120,7 @@ const AdminUsersPage = () => {
   }, [activeTab, actionLogsPage, accessLogsPage]);
 
   const handleUpdatePlan = async (userId: string, plan: 'trial' | 'premium') => {
-    if (!confirm(`Tem certeza que deseja alterar o plano do usuário para ${plan === 'premium' ? 'Premium' : 'Trial'}?`)) {
+    if (!confirm(t('admin.changePlanConfirm', { plan: plan === 'premium' ? t('profile.premium') : t('profile.trial'), defaultValue: `Tem certeza que deseja alterar o plano do usuário para ${plan === 'premium' ? 'Premium' : 'Trial'}?` }))) {
       return;
     }
 
@@ -247,44 +249,44 @@ const AdminUsersPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Gestão de Usuários" />
+      <PageHeader title={{ key: 'admin.users', defaultValue: 'Gestão de Usuários' }} />
       <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-6xl mx-auto">
-          {/* Estatísticas */}
+          {/* {t('profile.statistics')} */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Users size={20} className="text-white" />
-                  <span className="text-sm font-medium">Total</span>
+                  <span className="text-sm font-medium">{t('common.total', { defaultValue: 'Total' })}</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Crown size={20} color="#FFFFFF" />
-                  <span className="text-sm font-medium">Premium</span>
+                  <span className="text-sm font-medium">{t('profile.premium')}</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.premium}</p>
               </div>
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar size={20} className="text-status-warning" />
-                  <span className="text-sm font-medium">Trial</span>
+                  <span className="text-sm font-medium">{t('profile.trial')}</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.trial}</p>
               </div>
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Shield size={20} className="text-status-info" />
-                  <span className="text-sm font-medium">Admin</span>
+                  <span className="text-sm font-medium">{t('profile.admin')}</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.admin}</p>
               </div>
               <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Activity size={20} className="text-status-success" />
-                  <span className="text-sm font-medium">Ativos</span>
+                  <span className="text-sm font-medium">{t('admin.activeUsers', { defaultValue: 'Ativos' })}</span>
                 </div>
                 <p className="text-2xl font-bold">{stats.active}</p>
               </div>
@@ -303,7 +305,7 @@ const AdminUsersPage = () => {
                 }`}
               >
                 <Users size={18} className="inline mr-2" />
-                Usuários
+                {t('admin.users')}
               </button>
               <button
                 onClick={() => setActiveTab('action-logs')}
@@ -314,7 +316,7 @@ const AdminUsersPage = () => {
                 }`}
               >
                 <FileText size={18} className="inline mr-2" />
-                Logs de Ações
+                {t('admin.actionLogs', { defaultValue: 'Logs de Ações' })}
               </button>
               <button
                 onClick={() => setActiveTab('access-logs')}
@@ -325,7 +327,7 @@ const AdminUsersPage = () => {
                 }`}
               >
                 <Activity size={18} className="inline mr-2" />
-                Logs de Acesso
+                {t('admin.accessLogs')}
               </button>
             </div>
           </div>
@@ -339,7 +341,7 @@ const AdminUsersPage = () => {
                   <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary" />
                   <input
                     type="text"
-                    placeholder="Pesquisar por email ou nome..."
+                    placeholder={t('admin.searchUsers', { defaultValue: 'Pesquisar por email ou nome...' })}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
@@ -353,7 +355,7 @@ const AdminUsersPage = () => {
                 </button>
               </div>
 
-              {/* Lista de Usuários */}
+              {/* {t('admin.users')} */}
               <div className="space-y-2">
                 {filteredUsers.map((user) => (
                   <div
@@ -377,16 +379,16 @@ const AdminUsersPage = () => {
                       <div className="flex items-center gap-2">
                         {user.profile?.role === 'admin' && (
                           <span className="px-2 py-1 bg-status-info/20 text-status-info rounded-full text-xs font-semibold">
-                            Admin
+                            {t('profile.admin')}
                           </span>
                         )}
                         {user.profile?.plan === 'premium' ? (
                           <span className="px-2 py-1 bg-white/20 text-white rounded-full text-xs font-semibold">
-                            Premium
+                            {t('profile.premium')}
                           </span>
                         ) : (
                           <span className="px-2 py-1 bg-status-warning/20 text-status-warning rounded-full text-xs font-semibold">
-                            Trial
+                            {t('profile.trial')}
                           </span>
                         )}
                       </div>
@@ -401,7 +403,7 @@ const AdminUsersPage = () => {
             <div>
               <div className="mb-4 flex justify-between items-center">
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  Total: {actionLogsTotal} logs
+                  {t('common.total')}: {actionLogsTotal} {t('admin.logs', { defaultValue: 'logs' })}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -429,7 +431,7 @@ const AdminUsersPage = () => {
                         </p>
                       </div>
                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                       </span>
                     </div>
                     {log.details && (
@@ -448,17 +450,17 @@ const AdminUsersPage = () => {
                   disabled={actionLogsPage === 0}
                   className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
-                  Anterior
+                  {t('common.previous')}
                 </button>
                 <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  Página {actionLogsPage + 1}
+                  {t('common.page', { defaultValue: 'Página' })} {actionLogsPage + 1}
                 </span>
                 <button
                   onClick={() => setActionLogsPage(actionLogsPage + 1)}
                   disabled={(actionLogsPage + 1) * 50 >= actionLogsTotal}
                   className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
-                  Próxima
+                  {t('common.next')}
                 </button>
               </div>
             </div>
@@ -468,7 +470,7 @@ const AdminUsersPage = () => {
             <div>
               <div className="mb-4 flex justify-between items-center">
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  Total: {accessLogsTotal} logs
+                  {t('common.total')}: {accessLogsTotal} {t('admin.logs', { defaultValue: 'logs' })}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -506,7 +508,7 @@ const AdminUsersPage = () => {
                         )}
                       </div>
                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                       </span>
                     </div>
                   </div>
@@ -520,17 +522,17 @@ const AdminUsersPage = () => {
                   disabled={accessLogsPage === 0}
                   className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
-                  Anterior
+                  {t('common.previous')}
                 </button>
                 <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  Página {accessLogsPage + 1}
+                  {t('common.page', { defaultValue: 'Página' })} {accessLogsPage + 1}
                 </span>
                 <button
                   onClick={() => setAccessLogsPage(accessLogsPage + 1)}
                   disabled={(accessLogsPage + 1) * 50 >= accessLogsTotal}
                   className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
                 >
-                  Próxima
+                  {t('common.next')}
                 </button>
               </div>
             </div>
@@ -592,7 +594,7 @@ const AdminUsersPage = () => {
                             : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
-                        Trial
+                        {t('profile.trial')}
                       </button>
                       <button
                         onClick={() => handleUpdatePlan(selectedUser.id, 'premium')}
@@ -603,12 +605,12 @@ const AdminUsersPage = () => {
                             : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
-                        Premium
+                        {t('profile.premium')}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Role</label>
+                    <label className="text-sm font-medium">{t('profile.role')}</label>
                     <div className="flex gap-2 mt-2">
                       <button
                         onClick={() => handleUpdateRole(selectedUser.id, 'user')}
@@ -619,7 +621,7 @@ const AdminUsersPage = () => {
                             : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
-                        Usuário
+                        {t('profile.user')}
                       </button>
                       <button
                         onClick={() => handleUpdateRole(selectedUser.id, 'admin')}
@@ -630,46 +632,46 @@ const AdminUsersPage = () => {
                             : 'bg-light-surface dark:bg-dark-surface hover:bg-light-background dark:hover:bg-dark-background'
                         }`}
                       >
-                        Admin
+                        {t('profile.admin')}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Criado em</label>
+                    <label className="text-sm font-medium">{t('admin.createdAt', { defaultValue: 'Criado em' })}</label>
                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                      {format(new Date(selectedUser.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {format(new Date(selectedUser.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                     </p>
                   </div>
                   {selectedUser.last_sign_in_at && (
                     <div>
-                      <label className="text-sm font-medium">Último acesso</label>
+                      <label className="text-sm font-medium">{t('admin.lastAccess', { defaultValue: 'Último acesso' })}</label>
                       <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        {format(new Date(selectedUser.last_sign_in_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {format(new Date(selectedUser.last_sign_in_at), "dd/MM/yyyy 'às' HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                       </p>
                     </div>
                   )}
 
                   <div className="pt-4 border-t" style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}>
-                    <label className="text-sm font-medium text-status-error mb-2 block">Ações Perigosas</label>
+                    <label className="text-sm font-medium text-status-error mb-2 block">{t('admin.dangerousActions', { defaultValue: 'Ações Perigosas' })}</label>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleDisableUser(selectedUser.id)}
                         className="px-4 py-2 bg-status-error/20 text-status-error rounded-lg hover:bg-status-error/30 transition-colors text-sm"
                       >
-                        Desabilitar
+                        {t('admin.disable', { defaultValue: 'Desabilitar' })}
                       </button>
                       <button
                         onClick={() => handleEnableUser(selectedUser.id)}
                         className="px-4 py-2 bg-status-success/20 text-status-success rounded-lg hover:bg-status-success/30 transition-colors text-sm"
                       >
-                        Habilitar
+                        {t('admin.enable', { defaultValue: 'Habilitar' })}
                       </button>
                       <button
                         onClick={() => handleDeleteUser(selectedUser.id)}
                         className="px-4 py-2 bg-status-error text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
                       >
                         <Trash2 size={16} className="inline mr-1" />
-                        Excluir
+                        {t('common.delete')}
                       </button>
                     </div>
                   </div>

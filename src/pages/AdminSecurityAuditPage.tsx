@@ -243,8 +243,39 @@ const AdminSecurityAuditPage = () => {
   };
 
   const handleExportLogs = () => {
-    // TODO: Implement export functionality
-    showInfo('Funcionalidade de exportação em desenvolvimento');
+    try {
+      // Preparar dados para exportação
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        securityEvents: securityEvents,
+        actionLogs: actionLogs,
+        accessLogs: accessLogs,
+        securityAlerts: securityAlerts,
+        filters: {
+          severity: filterSeverity,
+          type: filterType,
+          searchTerm,
+          dateRange,
+        },
+      };
+
+      // Converter para JSON
+      const jsonData = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `security-audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showInfo('Logs exportados com sucesso!');
+    } catch (error: any) {
+      logger.error('Erro ao exportar logs', 'admin', error);
+      showInfo('Erro ao exportar logs. Tente novamente.');
+    }
   };
 
   const handleResolveEvent = async (eventId: string) => {
@@ -314,7 +345,7 @@ const AdminSecurityAuditPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Segurança e Auditoria" />
+      <PageHeader title={{ key: 'admin.audit', defaultValue: 'Segurança e Auditoria' }} />
       <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Loading State */}

@@ -4,6 +4,7 @@ import Skeleton from './Skeleton';
 import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../utils/logger';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Alert {
   id: string;
@@ -20,6 +21,7 @@ interface AlertsListProps {
 
 const AlertsList = ({ userId }: AlertsListProps) => {
   const { getAllEquipment, cache } = useEquipmentCache();
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,7 +72,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
                     equipment_type: type,
                     status: 'vencido',
                     proxima_inspecao: nextInspection,
-                    message: `${id} está com inspeção vencida.`,
+                    message: t('alerts.inspectionExpired', { id, defaultValue: `${id} está com inspeção vencida.` }),
                   });
                 } else if (status === 'pendente' || status === 'nao_conforme') {
                   allAlerts.push({
@@ -79,7 +81,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
                     equipment_type: type,
                     status: 'pendente',
                     proxima_inspecao: nextInspection,
-                    message: `${id} possui pendências.`,
+                    message: t('alerts.hasPending', { id, defaultValue: `${id} possui pendências.` }),
                   });
                 }
               }
@@ -130,7 +132,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
         className="text-section-title font-semibold text-[var(--text-primary-current)] mb-ios-4"
         style={{ letterSpacing: '-0.3px' }}
       >
-        Alertas Críticos
+        {t('alerts.critical', { defaultValue: 'Alertas Críticos' })}
       </motion.h3>
       <div className="space-y-ios-3 flex flex-col">
         {loading ? (
@@ -179,7 +181,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
               className="text-body font-medium flex items-center justify-center gap-2 text-[var(--text-primary-current)]"
             >
               <span className="text-xl">✓</span>
-              Nenhum alerta crítico no momento.
+              {t('alerts.noAlerts', { defaultValue: 'Nenhum alerta crítico no momento.' })}
             </motion.p>
           </motion.div>
         )}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { logger } from '../../utils/logger';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string, remember: boolean) => void;
@@ -137,6 +138,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   onResetPassword,
   onForgotPasswordSubmit,
 }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -167,11 +169,11 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const getTitle = () => {
     switch (mode) {
       case 'signup':
-        return 'Criar Conta';
+        return t('auth.createAccount');
       case 'forgot-password':
-        return 'Recuperar Senha';
+        return t('auth.recoverPassword');
       case 'reset-password':
-        return 'Redefinir Senha';
+        return t('auth.resetPasswordTitle');
       default:
         return 'ISF IA';
     }
@@ -180,13 +182,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const getSubtitle = () => {
     switch (mode) {
       case 'signup':
-        return 'Crie sua conta para começar';
+        return t('auth.createAccountSubtitle');
       case 'forgot-password':
-        return 'Digite seu e-mail para receber o link de recuperação';
+        return t('auth.recoverPasswordSubtitle');
       case 'reset-password':
-        return 'Digite sua nova senha';
+        return t('auth.resetPasswordSubtitle');
       default:
-        return 'Acesse sua conta';
+        return t('auth.accessAccount');
     }
   };
 
@@ -225,7 +227,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           <FormInput
             icon={<Mail className="text-white/60" size={18} />}
             type="email"
-            placeholder="E-mail"
+            placeholder={t('auth.email')}
             value={forgotEmail}
             onChange={(e) => setForgotEmail(e.target.value)}
             required
@@ -235,14 +237,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className="w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40"
           >
-            {loading ? 'Enviando...' : 'Enviar link de recuperação'}
+            {loading ? t('auth.sending') : t('auth.sendRecoveryLink')}
           </button>
           <button
             type="button"
             onClick={() => onModeChange?.('login')}
             className="w-full text-sm text-white/80 hover:text-white transition-colors"
           >
-            Voltar para o login
+            {t('auth.backToLogin')}
           </button>
         </form>
       ) : mode === 'reset-password' ? (
@@ -250,7 +252,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           <FormInput
             icon={<Lock className="text-white/60" size={18} />}
             type="password"
-            placeholder="Nova senha"
+            placeholder={t('auth.newPassword')}
             value={newPassword || ''}
             onChange={(e) => onNewPasswordChange?.(e.target.value)}
             required
@@ -258,7 +260,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           <FormInput
             icon={<Lock className="text-white/60" size={18} />}
             type="password"
-            placeholder="Confirmar nova senha"
+            placeholder={t('auth.confirmPassword')}
             value={confirmPassword || ''}
             onChange={(e) => onConfirmPasswordChange?.(e.target.value)}
             required
@@ -268,14 +270,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className="w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40"
           >
-            {loading ? 'Redefinindo...' : 'Redefinir senha'}
+            {loading ? t('auth.resetting') : t('auth.resetPasswordButton')}
           </button>
           <button
             type="button"
             onClick={() => onModeChange?.('login')}
             className="w-full text-sm text-white/80 hover:text-white transition-colors"
           >
-            Voltar para o login
+            {t('auth.backToLogin')}
           </button>
         </form>
       ) : mode === 'signup' ? (
@@ -287,7 +289,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             <FormInput
               icon={<Mail className="text-white/60" size={18} />}
               type="text"
-              placeholder="Nome completo"
+              placeholder={t('auth.fullName')}
               value={fullName}
               onChange={(e) => onFullNameChange(e.target.value)}
               required
@@ -296,7 +298,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           <FormInput
             icon={<Mail className="text-white/60" size={18} />}
             type="email"
-            placeholder="E-mail"
+            placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -305,7 +307,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             <FormInput
               icon={<Lock className="text-white/60" size={18} />}
               type={showPassword ? "text" : "password"}
-              placeholder="Senha"
+              placeholder={t('auth.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -314,7 +316,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white focus:outline-none transition-colors"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -324,14 +326,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className="w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40"
           >
-            {loading ? 'Criando conta...' : 'Criar conta'}
+            {loading ? t('auth.creating') : t('auth.createAccountButton')}
           </button>
           <button
             type="button"
             onClick={() => onModeChange?.('login')}
             className="w-full text-sm text-white/80 hover:text-white transition-colors"
           >
-            Já tem uma conta? Fazer login
+            {t('auth.alreadyHaveAccount')}
           </button>
         </form>
       ) : (
@@ -339,7 +341,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           <FormInput
             icon={<Mail className="text-white/60" size={18} />}
             type="email"
-            placeholder="E-mail"
+            placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -349,7 +351,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             <FormInput
               icon={<Lock className="text-white/60" size={18} />}
               type={showPassword ? "text" : "password"}
-              placeholder="Senha"
+              placeholder={t('auth.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -358,7 +360,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white focus:outline-none transition-colors"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -378,7 +380,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 className="text-sm text-white/80 cursor-pointer hover:text-white transition-colors"
                 onClick={() => setRemember(!remember)}
               >
-                Lembrar-me
+                {t('auth.rememberMe')}
               </label>
             </div>
             <button
@@ -386,7 +388,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               onClick={() => onModeChange?.('forgot-password')}
               className="text-sm text-white/80 hover:text-white transition-colors"
             >
-              Esqueci minha senha
+              {t('auth.forgotPasswordButton')}
             </button>
           </div>
 

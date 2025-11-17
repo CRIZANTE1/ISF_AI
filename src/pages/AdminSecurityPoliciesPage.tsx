@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   getAllSecurityPolicies,
   updateSecurityPolicy,
@@ -32,6 +33,7 @@ import { logger } from '../utils/logger';
 const AdminSecurityPoliciesPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [policies, setPolicies] = useState<SecurityPolicy[]>([]);
@@ -133,7 +135,7 @@ const AdminSecurityPoliciesPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Políticas de Segurança" />
+      <PageHeader title={{ key: 'admin.policies', defaultValue: 'Políticas de Segurança' }} />
       <main className="p-4" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Alerts */}
@@ -191,11 +193,11 @@ const AdminSecurityPoliciesPage = () => {
                         <h3 className="text-xl font-bold">{policy.policy_name}</h3>
                         {policy.enabled ? (
                           <span className="px-2 py-1 bg-status-success/20 text-status-success rounded-full text-xs font-semibold">
-                            Ativo
+                            {t('admin.active')}
                           </span>
                         ) : (
                           <span className="px-2 py-1 bg-status-error/20 text-status-error rounded-full text-xs font-semibold">
-                            Inativo
+                            {t('admin.inactive')}
                           </span>
                         )}
                       </div>
@@ -215,7 +217,7 @@ const AdminSecurityPoliciesPage = () => {
                         onClick={() => setEditingPolicy(editingPolicy?.id === policy.id ? null : policy)}
                         className="px-4 py-2 bg-light-background dark:bg-dark-background border rounded-lg hover:bg-opacity-50 transition-colors" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A', borderWidth: '1px' }}
                       >
-                        {editingPolicy?.id === policy.id ? 'Cancelar' : 'Editar'}
+                        {editingPolicy?.id === policy.id ? t('common.cancel') : t('common.edit')}
                       </button>
                       <label className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer">
                         <input

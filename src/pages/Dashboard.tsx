@@ -10,6 +10,7 @@ import { AppleActivityCard } from '../components/ui/apple-activity-ring';
 import { calculateEquipmentStats } from '../utils/equipmentStatus';
 import { motion } from 'framer-motion';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Stats {
   total: number;
@@ -22,6 +23,7 @@ const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { getAllEquipment, cache, isStale, refreshCache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -80,7 +82,7 @@ const Dashboard = () => {
               className="text-section-title font-semibold text-white mb-2"
               style={{ letterSpacing: '-0.3px' }}
             >
-              Olá, {profile?.full_name ?? 'Usuário'}
+              {t('dashboard.hello')}, {profile?.full_name ?? t('dashboard.user')}
             </motion.h2>
           )}
           <TrialStatusBar profile={profile} />
@@ -97,7 +99,7 @@ const Dashboard = () => {
             className="mb-ios-6"
           >
             <AppleActivityCard
-              title="Status dos Equipamentos"
+              title={t('dashboard.equipmentStatus')}
               data={{
                 total: stats.total,
                 ok: stats.ok,

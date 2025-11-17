@@ -10,6 +10,7 @@ import InstructionsPanel from '../components/InstructionsPanel';
 import { ChevronRight, QrCode } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../hooks/useTranslation';
 
 type EquipmentItem = {
   id: number | string;
@@ -30,10 +31,26 @@ const EquipmentListPage = () => {
   const { user } = useAuth();
   const { getEquipmentByType, cache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const equipmentTypeName = type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Equipamentos';
+  const getEquipmentTypeName = (type: string) => {
+    const typeMap: Record<string, string> = {
+      extintor: t('equipment.extinguisher'),
+      mangueira: t('equipment.hose'),
+      camara_espuma: t('equipment.foamChamber'),
+      canhao_monitor: t('equipment.cannonMonitor'),
+      chuveiro_lavaolhos: t('equipment.eyewash'),
+      alarme: t('equipment.alarm'),
+      multigas: t('equipment.multigas'),
+      scba: t('equipment.scba'),
+      abrigo: t('equipment.shelter'),
+    };
+    return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+  };
+
+  const equipmentTypeName = type ? getEquipmentTypeName(type) : t('equipment.title');
 
   useEffect(() => {
     const fetchEquipment = () => {
@@ -75,7 +92,7 @@ const EquipmentListPage = () => {
               }}
             >
               <QrCode size={24} />
-              <span className="font-semibold">Inspeção Rápida por QR Code</span>
+              <span className="font-semibold">{t('qr.scan')}</span>
             </button>
           </motion.div>
         )}
@@ -88,7 +105,7 @@ const EquipmentListPage = () => {
         )}
         {!loading && equipment.length === 0 && (
           <div className="text-center py-10 relative" style={{ zIndex: 10, position: 'relative' }}>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#FFFFFF' }}>Nenhum equipamento cadastrado.</p>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#FFFFFF' }}>{t('equipment.noEquipment')}</p>
           </div>
         )}
         {!loading && equipment.length > 0 && (

@@ -5,9 +5,10 @@ import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR, enUS } from 'date-fns/locale';
 import { CheckCircle, XCircle, Clock, Calendar, Filter } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface InspectionHistory {
   id: string | number;
@@ -23,6 +24,7 @@ interface InspectionHistory {
 const History = () => {
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
+  const { t, currentLanguage } = useTranslation();
   const [inspections, setInspections] = useState<InspectionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
@@ -219,7 +221,7 @@ const History = () => {
 
   const groupedByDate = filteredInspections.reduce((acc, insp) => {
     const date = new Date(insp.date);
-    const dateKey = format(date, 'dd/MM/yyyy', { locale: ptBR });
+    const dateKey = format(date, 'dd/MM/yyyy', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS });
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
@@ -229,7 +231,7 @@ const History = () => {
 
   return (
     <div className="theme-pages dark min-h-screen relative" style={{ backgroundColor: '#000000', color: '#FFFFFF' }}>
-      <PageHeader title="Histórico de Inspeções" />
+      <PageHeader title={{ key: 'history.inspectionHistory' }} />
       <main className="p-ios-4 pb-32 relative" style={{ backgroundColor: '#000000' }}>
         {/* Filtros */}
         <motion.div
@@ -240,14 +242,14 @@ const History = () => {
         >
           <div className="flex items-center gap-ios-2 mb-ios-4">
             <Filter size={18} style={{ color: 'var(--muted-foreground)' }} />
-            <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Filtrar por:</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{t('history.filter')}:</span>
           </div>
           <div className="flex gap-ios-2 flex-wrap">
             {[
-              { value: 'all', label: 'Todas' },
-              { value: 'approved', label: 'Aprovadas' },
-              { value: 'rejected', label: 'Reprovadas' },
-              { value: 'pending', label: 'Pendentes' },
+              { value: 'all', label: t('history.all') },
+              { value: 'approved', label: t('history.approved') },
+              { value: 'rejected', label: t('history.rejected') },
+              { value: 'pending', label: t('history.pending') },
             ].map((option) => (
               <button
                 key={option.value}
@@ -280,11 +282,11 @@ const History = () => {
             style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
           >
             <Calendar size={48} className="mx-auto mb-ios-4" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-lg font-semibold mb-ios-2" style={{ color: 'var(--foreground)' }}>Nenhuma inspeção encontrada</p>
+            <p className="text-lg font-semibold mb-ios-2" style={{ color: 'var(--foreground)' }}>{t('history.noHistory')}</p>
             <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
               {filter === 'all' 
-                ? 'Ainda não há inspeções registradas.'
-                : `Nenhuma inspeção ${filter === 'approved' ? 'aprovada' : filter === 'rejected' ? 'reprovada' : 'pendente'} encontrada.`
+                ? t('inspection.noInspections')
+                : `${t('history.noHistory')} ${filter === 'approved' ? t('history.approved').toLowerCase() : filter === 'rejected' ? t('history.rejected').toLowerCase() : t('history.pending').toLowerCase()}.`
               }
             </p>
           </motion.div>
