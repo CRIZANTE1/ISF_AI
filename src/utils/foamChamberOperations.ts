@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface FoamChamber {
   id?: number;
@@ -91,12 +92,12 @@ export async function saveNewFoamChamber(
         type: 'camara_espuma',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar câmara de espuma:', error);
+    logger.error('Erro ao salvar câmara de espuma', 'equipment', error);
     throw error;
   }
 }
@@ -139,12 +140,12 @@ export async function saveFoamChamberInspection(
         status: inspection.status_geral,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção de câmara de espuma:', error);
+    logger.error('Erro ao salvar inspeção de câmara de espuma', 'equipment', error);
     return false;
   }
 }
@@ -162,7 +163,7 @@ export async function getAllFoamChambers(): Promise<FoamChamber[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar câmaras de espuma:', error);
+    logger.error('Erro ao buscar câmaras de espuma', 'equipment', error);
     return [];
   }
 }

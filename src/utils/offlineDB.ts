@@ -3,6 +3,8 @@
  * Armazena operações pendentes para sincronização quando online
  */
 
+import { logger } from './logger';
+
 const DB_NAME = 'isfiaOfflineDB';
 const DB_VERSION = 1;
 const STORE_OPERATIONS = 'pendingOperations';
@@ -100,7 +102,7 @@ export async function savePendingOperation(
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao salvar operação pendente:', error);
+    logger.error('Erro ao salvar operação pendente', 'storage', error);
     throw error;
   }
 }
@@ -127,7 +129,7 @@ export async function getPendingOperations(): Promise<PendingOperation[]> {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao obter operações pendentes:', error);
+    logger.error('Erro ao obter operações pendentes', 'storage', error);
     return [];
   }
 }
@@ -148,7 +150,7 @@ export async function removePendingOperation(id: string): Promise<void> {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao remover operação pendente:', error);
+    logger.error('Erro ao remover operação pendente', 'storage', error);
   }
 }
 
@@ -183,7 +185,7 @@ export async function updateOperationRetry(
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao atualizar tentativa:', error);
+    logger.error('Erro ao atualizar tentativa', 'storage', error);
   }
 }
 
@@ -213,7 +215,7 @@ export async function saveToCache(
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao salvar no cache:', error);
+    logger.error('Erro ao salvar no cache', 'storage', error);
   }
 }
 
@@ -248,7 +250,7 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao obter do cache:', error);
+    logger.error('Erro ao obter do cache', 'storage', error);
     return null;
   }
 }
@@ -281,7 +283,7 @@ export async function cleanExpiredCache(): Promise<void> {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao limpar cache:', error);
+    logger.error('Erro ao limpar cache', 'storage', error);
   }
 }
 
@@ -314,7 +316,7 @@ export async function getOfflineStats(): Promise<{
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Erro ao obter estatísticas:', error);
+    logger.error('Erro ao obter estatísticas', 'storage', error);
     return { pendingOperations: 0, cacheEntries: 0 };
   }
 }

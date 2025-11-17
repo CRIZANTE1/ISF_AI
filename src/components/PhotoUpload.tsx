@@ -5,6 +5,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { compressImage, getImageInfo } from '../utils/imageCompression';
+import { logger } from '../utils/logger';
 
 interface PhotoUploadProps {
   value?: File | null;
@@ -67,7 +68,7 @@ const PhotoUpload = ({
       };
       reader.readAsDataURL(compressedBlob);
     } catch (error) {
-      console.error('Erro ao comprimir imagem:', error);
+      logger.error('Erro ao comprimir imagem', 'storage', error);
       // Em caso de erro, usa o arquivo original
       onChange(file);
       const reader = new FileReader();

@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface EyewashStation {
   id?: number;
@@ -93,12 +94,12 @@ export async function saveNewEyewashStation(
         type: 'chuveiro_lavaolhos',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar chuveiro/lava-olhos:', error);
+    logger.error('Erro ao salvar chuveiro/lava-olhos', 'equipment', error);
     throw error;
   }
 }
@@ -140,12 +141,12 @@ export async function saveEyewashInspection(
         status: inspection.status_geral,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção de chuveiro/lava-olhos:', error);
+    logger.error('Erro ao salvar inspeção de chuveiro/lava-olhos', 'equipment', error);
     return false;
   }
 }
@@ -163,7 +164,7 @@ export async function getAllEyewashStations(): Promise<EyewashStation[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar chuveiros/lava-olhos:', error);
+    logger.error('Erro ao buscar chuveiros/lava-olhos', 'equipment', error);
     return [];
   }
 }

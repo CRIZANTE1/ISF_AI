@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface Hose {
   id?: number;
@@ -54,12 +55,12 @@ export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promis
         type: 'mangueira',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar mangueira:', error);
+    logger.error('Erro ao salvar mangueira', 'equipment', error);
     throw error;
   }
 }
@@ -77,7 +78,7 @@ export async function getAllHoses(): Promise<Hose[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar mangueiras:', error);
+    logger.error('Erro ao buscar mangueiras', 'equipment', error);
     return [];
   }
 }
@@ -96,7 +97,7 @@ export async function getHoseById(idMangueira: string): Promise<Hose | null> {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Erro ao buscar mangueira:', error);
+    logger.error('Erro ao buscar mangueira', 'equipment', error);
     return null;
   }
 }
@@ -117,7 +118,7 @@ export async function updateHose(
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao atualizar mangueira:', error);
+    logger.error('Erro ao atualizar mangueira', 'equipment', error);
     return false;
   }
 }

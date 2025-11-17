@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import { PricingSection } from '../components/ui/pricing';
 import { useBilling, PRODUCT_IDS } from '../hooks/useBilling';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { logger } from '../utils/logger';
 
 const PlanPaymentPage = () => {
   const { profile, user } = useAuth();
@@ -169,7 +170,7 @@ const PlanPaymentPage = () => {
         setError('Nenhum plano disponível');
       }
     } catch (err) {
-      console.error('Erro ao carregar página de planos:', err);
+      logger.error('Erro ao carregar página de planos', 'billing', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido ao carregar planos');
     }
   }, [plans.length]);

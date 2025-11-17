@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { QRCodeSVG } from 'qrcode.react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { logger } from '../utils/logger';
 
 // Função para carregar plugins do Capacitor dinamicamente (opcionais)
 // Nota: Para usar no Android, instale: npm install @capacitor/filesystem @capacitor/share
@@ -274,11 +275,11 @@ const QrGeneratorPage = () => {
           await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay para evitar bloqueio
           await downloadQrCode(id, qrString);
         } catch (error) {
-          console.error(`Erro ao baixar QR Code para ${id}:`, error);
+          logger.error('Erro ao baixar QR Code', 'qr_generator', { id, error });
         }
       }
     } catch (error) {
-      console.error('Erro ao baixar QR Codes:', error);
+      logger.error('Erro ao baixar QR Codes', 'qr_generator', error);
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface Shelter {
   id?: number;
@@ -58,12 +59,12 @@ export async function saveNewShelter(
         type: 'abrigo',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar abrigo:', error);
+    logger.error('Erro ao salvar abrigo', 'equipment', error);
     throw error;
   }
 }
@@ -90,12 +91,12 @@ export async function saveShelterInspection(
         status: inspection.status_geral,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção de abrigo:', error);
+    logger.error('Erro ao salvar inspeção de abrigo', 'equipment', error);
     return false;
   }
 }
@@ -113,7 +114,7 @@ export async function getAllShelters(): Promise<Shelter[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar abrigos:', error);
+    logger.error('Erro ao buscar abrigos', 'equipment', error);
     return [];
   }
 }

@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import { parseQrCodeData } from '../utils/qrInspectionUtils';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { QrCode, Camera, Search, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { logger } from '../utils/logger';
 import { motion } from 'framer-motion';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -38,7 +39,7 @@ const QrInspectionPage = () => {
           setScanStatus('');
         })
         .catch((err) => {
-          console.error('Erro ao parar scanner:', err);
+          logger.error('Erro ao parar scanner', 'qr_generator', err);
           scannerRef.current = null;
           setScanning(false);
         });
@@ -129,7 +130,7 @@ const QrInspectionPage = () => {
 
       setScanStatus('Câmera ativa - Aponte para o QR Code');
     } catch (err: any) {
-      console.error('Erro ao iniciar scanner:', err);
+      logger.error('Erro ao iniciar scanner', 'qr_generator', err);
       setScanning(false);
       
       if (err.name === 'NotAllowedError' || err.message?.includes('permission')) {

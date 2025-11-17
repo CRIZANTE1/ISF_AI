@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logger } from '../utils/logger';
 
 const AdminSecurityPoliciesPage = () => {
   const { profile } = useAuth();
@@ -56,7 +57,7 @@ const AdminSecurityPoliciesPage = () => {
       setPolicies(policiesData);
       setBlockedIPs(blockedIPsData);
     } catch (err: any) {
-      console.error('Erro ao carregar dados:', err);
+      logger.error('Erro ao carregar dados', 'admin', err);
       if (err.code === '42P01' || err.message?.includes('does not exist')) {
         setError('Tabelas de segurança não encontradas no banco de dados. Execute a migração 20250118000000_create_system_settings_and_security_policies.sql no Supabase SQL Editor.');
       } else {
@@ -75,7 +76,7 @@ const AdminSecurityPoliciesPage = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Falha ao atualizar política.');
-      console.error(err);
+      logger.error('Erro ao atualizar política', 'admin', err);
     }
   };
 
@@ -89,7 +90,7 @@ const AdminSecurityPoliciesPage = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Falha ao atualizar configuração.');
-      console.error(err);
+      logger.error('Erro ao atualizar configuração', 'admin', err);
     } finally {
       setSaving(false);
     }
@@ -110,7 +111,7 @@ const AdminSecurityPoliciesPage = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Falha ao bloquear IP.');
-      console.error(err);
+      logger.error('Erro ao bloquear IP', 'admin', err);
     }
   };
 
@@ -126,7 +127,7 @@ const AdminSecurityPoliciesPage = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Falha ao desbloquear IP.');
-      console.error(err);
+      logger.error('Erro ao desbloquear IP', 'admin', err);
     }
   };
 

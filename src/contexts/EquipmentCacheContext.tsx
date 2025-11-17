@@ -9,6 +9,7 @@ import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
 import { getAllEyewashStations } from '../utils/eyewashOperations';
 import { getAllAlarmSystems } from '../utils/alarmOperations';
 import { getAllShelters } from '../utils/shelterOperations';
+import { logger } from '../utils/logger';
 
 interface EquipmentCache {
   extinguishers: any[];
@@ -98,7 +99,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         isLoading: false,
       });
     } catch (error) {
-      console.error('Erro ao atualizar cache de equipamentos:', error);
+      logger.error('Erro ao atualizar cache de equipamentos', 'equipment', error);
       setCache(prev => ({ ...prev, isLoading: false }));
     } finally {
       isFetchingRef.current = false;

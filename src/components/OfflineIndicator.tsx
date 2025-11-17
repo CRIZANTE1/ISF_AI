@@ -8,6 +8,7 @@ import { getOfflineStats, cleanExpiredCache } from '../utils/offlineDB';
 import { syncPendingOperations } from '../utils/offlineSync';
 import { WifiOff, Wifi, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '../utils/logger';
 
 interface OfflineStats {
   pendingOperations: number;
@@ -56,7 +57,7 @@ const OfflineIndicator = () => {
       // Limpa resultado após 3 segundos
       setTimeout(() => setSyncResult(null), 3000);
     } catch (error) {
-      console.error('Erro ao sincronizar:', error);
+      logger.error('Erro ao sincronizar', 'storage', error);
     } finally {
       setIsSyncing(false);
     }

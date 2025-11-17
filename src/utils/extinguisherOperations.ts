@@ -5,6 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 // Mapeamento de ações para plano de ação baseado em não conformidades
 const ACTION_MAP: Record<string, string> = {
@@ -119,7 +120,7 @@ export function calculateNextDates(
   try {
     const serviceDate = new Date(serviceDateStr);
     if (isNaN(serviceDate.getTime())) {
-      console.warn(`Data de serviço inválida: ${serviceDateStr}`);
+      logger.warn('Data de serviço inválida', 'equipment', { serviceDateStr });
       return {};
     }
 
@@ -168,7 +169,7 @@ export function calculateNextDates(
 
     return normalizedDates;
   } catch (error) {
-    console.error(`Erro ao calcular datas: ${error}`);
+    logger.error('Erro ao calcular datas', 'equipment', error);
     return {};
   }
 }
@@ -254,7 +255,7 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar extintores:', error);
+    logger.error('Erro ao buscar extintores', 'equipment', error);
     return [];
   }
 }
@@ -275,7 +276,7 @@ export async function getExtinguisherById(numeroIdentificacao: string): Promise<
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Erro ao buscar extintor:', error);
+    logger.error('Erro ao buscar extintor', 'equipment', error);
     return null;
   }
 }
@@ -313,12 +314,12 @@ export async function saveNewExtinguisher(
         type: 'extintor',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar extintor:', error);
+    logger.error('Erro ao salvar extintor', 'equipment', error);
     throw error;
   }
 }
@@ -371,12 +372,12 @@ export async function saveExtinguisherInspection(
         aprovado: inspection.aprovado_inspecao,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção de extintor:', error);
+    logger.error('Erro ao salvar inspeção de extintor', 'equipment', error);
     throw error;
   }
 }
@@ -423,7 +424,7 @@ export async function registerExtinguisherDisposal(
     if (updateError) throw updateError;
     return true;
   } catch (error) {
-    console.error('Erro ao registrar baixa de extintor:', error);
+    logger.error('Erro ao registrar baixa de extintor', 'equipment', error);
     return false;
   }
 }

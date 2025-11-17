@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { updateUserPlan } from '../utils/adminOperations';
 import { Billing } from '../plugins/BillingPlugin';
 import type { BillingProduct, Purchase, BillingResult } from '../plugins/BillingPlugin';
+import { logger } from '../utils/logger';
 
 class BillingService {
   private initialized = false;
@@ -23,7 +24,7 @@ class BillingService {
       const result = await Billing.isAvailable();
       return result.available;
     } catch (error) {
-      console.error('Erro ao verificar disponibilidade do billing:', error);
+      logger.error('Erro ao verificar disponibilidade do billing', 'billing', error);
       return false;
     }
   }
@@ -33,7 +34,7 @@ class BillingService {
    */
   async initialize(): Promise<boolean> {
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
-      console.warn('Google Play Billing só está disponível no Android');
+      logger.warn('Google Play Billing só está disponível no Android', 'billing');
       return false;
     }
 
@@ -42,7 +43,7 @@ class BillingService {
       this.initialized = result.success;
       return result.success;
     } catch (error) {
-      console.error('Erro ao inicializar billing:', error);
+      logger.error('Erro ao inicializar billing', 'billing', error);
       this.initialized = false;
       return false;
     }
@@ -60,7 +61,7 @@ class BillingService {
       const result = await Billing.queryProducts(productIds);
       return result.products || [];
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
+      logger.error('Erro ao buscar produtos', 'billing', error);
       throw error;
     }
   }
@@ -91,7 +92,7 @@ class BillingService {
 
       return result.purchase;
     } catch (error) {
-      console.error('Erro ao processar compra:', error);
+      logger.error('Erro ao processar compra', 'billing', error);
       throw error;
     }
   }
@@ -108,7 +109,7 @@ class BillingService {
       const result = await Billing.acknowledgePurchase(purchaseToken);
       return result.success;
     } catch (error) {
-      console.error('Erro ao reconhecer compra:', error);
+      logger.error('Erro ao reconhecer compra', 'billing', error);
       return false;
     }
   }
@@ -125,7 +126,7 @@ class BillingService {
       const result = await Billing.queryPurchases();
       return result.purchases || [];
     } catch (error) {
-      console.error('Erro ao buscar compras:', error);
+      logger.error('Erro ao buscar compras', 'billing', error);
       throw error;
     }
   }
@@ -149,7 +150,7 @@ class BillingService {
         .single();
 
       if (existingPurchase) {
-        console.log('Compra já registrada, atualizando...');
+        logger.info('Compra já registrada, atualizando', 'billing', { purchaseToken: purchase.purchaseToken });
         
         // Atualizar compra existente
         const { error: updateError } = await supabase
@@ -162,7 +163,7 @@ class BillingService {
           .eq('purchase_token', purchase.purchaseToken);
 
         if (updateError) {
-          console.error('Erro ao atualizar compra:', updateError);
+          logger.error('Erro ao atualizar compra', 'billing', updateError);
           throw updateError;
         }
       } else {
@@ -189,11 +190,11 @@ class BillingService {
           .insert(purchaseData);
 
         if (insertError) {
-          console.error('Erro ao registrar compra:', insertError);
+          logger.error('Erro ao registrar compra', 'billing', insertError);
           throw insertError;
         }
 
-        console.log('Compra registrada com sucesso:', purchase.productId);
+        logger.info('Compra registrada com sucesso', 'billing', { productId: purchase.productId });
       }
 
       // Determinar o plano baseado no productId
@@ -209,12 +210,12 @@ class BillingService {
       // PurchaseState 0 = PURCHASED
       if (purchase.purchaseState === 0) {
         await updateUserPlan(user.id, plan);
-        console.log('Plano do usuário atualizado para:', plan);
+        logger.info('Plano do usuário atualizado', 'billing', { userId: user.id, plan });
       }
 
-      console.log('Compra sincronizada com sucesso');
+      logger.info('Compra sincronizada com sucesso', 'billing', { productId: purchase.productId });
     } catch (error) {
-      console.error('Erro ao sincronizar compra com backend:', error);
+      logger.error('Erro ao sincronizar compra com backend', 'billing', error);
       throw error;
     }
   }
@@ -227,11 +228,11 @@ class BillingService {
       const purchases = await this.queryPurchases();
       
       if (purchases.length === 0) {
-        console.log('Nenhuma compra encontrada para sincronizar');
+        logger.info('Nenhuma compra encontrada para sincronizar', 'billing');
         return;
       }
 
-      console.log(`Sincronizando ${purchases.length} compra(s) existente(s)...`);
+      logger.info('Sincronizando compras existentes', 'billing', { count: purchases.length });
 
       for (const purchase of purchases) {
         try {
@@ -239,14 +240,14 @@ class BillingService {
           // Isso garante que compras canceladas ou atualizadas também sejam registradas
           await this.syncPurchaseWithBackend(purchase);
         } catch (error) {
-          console.error(`Erro ao sincronizar compra ${purchase.productId}:`, error);
+          logger.error('Erro ao sincronizar compra', 'billing', { error, productId: purchase.productId });
           // Continua com as próximas compras mesmo se uma falhar
         }
       }
 
-      console.log('Sincronização de compras concluída');
+      logger.info('Sincronização de compras concluída', 'billing');
     } catch (error) {
-      console.error('Erro ao sincronizar compras existentes:', error);
+      logger.error('Erro ao sincronizar compras existentes', 'billing', error);
       // Não lança erro para não bloquear a inicialização do app
     }
   }
@@ -269,13 +270,13 @@ class BillingService {
         .order('purchase_time', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar compras do usuário:', error);
+        logger.error('Erro ao buscar compras do usuário', 'billing', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar compras do usuário:', error);
+      logger.error('Erro ao buscar compras do usuário', 'billing', error);
       return [];
     }
   }
@@ -301,13 +302,13 @@ class BillingService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('Erro ao verificar compra ativa:', error);
+        logger.error('Erro ao verificar compra ativa', 'billing', error);
         return false;
       }
 
       return !!data;
     } catch (error) {
-      console.error('Erro ao verificar compra ativa:', error);
+      logger.error('Erro ao verificar compra ativa', 'billing', error);
       return false;
     }
   }

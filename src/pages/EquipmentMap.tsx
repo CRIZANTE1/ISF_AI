@@ -15,6 +15,7 @@ import {
 } from '../components/EquipmentIcons';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentLocation } from '../hooks/useGeolocation';
+import { logger } from '../utils/logger';
 
 // Fix para ícones padrão do Leaflet
 import L from 'leaflet';
@@ -128,7 +129,7 @@ const EquipmentMap = () => {
           }
         }).catch(err => {
           // Erro de localização não é crítico, apenas loga
-          console.warn('Erro ao obter localização do usuário:', err);
+          logger.warn('Erro ao obter localização do usuário', 'permission', err);
         });
 
         // Processar equipamentos de forma otimizada

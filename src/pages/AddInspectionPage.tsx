@@ -15,6 +15,7 @@ import FoamChamberChecklist from '../components/checklists/FoamChamberChecklist'
 import AlarmChecklist from '../components/checklists/AlarmChecklist';
 import CannonMonitorChecklist from '../components/checklists/CannonMonitorChecklist';
 import ScbaChecklist from '../components/checklists/ScbaChecklist';
+import { logger } from '../utils/logger';
 import { 
   generateActionPlan, 
   calculateNextDates,
@@ -254,7 +255,7 @@ const AddInspectionPage = () => {
           setEquipment(equipmentData);
         }
       } catch (err: any) {
-        console.error('Erro ao buscar equipamento:', err);
+        logger.error('Erro ao buscar equipamento', 'equipment', err);
         handleError(err, 'equipment', 'Falha ao buscar informações do equipamento.');
       } finally {
         setLoadingEquipment(false);

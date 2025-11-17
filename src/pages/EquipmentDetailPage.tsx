@@ -12,6 +12,7 @@ import ProgressiveImage from '../components/ProgressiveImage';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
+import { logger } from '../utils/logger';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
@@ -58,7 +59,7 @@ const EquipmentDetailPage = () => {
     
     if (!session?.user) {
       const errorMsg = 'Usuário não autenticado';
-      console.error(errorMsg);
+      logger.error('Usuário não autenticado ao acessar equipamento', 'auth', { type, id });
       handleError(new Error(errorMsg), 'auth', 'Você precisa estar autenticado para acessar este equipamento.');
       setLoading(false);
       return;
@@ -231,7 +232,7 @@ const EquipmentDetailPage = () => {
               }));
             }
           } else {
-            console.log('SCBA não encontrado:', id);
+            logger.warn('SCBA não encontrado', 'equipment', { id });
           }
           break;
         }
@@ -263,12 +264,12 @@ const EquipmentDetailPage = () => {
               }
             } else {
               const errorMsg = `Multigas não encontrado: ${id}`;
-              console.error(errorMsg);
+              logger.warn('Multigas não encontrado', 'equipment', { id });
             }
           } catch (permError: any) {
             // Capturar erros de permissão
             const permMsg = permError?.message || `Erro ao acessar ${id}: ${permError}`;
-            console.error(permMsg);
+            logger.error('Erro ao acessar multigas', 'equipment', { error: permError, id });
             if (!equipmentData) {
               handleError(new Error(permMsg), 'permission');
             }
@@ -276,7 +277,7 @@ const EquipmentDetailPage = () => {
           
           if (!equipmentData) {
             const errorMsg = `Multigas não encontrado: ${id}`;
-            console.error(errorMsg);
+            logger.warn('Multigas não encontrado após tentativas', 'equipment', { id });
             
             // Fallback: tentar buscar do cache
             const allDetectors = getEquipmentByType('multigas');
@@ -325,7 +326,11 @@ const EquipmentDetailPage = () => {
               }));
             }
           } else {
-            console.log('Abrigo não encontrado:', id, 'Total de abrigos:', shelters.length, 'IDs encontrados:', shelters.map(s => s.id_abrigo));
+            logger.warn('Abrigo não encontrado', 'equipment', { 
+              id, 
+              totalAbrigos: shelters.length, 
+              idsEncontrados: shelters.map(s => s.id_abrigo) 
+            });
           }
           break;
         }
@@ -465,7 +470,7 @@ const EquipmentDetailPage = () => {
       }
     } catch (err) {
       handleError(err, 'equipment', 'Falha ao excluir o item. Tente novamente.');
-      console.error(err);
+      logger.error('Erro ao excluir item', 'equipment', { error: err, itemToDelete });
     } finally {
       setIsDeleting(false);
       setIsModalOpen(false);

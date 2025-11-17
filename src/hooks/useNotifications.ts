@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { notificationService, NotificationPermissionStatus } from '../services/notificationService';
+import { logger } from '../utils/logger';
 
 export function useNotifications() {
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>({
@@ -15,7 +16,9 @@ export function useNotifications() {
     
     // Configura listeners para notificações push se for nativo
     if (notificationService.isSupported()) {
-      notificationService.setupPushListeners().catch(console.error);
+      notificationService.setupPushListeners().catch((error) => {
+        logger.error('Erro ao configurar listeners de notificações', 'notifications', error);
+      });
     }
   }, []);
 
@@ -44,7 +47,7 @@ export function useNotifications() {
       }
       return false;
     } catch (error) {
-      console.error('Erro ao solicitar permissão:', error);
+      logger.error('Erro ao solicitar permissão', 'notifications', error);
       return false;
     } finally {
       setIsLoading(false);

@@ -6,6 +6,7 @@
 import { supabase } from '../lib/supabase';
 import { savePendingOperation } from './offlineDB';
 import { syncPendingOperations } from './offlineSync';
+import { logger } from './logger';
 
 /**
  * Verifica se está online
@@ -44,7 +45,7 @@ export async function offlineInsert(
         const offlineId = await savePendingOperation('create', table, data);
         return { success: true, offlineId };
       } catch (offlineError) {
-        console.error('Erro ao salvar operação offline:', offlineError);
+        logger.error('Erro ao salvar operação offline', 'storage', offlineError);
         throw error; // Lança o erro original
       }
     }
@@ -79,7 +80,7 @@ export async function offlineUpdate(
         const offlineId = await savePendingOperation('update', table, { id, ...data });
         return { success: true, offlineId };
       } catch (offlineError) {
-        console.error('Erro ao salvar operação offline:', offlineError);
+        logger.error('Erro ao salvar operação offline', 'storage', offlineError);
         throw error;
       }
     }
@@ -113,7 +114,7 @@ export async function offlineDelete(
         const offlineId = await savePendingOperation('delete', table, { id });
         return { success: true, offlineId };
       } catch (offlineError) {
-        console.error('Erro ao salvar operação offline:', offlineError);
+        logger.error('Erro ao salvar operação offline', 'storage', offlineError);
         throw error;
       }
     }
@@ -129,7 +130,7 @@ export async function syncWhenOnline(): Promise<void> {
     try {
       await syncPendingOperations();
     } catch (error) {
-      console.error('Erro ao sincronizar:', error);
+      logger.error('Erro ao sincronizar', 'storage', error);
     }
   }
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { billingService, type BillingProduct } from '../services/billingService';
 import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
 
 // IDs dos produtos no Google Play Console
 // Você deve configurar esses IDs no Google Play Console
@@ -78,7 +79,7 @@ export function useBilling() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
       setError(errorMessage);
-      console.error('Erro ao carregar produtos:', err);
+      logger.error('Erro ao carregar produtos', 'billing', err);
     } finally {
       setLoading(false);
     }

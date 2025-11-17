@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface MultigasDetector {
   id?: number;
@@ -81,12 +82,12 @@ export async function saveNewMultigasDetector(
         type: 'multigas',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar detector multigás:', error);
+    logger.error('Erro ao salvar detector multigás', 'equipment', error);
     throw error;
   }
 }
@@ -104,7 +105,7 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar detectores multigás:', error);
+    logger.error('Erro ao buscar detectores multigás', 'equipment', error);
     return [];
   }
 }
@@ -116,10 +117,10 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
   try {
     // Verificar autenticação primeiro
     const { data: { session } } = await supabase.auth.getSession();
-    console.log('Buscando detector multigas:', idEquipamento, 'User ID:', session?.user?.id);
+    logger.debug('Buscando detector multigas', 'equipment', { idEquipamento, userId: session?.user?.id });
     
     if (!session?.user) {
-      console.error('Usuário não autenticado');
+      logger.warn('Usuário não autenticado ao buscar detector multigas', 'equipment');
       throw new Error('Você precisa estar autenticado para acessar este equipamento.');
     }
     
@@ -130,12 +131,15 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
       .maybeSingle();
 
     if (error) {
-      console.error('Erro Supabase ao buscar detector multigás:', error);
-      console.error('Detalhes do erro RLS:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
+      logger.error('Erro Supabase ao buscar detector multigás', 'equipment', {
+        error,
+        idEquipamento,
+        rlsDetails: {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }
       });
       
       // Se for erro de RLS (permissão negada), explicar melhor
@@ -146,8 +150,10 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
     }
     
     if (!data) {
-      console.log('⚠️ Detector multigas não encontrado ou sem permissão RLS:', idEquipamento);
-      console.log('👤 User ID atual autenticado:', session.user.id);
+      logger.warn('Detector multigas não encontrado ou sem permissão RLS', 'equipment', {
+        idEquipamento,
+        userId: session.user.id
+      });
       
       // Verificar se o equipamento existe mas pertence a outro usuário
       // IMPORTANTE: Esta query pode falhar também por RLS, mas vamos tentar
@@ -158,14 +164,16 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
           .eq('id_equipamento', idEquipamento);
         
         if (allError) {
-          console.error('❌ Erro ao verificar equipamento (provavelmente RLS bloqueando):', allError);
-          console.error('💡 Isso significa que o equipamento existe mas pertence a outro usuário');
+          logger.error('Erro ao verificar equipamento (provavelmente RLS bloqueando)', 'equipment', {
+            error: allError,
+            idEquipamento
+          });
           throw new Error(`O equipamento '${idEquipamento}' existe no banco, mas você não tem permissão para acessá-lo. Este equipamento pertence a outra conta (user_id diferente).`);
         } else if (allData && allData.length === 0) {
-          console.log('ℹ️ Equipamento realmente não existe no banco de dados');
+          logger.info('Equipamento realmente não existe no banco de dados', 'equipment', { idEquipamento });
           return null;
         } else {
-          console.log('⚠️ Equipamento existe mas user_id não corresponde:', {
+          logger.warn('Equipamento existe mas user_id não corresponde', 'equipment', {
             equipamento_user_id: allData[0]?.user_id,
             usuario_atual: session.user.id,
             corresponde: allData[0]?.user_id === session.user.id
@@ -181,7 +189,7 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
           throw checkError;
         }
         // Se for erro de RLS na verificação, significa que não temos acesso
-        console.error('❌ Erro ao verificar permissão:', checkError);
+        logger.error('Erro ao verificar permissão', 'equipment', { error: checkError, idEquipamento });
         throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Verifique se está autenticado com a conta correta.`);
       }
       
@@ -190,17 +198,17 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
     
     // Verificar se o user_id corresponde
     if (data.user_id && data.user_id !== session.user.id) {
-      console.error('User ID não corresponde:', { 
+      logger.error('User ID não corresponde', 'equipment', { 
         equipamento_user_id: data.user_id, 
         usuario_atual: session.user.id 
       });
       throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Este equipamento pertence a outra conta.`);
     }
     
-    console.log('Detector multigas encontrado:', data);
+    logger.debug('Detector multigas encontrado', 'equipment', { idEquipamento });
     return data;
   } catch (error: any) {
-    console.error('Erro ao buscar detector multigás:', error);
+    logger.error('Erro ao buscar detector multigás', 'equipment', error);
     // Se já for um Error customizado, relançá-lo
     if (error instanceof Error && (error.message.includes('permissão') || error.message.includes('autenticado'))) {
       throw error;
@@ -224,7 +232,7 @@ export async function getDetectorCylinderValues(idEquipamento: string): Promise<
       CO: detector.CO_cilindro || 0,
     };
   } catch (error) {
-    console.error('Erro ao buscar valores do cilindro:', error);
+    logger.error('Erro ao buscar valores do cilindro', 'equipment', error);
     return null;
   }
 }
@@ -250,7 +258,7 @@ export async function updateCylinderValues(
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao atualizar valores do cilindro:', error);
+    logger.error('Erro ao atualizar valores do cilindro', 'equipment', error);
     return false;
   }
 }
@@ -278,12 +286,12 @@ export async function saveMultigasInspection(
         resultado: inspection.resultado_teste,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção multigás:', error);
+    logger.error('Erro ao salvar inspeção multigás', 'equipment', error);
     return false;
   }
 }
@@ -371,7 +379,7 @@ export async function saveMultigasActionLog(
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao salvar log de ação multigás:', error);
+    logger.error('Erro ao salvar log de ação multigás', 'equipment', error);
     return false;
   }
 }

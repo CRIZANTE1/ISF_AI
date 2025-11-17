@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface CannonMonitor {
   id?: number;
@@ -64,12 +65,12 @@ export async function saveNewCannonMonitor(
         type: 'canhao_monitor',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar canhão monitor:', error);
+    logger.error('Erro ao salvar canhão monitor', 'equipment', error);
     throw error;
   }
 }
@@ -114,12 +115,12 @@ export async function saveCannonMonitorInspection(
         status: inspection.status_geral,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção de canhão monitor:', error);
+    logger.error('Erro ao salvar inspeção de canhão monitor', 'equipment', error);
     return false;
   }
 }
@@ -137,7 +138,7 @@ export async function getAllCannonMonitors(): Promise<CannonMonitor[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar canhões monitores:', error);
+    logger.error('Erro ao buscar canhões monitores', 'equipment', error);
     return [];
   }
 }

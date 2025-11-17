@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 
 interface GeolocationState {
   latitude: number | null;
@@ -57,7 +58,7 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
             // Solicita permissão
             const requestResult = await Geolocation.requestPermissions();
             if (requestResult.location !== 'granted') {
-              console.warn('Permissão de localização negada');
+              logger.warn('Permissão de localização negada', 'permission');
               return null;
             }
           }
@@ -75,7 +76,7 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
           };
         }
       } catch (error: any) {
-        console.error('Erro ao obter localização via Capacitor:', error);
+        logger.error('Erro ao obter localização via Capacitor', 'permission', error);
         // Fallback para web API se Capacitor falhar
       }
     }
@@ -97,7 +98,7 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
             });
           },
           (error) => {
-            console.error('Erro ao obter localização:', error);
+            logger.error('Erro ao obter localização', 'permission', error);
             resolve(null);
           },
           options
@@ -107,7 +108,7 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
 
     return null;
   } catch (error: any) {
-    console.error('Erro geral ao obter localização:', error);
+    logger.error('Erro geral ao obter localização', 'permission', error);
     return null;
   }
 }

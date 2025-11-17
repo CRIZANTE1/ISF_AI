@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { logger } from './logger';
 
 export interface UserWithProfile {
   id: string;
@@ -159,7 +160,9 @@ export async function disableUser(userId: string): Promise<void> {
   // Log the action
   await logUserAction('disable', 'user', userId);
   
-  alert('Usuário marcado como desabilitado. Para banir completamente, use o painel do Supabase.');
+  // Nota: Esta função apenas marca o usuário como desabilitado no perfil
+  // Para banir completamente, use o painel do Supabase ou uma Edge Function
+  logger.info('Usuário marcado como desabilitado', 'admin', { userId });
 }
 
 // Enable user (unban)
@@ -312,7 +315,7 @@ export async function logUserAction(
       p_details: details || null,
     });
   } catch (error) {
-    console.error('Failed to log user action:', error);
+    logger.error('Failed to log user action', 'admin', error);
     // Don't throw - logging failures shouldn't break the app
   }
 }
@@ -336,7 +339,7 @@ export async function logUserAccess(
       p_error_message: errorMessage || null,
     });
   } catch (error) {
-    console.error('Failed to log user access:', error);
+    logger.error('Failed to log user access', 'admin', error);
     // Don't throw - logging failures shouldn't break the app
   }
 }

@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface AlarmSystem {
   id?: number;
@@ -115,12 +116,12 @@ export async function saveNewAlarmSystem(
         type: 'alarme',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar sistema de alarme:', error);
+    logger.error('Erro ao salvar sistema de alarme', 'equipment', error);
     throw error;
   }
 }
@@ -168,12 +169,12 @@ export async function saveAlarmInspection(
         status: inspection.status_geral,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção de alarme:', error);
+    logger.error('Erro ao salvar inspeção de alarme', 'equipment', error);
     return false;
   }
 }
@@ -191,7 +192,7 @@ export async function getAllAlarmSystems(): Promise<AlarmSystem[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar sistemas de alarme:', error);
+    logger.error('Erro ao buscar sistemas de alarme', 'equipment', error);
     return [];
   }
 }

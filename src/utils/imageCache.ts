@@ -2,6 +2,8 @@
  * Cache de imagens comprimidas usando IndexedDB
  */
 
+import { logger } from './logger';
+
 interface CachedImage {
   key: string;
   blob: Blob;
@@ -86,7 +88,7 @@ export async function getCachedImage(file: File): Promise<Blob | null> {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.warn('Erro ao acessar cache de imagens:', error);
+    logger.warn('Erro ao acessar cache de imagens', 'storage', error);
     return null;
   }
 }
@@ -119,7 +121,7 @@ export async function cacheImage(
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.warn('Erro ao salvar no cache de imagens:', error);
+    logger.warn('Erro ao salvar no cache de imagens', 'storage', error);
     // Não falha se o cache não funcionar
   }
 }
@@ -134,7 +136,7 @@ async function deleteCachedImage(key: string): Promise<void> {
     const store = transaction.objectStore(STORE_NAME);
     store.delete(key);
   } catch (error) {
-    console.warn('Erro ao remover do cache:', error);
+    logger.warn('Erro ao remover do cache', 'storage', error);
   }
 }
 
@@ -171,7 +173,7 @@ export async function cleanExpiredCache(): Promise<void> {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.warn('Erro ao limpar cache:', error);
+    logger.warn('Erro ao limpar cache', 'storage', error);
   }
 }
 
@@ -214,7 +216,7 @@ export async function getCacheStats(): Promise<{
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.warn('Erro ao obter estatísticas do cache:', error);
+    logger.warn('Erro ao obter estatísticas do cache', 'storage', error);
     return { totalItems: 0, totalSize: 0, expiredItems: 0 };
   }
 }

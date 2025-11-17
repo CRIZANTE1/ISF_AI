@@ -12,6 +12,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { compressImage } from '../utils/imageCompression';
 import LazyImage from '../components/LazyImage';
 import { Spinner } from '../components/ui/spinner';
+import { logger } from '../utils/logger';
 
 interface ProfileFormData {
   full_name: string;
@@ -73,7 +74,7 @@ const Profile = () => {
         // Somar todas as inspeções (ignorar erros nas consultas)
         const totalInspections = inspectionCounts.reduce((sum, result) => {
           if (result.error) {
-            console.warn('Erro ao contar inspeções:', result.error);
+            logger.warn('Erro ao contar inspeções', 'profile', result.error);
             return sum;
           }
           return sum + (result.count || 0);
@@ -95,7 +96,7 @@ const Profile = () => {
               }
             } catch (e) {
               // Ignorar erros de parsing de data
-              console.warn('Erro ao processar data de inspeção:', e);
+              logger.warn('Erro ao processar data de inspeção', 'profile', e);
             }
           }
         });
@@ -106,7 +107,7 @@ const Profile = () => {
           activeAlerts,
         });
       } catch (err: any) {
-        console.error('Erro ao buscar estatísticas:', err);
+        logger.error('Erro ao buscar estatísticas', 'profile', err);
         // Define estatísticas padrão em caso de erro para não bloquear a tela
         setStats({
           totalEquipment: 0,

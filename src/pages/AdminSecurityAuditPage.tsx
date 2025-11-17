@@ -82,7 +82,7 @@ const AdminSecurityAuditPage = () => {
           loadSecurityAlerts(),
         ]);
       } catch (err) {
-        console.error('Erro ao carregar dados iniciais:', err);
+        logger.error('Erro ao carregar dados iniciais', 'admin', err);
       } finally {
         setLoading(false);
       }
@@ -120,7 +120,7 @@ const AdminSecurityAuditPage = () => {
               event.id,
               { severity: event.severity }
             ).catch(err => {
-              console.error('Erro ao criar alerta de segurança:', err);
+              logger.error('Erro ao criar alerta de segurança', 'admin', err);
             });
           }
         });
@@ -188,7 +188,7 @@ const AdminSecurityAuditPage = () => {
       setSecurityEvents([...failedLogins, ...permissionDenied].slice(0, 50)); // Limita a 50 eventos iniciais
       setError(null);
     } catch (error: any) {
-      console.error('Erro ao carregar eventos de segurança:', error);
+      logger.error('Erro ao carregar eventos de segurança', 'admin', error);
       setError('Erro ao carregar eventos de segurança. Verifique o console para mais detalhes.');
       setSecurityEvents([]);
     }
@@ -201,7 +201,7 @@ const AdminSecurityAuditPage = () => {
       const { logs } = await getActionLogs(50); // Reduzido de 200 para 50
       setActionLogs(logs);
     } catch (error: any) {
-      console.error('Erro ao carregar logs de auditoria:', error);
+      logger.error('Erro ao carregar logs de auditoria', 'admin', error);
       // If table doesn't exist, use empty array
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
         setActionLogs([]);
@@ -217,7 +217,7 @@ const AdminSecurityAuditPage = () => {
       const { logs } = await getAccessLogs(50); // Reduzido de 200 para 50
       setAccessLogs(logs);
     } catch (error: any) {
-      console.error('Erro ao carregar logs de acesso:', error);
+      logger.error('Erro ao carregar logs de acesso', 'admin', error);
       // If table doesn't exist, use empty array
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
         setAccessLogs([]);
@@ -232,7 +232,7 @@ const AdminSecurityAuditPage = () => {
       const { alerts } = await getSecurityAlerts(50, 0); // Reduzido de 100 para 50
       setSecurityAlerts(alerts);
     } catch (error: any) {
-      console.error('Erro ao carregar alertas de segurança:', error);
+      logger.error('Erro ao carregar alertas de segurança', 'admin', error);
       // If table doesn't exist, just use empty array
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
         setSecurityAlerts([]);
@@ -261,7 +261,7 @@ const AdminSecurityAuditPage = () => {
         await loadSecurityAlerts();
       }
     } catch (err: any) {
-      console.error('Erro ao resolver evento:', err);
+      logger.error('Erro ao resolver evento', 'admin', err);
       // Revert local change on error
       setSecurityEvents(events =>
         events.map(e => (e.id === eventId ? { ...e, resolved: false } : e))

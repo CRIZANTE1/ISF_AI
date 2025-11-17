@@ -11,6 +11,8 @@ function isCapacitorEnvironment(): boolean {
 // Quando o Capacitor estiver instalado, ele será carregado via script tag no HTML
 // e estará disponível globalmente
 
+import { logger } from '../utils/logger';
+
 export interface NotificationPermissionStatus {
   granted: boolean;
   denied: boolean;
@@ -67,7 +69,7 @@ class NotificationService {
           };
         }
       } catch (error) {
-        console.error('Erro ao solicitar permissão de notificações:', error);
+        logger.error('Erro ao solicitar permissão de notificações', 'notifications', error);
         // Fallback para web
       }
     }
@@ -81,7 +83,7 @@ class NotificationService {
         prompt: permission === 'default',
       };
     } catch (error) {
-      console.error('Erro ao solicitar permissão de notificações:', error);
+      logger.error('Erro ao solicitar permissão de notificações', 'notifications', error);
       return { granted: false, denied: false, prompt: false };
     }
   }
@@ -108,7 +110,7 @@ class NotificationService {
           };
         }
       } catch (error) {
-        console.error('Erro ao verificar permissão de notificações:', error);
+        logger.error('Erro ao verificar permissão de notificações', 'notifications', error);
         // Fallback para web
       }
     }
@@ -138,7 +140,7 @@ class NotificationService {
         await Capacitor.Plugins.PushNotifications.register();
       }
     } catch (error) {
-      console.error('Erro ao registrar notificações:', error);
+      logger.error('Erro ao registrar notificações', 'notifications', error);
     }
   }
 
@@ -147,13 +149,13 @@ class NotificationService {
    */
   async showLocalNotification(title: string, body: string, data?: any): Promise<void> {
     if (!this.isSupported()) {
-      console.warn('Notificações não são suportadas neste dispositivo');
+      logger.warn('Notificações não são suportadas neste dispositivo', 'notifications');
       return;
     }
 
     const permission = await this.checkPermission();
     if (!permission.granted) {
-      console.warn('Permissão de notificações não concedida');
+      logger.warn('Permissão de notificações não concedida', 'notifications');
       return;
     }
 
@@ -215,20 +217,20 @@ class NotificationService {
 
       // Quando o dispositivo recebe uma notificação
       PushNotifications.addListener('pushNotificationReceived', (notification: any) => {
-        console.log('Notificação recebida:', notification);
+        logger.info('Notificação recebida', 'notifications', { notification });
         // Você pode adicionar lógica aqui para mostrar a notificação na UI
       });
 
       // Quando o usuário toca na notificação
       PushNotifications.addListener('pushNotificationActionPerformed', (action: any) => {
-        console.log('Ação da notificação:', action);
+        logger.info('Ação da notificação', 'notifications', { action });
         // Navegar para uma página específica se necessário
         if (action.notification.data?.url) {
           window.location.href = action.notification.data.url;
         }
       });
     } catch (error) {
-      console.error('Erro ao configurar listeners de notificações:', error);
+      logger.error('Erro ao configurar listeners de notificações', 'notifications', error);
     }
   }
 }

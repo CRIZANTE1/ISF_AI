@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string, remember: boolean) => void;
@@ -86,7 +87,7 @@ const VideoBackground: React.FC<VideoBackgroundProps> = ({ videoUrl }) => {
   useEffect(() => {
     if (videoRef.current && videoUrl) {
       videoRef.current.play().catch(error => {
-        console.error("Video autoplay failed:", error);
+        logger.warn('Video autoplay failed', 'app', error);
       });
     }
   }, [videoUrl]);

@@ -6,6 +6,7 @@ import { logUserAccess } from '../utils/adminOperations';
 import LoginPage from '../components/ui/gaming-login';
 import { DottedSurface } from '../components/ui/DottedSurface';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { logger } from '../utils/logger';
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
@@ -70,7 +71,7 @@ const AuthPage = () => {
         if (error) {
           // Log failed login (non-blocking)
           logUserAccess('login', false, error.message).catch((logError) => {
-            console.error('Failed to log login error:', logError);
+            logger.error('Failed to log login error', 'auth', logError);
           });
           throw error;
         }
@@ -120,7 +121,7 @@ const AuthPage = () => {
       setMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.');
       setEmail('');
     } catch (err: any) {
-      console.error('Erro ao solicitar recuperação de senha:', err);
+      logger.error('Erro ao solicitar recuperação de senha', 'auth', err);
       
       if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError')) {
         setError('Erro de conexão. Verifique sua internet e tente novamente.');
@@ -176,7 +177,7 @@ const AuthPage = () => {
         window.history.replaceState({}, '', '/auth');
       }, 2000);
     } catch (err: any) {
-      console.error('Erro ao redefinir senha:', err);
+      logger.error('Erro ao redefinir senha', 'auth', err);
       
       if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError')) {
         setError('Erro de conexão. Verifique sua internet e tente novamente.');

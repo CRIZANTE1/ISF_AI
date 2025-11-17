@@ -3,6 +3,7 @@ import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import Skeleton from './Skeleton';
 import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '../utils/logger';
 
 interface Alert {
   id: string;
@@ -106,7 +107,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
         // Limitar a 5 alertas mais urgentes
         setAlerts(allAlerts.slice(0, 5));
       } catch (error) {
-        console.error('Erro ao buscar alertas:', error);
+        logger.error('Erro ao buscar alertas', 'equipment', error);
       } finally {
         setLoading(false);
       }

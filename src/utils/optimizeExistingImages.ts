@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { compressImage, createThumbnail } from './imageCompression';
 import { uploadFile } from './storage';
+import { logger } from './logger';
 
 interface ImageRecord {
   id: string;
@@ -133,7 +134,7 @@ export async function optimizeExistingImage(
             .eq('id', record.id);
         }
       } catch (thumbError) {
-        console.warn('Erro ao criar thumbnail:', thumbError);
+        logger.warn('Erro ao criar thumbnail', 'storage', thumbError);
         // Não falha a otimização se o thumbnail falhar
       }
     }
@@ -268,7 +269,7 @@ export async function cleanupOldImages(
 ): Promise<number> {
   // Esta função deve ser implementada com cuidado
   // e apenas após garantir que todas as imagens foram otimizadas
-  console.warn('Função de limpeza não implementada por segurança');
+    logger.warn('Função de limpeza não implementada por segurança', 'storage');
   return 0;
 }
 

@@ -3,6 +3,7 @@
  */
 
 import { getCachedImage, cacheImage } from './imageCache';
+import { logger } from './logger';
 
 export interface CompressionOptions {
   maxWidth?: number;
@@ -100,7 +101,7 @@ export async function compressImage(
     }
   } catch (error) {
     // Se o cache falhar, continua com a compressão normal
-    console.warn('Erro ao verificar cache:', error);
+    logger.warn('Erro ao verificar cache', 'storage', error);
   }
 
   return new Promise((resolve, reject) => {
@@ -177,7 +178,7 @@ export async function compressImage(
                         await cacheImage(file, compressedBlob);
                       } catch (error) {
                         // Não falha se o cache não funcionar
-                        console.warn('Erro ao salvar no cache:', error);
+                        logger.warn('Erro ao salvar no cache', 'storage', error);
                       }
                       resolve(compressedBlob);
                     })

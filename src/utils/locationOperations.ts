@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { logger } from './logger';
 
 export interface Location {
   id?: number;
@@ -25,7 +26,7 @@ export async function getAllLocations(): Promise<Location[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar locais:', error);
+    logger.error('Erro ao buscar locais', 'equipment', error);
     return [];
   }
 }
@@ -44,7 +45,7 @@ export async function getLocationById(localId: string): Promise<Location | null>
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Erro ao buscar local:', error);
+    logger.error('Erro ao buscar local', 'equipment', error);
     return null;
   }
 }
@@ -61,7 +62,7 @@ export async function saveNewLocation(location: Omit<Location, 'id' | 'created_a
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao salvar local:', error);
+    logger.error('Erro ao salvar local', 'equipment', error);
     return false;
   }
 }
@@ -82,7 +83,7 @@ export async function updateLocation(
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao atualizar local:', error);
+    logger.error('Erro ao atualizar local', 'equipment', error);
     return false;
   }
 }
@@ -100,7 +101,7 @@ export async function deleteLocation(localId: string): Promise<boolean> {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao deletar local:', error);
+    logger.error('Erro ao deletar local', 'equipment', error);
     return false;
   }
 }

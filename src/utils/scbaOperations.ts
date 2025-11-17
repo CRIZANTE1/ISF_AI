@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { logger } from './logger';
 
 export interface SCBA {
   id?: number;
@@ -65,12 +66,12 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
         type: 'scba',
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar SCBA:', error);
+    logger.error('Erro ao salvar SCBA', 'equipment', error);
     throw error;
   }
 }
@@ -88,7 +89,7 @@ export async function getAllSCBAs(): Promise<SCBA[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar SCBAs:', error);
+    logger.error('Erro ao buscar SCBAs', 'equipment', error);
     return [];
   }
 }
@@ -107,7 +108,7 @@ export async function getSCBABySerial(serialNumber: string): Promise<SCBA | null
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Erro ao buscar SCBA:', error);
+    logger.error('Erro ao buscar SCBA', 'equipment', error);
     return null;
   }
 }
@@ -134,12 +135,12 @@ export async function saveSCBAVisualInspection(
         status: inspection.status_geral,
       });
     } catch (logError) {
-      console.error('Failed to log action:', logError);
+      logger.error('Failed to log action', 'equipment', logError);
     }
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar inspeção SCBA:', error);
+    logger.error('Erro ao salvar inspeção SCBA', 'equipment', error);
     return false;
   }
 }
@@ -158,7 +159,7 @@ export async function getSCBAInspections(serialNumber: string): Promise<SCBAInsp
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar inspeções SCBA:', error);
+    logger.error('Erro ao buscar inspeções SCBA', 'equipment', error);
     return [];
   }
 }
@@ -186,7 +187,7 @@ export async function saveSCBAActionLog(
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Erro ao salvar log de ação SCBA:', error);
+    logger.error('Erro ao salvar log de ação SCBA', 'equipment', error);
     return false;
   }
 }

@@ -23,6 +23,7 @@ import {
   Mail,
   Calendar,
 } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 interface SystemSettings {
   maintenance_mode: boolean;
@@ -84,7 +85,7 @@ const AdminSystemSettingsPage = () => {
         });
       }
     } catch (err: any) {
-      console.error('Erro ao carregar configurações:', err);
+      logger.error('Erro ao carregar configurações', 'admin', err);
       setError('Falha ao carregar configurações do sistema.');
       // Fallback to localStorage if database fails
       const saved = localStorage.getItem('system_settings');
@@ -93,7 +94,7 @@ const AdminSystemSettingsPage = () => {
           setSettings(JSON.parse(saved));
         } catch (e) {
           // Use default values if localStorage is invalid
-          console.warn('Erro ao carregar configurações do localStorage, usando valores padrão');
+          logger.warn('Erro ao carregar configurações do localStorage, usando valores padrão', 'admin');
         }
       } else {
         // Show helpful message
@@ -132,7 +133,7 @@ const AdminSystemSettingsPage = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Falha ao salvar configurações.');
-      console.error(err);
+      logger.error('Erro ao salvar configurações', 'admin', err);
       // Fallback to localStorage if database fails
       localStorage.setItem('system_settings', JSON.stringify(settings));
       setSuccess('Configurações salvas localmente (banco de dados indisponível).');

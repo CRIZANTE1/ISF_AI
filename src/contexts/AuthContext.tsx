@@ -63,13 +63,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Use setTimeout to avoid blocking the auth flow
           setTimeout(() => {
             logUserAccess('login', true).catch((error) => {
-              console.error('Failed to log login:', error);
+              logger.error('Failed to log login', 'auth', error);
             });
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           setTimeout(() => {
             logUserAccess('logout', true).catch((error) => {
-              console.error('Failed to log logout:', error);
+              logger.error('Failed to log logout', 'auth', error);
             });
           }, 0);
         }
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (error) {
             // Log error but don't crash the app
             if (error.code !== 'PGRST116') { // PGRST116 means no rows found
-              console.error("Error fetching profile:", {
+              logger.error('Error fetching profile', 'auth', {
                 message: error.message,
                 details: error.details,
                 hint: error.hint,
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } catch (err: any) {
           // Handle network errors or other unexpected errors
-          console.error("Error fetching profile:", {
+          logger.error('Error fetching profile', 'auth', {
             message: err?.message || 'Unknown error',
             details: err?.toString() || '',
             hint: '',
@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     // Log before sign out (non-blocking)
     logUserAccess('logout', true).catch((error) => {
-      console.error('Failed to log logout:', error);
+      logger.error('Failed to log logout', 'auth', error);
     });
     await supabase.auth.signOut();
   };
