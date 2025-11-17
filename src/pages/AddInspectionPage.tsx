@@ -17,6 +17,7 @@ import AlarmChecklist from '../components/checklists/AlarmChecklist';
 import CannonMonitorChecklist from '../components/checklists/CannonMonitorChecklist';
 import ScbaChecklist from '../components/checklists/ScbaChecklist';
 import HoseChecklist from '../components/checklists/HoseChecklist';
+import ChecklistProgress from '../components/ChecklistProgress';
 import { logger } from '../utils/logger';
 import { 
   generateActionPlan, 
@@ -81,6 +82,7 @@ const AddInspectionPage = () => {
   const [checklistResults, setChecklistResults] = useState<Record<string, string>>({});
   const [checklistObservations, setChecklistObservations] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [focusedQuestionId, setFocusedQuestionId] = useState<string | undefined>(undefined);
   const [foamChamberInspectionType, setFoamChamberInspectionType] = useState<'Visual Semestral' | 'Funcional Anual'>('Visual Semestral');
   const [cannonMonitorInspectionType, setCannonMonitorInspectionType] = useState<'Visual' | 'Funcional'>('Visual');
   
@@ -227,7 +229,7 @@ const AddInspectionPage = () => {
               equipmentData = {
                 id: multigasData.id_equipamento,
                 name: multigasData.id_equipamento,
-                location: multigasData.localizacao,
+                location: (multigasData as any).localizacao,
                 marca: multigasData.marca,
                 modelo: multigasData.modelo,
                 numero_serie: multigasData.numero_serie,
@@ -781,6 +783,173 @@ const AddInspectionPage = () => {
   const isMultigasEquipment = type === 'multigas';
   const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
 
+  // Calcula estatísticas do checklist para o componente de progresso
+  const getChecklistStats = () => {
+    if (!hasChecklist) return { total: 0, answered: 0, nonConformities: 0 };
+    
+    let allQuestions: string[] = [];
+    
+    switch (type) {
+      case 'chuveiro_lavaolhos':
+        Object.values(EYEWASH_CHECKLIST).forEach(questions => {
+          allQuestions = [...allQuestions, ...questions];
+        });
+        break;
+      case 'camara_espuma':
+        if (equipment?.model && FOAM_CHAMBER_CHECKLIST[equipment.model]) {
+          const checklist = FOAM_CHAMBER_CHECKLIST[equipment.model];
+          const sections = foamChamberInspectionType === 'Visual Semestral'
+            ? Object.keys(checklist).filter(s => s !== 'Teste Funcional')
+            : Object.keys(checklist);
+          sections.forEach(section => {
+            allQuestions = [...allQuestions, ...checklist[section]];
+          });
+        }
+        break;
+      case 'alarme':
+        Object.values(ALARM_CHECKLIST).forEach(questions => {
+          allQuestions = [...allQuestions, ...questions];
+        });
+        break;
+      case 'canhao_monitor':
+        const checklist = cannonMonitorInspectionType === 'Visual'
+          ? CANNON_MONITOR_CHECKLIST_VISUAL
+          : CANNON_MONITOR_CHECKLIST_FUNCIONAL;
+        Object.values(checklist).forEach(questions => {
+          allQuestions = [...allQuestions, ...questions];
+        });
+        break;
+      case 'mangueira':
+        Object.values(HOSE_CHECKLIST).forEach(questions => {
+          allQuestions = [...allQuestions, ...questions];
+        });
+        break;
+      case 'scba':
+        // SCBA tem estrutura diferente, conta manualmente
+        allQuestions = [
+          'Testes Funcionais.Estanqueidade Alta Pressão',
+          'Testes Funcionais.Alarme de Baixa Pressão',
+          'Testes Funcionais.Vedação da Máscara',
+          'Cilindro.Integridade Cilindro',
+          'Cilindro.Registro e Valvulas',
+          'Cilindro.Manômetro do Cilindro',
+          'Cilindro.Pressão Manômetro',
+          'Cilindro.Mangueiras e Conexões',
+          'Cilindro.Correias/ Tirantes e Alças',
+          'Mascara.Integridade da Máscara',
+          'Mascara.Visor ou Lente',
+          'Mascara.Borrachas de Vedação',
+          'Mascara.Conector da válvula de Inalação',
+          'Mascara.Correias/ Tirantes',
+          'Mascara.Fivelas e Alças',
+          'Mascara.Válvula de Exalação',
+        ];
+        break;
+    }
+    
+    const total = allQuestions.length;
+    const answered = allQuestions.filter(q => checklistResults[q]).length;
+    const nonConformitiesCount = allQuestions.filter(q => {
+      const value = checklistResults[q];
+      return value === 'Não Conforme' || value === 'Reprovado' || value === 'N/C';
+    }).length;
+    
+    return { total, answered, nonConformities: nonConformitiesCount };
+  };
+
+  const checklistStats = getChecklistStats();
+
+  // Encontra o próximo item não respondido e faz scroll
+  useEffect(() => {
+    if (!hasChecklist || checklistStats.answered === checklistStats.total) {
+      setFocusedQuestionId(undefined);
+      return;
+    }
+
+    // Encontra a primeira pergunta não respondida
+    let allQuestions: Array<{ question: string; id: string; section: string }> = [];
+    
+    const buildQuestionList = () => {
+      switch (type) {
+        case 'chuveiro_lavaolhos':
+          Object.entries(EYEWASH_CHECKLIST).forEach(([section, questions]) => {
+            questions.forEach((question, index) => {
+              allQuestions.push({
+                question,
+                id: `checklist-${section}-${index}`,
+                section
+              });
+            });
+          });
+          break;
+        case 'camara_espuma':
+          if (equipment?.model && FOAM_CHAMBER_CHECKLIST[equipment.model]) {
+            const checklist = FOAM_CHAMBER_CHECKLIST[equipment.model];
+            const sections = foamChamberInspectionType === 'Visual Semestral'
+              ? Object.keys(checklist).filter(s => s !== 'Teste Funcional')
+              : Object.keys(checklist);
+            sections.forEach(section => {
+              checklist[section].forEach((question, index) => {
+                allQuestions.push({
+                  question,
+                  id: `checklist-${section}-${index}`,
+                  section
+                });
+              });
+            });
+          }
+          break;
+        case 'alarme':
+          Object.entries(ALARM_CHECKLIST).forEach(([section, questions]) => {
+            questions.forEach((question, index) => {
+              allQuestions.push({
+                question,
+                id: `checklist-${section}-${index}`,
+                section
+              });
+            });
+          });
+          break;
+        case 'canhao_monitor':
+          const checklist = cannonMonitorInspectionType === 'Visual'
+            ? CANNON_MONITOR_CHECKLIST_VISUAL
+            : CANNON_MONITOR_CHECKLIST_FUNCIONAL;
+          Object.entries(checklist).forEach(([section, questions]) => {
+            questions.forEach((question, index) => {
+              allQuestions.push({
+                question,
+                id: `checklist-${section}-${index}`,
+                section
+              });
+            });
+          });
+          break;
+        case 'mangueira':
+          Object.entries(HOSE_CHECKLIST).forEach(([section, questions]) => {
+            questions.forEach((question, index) => {
+              allQuestions.push({
+                question,
+                id: `checklist-${section}-${index}`,
+                section
+              });
+            });
+          });
+          break;
+      }
+    };
+
+    buildQuestionList();
+
+    // Encontra a primeira pergunta não respondida
+    const unansweredQuestion = allQuestions.find(q => !checklistResults[q.question]);
+    
+    if (unansweredQuestion) {
+      setFocusedQuestionId(unansweredQuestion.id);
+    } else {
+      setFocusedQuestionId(undefined);
+    }
+  }, [checklistResults, type, equipment, foamChamberInspectionType, cannonMonitorInspectionType, hasChecklist, checklistStats.answered, checklistStats.total]);
+
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title={t('inspection.register')} />
@@ -1279,10 +1448,20 @@ const AddInspectionPage = () => {
                 {t('inspection.checklistTitle')}
               </h3>
 
+              {/* Indicador de progresso */}
+              {checklistStats.total > 0 && (
+                <ChecklistProgress
+                  total={checklistStats.total}
+                  answered={checklistStats.answered}
+                  nonConformities={checklistStats.nonConformities}
+                />
+              )}
+
               {type === 'chuveiro_lavaolhos' && (
                 <EyewashChecklist
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
+                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1292,6 +1471,7 @@ const AddInspectionPage = () => {
                   inspectionType={foamChamberInspectionType}
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
+                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1299,6 +1479,7 @@ const AddInspectionPage = () => {
                 <AlarmChecklist
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
+                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1307,6 +1488,7 @@ const AddInspectionPage = () => {
                   inspectionType={cannonMonitorInspectionType}
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
+                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1328,6 +1510,7 @@ const AddInspectionPage = () => {
                 <HoseChecklist
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
+                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
