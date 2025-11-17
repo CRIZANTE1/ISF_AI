@@ -64,26 +64,54 @@ async function generateIcons() {
         console.log(`📁 Gerando ícones para mipmap-${density}...`);
 
         try {
-            // Ícone launcher padrão - mantém proporção e espaço em branco original
+            // Reduzir o tamanho para ampliar menos (67% do tamanho original)
+            const launcherSize = Math.round(sizes.launcher * 0.67);
+            const foregroundSize = Math.round(sizes.foreground * 0.67);
+
+            // Ícone launcher padrão - amplia menos, mantém mais espaço em branco
             await sharp(sourceIcon)
-                .resize(sizes.launcher, sizes.launcher, { 
+                .resize(launcherSize, launcherSize, { 
                     fit: 'contain',
+                    background: { r: 0, g: 0, b: 0, alpha: 0 },
+                    withoutEnlargement: true
+                })
+                .extend({
+                    top: Math.round((sizes.launcher - launcherSize) / 2),
+                    bottom: Math.round((sizes.launcher - launcherSize) / 2),
+                    left: Math.round((sizes.launcher - launcherSize) / 2),
+                    right: Math.round((sizes.launcher - launcherSize) / 2),
                     background: { r: 0, g: 0, b: 0, alpha: 0 }
                 })
                 .toFile(path.join(mipmapDir, 'ic_launcher.png'));
 
             // Ícone launcher round - mesmo tamanho
             await sharp(sourceIcon)
-                .resize(sizes.launcher, sizes.launcher, { 
+                .resize(launcherSize, launcherSize, { 
                     fit: 'contain',
+                    background: { r: 0, g: 0, b: 0, alpha: 0 },
+                    withoutEnlargement: true
+                })
+                .extend({
+                    top: Math.round((sizes.launcher - launcherSize) / 2),
+                    bottom: Math.round((sizes.launcher - launcherSize) / 2),
+                    left: Math.round((sizes.launcher - launcherSize) / 2),
+                    right: Math.round((sizes.launcher - launcherSize) / 2),
                     background: { r: 0, g: 0, b: 0, alpha: 0 }
                 })
                 .toFile(path.join(mipmapDir, 'ic_launcher_round.png'));
 
-            // Ícone foreground (para adaptive icon) - mantém proporção e espaço em branco original
+            // Ícone foreground (para adaptive icon) - amplia menos, mantém mais espaço em branco
             await sharp(sourceIcon)
-                .resize(sizes.foreground, sizes.foreground, { 
+                .resize(foregroundSize, foregroundSize, { 
                     fit: 'contain',
+                    background: { r: 0, g: 0, b: 0, alpha: 0 },
+                    withoutEnlargement: true
+                })
+                .extend({
+                    top: Math.round((sizes.foreground - foregroundSize) / 2),
+                    bottom: Math.round((sizes.foreground - foregroundSize) / 2),
+                    left: Math.round((sizes.foreground - foregroundSize) / 2),
+                    right: Math.round((sizes.foreground - foregroundSize) / 2),
                     background: { r: 0, g: 0, b: 0, alpha: 0 }
                 })
                 .toFile(path.join(mipmapDir, 'ic_launcher_foreground.png'));
