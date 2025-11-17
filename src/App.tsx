@@ -21,6 +21,9 @@ import AdminSystemSettingsPage from './pages/AdminSystemSettingsPage';
 import AdminSecurityAuditPage from './pages/AdminSecurityAuditPage';
 import AdminSecurityPoliciesPage from './pages/AdminSecurityPoliciesPage';
 import EquipmentMap from './pages/EquipmentMap';
+import QrInspectionPage from './pages/QrInspectionPage';
+import QrGeneratorPage from './pages/QrGeneratorPage';
+import AdminUtilities from './pages/AdminUtilities';
 
 function App() {
   return (
@@ -37,6 +40,7 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="inspections" element={<Inspections />} />
         <Route path="inspections/:type" element={<EquipmentListPage />} />
+        <Route path="inspections/:type/qr" element={<QrInspectionPage />} />
         <Route path="inspections/:type/new" element={<AddEquipmentPage />} />
         <Route path="equipment/:type/:id" element={<EquipmentDetailPage />} />
         <Route path="equipment/:type/:id/edit" element={<EditEquipmentPage />} />
@@ -47,16 +51,18 @@ function App() {
         <Route path="profile/settings" element={<SettingsPage />} />
         <Route path="history" element={<History />} />
         <Route path="map" element={<EquipmentMap />} />
+        <Route path="utilities" element={<Utilities />} />
+        <Route path="utilities/qr-generator" element={<QrGeneratorPage />} />
         <Route 
-          path="utilities" 
+          path="admin/utilities" 
           element={
             <AdminRoute>
-              <Utilities />
+              <AdminUtilities />
             </AdminRoute>
           } 
         />
         <Route 
-          path="utilities/users" 
+          path="admin/utilities/users" 
           element={
             <AdminRoute>
               <AdminUsersPage />
@@ -64,7 +70,7 @@ function App() {
           } 
         />
         <Route 
-          path="utilities/system-settings" 
+          path="admin/utilities/system-settings" 
           element={
             <AdminRoute>
               <AdminSystemSettingsPage />
@@ -72,7 +78,7 @@ function App() {
           } 
         />
         <Route 
-          path="utilities/security-audit" 
+          path="admin/utilities/security-audit"
           element={
             <AdminRoute>
               <AdminSecurityAuditPage />
@@ -80,7 +86,7 @@ function App() {
           } 
         />
         <Route 
-          path="utilities/security-policies" 
+          path="admin/utilities/security-policies" 
           element={
             <AdminRoute>
               <AdminSecurityPoliciesPage />

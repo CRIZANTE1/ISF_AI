@@ -7,8 +7,9 @@ import PageHeader from '../components/PageHeader';
 import FloatingActionButton from '../components/FloatingActionButton';
 import Skeleton from '../components/Skeleton';
 import InstructionsPanel from '../components/InstructionsPanel';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, QrCode } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useNavigate } from 'react-router-dom';
 
 type EquipmentItem = {
   id: number | string;
@@ -25,6 +26,7 @@ type EquipmentItem = {
 
 const EquipmentListPage = () => {
   const { type } = useParams<{ type: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { getEquipmentByType, cache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
@@ -57,6 +59,26 @@ const EquipmentListPage = () => {
       <PageHeader title={equipmentTypeName} />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
         {type && <InstructionsPanel equipmentType={type} />}
+        {type === 'extintor' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4"
+          >
+            <button
+              onClick={() => navigate(`/inspections/${type}/qr`)}
+              className="w-full p-4 rounded-lg border-2 border-dashed flex items-center justify-center space-x-3 hover:border-white/50 transition-colors"
+              style={{ 
+                backgroundColor: 'rgba(26, 26, 26, 0.95)', 
+                borderColor: '#2A2A2A',
+                color: '#FFFFFF'
+              }}
+            >
+              <QrCode size={24} />
+              <span className="font-semibold">Inspeção Rápida por QR Code</span>
+            </button>
+          </motion.div>
+        )}
         {loading && (
           <div className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
             <Skeleton className="h-16 w-full rounded-lg" />

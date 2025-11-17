@@ -11,7 +11,23 @@ export default defineConfig({
   },
   
   optimizeDeps: {
-    exclude: ['lucide-react', '@capacitor/core', '@capacitor/push-notifications'],
+    exclude: [
+      'lucide-react', 
+      '@capacitor/core', 
+      '@capacitor/push-notifications',
+      '@capacitor/filesystem', // Plugin opcional
+      '@capacitor/share', // Plugin opcional
+    ],
     include: ['three', '@react-three/fiber'],
+  },
+  
+  // Permite imports dinâmicos de módulos opcionais
+  build: {
+    rollupOptions: {
+      external: (id) => {
+        // Não externaliza, mas permite que falhe silenciosamente
+        return false;
+      },
+    },
   },
 });

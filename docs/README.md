@@ -15,14 +15,35 @@ O ISF IA é um aplicativo Android desenvolvido para facilitar o gerenciamento de
   - Mangueiras e Abrigos
   - Câmaras de Espuma
   - Canhões Monitores
+  - Chuveiros/Lava-olhos
+  - Sistemas de Alarme
 - 🛡️ **Gestão de Equipamentos de Segurança**:
   - Medidores Multigás
   - Conjuntos Autônomos (SCBA)
+  - Abrigos de Emergência
 - ✅ **Sistema de Inspeções**: Cadastro e acompanhamento de inspeções periódicas
+- 📱 **Inspeção por QR Code**: 
+  - Leitura de QR Code com câmera
+  - Suporte a formato industrial (`2#7036#EXT#008851#47#31`)
+  - Suporte a formato simples (apenas número do cilindro)
+  - Parsing automático do número do cilindro
+- 🎯 **Gerador de QR Codes**:
+  - Geração de QR Codes no formato industrial
+  - Seleção múltipla de extintores cadastrados
+  - Modo manual para texto simples
+  - Download individual ou em lote
+  - Funciona offline (biblioteca local)
 - 📝 **Histórico**: Acompanhamento do histórico de inspeções e manutenções
+- 🗺️ **Mapa de Equipamentos**: Visualização geográfica dos equipamentos
 - 👤 **Perfis de Usuário**: Suporte a perfis de usuário e administrador
-- 🎨 **Interface Moderna**: Design otimizado para Android com suporte a tema claro/escuro
+- 🛠️ **Utilitários Administrativos** (apenas admin):
+  - Gestão de Usuários
+  - Configurações do Sistema
+  - Segurança e Auditoria
+  - Políticas de Segurança
+- 🎨 **Interface Moderna**: Design otimizado para Android com suporte a tema escuro
 - 📱 **Nativo Android**: Aplicativo nativo com experiência otimizada para dispositivos móveis
+- 🌐 **Modo Offline**: Sincronização automática quando a conexão é restaurada
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -30,12 +51,21 @@ O ISF IA é um aplicativo Android desenvolvido para facilitar o gerenciamento de
 - **React 18.2.0** - Biblioteca JavaScript para construção de interfaces
 - **TypeScript 5.2.2** - Superset JavaScript com tipagem estática
 - **React Router DOM 6.23.1** - Roteamento para aplicações React
-- **Vite 5.0** - Build tool e dev server
+- **Vite 7.2.2** - Build tool e dev server
 - **Tailwind CSS 3.4.3** - Framework CSS utility-first otimizado para mobile
 - **Framer Motion 12.23.24** - Biblioteca de animações
 - **React Hook Form 7.51.5** - Gerenciamento de formulários
 - **Lucide React 0.395.0** - Ícones SVG
 - **date-fns 3.6.0** - Biblioteca para manipulação de datas
+- **Capacitor 6.0.0** - Framework para apps nativos
+  - **@capacitor/android** - Plataforma Android
+  - **@capacitor/geolocation** - Geolocalização
+  - **@capacitor/filesystem** - Sistema de arquivos (opcional)
+  - **@capacitor/share** - Compartilhamento nativo (opcional)
+- **html5-qrcode 2.3.8** - Scanner de QR Code
+- **qrcode.react 4.2.0** - Gerador de QR Code
+- **Leaflet 1.9.4** - Mapas interativos
+- **Three.js 0.169.0** - Gráficos 3D
 
 ### Backend
 - **Supabase** - Backend como serviço (BaaS)
@@ -72,6 +102,11 @@ cd ISFIA_ANDROID
 npm install
 # ou
 yarn install
+```
+
+**Nota**: Se houver conflitos de dependências com plugins opcionais do Capacitor, use:
+```bash
+npm install --legacy-peer-deps
 ```
 
 3. **Configure as variáveis de ambiente**
@@ -123,6 +158,22 @@ Visualiza a build de produção localmente no navegador.
 Executa o ESLint para verificar problemas no código.
 
 ### Desenvolvimento Android
+
+### `npm run cap:sync`
+Sincroniza o build web com o projeto Android nativo. Execute após `npm run build`.
+
+### `npm run cap:open`
+Abre o projeto Android no Android Studio.
+
+### `npm run android:build`
+Compila e sincroniza o projeto Android.
+
+### `npm run android:build:apk`
+Gera APK de release para instalação manual.
+
+### `npm run android:build:release`
+Gera bundle (AAB) de release para Google Play Store.
+
 ### Compilar APK/AAB
 Após executar `npm run build`, você pode compilar o app Android usando:
 - **Android Studio**: Abra o projeto Android (se configurado) e clique em "Build > Build Bundle(s) / APK(s)"
@@ -148,11 +199,18 @@ ISFIA_ANDROID/
 │   │   ├── Inspections.tsx
 │   │   ├── EquipmentListPage.tsx
 │   │   ├── AddEquipmentPage.tsx
+│   │   ├── QrInspectionPage.tsx  # Inspeção por QR Code
+│   │   ├── QrGeneratorPage.tsx   # Gerador de QR Codes
+│   │   ├── Utilities.tsx          # Utilitários públicos
+│   │   ├── AdminUtilities.tsx     # Utilitários admin
 │   │   └── ...
 │   ├── types/              # Definições TypeScript
 │   │   └── supabase.ts     # Tipos do Supabase
 │   ├── utils/              # Funções utilitárias
-│   │   └── extinguisherOperations.ts
+│   │   ├── extinguisherOperations.ts
+│   │   ├── qrInspectionUtils.ts  # Utilitários de QR Code
+│   │   ├── offlineOperations.ts  # Operações offline
+│   │   └── ...
 │   ├── App.tsx             # Componente principal
 │   └── main.tsx            # Ponto de entrada
 ├── supabase/
@@ -183,6 +241,22 @@ ISFIA_ANDROID/
 - Registro de observações
 - Acompanhamento de status (OK, Vencido, Pendente)
 - Histórico completo de inspeções
+- **Inspeção Rápida por QR Code**:
+  - Scanner de QR Code com câmera
+  - Suporte a múltiplos formatos (industrial e simples)
+  - Busca automática do equipamento
+  - Redirecionamento direto para inspeção
+
+### Gerador de QR Codes
+- **Modo Integrado**: Seleciona extintores cadastrados e gera QR Codes no formato industrial
+- **Modo Manual**: Gera QR Codes a partir de texto simples
+- **Formato Industrial**: `2#7036#EXT#008851#47#31` (compatível com leitura)
+- **Download**: PNG individual ou em lote
+- **Funciona Offline**: Usa biblioteca local para geração
+
+### Utilitários
+- **Público** (`/utilities`): Gerador de QR Codes (acessível a todos)
+- **Administrativo** (`/admin/utilities`): Gestão de usuários, configurações e segurança (apenas admin)
 
 ### Perfil de Usuário
 - Visualização e edição de dados pessoais
@@ -304,10 +378,15 @@ Acesse `http://localhost:5173` no navegador para testar a interface antes de com
 
 ## 📱 Requisitos do Dispositivo
 
-- **Android**: Versão 7.0 (API 24) ou superior
+- **Android**: Versão 7.0 (API 24) ou superior (recomendado: Android 10+)
 - **RAM**: Mínimo 2GB recomendado
 - **Espaço**: Mínimo 50MB de armazenamento
 - **Conexão**: Internet necessária para sincronização com Supabase
+- **Câmera**: Necessária para leitura de QR Codes (opcional)
+- **Permissões**:
+  - Localização (para geolocalização de equipamentos)
+  - Câmera (para scanner de QR Code)
+  - Armazenamento (para download de QR Codes)
 
 ## 🐛 Solução de Problemas
 
@@ -320,6 +399,7 @@ Acesse `http://localhost:5173` no navegador para testar a interface antes de com
 
 **Erro ao compilar**
 - Certifique-se de que todas as dependências estão instaladas: `npm install`
+- Se houver conflitos de dependências, use: `npm install --legacy-peer-deps`
 - Verifique se o Android SDK está configurado corretamente
 - Limpe o cache do Gradle: `./gradlew clean`
 
@@ -328,7 +408,34 @@ Acesse `http://localhost:5173` no navegador para testar a interface antes de com
 - Confirme que o build foi assinado corretamente
 - Verifique as permissões do app no AndroidManifest.xml
 
+**QR Code não funciona**
+- Verifique se a permissão de câmera foi concedida
+- Teste primeiro no navegador para verificar se a biblioteca está funcionando
+- No Android, certifique-se de que o Capacitor está sincronizado: `npm run cap:sync`
+
+**Gerador de QR Code não baixa arquivos no Android**
+- Instale os plugins opcionais: `npm install @capacitor/filesystem@6.0.0 @capacitor/share@6.0.0 --legacy-peer-deps`
+- Execute `npm run cap:sync` após instalar
+- O gerador funciona sem os plugins, mas usa método web (download tradicional)
+
+## 📚 Documentação Adicional
+
+- [Configuração do Capacitor](./CAPACITOR_SETUP.md)
+- [Configuração do Supabase](./CONFIGURAR_SUPABASE.md)
+- [Setup de Geolocalização](./GEOLOCALIZACAO_SETUP.md)
+- [Gerador de QR Code para Android](./QR_GENERATOR_ANDROID_SETUP.md)
+- [Requisitos do Projeto](./REQUIREMENTS.md)
+
+## 🆕 Novidades
+
+### Versão Atual
+- ✅ **Inspeção por QR Code**: Leitura rápida de QR Codes com câmera
+- ✅ **Gerador de QR Codes**: Geração de etiquetas no formato industrial
+- ✅ **Reorganização de Utilitários**: Separação entre utilitários públicos e administrativos
+- ✅ **Suporte Offline**: Geração de QR Codes funciona sem internet
+- ✅ **Compatibilidade Android**: Integração nativa com Capacitor
+
 ---
 
-Desenvolvido com ❤️ usando React, TypeScript, Vite e Supabase para Android
+Desenvolvido com ❤️ usando React, TypeScript, Vite, Capacitor e Supabase para Android
 

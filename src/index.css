@@ -462,3 +462,41 @@ svg {
 
 /* Variáveis CSS disponíveis para uso em componentes */
 /* As variáveis definidas acima podem ser usadas diretamente com var() */
+
+/* Estilos para o Scanner de QR Code (html5-qrcode) */
+#qr-reader {
+  width: 100% !important;
+  min-height: 300px;
+}
+
+#qr-reader__dashboard {
+  display: none !important; /* Oculta controles padrão do html5-qrcode */
+}
+
+#qr-reader__scan_region {
+  border: 2px solid rgba(252, 61, 57, 0.5) !important;
+  border-radius: 8px;
+}
+
+#qr-reader__scan_region video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Overlay de foco do scanner */
+#qr-reader__camera_selection {
+  display: none !important;
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+  #qr-reader {
+    min-height: 400px;
+  }
+  
+  #qr-reader__scan_region {
+    border-width: 3px;
+  }
+}

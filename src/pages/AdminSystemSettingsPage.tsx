@@ -446,7 +446,7 @@ const AdminSystemSettingsPage = () => {
               <RefreshCw size={20} />
             </button>
             <button
-              onClick={() => navigate('/utilities')}
+              onClick={() => navigate('/admin/utilities')}
               className="px-6 py-4 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
             >
               Voltar
