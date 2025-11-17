@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { supabase } from '../lib/supabase';
@@ -48,6 +48,38 @@ const Profile = () => {
     }
   }, [profile, reset]);
 
+  // Memoizar equipamentos filtrados para evitar recálculos desnecessários
+  const filteredEquipment = useMemo(() => {
+    if (!user) return [];
+    return getAllEquipment().filter(
+      (eq: any) => !eq.user_id || eq.user_id === user.id
+    );
+  }, [user, getAllEquipment]);
+
+  // Memoizar cálculo de alertas ativos
+  const activeAlertsCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let count = 0;
+    filteredEquipment.forEach((eq: any) => {
+      const nextInspection = eq.proxima_inspecao || eq.data_proxima_inspecao || eq.data_proximo_teste;
+      if (nextInspection) {
+        try {
+          const inspectionDate = new Date(nextInspection);
+          inspectionDate.setHours(0, 0, 0, 0);
+          if (inspectionDate < today) {
+            count++;
+          }
+        } catch (e) {
+          // Ignorar erros de parsing de data
+          logger.warn('Erro ao processar data de inspeção', 'profile', e);
+        }
+      }
+    });
+    return count;
+  }, [filteredEquipment]);
+
   // Busca estatísticas do usuário
   useEffect(() => {
     const fetchStats = async () => {
@@ -57,21 +89,28 @@ const Profile = () => {
       }
       setLoadingStats(true);
       try {
-        // Usar dados do cache em vez de fazer novas chamadas
-        const allEquipment = getAllEquipment().filter(
-          (eq: any) => !eq.user_id || eq.user_id === user.id
-        );
+        // Otimização: Usar uma única query com UNION ou contar de forma mais eficiente
+        // Como o Supabase não suporta UNION diretamente, fazemos queries paralelas mas otimizadas
+        // Usando apenas count sem retornar dados (head: true) já é otimizado
+        const inspectionTables = [
+          'inspecoes_scba',
+          'inspecoes_multigas',
+          'inspecoes_camaras_espuma',
+          'inspecoes_canhoes_monitores',
+          'inspecoes_chuveiros_lava_olhos',
+          'inspecoes_alarmes',
+          'inspecoes_abrigos',
+        ];
 
-        // Contar inspeções de todas as tabelas especializadas
-        const inspectionCounts = await Promise.all([
-          supabase.from('inspecoes_scba').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('inspecoes_multigas').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('inspecoes_camaras_espuma').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('inspecoes_canhoes_monitores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('inspecoes_chuveiros_lava_olhos').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('inspecoes_alarmes').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('inspecoes_abrigos').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        ]);
+        // Executar todas as queries em paralelo de forma otimizada
+        const inspectionCounts = await Promise.all(
+          inspectionTables.map(table =>
+            supabase
+              .from(table)
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', user.id)
+          )
+        );
 
         // Somar todas as inspeções (ignorar erros nas consultas)
         const totalInspections = inspectionCounts.reduce((sum, result) => {
@@ -82,31 +121,10 @@ const Profile = () => {
           return sum + (result.count || 0);
         }, 0);
 
-        // Contar alertas (equipamentos com próxima inspeção vencida)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        let activeAlerts = 0;
-        allEquipment.forEach((eq: any) => {
-          const nextInspection = eq.proxima_inspecao || eq.data_proxima_inspecao || eq.data_proximo_teste;
-          if (nextInspection) {
-            try {
-              const inspectionDate = new Date(nextInspection);
-              inspectionDate.setHours(0, 0, 0, 0);
-              if (inspectionDate < today) {
-                activeAlerts++;
-              }
-            } catch (e) {
-              // Ignorar erros de parsing de data
-              logger.warn('Erro ao processar data de inspeção', 'profile', e);
-            }
-          }
-        });
-
         setStats({
-          totalEquipment: allEquipment.length,
+          totalEquipment: filteredEquipment.length,
           totalInspections,
-          activeAlerts,
+          activeAlerts: activeAlertsCount,
         });
       } catch (err: any) {
         logger.error('Erro ao buscar estatísticas', 'profile', err);
@@ -122,7 +140,7 @@ const Profile = () => {
     };
 
     fetchStats();
-  }, [user, getAllEquipment]);
+  }, [user, filteredEquipment.length, activeAlertsCount]);
 
   const getPlanBadge = (plan: 'trial' | 'premium' | undefined) => {
     switch (plan) {

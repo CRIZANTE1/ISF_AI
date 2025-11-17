@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import DashboardHeader from '../components/DashboardHeader';
@@ -27,6 +27,22 @@ const Dashboard = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
+  // Memoizar equipamentos filtrados
+  const filteredEquipment = useMemo(() => {
+    if (!user) return [];
+    return getAllEquipment().filter(
+      (eq: any) => !eq.user_id || eq.user_id === user.id
+    );
+  }, [user, getAllEquipment]);
+
+  // Memoizar cálculo de estatísticas
+  const calculatedStats = useMemo(() => {
+    if (!filteredEquipment.length) {
+      return { total: 0, ok: 0, vencido: 0, pendente: 0 };
+    }
+    return calculateEquipmentStats(filteredEquipment);
+  }, [filteredEquipment]);
+
   useEffect(() => {
     const fetchStats = async () => {
       if (!user) return;
@@ -39,14 +55,6 @@ const Dashboard = () => {
       setLoadingStats(true);
 
       try {
-        // Usar dados do cache em vez de fazer novas chamadas
-        const allEquipment = getAllEquipment().filter(
-          (eq: any) => !eq.user_id || eq.user_id === user.id
-        );
-
-        // Calcular estatísticas baseado nas datas de validade/inspeção
-        const calculatedStats = calculateEquipmentStats(allEquipment);
-
         setStats(calculatedStats);
       } catch (err: any) {
         handleError(err, 'equipment', 'Erro ao buscar estatísticas de equipamentos');
@@ -58,7 +66,7 @@ const Dashboard = () => {
     if (user) {
       fetchStats();
     }
-  }, [user, getAllEquipment, cache.isLoading, isStale, refreshCache]);
+  }, [user, calculatedStats, cache.isLoading, isStale, refreshCache, handleError]);
 
   const isLoading = authLoading || loadingStats;
 
@@ -116,4 +124,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

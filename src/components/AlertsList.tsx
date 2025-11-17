@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import Skeleton from './Skeleton';
 import { AlertTriangle } from 'lucide-react';
@@ -20,103 +20,113 @@ interface AlertsListProps {
 }
 
 const AlertsList = ({ userId }: AlertsListProps) => {
-  const { getAllEquipment, cache } = useEquipmentCache();
+  const { cache } = useEquipmentCache();
   const { t } = useTranslation();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      if (!userId) return;
-      setLoading(true);
+  // Memoizar função de verificação de equipamento
+  const checkEquipment = useCallback((
+    equipmentList: any[],
+    type: string,
+    idField: string,
+    statusField?: string,
+    nextInspectionField?: string
+  ) => {
+    const allAlerts: Alert[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-      try {
-        const allAlerts: Alert[] = [];
+    equipmentList
+      .filter((eq: any) => !eq.user_id || eq.user_id === userId)
+      .forEach((eq: any) => {
+        const id = eq[idField] || eq.id || String(eq.id);
+        const status = eq[statusField || 'status'] || 'ok';
+        const nextInspection = eq[nextInspectionField || 'proxima_inspecao'] || eq.data_proxima_inspecao;
 
-        // Usar dados do cache em vez de fazer novas chamadas
-        const extinguishers = cache.extinguishers;
-        const hoses = cache.hoses;
-        const scbas = cache.scbas;
-        const multigasDetectors = cache.multigasDetectors;
-        const foamChambers = cache.foamChambers;
-        const cannonMonitors = cache.cannonMonitors;
-        const eyewashStations = cache.eyewashStations;
-        const alarmSystems = cache.alarmSystems;
-        const shelters = cache.shelters;
+        // Verificar se está vencido (próxima inspeção no passado)
+        if (nextInspection) {
+          const inspectionDate = new Date(nextInspection);
+          inspectionDate.setHours(0, 0, 0, 0);
 
-        // Filtrar por user_id e identificar alertas
-        const checkEquipment = (
-          equipmentList: any[],
-          type: string,
-          idField: string,
-          statusField?: string,
-          nextInspectionField?: string
-        ) => {
-          equipmentList
-            .filter((eq: any) => !eq.user_id || eq.user_id === userId)
-            .forEach((eq: any) => {
-              const id = eq[idField] || eq.id || String(eq.id);
-              const status = eq[statusField || 'status'] || 'ok';
-              const nextInspection = eq[nextInspectionField || 'proxima_inspecao'] || eq.data_proxima_inspecao;
-
-              // Verificar se está vencido (próxima inspeção no passado)
-              if (nextInspection) {
-                const inspectionDate = new Date(nextInspection);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                if (inspectionDate < today) {
-                  allAlerts.push({
-                    id: `${type}_${id}`,
-                    equipment_id: id,
-                    equipment_type: type,
-                    status: 'vencido',
-                    proxima_inspecao: nextInspection,
-                    message: t('alerts.inspectionExpired', { id, defaultValue: `${id} está com inspeção vencida.` }),
-                  });
-                } else if (status === 'pendente' || status === 'nao_conforme') {
-                  allAlerts.push({
-                    id: `${type}_${id}`,
-                    equipment_id: id,
-                    equipment_type: type,
-                    status: 'pendente',
-                    proxima_inspecao: nextInspection,
-                    message: t('alerts.hasPending', { id, defaultValue: `${id} possui pendências.` }),
-                  });
-                }
-              }
+          if (inspectionDate < today) {
+            allAlerts.push({
+              id: `${type}_${id}`,
+              equipment_id: id,
+              equipment_type: type,
+              status: 'vencido',
+              proxima_inspecao: nextInspection,
+              message: t('alerts.inspectionExpired', { id, defaultValue: `${id} está com inspeção vencida.` }),
             });
-        };
+          } else if (status === 'pendente' || status === 'nao_conforme') {
+            allAlerts.push({
+              id: `${type}_${id}`,
+              equipment_id: id,
+              equipment_type: type,
+              status: 'pendente',
+              proxima_inspecao: nextInspection,
+              message: t('alerts.hasPending', { id, defaultValue: `${id} possui pendências.` }),
+            });
+          }
+        }
+      });
 
-        // Verificar cada tipo de equipamento
-        checkEquipment(extinguishers, 'extintor', 'numero_identificacao', 'status', 'proxima_inspecao');
-        checkEquipment(hoses, 'mangueira', 'id_mangueira', 'resultado', 'data_proximo_teste');
-        checkEquipment(scbas, 'scba', 'numero_serie_equipamento', 'status', 'data_proxima_inspecao');
-        checkEquipment(multigasDetectors, 'multigas', 'id_equipamento', 'status', 'data_proximo_teste');
-        checkEquipment(foamChambers, 'camara_espuma', 'id_camara', 'status', 'data_proxima_inspecao');
-        checkEquipment(cannonMonitors, 'canhao_monitor', 'id_equipamento', 'status', 'data_proxima_inspecao');
-        checkEquipment(eyewashStations, 'chuveiro_lavaolhos', 'id_equipamento', 'status_geral', 'data_proxima_inspecao');
-        checkEquipment(alarmSystems, 'alarme', 'id_sistema', 'status', 'data_proxima_inspecao');
-        checkEquipment(shelters, 'abrigo', 'id_abrigo', 'status', 'data_proxima_inspecao');
+    return allAlerts;
+  }, [userId, t]);
 
-        // Ordenar por data de próxima inspeção (mais antigas primeiro)
-        allAlerts.sort((a, b) => {
-          if (!a.proxima_inspecao) return 1;
-          if (!b.proxima_inspecao) return -1;
-          return new Date(a.proxima_inspecao).getTime() - new Date(b.proxima_inspecao).getTime();
-        });
+  // Memoizar cálculo de alertas
+  const calculatedAlerts = useMemo(() => {
+    if (!userId) return [];
 
-        // Limitar a 5 alertas mais urgentes
-        setAlerts(allAlerts.slice(0, 5));
-      } catch (error) {
-        logger.error('Erro ao buscar alertas', 'equipment', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const allAlerts: Alert[] = [];
 
-    fetchAlerts();
-  }, [userId]);
+    // Usar dados do cache em vez de fazer novas chamadas
+    const extinguishers = cache.extinguishers;
+    const hoses = cache.hoses;
+    const scbas = cache.scbas;
+    const multigasDetectors = cache.multigasDetectors;
+    const foamChambers = cache.foamChambers;
+    const cannonMonitors = cache.cannonMonitors;
+    const eyewashStations = cache.eyewashStations;
+    const alarmSystems = cache.alarmSystems;
+    const shelters = cache.shelters;
+
+    // Verificar cada tipo de equipamento
+    allAlerts.push(...checkEquipment(extinguishers, 'extintor', 'numero_identificacao', 'status', 'proxima_inspecao'));
+    allAlerts.push(...checkEquipment(hoses, 'mangueira', 'id_mangueira', 'resultado', 'data_proximo_teste'));
+    allAlerts.push(...checkEquipment(scbas, 'scba', 'numero_serie_equipamento', 'status', 'data_proxima_inspecao'));
+    allAlerts.push(...checkEquipment(multigasDetectors, 'multigas', 'id_equipamento', 'status', 'data_proximo_teste'));
+    allAlerts.push(...checkEquipment(foamChambers, 'camara_espuma', 'id_camara', 'status', 'data_proxima_inspecao'));
+    allAlerts.push(...checkEquipment(cannonMonitors, 'canhao_monitor', 'id_equipamento', 'status', 'data_proxima_inspecao'));
+    allAlerts.push(...checkEquipment(eyewashStations, 'chuveiro_lavaolhos', 'id_equipamento', 'status_geral', 'data_proxima_inspecao'));
+    allAlerts.push(...checkEquipment(alarmSystems, 'alarme', 'id_sistema', 'status', 'data_proxima_inspecao'));
+    allAlerts.push(...checkEquipment(shelters, 'abrigo', 'id_abrigo', 'status', 'data_proxima_inspecao'));
+
+    // Ordenar por data de próxima inspeção (mais antigas primeiro)
+    allAlerts.sort((a, b) => {
+      if (!a.proxima_inspecao) return 1;
+      if (!b.proxima_inspecao) return -1;
+      return new Date(a.proxima_inspecao).getTime() - new Date(b.proxima_inspecao).getTime();
+    });
+
+    // Limitar a 5 alertas mais urgentes
+    return allAlerts.slice(0, 5);
+  }, [cache, checkEquipment]);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      setAlerts(calculatedAlerts);
+    } catch (error) {
+      logger.error('Erro ao buscar alertas', 'equipment', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, calculatedAlerts]);
 
   return (
     <motion.div 
@@ -142,28 +152,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
         ) : alerts.length > 0 ? (
           <AnimatePresence>
             {alerts.map((alert, index) => (
-              <motion.div
-                key={alert.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.05, ease: [0.4, 0, 0.2, 1] }}
-                whileHover={{ scale: 1.01, y: -2 }}
-                className="fitness-card-translucent cursor-pointer group"
-                style={{ 
-                  backgroundColor: 'rgba(252, 61, 57, 0.4)', 
-                  borderColor: 'rgba(252, 61, 57, 0.3)',
-                  padding: '16px',
-                  boxShadow: '0 2px 8px rgba(252, 61, 57, 0.3)',
-                  backdropFilter: 'blur(20px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                }}
-              >
-                <p className="text-body font-medium flex items-center gap-3" style={{ color: '#FC3D39' }}>
-                  <AlertTriangle size={18} strokeWidth={2} style={{ color: '#FC3D39' }} />
-                  {alert.message}
-                </p>
-              </motion.div>
+              <AlertItem key={alert.id} alert={alert} index={index} />
             ))}
           </AnimatePresence>
         ) : (
@@ -190,4 +179,32 @@ const AlertsList = ({ userId }: AlertsListProps) => {
   );
 };
 
-export default AlertsList;
+// Componente memoizado para item de alerta
+const AlertItem = memo(({ alert, index }: { alert: Alert; index: number }) => (
+  <motion.div
+    key={alert.id}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ delay: index * 0.05, ease: [0.4, 0, 0.2, 1] }}
+    whileHover={{ scale: 1.01, y: -2 }}
+    className="fitness-card-translucent cursor-pointer group"
+    style={{ 
+      backgroundColor: 'rgba(252, 61, 57, 0.4)', 
+      borderColor: 'rgba(252, 61, 57, 0.3)',
+      padding: '16px',
+      boxShadow: '0 2px 8px rgba(252, 61, 57, 0.3)',
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    }}
+  >
+    <p className="text-body font-medium flex items-center gap-3" style={{ color: '#FC3D39' }}>
+      <AlertTriangle size={18} strokeWidth={2} style={{ color: '#FC3D39' }} />
+      {alert.message}
+    </p>
+  </motion.div>
+));
+
+AlertItem.displayName = 'AlertItem';
+
+export default memo(AlertsList);

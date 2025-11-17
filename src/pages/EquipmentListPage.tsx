@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,7 +35,9 @@ const EquipmentListPage = () => {
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getEquipmentTypeName = (type: string) => {
+  // Memoizar nome do tipo de equipamento
+  const equipmentTypeName = useMemo(() => {
+    if (!type) return t('equipment.title');
     const typeMap: Record<string, string> = {
       extintor: t('equipment.extinguisher'),
       mangueira: t('equipment.hose'),
@@ -48,28 +50,28 @@ const EquipmentListPage = () => {
       abrigo: t('equipment.shelter'),
     };
     return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
-  };
+  }, [type, t]);
 
-  const equipmentTypeName = type ? getEquipmentTypeName(type) : t('equipment.title');
+  // Memoizar equipamentos para evitar recálculos
+  const memoizedEquipment = useMemo(() => {
+    if (!user || !type) return [];
+    try {
+      return getEquipmentByType(type);
+    } catch (err: any) {
+      handleError(err, 'equipment', 'Falha ao buscar equipamentos');
+      return [];
+    }
+  }, [user, type, getEquipmentByType, cache, handleError]);
 
   useEffect(() => {
-    const fetchEquipment = () => {
-      if (!user || !type) return;
-      setLoading(true);
-      
-      try {
-        // Usar dados do cache em vez de fazer novas chamadas
-        const data = getEquipmentByType(type);
-        setEquipment(data);
-      } catch (err: any) {
-        handleError(err, 'equipment', 'Falha ao buscar equipamentos');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEquipment();
-  }, [user, type, getEquipmentByType, cache]);
+    if (!user || !type) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setEquipment(memoizedEquipment);
+    setLoading(false);
+  }, [user, type, memoizedEquipment]);
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
@@ -109,42 +111,58 @@ const EquipmentListPage = () => {
           </div>
         )}
         {!loading && equipment.length > 0 && (
-          <ul className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
-            {equipment.map((item, index) => {
-              const itemId = item.equipment_id || item.id_mangueira || item.numero_serie_equipamento || 
-                           item.id_equipamento || item.id_camara || item.id_sistema || item.id_abrigo || 
-                           item.numero_identificacao || String(item.id);
-              const location = item.localizacao || '';
-              
-              return (
-                <motion.li 
-                  key={itemId} 
-                  className="relative" 
-                  style={{ zIndex: 10, position: 'relative' }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ 
-                    delay: index * 0.03,
-                    duration: 0.3,
-                    ease: [0.4, 0, 0.2, 1]
-                  }}
-                >
-                  <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-                    <div>
-                      <p className="font-semibold" style={{ color: '#FFFFFF' }}>{itemId}</p>
-                      {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>{location}</p>}
-                    </div>
-                    <ChevronRight size={20} className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }} />
-                  </Link>
-                </motion.li>
-              );
-            })}
-          </ul>
+          <EquipmentListMemoized equipment={equipment} type={type || ''} />
         )}
       </main>
       {type && <FloatingActionButton to={`/inspections/${type}/new`} />}
     </div>
   );
 };
+
+// Componente memoizado para itens de equipamento
+const EquipmentListItem = memo(({ item, type, index }: { item: EquipmentItem; type: string; index: number }) => {
+  const itemId = item.equipment_id || item.id_mangueira || item.numero_serie_equipamento || 
+               item.id_equipamento || item.id_camara || item.id_sistema || item.id_abrigo || 
+               item.numero_identificacao || String(item.id);
+  const location = item.localizacao || '';
+  
+  return (
+    <motion.li 
+      key={itemId} 
+      className="relative" 
+      style={{ zIndex: 10, position: 'relative' }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ 
+        delay: index * 0.03,
+        duration: 0.3,
+        ease: [0.4, 0, 0.2, 1]
+      }}
+    >
+      <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+        <div>
+          <p className="font-semibold" style={{ color: '#FFFFFF' }}>{itemId}</p>
+          {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>{location}</p>}
+        </div>
+        <ChevronRight size={20} className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }} />
+      </Link>
+    </motion.li>
+  );
+});
+
+EquipmentListItem.displayName = 'EquipmentListItem';
+
+// Componente memoizado para lista de equipamentos
+const EquipmentListMemoized = memo(({ equipment, type }: { equipment: EquipmentItem[]; type: string }) => {
+  return (
+    <ul className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
+      {equipment.map((item, index) => (
+        <EquipmentListItem key={item.id || index} item={item} type={type} index={index} />
+      ))}
+    </ul>
+  );
+});
+
+EquipmentListMemoized.displayName = 'EquipmentListMemoized';
 
 export default EquipmentListPage;
