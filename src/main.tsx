@@ -6,6 +6,7 @@ import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { EquipmentCacheProvider } from './contexts/EquipmentCacheContext.tsx';
 import { ToastProvider } from './contexts/ToastContext.tsx';
+import { logger } from './utils/logger';
 
 // Verificar preferência do usuário e aplicar tema de forma segura
 const getInitialTheme = () => {
@@ -16,9 +17,9 @@ const getInitialTheme = () => {
         return savedTheme === 'dark';
       }
     }
-  } catch (error) {
-    console.warn('Erro ao acessar localStorage:', error);
-  }
+      } catch (error) {
+        logger.warn('Erro ao acessar localStorage', 'theme', error);
+      }
   // Por padrão, usar tema claro se não houver preferência salva
   return false;
 };
@@ -37,18 +38,18 @@ try {
           localStorage.setItem('theme', 'light');
         }
       } catch (error) {
-        console.warn('Erro ao salvar tema no localStorage:', error);
+        logger.warn('Erro ao salvar tema no localStorage', 'theme', error);
       }
     }
   }
 } catch (error) {
-  console.warn('Erro ao aplicar tema inicial:', error);
+  logger.warn('Erro ao aplicar tema inicial', 'theme', error);
 }
 
 // Verificar se o elemento root existe antes de renderizar
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  console.error('Elemento root não encontrado!');
+  logger.error('Elemento root não encontrado!', 'app');
   throw new Error('Elemento root não encontrado no DOM');
 }
 

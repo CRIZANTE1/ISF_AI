@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { logUserAccess } from '../utils/adminOperations';
+import { logger } from '../utils/logger';
 
 export interface Profile {
   id: string;
@@ -33,16 +34,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Erro ao obter sessão:', error);
+          logger.error('Erro ao obter sessão', 'auth', error);
           // Não bloqueia a aplicação se houver erro de rede
           if (error.message?.includes('Failed to fetch')) {
-            console.warn('⚠️ Erro de conexão ao verificar sessão. Verifique sua internet e configurações do Supabase.');
+            logger.warn('⚠️ Erro de conexão ao verificar sessão. Verifique sua internet e configurações do Supabase.', 'auth');
           }
         }
         setSession(session);
         setUser(session?.user ?? null);
       } catch (err: any) {
-        console.error('Erro inesperado ao obter sessão:', err);
+        logger.error('Erro inesperado ao obter sessão', 'auth', err);
         // Continua mesmo com erro para não bloquear a aplicação
         setSession(null);
         setUser(null);

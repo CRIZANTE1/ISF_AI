@@ -49,7 +49,7 @@ export function parseQrCodeData(qrString: string): string {
       }
     } catch (error) {
       // Se a conversão para int falhar ou não houver 4 partes, retorna o dado bruto
-      console.warn('Erro ao fazer parsing do QR code:', error);
+      logger.warn('Erro ao fazer parsing do QR code', 'qrInspection', error);
       return trimmed;
     }
   } else {

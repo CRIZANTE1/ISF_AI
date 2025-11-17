@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { exportUserData, downloadUserDataAsJSON, downloadUserDataAsCSV } from '../utils/dataExport';
+import { importUserData } from '../utils/dataImport';
+import { deleteUserAccount } from '../utils/accountDeletion';
 import { 
   Settings, 
   Moon, 
@@ -22,7 +25,7 @@ import {
 const SettingsPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const { handleError } = useErrorHandler();
+  const { handleError, showInfo, showWarning } = useErrorHandler();
   const { 
     permissionStatus, 
     isSupported, 
@@ -61,12 +64,12 @@ const SettingsPage = () => {
     if (permissionStatus.granted) {
       // Se já tem permissão, apenas atualiza o estado local
       // (não podemos desabilitar permissões programaticamente)
-      alert('Para desativar notificações, acesse as configurações do navegador/dispositivo.');
+      showInfo('Para desativar notificações, acesse as configurações do navegador/dispositivo.');
       return;
     }
 
     if (permissionStatus.denied) {
-      alert('As notificações foram bloqueadas. Para ativá-las, acesse as configurações do navegador/dispositivo e permita notificações para este site/app.');
+      showWarning('As notificações foram bloqueadas. Para ativá-las, acesse as configurações do navegador/dispositivo e permita notificações para este site/app.');
       return;
     }
 
@@ -75,49 +78,115 @@ const SettingsPage = () => {
     if (granted) {
       // Salva preferência no localStorage
       localStorage.setItem('notifications_enabled', 'true');
-      alert('Notificações ativadas com sucesso!');
+      showInfo('Notificações ativadas com sucesso!');
     } else {
-      alert('Permissão de notificações negada. Você pode ativá-las nas configurações do navegador/dispositivo.');
+      showWarning('Permissão de notificações negada. Você pode ativá-las nas configurações do navegador/dispositivo.');
     }
     
     // Atualiza o status da permissão
     await checkPermission();
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+
   const handleExportData = async () => {
+    if (!user) {
+      showWarning('Você precisa estar autenticado para exportar dados.');
+      return;
+    }
+
+    setExporting(true);
     try {
-      // TODO: Implementar exportação de dados
-      alert('Funcionalidade de exportação de dados em desenvolvimento.');
+      const data = await exportUserData(user);
+      
+      // Perguntar formato
+      const format = confirm('Deseja exportar em JSON (completo) ou CSV (apenas equipamentos)?\n\nOK = JSON\nCancelar = CSV');
+      
+      if (format) {
+        downloadUserDataAsJSON(data);
+        showInfo('Dados exportados em JSON com sucesso!');
+      } else {
+        downloadUserDataAsCSV(data);
+        showInfo('Equipamentos exportados em CSV com sucesso!');
+      }
     } catch (error) {
       handleError(error, 'storage', 'Falha ao exportar dados');
+    } finally {
+      setExporting(false);
     }
   };
 
   const handleImportData = async () => {
+    if (!user) {
+      showWarning('Você precisa estar autenticado para importar dados.');
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setImporting(true);
     try {
-      // TODO: Implementar importação de dados
-      alert('Funcionalidade de importação de dados em desenvolvimento.');
+      const result = await importUserData(user, file);
+      
+      if (result.success) {
+        showInfo(result.message);
+        // Recarregar página para atualizar dados
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        showWarning(result.message);
+      }
     } catch (error) {
       handleError(error, 'storage', 'Falha ao importar dados');
+    } finally {
+      setImporting(false);
+      // Limpar input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== 'DELETAR') {
-      alert('Digite "DELETAR" para confirmar a exclusão da conta.');
+    if (!user) {
+      showWarning('Você precisa estar autenticado para excluir a conta.');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.')) {
+    if (deleteConfirmation !== 'DELETAR') {
+      showWarning('Digite "DELETAR" para confirmar a exclusão da conta.');
+      return;
+    }
+
+    if (!confirm('⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nTodos os seus dados serão permanentemente excluídos:\n- Equipamentos\n- Inspeções\n- Histórico\n- Configurações\n\nTem certeza que deseja continuar?')) {
+      return;
+    }
+
+    // Confirmação final
+    if (!confirm('Esta é sua última chance de cancelar. Todos os seus dados serão PERMANENTEMENTE excluídos. Deseja realmente continuar?')) {
       return;
     }
 
     try {
-      // TODO: Implementar exclusão de conta
-      // 1. Deletar todos os dados do usuário
-      // 2. Deletar perfil
-      // 3. Deletar conta de autenticação
-      alert('Funcionalidade de exclusão de conta em desenvolvimento. Entre em contato com o suporte.');
+      const result = await deleteUserAccount(user, deleteConfirmation);
+      
+      if (result.success) {
+        showInfo(result.message);
+        // Redirecionar para login após 3 segundos
+        setTimeout(() => {
+          window.location.href = '/#/auth';
+        }, 3000);
+      } else {
+        showWarning(result.message);
+      }
     } catch (error) {
       handleError(error, 'profile', 'Falha ao excluir conta. Entre em contato com o suporte.');
     }
@@ -209,14 +278,14 @@ const SettingsPage = () => {
             
             <div className="space-y-3">
               <button
-                onClick={() => alert('Funcionalidade em desenvolvimento')}
+                onClick={() => showInfo('Funcionalidade em desenvolvimento')}
                 className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3"
               >
                 <Lock size={18} />
                 <span>Alterar Senha</span>
               </button>
               <button
-                onClick={() => alert('Funcionalidade em desenvolvimento')}
+                onClick={() => showInfo('Funcionalidade em desenvolvimento')}
                 className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3"
               >
                 <Eye size={18} />
@@ -233,19 +302,28 @@ const SettingsPage = () => {
             </h3>
             
             <div className="space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               <button
                 onClick={handleExportData}
-                className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3"
+                disabled={exporting}
+                className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download size={18} />
-                <span>Exportar Meus Dados</span>
+                <span>{exporting ? 'Exportando...' : 'Exportar Meus Dados'}</span>
               </button>
               <button
                 onClick={handleImportData}
-                className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3"
+                disabled={importing}
+                className="w-full text-left p-3 bg-light-background dark:bg-dark-background rounded-lg hover:bg-opacity-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={18} />
-                <span>Importar Dados</span>
+                <span>{importing ? 'Importando...' : 'Importar Dados'}</span>
               </button>
             </div>
           </div>

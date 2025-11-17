@@ -170,13 +170,10 @@ export const logError = (error: AppError, additionalInfo?: Record<string, any>) 
     }
   }
 
-  // TODO: Em produção, enviar para serviço de monitoramento
-  // Exemplo com Sentry:
+  // Em produção, pode integrar com serviço de monitoramento externo
+  // TODO: Se necessário, integrar com serviço de monitoramento (ex: Sentry, LogRocket, etc.)
   // if (import.meta.env.PROD) {
-  //   Sentry.captureException(error.originalError || error.message, {
-  //     tags: { context: error.context },
-  //     extra: logData,
-  //   });
+  //   // Enviar para serviço de monitoramento
   // }
 };
 

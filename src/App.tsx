@@ -1,100 +1,251 @@
 import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Inspections from './pages/Inspections';
-import Profile from './pages/Profile';
-import History from './pages/History';
-import Utilities from './pages/Utilities';
-import AuthPage from './pages/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
-import EquipmentListPage from './pages/EquipmentListPage';
-import AddEquipmentPage from './pages/AddEquipmentPage';
-import EquipmentDetailPage from './pages/EquipmentDetailPage';
-import AddInspectionPage from './pages/AddInspectionPage';
-import EditEquipmentPage from './pages/EditEquipmentPage';
-import MyDataPage from './pages/MyDataPage';
-import PlanPaymentPage from './pages/PlanPaymentPage';
-import SettingsPage from './pages/SettingsPage';
-import AdminUsersPage from './pages/AdminUsersPage';
-import AdminSystemSettingsPage from './pages/AdminSystemSettingsPage';
-import AdminSecurityAuditPage from './pages/AdminSecurityAuditPage';
-import AdminSecurityPoliciesPage from './pages/AdminSecurityPoliciesPage';
-import EquipmentMap from './pages/EquipmentMap';
-import QrInspectionPage from './pages/QrInspectionPage';
-import QrGeneratorPage from './pages/QrGeneratorPage';
-import AdminUtilities from './pages/AdminUtilities';
+import ErrorBoundary from './components/ErrorBoundary';
+import Skeleton from './components/Skeleton';
+
+// Lazy loading de rotas públicas (carregamento sob demanda)
+const AuthPage = lazy(() => import('./pages/Auth'));
+
+// Lazy loading de rotas principais
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Inspections = lazy(() => import('./pages/Inspections'));
+const Profile = lazy(() => import('./pages/Profile'));
+const History = lazy(() => import('./pages/History'));
+const Utilities = lazy(() => import('./pages/Utilities'));
+const EquipmentListPage = lazy(() => import('./pages/EquipmentListPage'));
+const AddEquipmentPage = lazy(() => import('./pages/AddEquipmentPage'));
+const EquipmentDetailPage = lazy(() => import('./pages/EquipmentDetailPage'));
+const AddInspectionPage = lazy(() => import('./pages/AddInspectionPage'));
+const EditEquipmentPage = lazy(() => import('./pages/EditEquipmentPage'));
+const MyDataPage = lazy(() => import('./pages/MyDataPage'));
+const PlanPaymentPage = lazy(() => import('./pages/PlanPaymentPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const EquipmentMap = lazy(() => import('./pages/EquipmentMap'));
+const QrInspectionPage = lazy(() => import('./pages/QrInspectionPage'));
+const QrGeneratorPage = lazy(() => import('./pages/QrGeneratorPage'));
+
+// Lazy loading de rotas admin (raramente acessadas)
+const AdminUtilities = lazy(() => import('./pages/AdminUtilities'));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
+const AdminSystemSettingsPage = lazy(() => import('./pages/AdminSystemSettingsPage'));
+const AdminSecurityAuditPage = lazy(() => import('./pages/AdminSecurityAuditPage'));
+const AdminSecurityPoliciesPage = lazy(() => import('./pages/AdminSecurityPoliciesPage'));
+
+/**
+ * Componente de loading para Suspense
+ */
+const PageSuspense = ({ children }: { children: React.ReactNode }) => (
+  <Suspense
+    fallback={<Skeleton fullScreen />}
+  >
+    {children}
+  </Suspense>
+);
 
 function App() {
   return (
-    <Routes>
-      <Route path="/auth" element={<AuthPage />} />
-      <Route 
-        path="/" 
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="inspections" element={<Inspections />} />
-        <Route path="inspections/:type" element={<EquipmentListPage />} />
-        <Route path="inspections/:type/qr" element={<QrInspectionPage />} />
-        <Route path="inspections/:type/new" element={<AddEquipmentPage />} />
-        <Route path="equipment/:type/:id" element={<EquipmentDetailPage />} />
-        <Route path="equipment/:type/:id/edit" element={<EditEquipmentPage />} />
-        <Route path="equipment/:type/:id/inspections/new" element={<AddInspectionPage />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="profile/my-data" element={<MyDataPage />} />
-        <Route path="profile/plan-payment" element={<PlanPaymentPage />} />
-        <Route path="profile/settings" element={<SettingsPage />} />
-        <Route path="history" element={<History />} />
-        <Route path="map" element={<EquipmentMap />} />
-        <Route path="utilities" element={<Utilities />} />
-        <Route path="utilities/qr-generator" element={<QrGeneratorPage />} />
+    <ErrorBoundary>
+      <Routes>
         <Route 
-          path="admin/utilities" 
+          path="/auth" 
           element={
-            <AdminRoute>
-              <AdminUtilities />
-            </AdminRoute>
+            <PageSuspense>
+              <AuthPage />
+            </PageSuspense>
           } 
         />
         <Route 
-          path="admin/utilities/users" 
+          path="/" 
           element={
-            <AdminRoute>
-              <AdminUsersPage />
-            </AdminRoute>
-          } 
-        />
-        <Route 
-          path="admin/utilities/system-settings" 
-          element={
-            <AdminRoute>
-              <AdminSystemSettingsPage />
-            </AdminRoute>
-          } 
-        />
-        <Route 
-          path="admin/utilities/security-audit"
-          element={
-            <AdminRoute>
-              <AdminSecurityAuditPage />
-            </AdminRoute>
-          } 
-        />
-        <Route 
-          path="admin/utilities/security-policies" 
-          element={
-            <AdminRoute>
-              <AdminSecurityPoliciesPage />
-            </AdminRoute>
-          } 
-        />
-      </Route>
-    </Routes>
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route 
+            index 
+            element={
+              <PageSuspense>
+                <Dashboard />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="inspections" 
+            element={
+              <PageSuspense>
+                <Inspections />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="inspections/:type" 
+            element={
+              <PageSuspense>
+                <EquipmentListPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="inspections/:type/qr" 
+            element={
+              <PageSuspense>
+                <QrInspectionPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="inspections/:type/new" 
+            element={
+              <PageSuspense>
+                <AddEquipmentPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="equipment/:type/:id" 
+            element={
+              <PageSuspense>
+                <EquipmentDetailPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="equipment/:type/:id/edit" 
+            element={
+              <PageSuspense>
+                <EditEquipmentPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="equipment/:type/:id/inspections/new" 
+            element={
+              <PageSuspense>
+                <AddInspectionPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="profile" 
+            element={
+              <PageSuspense>
+                <Profile />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="profile/my-data" 
+            element={
+              <PageSuspense>
+                <MyDataPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="profile/plan-payment" 
+            element={
+              <PageSuspense>
+                <PlanPaymentPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="profile/settings" 
+            element={
+              <PageSuspense>
+                <SettingsPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="history" 
+            element={
+              <PageSuspense>
+                <History />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="map" 
+            element={
+              <PageSuspense>
+                <EquipmentMap />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="utilities" 
+            element={
+              <PageSuspense>
+                <Utilities />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="utilities/qr-generator" 
+            element={
+              <PageSuspense>
+                <QrGeneratorPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="admin/utilities" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <AdminUtilities />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/users" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <AdminUsersPage />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/system-settings" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <AdminSystemSettingsPage />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/security-audit"
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <AdminSecurityAuditPage />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/security-policies" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <AdminSecurityPoliciesPage />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   );
 }
 

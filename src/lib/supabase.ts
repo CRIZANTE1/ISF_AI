@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '../types/supabase'
+import { logger } from '../utils/logger'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -12,9 +13,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
     'VITE_SUPABASE_ANON_KEY=sua_chave_aqui';
   
   if (import.meta.env.DEV) {
-    console.error(errorMessage);
+    logger.error(errorMessage, 'supabase');
     // Em desenvolvimento, usar valores placeholder para não bloquear
-    console.warn('⚠️ Continuando com valores placeholder. O app pode não funcionar corretamente.');
+    logger.warn('⚠️ Continuando com valores placeholder. O app pode não funcionar corretamente.', 'supabase');
   } else {
     // Em produção, lançar erro para evitar comportamento silencioso
     throw new Error('Configuração do Supabase não encontrada. Verifique as variáveis de ambiente.');
@@ -23,11 +24,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Validação básica das variáveis (apenas se estiverem definidas)
 if (supabaseUrl && !supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
-  console.warn('⚠️ A URL do Supabase parece estar incorreta:', supabaseUrl);
+  logger.warn('⚠️ A URL do Supabase parece estar incorreta', 'supabase', { url: supabaseUrl });
 }
 
 if (supabaseAnonKey && supabaseAnonKey.length < 50) {
-  console.warn('⚠️ A chave anônima do Supabase parece estar incorreta (muito curta)');
+  logger.warn('⚠️ A chave anônima do Supabase parece estar incorreta (muito curta)', 'supabase');
 }
 
 // Usar valores padrão apenas em desenvolvimento para evitar crash

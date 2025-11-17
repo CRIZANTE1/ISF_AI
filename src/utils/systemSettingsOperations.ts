@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { logger } from './logger';
 
 export interface SystemSetting {
   id: string;
@@ -61,7 +62,7 @@ export async function getAllSystemSettings(): Promise<Record<string, any>> {
     if (error) {
       // If table doesn't exist, return empty object
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        console.warn('Tabela system_settings não existe ainda. Execute a migração do banco de dados.');
+        logger.warn('Tabela system_settings não existe ainda. Execute a migração do banco de dados.', 'systemSettings');
         return {};
       }
       throw error;
@@ -74,7 +75,7 @@ export async function getAllSystemSettings(): Promise<Record<string, any>> {
 
     return settings;
   } catch (error: any) {
-    console.error('Erro ao buscar configurações do sistema:', error);
+    logger.error('Erro ao buscar configurações do sistema', 'systemSettings', error);
     // Return empty object if table doesn't exist
     if (error.code === '42P01' || error.message?.includes('does not exist')) {
       return {};
@@ -111,7 +112,7 @@ export async function updateSystemSetting(key: string, value: any): Promise<void
     if (error) {
       // If table doesn't exist, save to localStorage as fallback
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        console.warn('Tabela system_settings não existe. Salvando em localStorage.');
+        logger.warn('Tabela system_settings não existe. Salvando em localStorage.', 'systemSettings');
         const currentSettings = JSON.parse(localStorage.getItem('system_settings') || '{}');
         currentSettings[key] = value;
         localStorage.setItem('system_settings', JSON.stringify(currentSettings));
@@ -142,14 +143,14 @@ export async function getAllSecurityPolicies(): Promise<SecurityPolicy[]> {
     if (error) {
       // If table doesn't exist, return empty array
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        console.warn('Tabela security_policies não existe ainda. Execute a migração do banco de dados.');
+        logger.warn('Tabela security_policies não existe ainda. Execute a migração do banco de dados.', 'systemSettings');
         return [];
       }
       throw error;
     }
     return data || [];
   } catch (error: any) {
-    console.error('Erro ao buscar políticas de segurança:', error);
+    logger.error('Erro ao buscar políticas de segurança', 'systemSettings', error);
     // Return empty array if table doesn't exist
     if (error.code === '42P01' || error.message?.includes('does not exist')) {
       return [];
@@ -185,14 +186,14 @@ export async function getBlockedIPs(): Promise<BlockedIP[]> {
     if (error) {
       // If table doesn't exist, return empty array
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        console.warn('Tabela blocked_ips não existe ainda. Execute a migração do banco de dados.');
+    logger.warn('Tabela blocked_ips não existe ainda. Execute a migração do banco de dados.', 'systemSettings');
         return [];
       }
       throw error;
     }
     return data || [];
   } catch (error: any) {
-    console.error('Erro ao buscar IPs bloqueados:', error);
+    logger.error('Erro ao buscar IPs bloqueados', 'systemSettings', error);
     // Return empty array if table doesn't exist
     if (error.code === '42P01' || error.message?.includes('does not exist')) {
       return [];
@@ -258,14 +259,14 @@ export async function getSecurityAlerts(
     if (error) {
       // If table doesn't exist, return empty array
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        console.warn('Tabela security_alerts não existe ainda. Execute a migração do banco de dados.');
+        logger.warn('Tabela security_alerts não existe ainda. Execute a migração do banco de dados.', 'systemSettings');
         return { alerts: [], total: 0 };
       }
       throw error;
     }
     return { alerts: data || [], total: count || 0 };
   } catch (error: any) {
-    console.error('Erro ao buscar alertas de segurança:', error);
+    logger.error('Erro ao buscar alertas de segurança', 'systemSettings', error);
     // Return empty array if table doesn't exist
     if (error.code === '42P01' || error.message?.includes('does not exist')) {
       return { alerts: [], total: 0 };

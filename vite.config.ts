@@ -17,6 +17,7 @@ export default defineConfig({
       '@capacitor/push-notifications',
       '@capacitor/filesystem', // Plugin opcional
       '@capacitor/share', // Plugin opcional
+      '@sentry/react', // Opcional - só carrega se instalado
     ],
     include: ['three', '@react-three/fiber'],
   },

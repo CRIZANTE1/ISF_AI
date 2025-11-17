@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import {
@@ -53,6 +55,7 @@ interface SecurityEvent {
 }
 
 const AdminSecurityAuditPage = () => {
+  const { showInfo } = useErrorHandler();
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<LogType>('security');
@@ -138,7 +141,7 @@ const AdminSecurityAuditPage = () => {
         const result = await getAccessLogs(100); // Reduzido de 1000 para 100 para melhor performance
         logs = result.logs;
       } catch (err: any) {
-        console.error('Erro ao carregar logs de acesso:', err);
+        logger.error('Erro ao carregar logs de acesso', 'adminSecurity', err);
         // Continue with empty logs if table doesn't exist
         if (err.code !== '42P01' && !err.message?.includes('does not exist')) {
           throw err;
@@ -163,7 +166,7 @@ const AdminSecurityAuditPage = () => {
         const result = await getActionLogs(100); // Reduzido de 1000 para 100 para melhor performance
         actionLogsData = result.logs;
       } catch (err: any) {
-        console.error('Erro ao carregar logs de ação:', err);
+        logger.error('Erro ao carregar logs de ação', 'adminSecurity', err);
         // Continue with empty logs if table doesn't exist
         if (err.code !== '42P01' && !err.message?.includes('does not exist')) {
           throw err;
@@ -241,7 +244,7 @@ const AdminSecurityAuditPage = () => {
 
   const handleExportLogs = () => {
     // TODO: Implement export functionality
-    alert('Funcionalidade de exportação em desenvolvimento');
+    showInfo('Funcionalidade de exportação em desenvolvimento');
   };
 
   const handleResolveEvent = async (eventId: string) => {

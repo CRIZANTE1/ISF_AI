@@ -7,6 +7,7 @@ import { Download, FileText, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { QRCodeSVG } from 'qrcode.react';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 // Função para carregar plugins do Capacitor dinamicamente (opcionais)
 // Nota: Para usar no Android, instale: npm install @capacitor/filesystem @capacitor/share
@@ -65,6 +66,7 @@ const QRCodeDisplay = ({ value, size = 200 }: { value: string; size?: number }) 
 type GeneratorMode = 'integrated' | 'manual';
 
 const QrGeneratorPage = () => {
+  const { handleError } = useErrorHandler();
   const navigate = useNavigate();
   const { cache } = useEquipmentCache();
   const [mode, setMode] = useState<GeneratorMode>('integrated');
@@ -229,17 +231,15 @@ const QrGeneratorPage = () => {
                   return; // Sucesso, não precisa continuar
                 } catch (shareError) {
                   // Se não conseguir compartilhar, apenas mostra mensagem
-                  alert(`QR Code salvo em: ${result.uri}`);
+                  // QR Code salvo com sucesso (feedback já dado pelo toast)
                   return;
                 }
               } catch (fsError) {
-                console.error('Erro ao salvar no Filesystem:', fsError);
-                // Fallback para método web
+                // Fallback para método web (erro já tratado silenciosamente)
               }
             }
           } catch (pluginError) {
-            // Plugins não disponíveis, usa fallback
-            console.log('Plugins do Capacitor não disponíveis, usando método web');
+            // Plugins não disponíveis, usa fallback (comportamento esperado)
           }
         }
         
@@ -247,8 +247,7 @@ const QrGeneratorPage = () => {
         downloadQrCodeWeb(blob, fileName);
       }, 'image/png');
     } catch (error) {
-      console.error('Erro ao baixar QR Code:', error);
-      alert('Erro ao baixar QR Code. Tente novamente.');
+      handleError(error, 'storage', 'Erro ao baixar QR Code. Tente novamente.');
     }
   };
 

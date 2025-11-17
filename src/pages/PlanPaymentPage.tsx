@@ -5,10 +5,12 @@ import { Capacitor } from '@capacitor/core';
 import PageHeader from '../components/PageHeader';
 import { PricingSection } from '../components/ui/pricing';
 import { useBilling, PRODUCT_IDS } from '../hooks/useBilling';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 const PlanPaymentPage = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const { handleError, showWarning, showInfo } = useErrorHandler();
   const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [frequency, setFrequency] = useState<'monthly' | 'yearly'>('monthly');
@@ -26,13 +28,13 @@ const PlanPaymentPage = () => {
   const handleUpgrade = async () => {
     // Verificar se estamos no Android
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
-      alert('As compras in-app estão disponíveis apenas no aplicativo Android. Por favor, use o aplicativo para fazer upgrade.');
+      showWarning('As compras in-app estão disponíveis apenas no aplicativo Android. Por favor, use o aplicativo para fazer upgrade.');
       return;
     }
 
     // Verificar se o billing está disponível
     if (!isAvailable || !isInitialized) {
-      alert('Google Play Billing não está disponível. Verifique sua conexão e tente novamente.');
+      showWarning('Google Play Billing não está disponível. Verifique sua conexão e tente novamente.');
       return;
     }
 
@@ -49,6 +51,7 @@ const PlanPaymentPage = () => {
       if (purchaseResult) {
         // A compra foi processada com sucesso
         // O plano será atualizado automaticamente pelo billingService
+        showInfo('Compra processada com sucesso! Atualizando seu plano...');
         // Recarregar a página após um breve delay para atualizar o perfil
         setTimeout(() => {
           window.location.reload();
@@ -57,7 +60,7 @@ const PlanPaymentPage = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao processar compra';
       setError(errorMessage);
-      alert(errorMessage);
+      handleError(err, 'profile', errorMessage);
     } finally {
       setUpgrading(false);
     }
@@ -154,7 +157,7 @@ const PlanPaymentPage = () => {
       btn: {
         text: 'Contatar Equipe',
         href: '#',
-        onClick: () => alert('Entre em contato com nossa equipe de vendas para mais informações.'),
+        onClick: () => showInfo('Entre em contato com nossa equipe de vendas para mais informações.'),
       },
     },
   ];

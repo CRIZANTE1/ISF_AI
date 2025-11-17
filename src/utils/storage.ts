@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { createThumbnail } from './imageCompression';
+import { logger } from './logger';
 
 /**
  * Faz upload de uma foto de evidência para o Supabase Storage
@@ -31,7 +32,7 @@ export async function uploadEvidencePhoto(
       });
 
     if (error) {
-      console.error('Erro ao fazer upload:', error);
+      logger.error('Erro ao fazer upload', 'storage', error);
       return null;
     }
 
@@ -63,7 +64,7 @@ export async function uploadEvidencePhoto(
           thumbnailUrl = thumbUrlData.publicUrl;
         }
       } catch (thumbError) {
-        console.warn('Erro ao criar thumbnail:', thumbError);
+        logger.warn('Erro ao criar thumbnail', 'storage', thumbError);
         // Não falha o upload principal se o thumbnail falhar
       }
     }
@@ -73,7 +74,7 @@ export async function uploadEvidencePhoto(
       thumbnailUrl,
     };
   } catch (error) {
-    console.error('Erro ao fazer upload da foto:', error);
+    logger.error('Erro ao fazer upload da foto', 'storage', error);
     return null;
   }
 }
@@ -101,7 +102,7 @@ export async function uploadFile(
       });
 
     if (error) {
-      console.error('Erro ao fazer upload:', error);
+      logger.error('Erro ao fazer upload', 'storage', error);
       return null;
     }
 
@@ -111,7 +112,7 @@ export async function uploadFile(
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Erro ao fazer upload do arquivo:', error);
+    logger.error('Erro ao fazer upload do arquivo', 'storage', error);
     return null;
   }
 }
