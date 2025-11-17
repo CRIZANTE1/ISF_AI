@@ -27,13 +27,14 @@ import {
   Activity,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
+import { useTranslation } from '../hooks/useTranslation';
 import { logger } from '../utils/logger';
 
 const AdminSecurityPoliciesPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [policies, setPolicies] = useState<SecurityPolicy[]>([]);
@@ -328,9 +329,9 @@ const AdminSecurityPoliciesPage = () => {
                           {ip.reason}
                         </p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                          <span>Bloqueado em: {format(new Date(ip.blocked_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                          <span>{t('admin.blockedAt')} {format(new Date(ip.blocked_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
                           {ip.blocked_until && (
-                            <span>Bloqueado até: {format(new Date(ip.blocked_until), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                            <span>{t('admin.blockedUntil')} {format(new Date(ip.blocked_until), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
                           )}
                         </div>
                       </div>

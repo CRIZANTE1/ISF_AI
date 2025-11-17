@@ -300,7 +300,7 @@ const History = () => {
                 transition={{ duration: 0.3 }}
               >
                 <h3 className="text-sm font-semibold mb-ios-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
-                  {format(new Date(dateInspections[0].date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {format(new Date(dateInspections[0].date), currentLanguage === 'pt-BR' ? "EEEE, d 'de' MMMM 'de' yyyy" : "EEEE, MMMM d, yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                 </h3>
                 <div className="space-y-ios-3">
                   <AnimatePresence>
@@ -337,7 +337,7 @@ const History = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-xs mb-ios-1" style={{ color: 'var(--muted-foreground)' }}>
-                              {format(new Date(insp.date), 'HH:mm', { locale: ptBR })}
+                              {format(new Date(insp.date), 'HH:mm', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                             </p>
                             <span
                               className="text-xs font-medium px-ios-2 py-ios-1 rounded-full"

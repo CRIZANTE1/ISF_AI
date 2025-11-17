@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR, enUS } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, AlertTriangle, X } from 'lucide-react';
 import LazyImage from './LazyImage';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Alert {
   id: string;
@@ -19,25 +20,31 @@ interface Alert {
 
 const DashboardHeader = () => {
   const { profile, user } = useAuth();
+  const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const { cache } = useEquipmentCache();
   const [showNotifications, setShowNotifications] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const notificationRef = useRef<HTMLDivElement>(null);
   const today = new Date();
+  const locale = currentLanguage === 'pt-BR' ? ptBR : enUS;
+  const localeString = currentLanguage === 'pt-BR' ? 'pt-BR' : 'en-US';
   let formattedDate = '';
   try {
-    formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR }) || '';
+    const formatPattern = currentLanguage === 'pt-BR' 
+      ? "EEEE, d 'de' MMMM" 
+      : "EEEE, MMMM d";
+    formattedDate = format(today, formatPattern, { locale }) || '';
   } catch (error) {
-    formattedDate = today.toLocaleDateString('pt-BR') || '';
+    formattedDate = today.toLocaleDateString(localeString) || '';
   }
   // Garantir que formattedDate nunca seja undefined ou null
   if (!formattedDate || typeof formattedDate !== 'string') {
-    formattedDate = today.toLocaleDateString('pt-BR', { 
+    formattedDate = today.toLocaleDateString(localeString, { 
       weekday: 'long', 
       day: 'numeric', 
       month: 'long' 
-    }) || 'Data não disponível';
+    }) || t('common.dateNotAvailable', { defaultValue: 'Data não disponível' });
   }
   const userInitial = profile?.full_name?.charAt(0).toUpperCase() || 'U';
 
@@ -74,7 +81,7 @@ const DashboardHeader = () => {
                   equipment_type: type,
                   status: 'vencido',
                   proxima_inspecao: nextInspection,
-                  message: `${id} está com inspeção vencida.`,
+                  message: t('alerts.inspectionExpired', { id, defaultValue: `${id} está com inspeção vencida.` }),
                 });
               } else if (status === 'pendente' || status === 'nao_conforme') {
                 allAlerts.push({
@@ -83,7 +90,7 @@ const DashboardHeader = () => {
                   equipment_type: type,
                   status: 'pendente',
                   proxima_inspecao: nextInspection,
-                  message: `${id} possui pendências.`,
+                  message: t('alerts.hasPending', { id, defaultValue: `${id} possui pendências.` }),
                 });
               }
             }
@@ -162,7 +169,7 @@ const DashboardHeader = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2.5 rounded-full transition-colors hover:bg-[rgba(28,28,30,0.8)]"
-              aria-label="Notificações"
+              aria-label={t('dashboard.notifications')}
             >
               <Bell size={22} strokeWidth={2} className="text-[#8E8E93]" />
               {alerts.length > 0 && (
@@ -186,11 +193,11 @@ const DashboardHeader = () => {
                   }}
                 >
                   <div className="p-4 border-b border-[var(--border-current)] flex items-center justify-between">
-                    <h3 className="font-semibold text-white">Notificações</h3>
+                    <h3 className="font-semibold text-white">{t('dashboard.notifications')}</h3>
                     <button
                       onClick={() => setShowNotifications(false)}
                       className="p-1 rounded-full hover:bg-white/10 transition-colors"
-                      aria-label="Fechar"
+                      aria-label={t('common.close')}
                     >
                       <X size={18} className="text-[#8E8E93]" />
                     </button>
@@ -198,7 +205,7 @@ const DashboardHeader = () => {
                   <div className="max-h-80 overflow-y-auto">
                     {alerts.length === 0 ? (
                       <div className="p-8 text-center">
-                        <p className="text-[#8E8E93] text-sm">Nenhuma notificação</p>
+                        <p className="text-[#8E8E93] text-sm">{t('dashboard.noNotifications')}</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-[var(--border-current)]">
@@ -224,7 +231,7 @@ const DashboardHeader = () => {
                                 </p>
                                 {alert.proxima_inspecao && (
                                   <p className="text-xs text-[#8E8E93]">
-                                    {format(new Date(alert.proxima_inspecao), "dd/MM/yyyy", { locale: ptBR })}
+                                    {format(new Date(alert.proxima_inspecao), "dd/MM/yyyy", { locale })}
                                   </p>
                                 )}
                               </div>
@@ -247,7 +254,7 @@ const DashboardHeader = () => {
               backgroundColor: profile?.avatar_url ? 'transparent' : '#FFFFFF',
               boxShadow: profile?.avatar_url ? '0 2px 8px rgba(255, 255, 255, 0.2)' : '0 2px 8px rgba(255, 255, 255, 0.3)'
             }}
-            aria-label="Perfil"
+            aria-label={t('dashboard.profile')}
           >
             {profile?.avatar_url ? (
               <LazyImage 

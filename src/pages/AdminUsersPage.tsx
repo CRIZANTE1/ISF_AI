@@ -639,14 +639,14 @@ const AdminUsersPage = () => {
                   <div>
                     <label className="text-sm font-medium">{t('admin.createdAt', { defaultValue: 'Criado em' })}</label>
                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                      {format(new Date(selectedUser.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                      {format(new Date(selectedUser.created_at), currentLanguage === 'pt-BR' ? "dd/MM/yyyy 'às' HH:mm" : "MM/dd/yyyy 'at' HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                     </p>
                   </div>
                   {selectedUser.last_sign_in_at && (
                     <div>
                       <label className="text-sm font-medium">{t('admin.lastAccess', { defaultValue: 'Último acesso' })}</label>
                       <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        {format(new Date(selectedUser.last_sign_in_at), "dd/MM/yyyy 'às' HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                        {format(new Date(selectedUser.last_sign_in_at), currentLanguage === 'pt-BR' ? "dd/MM/yyyy 'às' HH:mm" : "MM/dd/yyyy 'at' HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                       </p>
                     </div>
                   )}

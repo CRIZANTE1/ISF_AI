@@ -3,6 +3,7 @@
  */
 
 import ChecklistItem from '../ChecklistItem';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ScbaChecklistProps {
   results: Record<string, string>;
@@ -17,6 +18,7 @@ const ScbaChecklist = ({
   onObservationChange,
   observations 
 }: ScbaChecklistProps) => {
+  const { t } = useTranslation();
   const cilindroItems = [
     "Integridade Cilindro",
     "Registro e Valvulas",
@@ -76,7 +78,7 @@ const ScbaChecklist = ({
             </div>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
               <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                <strong>Instruções:</strong> 1. Trave a válvula de demanda (bypass). 2. Abra e feche completamente a válvula do cilindro. 3. Monitore os manômetros por 1 minuto. 4. Critério: A queda de pressão deve ser menor que 10 bar.
+                <strong>{t('guides.instructions')}</strong> {t('guides.scbaChecklist.pressureTest')}
               </p>
             </div>
           </div>
@@ -113,7 +115,7 @@ const ScbaChecklist = ({
             </div>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
               <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                <strong>Instruções:</strong> 1. Com o sistema ainda pressurizado, libere o ar lentamente pelo botão de purga. 2. Observe o manômetro. 3. Critério: O alarme sonoro deve disparar entre 50-55 bar.
+                <strong>{t('guides.instructions')}</strong> {t('guides.scbaChecklist.lowPressureAlarm')}
               </p>
             </div>
           </div>
@@ -150,7 +152,7 @@ const ScbaChecklist = ({
             </div>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
               <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                <strong>Instruções:</strong> 1. Vista a máscara e ajuste os tirantes. 2. Cubra a entrada da válvula de demanda com a mão. 3. Inspire suavemente. 4. Critério: A máscara deve ser sugada contra o rosto e permanecer assim, sem vazamentos.
+                <strong>{t('guides.instructions')}</strong> {t('guides.scbaChecklist.maskSeal')}
               </p>
             </div>
           </div>
@@ -202,7 +204,7 @@ const ScbaChecklist = ({
               onChange={(e) => onObservationChange('Cilindro', e.target.value)}
               rows={2}
               className="w-full p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
-              placeholder="Digite observações sobre o cilindro..."
+              placeholder={t('checklist.observationsCylinder')}
             />
           </div>
         </div>
@@ -244,7 +246,7 @@ const ScbaChecklist = ({
               onChange={(e) => onObservationChange('Mascara', e.target.value)}
               rows={2}
               className="w-full p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid', color: '#FFFFFF' }}
-              placeholder="Digite observações sobre a máscara..."
+              placeholder={t('checklist.observationsMask')}
             />
           </div>
         </div>

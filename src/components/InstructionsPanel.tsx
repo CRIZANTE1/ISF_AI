@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Info, AlertCircle, HelpCircle, X } from 'lucide-react';
 import { EquipmentInstructions, getInstructions } from '../constants/instructions';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface InstructionsPanelProps {
   equipmentType: string;
@@ -140,15 +141,108 @@ const markdownToHtml = (text: string): string => {
   return result.join('\n');
 };
 
+// Função helper para traduzir instruções
+const translateInstructions = (instructions: EquipmentInstructions, equipmentType: string, t: any): EquipmentInstructions => {
+  let translated: EquipmentInstructions = { ...instructions };
+  
+  // Usar o equipmentType diretamente como chave
+  const guideKey = equipmentType;
+  
+  if (guideKey) {
+    // Traduzir título do header
+    const titleKey = `guides.${guideKey}.title`;
+    if (t(titleKey) && t(titleKey) !== titleKey) {
+      translated.header.title = t(titleKey);
+    }
+    const subtitleKey = `guides.${guideKey}.subtitle`;
+    if (t(subtitleKey) && t(subtitleKey) !== subtitleKey) {
+      translated.header.subtitle = t(subtitleKey);
+    }
+    
+    // Traduzir guias
+    if (translated.guide) {
+      translated.guide = translated.guide.map(section => {
+        const sectionKey = section.title.toLowerCase();
+        let translatedSection = { ...section };
+        
+        // Tentar traduzir baseado no índice e conteúdo
+        const titleKey = sectionKey.includes('inspeção') || sectionKey.includes('inspection') 
+          ? `guides.${guideKey}.howToRegisterInspection`
+          : sectionKey.includes('teste') || sectionKey.includes('test')
+          ? `guides.${guideKey}.howToRegisterTest`
+          : sectionKey.includes('cadastrar') || sectionKey.includes('register') || sectionKey.includes('novo') || sectionKey.includes('new')
+          ? (t(`guides.${guideKey}.howToRegister`) ? `guides.${guideKey}.howToRegister` : `guides.${guideKey}.howToRegisterEquipment`)
+          : sectionKey.includes('você vê') || sectionKey.includes('you see') || sectionKey.includes('what you see')
+          ? `guides.${guideKey}.whatYouSee`
+          : sectionKey.includes('usar') || sectionKey.includes('use') || sectionKey.includes('how to use')
+          ? `guides.${guideKey}.howToUse`
+          : null;
+        
+        if (titleKey && t(titleKey) && t(titleKey) !== titleKey) {
+          translatedSection.title = t(titleKey);
+          const contentKey = titleKey.replace('howToRegisterInspection', 'howToRegisterInspectionContent')
+                                     .replace('howToRegisterTest', 'howToRegisterTestContent')
+                                     .replace('howToRegister', 'howToRegisterContent')
+                                     .replace('howToRegisterEquipment', 'howToRegisterEquipmentContent')
+                                     .replace('whatYouSee', 'whatYouSeeContent')
+                                     .replace('howToUse', 'howToUseContent');
+          if (t(contentKey) && t(contentKey) !== contentKey) {
+            translatedSection.content = t(contentKey);
+          }
+        }
+        
+        return translatedSection;
+      });
+    }
+    
+    // Traduzir FAQ
+    if (translated.faq) {
+      translated.faq = translated.faq.map(item => {
+        const questionKey = item.question.toLowerCase();
+        let translatedItem = { ...item };
+        
+        // Tentar traduzir FAQ baseado no conteúdo
+        const faqKey = questionKey.includes('frequência') || questionKey.includes('frequency')
+          ? `guides.${guideKey}.faqFrequency`
+          : questionKey.includes('foto') || questionKey.includes('photo')
+          ? `guides.${guideKey}.faqPhoto`
+          : questionKey.includes('acesso') || questionKey.includes('access')
+          ? `guides.${guideKey}.faqAccessEquipment`
+          : questionKey.includes('alertas') || questionKey.includes('alerts')
+          ? `guides.${guideKey}.faqAlerts`
+          : null;
+        
+        if (faqKey && t(faqKey) && t(faqKey) !== faqKey) {
+          translatedItem.question = t(faqKey);
+          const answerKey = faqKey.replace('faqFrequency', 'faqFrequencyAnswer')
+                                  .replace('faqPhoto', 'faqPhotoAnswer')
+                                  .replace('faqAccessEquipment', 'faqAccessEquipmentAnswer')
+                                  .replace('faqAlerts', 'faqAlertsAnswer');
+          if (t(answerKey) && t(answerKey) !== answerKey) {
+            translatedItem.answer = t(answerKey);
+          }
+        }
+        
+        return translatedItem;
+      });
+    }
+  }
+  
+  return translated;
+};
+
 const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelProps) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  const instructions = getInstructions(equipmentType);
-
-  if (!instructions) {
+  const rawInstructions = getInstructions(equipmentType);
+  
+  if (!rawInstructions) {
     return null;
   }
+  
+  const instructions = translateInstructions(rawInstructions, equipmentType, t);
 
   const toggleSection = (sectionTitle: string) => {
     setExpandedSections((prev) => ({
@@ -294,11 +388,11 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                         {method.description}
                       </p>
                       <p className="text-[#8E8E93] text-xs mb-ios-2">
-                        <strong>Tempo:</strong> {method.time}
+                        <strong>{t('guides.time')}</strong> {method.time}
                       </p>
                       <div className="mb-ios-2">
                         <p className="text-[#8E8E93] text-xs mb-ios-1">
-                          <strong>Ideal para:</strong>
+                          <strong>{t('guides.idealFor')}</strong>
                         </p>
                         <ul className="list-disc list-inside space-y-ios-1 ml-ios-2">
                           {method.idealFor.map((item, idx) => (
@@ -310,7 +404,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                       </div>
                       <div className="mb-ios-2">
                         <p className="text-[#8E8E93] text-xs mb-ios-1">
-                          <strong>Como funciona:</strong>
+                          <strong>{t('guides.howItWorks')}</strong>
                         </p>
                         <ol className="list-decimal list-inside space-y-ios-1 ml-ios-2">
                           {method.howItWorks.map((step, idx) => (
@@ -323,7 +417,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                       {method.advantages && (
                         <div>
                           <p className="text-[#8E8E93] text-xs mb-ios-1">
-                            <strong>Vantagens:</strong>
+                            <strong>{t('guides.advantages')}</strong>
                           </p>
                           <ul className="list-disc list-inside space-y-ios-1 ml-ios-2">
                             {method.advantages.map((item, idx) => (
@@ -336,7 +430,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                       )}
                       {method.requires && (
                         <p className="text-[#F59E0B] text-xs mt-ios-2">
-                          <strong>Requer:</strong> {method.requires}
+                          <strong>{t('guides.requires')}</strong> {method.requires}
                         </p>
                       )}
                     </motion.div>
@@ -489,7 +583,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
             {instructions.faq && (
               <div className="mb-ios-4">
                 <h3 className="font-bold text-lg text-white mb-ios-3">
-                  Perguntas Frequentes
+                  {t('guides.faq')}
                 </h3>
                 <div className="space-y-ios-2">
                   {instructions.faq.map((item, index) => {

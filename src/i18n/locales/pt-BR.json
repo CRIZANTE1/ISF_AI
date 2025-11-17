@@ -20,7 +20,10 @@
     "no": "Não",
     "allRightsReserved": "Todos os direitos reservados.",
     "deleteConfirm": "Você tem certeza que deseja excluir este item? Esta ação é irreversível e todos os dados associados serão perdidos.",
-    "viewFullPhoto": "Ver foto completa"
+    "viewFullPhoto": "Ver foto completa",
+    "backToProfile": "Voltar ao Perfil",
+    "dateNotAvailable": "Data não disponível",
+    "at": "às"
   },
   "auth": {
     "login": "Entrar",
@@ -71,7 +74,10 @@
     "totalInspections": "Total de Inspeções",
     "activeAlerts": "Alertas Ativos",
     "recentInspections": "Inspeções Recentes",
-    "equipmentStatus": "Status dos Equipamentos"
+    "equipmentStatus": "Status dos Equipamentos",
+    "notifications": "Notificações",
+    "noNotifications": "Nenhuma notificação",
+    "profile": "Perfil"
   },
   "equipment": {
     "title": "Equipamentos",
@@ -167,6 +173,8 @@
     "avatarUploadSuccess": "Avatar atualizado com sucesso!",
     "avatarUploadFailed": "Falha ao fazer upload do avatar",
     "noStats": "Não foi possível carregar as estatísticas",
+    "avatarAlt": "Avatar",
+    "emailPlaceholder": "email@exemplo.com",
     "premiumAccess": "Acesso total ao Plano Premium.",
     "trialExpired": "Período de teste expirado.",
     "trialDaysRemaining": "{{count}} dia restante no período de teste.",
@@ -249,7 +257,9 @@
     "lastAccess": "Último acesso",
     "dangerousActions": "Ações Perigosas",
     "disable": "Desabilitar",
-    "enable": "Habilitar"
+    "enable": "Habilitar",
+    "blockedAt": "Bloqueado em:",
+    "blockedUntil": "Bloqueado até:"
   },
   "errors": {
     "generic": "Ocorreu um erro. Tente novamente.",
@@ -274,7 +284,9 @@
     "invalidQrId": "Não foi possível extrair o ID do QR Code",
     "scanAgain": "Escanear Novamente",
     "enterManually": "Inserir Manualmente",
-    "viewEquipment": "Ver Equipamento"
+    "viewEquipment": "Ver Equipamento",
+    "searching": "Buscando...",
+    "searchManually": "Buscar Manualmente"
   },
   "utilities": {
     "title": "Utilitários",
@@ -329,6 +341,104 @@
   },
   "activity": {
     "title": "Atividade"
+  },
+  "checklist": {
+    "observationsCylinder": "Digite observações sobre o cilindro...",
+    "observationsMask": "Digite observações sobre a máscara..."
+  },
+  "guides": {
+    "faq": "Perguntas Frequentes",
+    "howItWorks": "Como funciona:",
+    "time": "Tempo:",
+    "idealFor": "Ideal para:",
+    "advantages": "Vantagens:",
+    "requires": "Requer:",
+    "tip": "Dica:",
+    "instructions": "Instruções:",
+    "extintor": {
+      "title": "Guia - Inspeção de Extintores",
+      "howToRegisterInspection": "Como registrar uma inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Extintores\"**\n2. Toque no extintor desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha:\n   - **Data da Inspeção** (obrigatório)\n   - **Tipo de Serviço:** Inspeção, Manutenção N2, Manutenção N3 ou Substituição\n   - **Aprovado na Inspeção?:** Sim ou Não\n   - **Observações Gerais** (opcional)\n5. Se reprovado, anexe foto (obrigatório)\n6. Toque em **\"Salvar Inspeção\"**",
+      "howToRegisterEquipment": "Como cadastrar novo extintor",
+      "howToRegisterEquipmentContent": "1. Vá em **\"Inspeções\"** → **\"Extintores\"**\n2. Toque no botão **\"+\"** no canto inferior direito\n3. Preencha os dados do equipamento\n4. Toque em **\"Salvar\"**",
+      "faqFrequency": "Com que frequência inspecionar?",
+      "faqFrequencyAnswer": "Mensalmente (inspeção visual) e anualmente (manutenção N2).",
+      "faqPhoto": "Quando anexar foto?",
+      "faqPhotoAnswer": "Sempre que o extintor for reprovado na inspeção (obrigatório)."
+    },
+    "mangueira": {
+      "title": "Guia - Mangueiras",
+      "howToRegister": "Como cadastrar mangueira",
+      "howToRegisterContent": "1. Vá em **\"Inspeções\"** → **\"Mangueiras\"**\n2. Toque no botão **\"+\"** \n3. Preencha: ID, diâmetro, tipo, comprimento, ano de fabricação\n4. Toque em **\"Salvar\"**",
+      "faqFrequency": "Frequência de teste?",
+      "faqFrequencyAnswer": "Teste hidrostático anual obrigatório conforme NBR 12779."
+    },
+    "camara_espuma": {
+      "title": "Guia - Câmaras de Espuma",
+      "howToRegisterInspection": "Como registrar inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Câmaras de Espuma\"**\n2. Toque na câmara desejada\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data\n5. Escolha tipo: **Visual Semestral** ou **Funcional Anual**\n6. Responda ao checklist completo\n7. Se houver não conformidade ou teste funcional, anexe foto\n8. Toque em **\"Salvar Inspeção\"**",
+      "faqFrequency": "Frequência de inspeção?",
+      "faqFrequencyAnswer": "Visual semestral (6 meses) e funcional anual obrigatórias."
+    },
+    "canhao_monitor": {
+      "title": "Guia - Canhões Monitores",
+      "howToRegisterInspection": "Como registrar inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Canhões Monitores\"**\n2. Toque no canhão desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data\n5. Escolha tipo: **Visual** ou **Funcional**\n6. Responda ao checklist completo\n7. Se houver não conformidade, anexe foto\n8. Toque em **\"Salvar Inspeção\"**"
+    },
+    "chuveiro_lavaolhos": {
+      "title": "Guia - Chuveiros e Lava-Olhos",
+      "howToRegisterInspection": "Como registrar inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Chuveiros/Lava-olhos\"**\n2. Toque no equipamento desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data\n5. Responda ao checklist completo\n6. Se houver não conformidade, anexe foto (obrigatório)\n7. Toque em **\"Salvar Inspeção\"**",
+      "faqFrequency": "Frequência de inspeção?",
+      "faqFrequencyAnswer": "Inspeção mensal obrigatória conforme NR 20."
+    },
+    "alarme": {
+      "title": "Guia - Sistemas de Alarme",
+      "howToRegisterInspection": "Como registrar inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Sistemas de Alarme\"**\n2. Toque no sistema desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data\n5. Responda ao checklist completo\n6. Se houver não conformidade, anexe foto\n7. Toque em **\"Salvar Inspeção\"**"
+    },
+    "multigas": {
+      "title": "Guia - Detectores Multigás",
+      "howToRegisterTest": "Como registrar teste",
+      "howToRegisterTestContent": "1. Vá em **\"Inspeções\"** → **\"Medidores Multigás\"**\n2. Toque no detector desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data e hora do teste\n5. Escolha tipo: **Periódico** ou **Extraordinário**\n6. Preencha valores de referência do cilindro (LEL, O², H²S, CO)\n7. Preencha valores encontrados no teste\n8. Marque se deseja atualizar valores permanentemente\n9. Adicione observações (opcional)\n10. Toque em **\"Salvar Inspeção\"**",
+      "faqFrequency": "Frequência de teste?",
+      "faqFrequencyAnswer": "Bump test diário/semanal antes do uso em ambientes críticos."
+    },
+    "scba": {
+      "title": "Guia - Conjuntos Autônomos (SCBA)",
+      "howToRegisterInspection": "Como registrar inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Conjuntos Autônomos (SCBA)\"**\n2. Toque no SCBA desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data\n5. Responda ao checklist completo (inclui testes funcionais)\n6. Adicione observações se necessário\n7. Toque em **\"Salvar Inspeção\"**",
+      "faqFrequency": "Frequência de inspeção?",
+      "faqFrequencyAnswer": "Inspeção visual mensal obrigatória e antes de cada uso."
+    },
+    "abrigo": {
+      "title": "Guia - Abrigos de Emergência",
+      "howToRegisterInspection": "Como registrar inspeção",
+      "howToRegisterInspectionContent": "1. Vá em **\"Inspeções\"** → **\"Abrigos de Emergência\"**\n2. Toque no abrigo desejado\n3. Toque em **\"Registrar Nova Inspeção\"**\n4. Preencha a data\n5. Marque status: **Aprovado** ou **Reprovado**\n6. Adicione observações (opcional)\n7. Se reprovado, anexe foto\n8. Toque em **\"Salvar Inspeção\"**",
+      "faqFrequency": "Frequência de inspeção?",
+      "faqFrequencyAnswer": "Inspeção mensal obrigatória conforme NBR 13714."
+    },
+    "dashboard": {
+      "title": "Guia da Dashboard",
+      "subtitle": "Visão geral do status de todos os equipamentos",
+      "whatYouSee": "O que você vê na Dashboard?",
+      "whatYouSeeContent": "**Métricas (cards no topo):**\n- 📊 **Total:** Quantidade total de equipamentos cadastrados\n- ✅ **OK:** Equipamentos em conformidade\n- ⚠️ **Pendente:** Equipamentos sem inspeção registrada\n\n**Lista de Alertas:**\n- Equipamentos com problemas ou pendências\n- Equipamentos com inspeções vencidas ou reprovadas",
+      "howToUse": "Como usar",
+      "howToUseContent": "**Para ver detalhes de um equipamento:**\n1. Vá em **\"Inspeções\"** no menu inferior\n2. Selecione o tipo de equipamento\n3. Toque no equipamento desejado\n\n**Para cadastrar novo equipamento:**\n1. Vá em **\"Inspeções\"**\n2. Selecione o tipo de equipamento\n3. Toque no botão **\"+\"** no canto inferior direito\n\n**Para ver histórico:**\n- Toque em **\"Histórico\"** no menu inferior",
+      "faqAccessEquipment": "Como acesso um equipamento específico?",
+      "faqAccessEquipmentAnswer": "Vá em \"Inspeções\" → Selecione o tipo → Toque no equipamento desejado.",
+      "faqAlerts": "O que fazer com alertas?",
+      "faqAlertsAnswer": "Verifique o equipamento indicado e registre uma nova inspeção ou ação corretiva."
+    },
+    "qr": {
+      "tipFormat": "O QR Code pode estar no formato industrial (ex: 2#7036#EXT#008851#47#31)",
+      "tipScan": "Mantenha o QR Code dentro da área de leitura e aguarde a detecção automática."
+    },
+    "scbaChecklist": {
+      "pressureTest": "1. Trave a válvula de demanda (bypass). 2. Abra e feche completamente a válvula do cilindro. 3. Monitore os manômetros por 1 minuto. 4. Critério: A queda de pressão deve ser menor que 10 bar.",
+      "lowPressureAlarm": "1. Com o sistema ainda pressurizado, libere o ar lentamente pelo botão de purga. 2. Observe o manômetro. 3. Critério: O alarme sonoro deve disparar entre 50-55 bar.",
+      "maskSeal": "1. Vista a máscara e ajuste os tirantes. 2. Cubra a entrada da válvula de demanda com a mão. 3. Inspire suavemente. 4. Critério: A máscara deve ser sugada contra o rosto e permanecer assim, sem vazamentos."
+    }
   }
 }
 

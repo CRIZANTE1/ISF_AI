@@ -284,7 +284,7 @@ const QrInspectionPage = () => {
               style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}
             >
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>
-                <strong>Dica:</strong> O QR Code pode estar no formato industrial (ex: 2#7036#EXT#008851#47#31) 
+                <strong>{t('guides.tip')}</strong> {t('guides.qr.tipFormat')} 
                 ou formato simples. O sistema extrairá automaticamente o número do cilindro.
               </p>
             </motion.div>
@@ -355,7 +355,7 @@ const QrInspectionPage = () => {
             {/* Instruções */}
             <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(26, 26, 26, 0.5)' }}>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary text-center" style={{ color: '#B0B0B0' }}>
-                <strong>Dica:</strong> Mantenha o QR Code dentro da área de leitura e aguarde a detecção automática.
+                <strong>{t('guides.tip')}</strong> {t('guides.qr.tipScan')}
               </p>
             </div>
 
@@ -389,7 +389,7 @@ const QrInspectionPage = () => {
                 className="w-full p-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
               >
-                {loading ? 'Buscando...' : 'Buscar Manualmente'}
+                {loading ? t('qr.searching') : t('qr.searchManually')}
               </button>
             </div>
 

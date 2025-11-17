@@ -22,7 +22,10 @@
     "deleteConfirm": "Are you sure you want to delete this item? This action is irreversible and all associated data will be lost.",
     "viewFullPhoto": "View full photo",
     "total": "Total",
-    "page": "Page"
+    "page": "Page",
+    "backToProfile": "Back to Profile",
+    "dateNotAvailable": "Date not available",
+    "at": "at"
   },
   "auth": {
     "login": "Login",
@@ -73,7 +76,10 @@
     "totalInspections": "Total Inspections",
     "activeAlerts": "Active Alerts",
     "recentInspections": "Recent Inspections",
-    "equipmentStatus": "Equipment Status"
+    "equipmentStatus": "Equipment Status",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications",
+    "profile": "Profile"
   },
   "equipment": {
     "title": "Equipment",
@@ -169,6 +175,8 @@
     "avatarUploadSuccess": "Avatar updated successfully!",
     "avatarUploadFailed": "Failed to upload avatar",
     "noStats": "Could not load statistics",
+    "avatarAlt": "Avatar",
+    "emailPlaceholder": "email@example.com",
     "premiumAccess": "Full access to Premium Plan.",
     "trialExpired": "Trial period expired.",
     "trialDaysRemaining": "{{count}} day remaining in trial period.",
@@ -251,7 +259,9 @@
     "lastAccess": "Last access",
     "dangerousActions": "Dangerous Actions",
     "disable": "Disable",
-    "enable": "Enable"
+    "enable": "Enable",
+    "blockedAt": "Blocked at:",
+    "blockedUntil": "Blocked until:"
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
@@ -276,7 +286,9 @@
     "invalidQrId": "Could not extract ID from QR Code",
     "scanAgain": "Scan Again",
     "enterManually": "Enter Manually",
-    "viewEquipment": "View Equipment"
+    "viewEquipment": "View Equipment",
+    "searching": "Searching...",
+    "searchManually": "Search Manually"
   },
   "utilities": {
     "title": "Utilities",
@@ -331,6 +343,104 @@
   },
   "activity": {
     "title": "Activity"
+  },
+  "checklist": {
+    "observationsCylinder": "Enter observations about the cylinder...",
+    "observationsMask": "Enter observations about the mask..."
+  },
+  "guides": {
+    "faq": "Frequently Asked Questions",
+    "howItWorks": "How it works:",
+    "time": "Time:",
+    "idealFor": "Ideal for:",
+    "advantages": "Advantages:",
+    "requires": "Requires:",
+    "tip": "Tip:",
+    "instructions": "Instructions:",
+    "extintor": {
+      "title": "Guide - Fire Extinguisher Inspection",
+      "howToRegisterInspection": "How to register an inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Extinguishers\"**\n2. Tap on the desired extinguisher\n3. Tap **\"Register New Inspection\"**\n4. Fill in:\n   - **Inspection Date** (required)\n   - **Service Type:** Inspection, Maintenance N2, Maintenance N3 or Replacement\n   - **Approved in Inspection?:** Yes or No\n   - **General Observations** (optional)\n5. If rejected, attach photo (required)\n6. Tap **\"Save Inspection\"**",
+      "howToRegisterEquipment": "How to register new extinguisher",
+      "howToRegisterEquipmentContent": "1. Go to **\"Inspections\"** → **\"Extinguishers\"**\n2. Tap the **\"+\"** button in the bottom right corner\n3. Fill in the equipment data\n4. Tap **\"Save\"**",
+      "faqFrequency": "How often to inspect?",
+      "faqFrequencyAnswer": "Monthly (visual inspection) and annually (N2 maintenance).",
+      "faqPhoto": "When to attach photo?",
+      "faqPhotoAnswer": "Whenever the extinguisher is rejected in the inspection (required)."
+    },
+    "mangueira": {
+      "title": "Guide - Hoses",
+      "howToRegister": "How to register hose",
+      "howToRegisterContent": "1. Go to **\"Inspections\"** → **\"Hoses\"**\n2. Tap the **\"+\"** button\n3. Fill in: ID, diameter, type, length, year of manufacture\n4. Tap **\"Save\"**",
+      "faqFrequency": "Test frequency?",
+      "faqFrequencyAnswer": "Annual hydrostatic test required according to NBR 12779."
+    },
+    "camara_espuma": {
+      "title": "Guide - Foam Chambers",
+      "howToRegisterInspection": "How to register inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Foam Chambers\"**\n2. Tap on the desired chamber\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date\n5. Choose type: **Semiannual Visual** or **Annual Functional**\n6. Complete the checklist\n7. If there is non-conformity or functional test, attach photo\n8. Tap **\"Save Inspection\"**",
+      "faqFrequency": "Inspection frequency?",
+      "faqFrequencyAnswer": "Semiannual visual (6 months) and annual functional required."
+    },
+    "canhao_monitor": {
+      "title": "Guide - Monitor Cannons",
+      "howToRegisterInspection": "How to register inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Monitor Cannons\"**\n2. Tap on the desired cannon\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date\n5. Choose type: **Visual** or **Functional**\n6. Complete the checklist\n7. If there is non-conformity, attach photo\n8. Tap **\"Save Inspection\"**"
+    },
+    "chuveiro_lavaolhos": {
+      "title": "Guide - Eyewash Stations",
+      "howToRegisterInspection": "How to register inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Eyewash Stations\"**\n2. Tap on the desired equipment\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date\n5. Complete the checklist\n6. If there is non-conformity, attach photo (required)\n7. Tap **\"Save Inspection\"**",
+      "faqFrequency": "Inspection frequency?",
+      "faqFrequencyAnswer": "Monthly inspection required according to NR 20."
+    },
+    "alarme": {
+      "title": "Guide - Alarm Systems",
+      "howToRegisterInspection": "How to register inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Alarm Systems\"**\n2. Tap on the desired system\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date\n5. Complete the checklist\n6. If there is non-conformity, attach photo\n7. Tap **\"Save Inspection\"**"
+    },
+    "multigas": {
+      "title": "Guide - Multigas Detectors",
+      "howToRegisterTest": "How to register test",
+      "howToRegisterTestContent": "1. Go to **\"Inspections\"** → **\"Multigas Detectors\"**\n2. Tap on the desired detector\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date and time of the test\n5. Choose type: **Periodic** or **Extraordinary**\n6. Fill in cylinder reference values (LEL, O², H²S, CO)\n7. Fill in values found in the test\n8. Mark if you want to update values permanently\n9. Add observations (optional)\n10. Tap **\"Save Inspection\"**",
+      "faqFrequency": "Test frequency?",
+      "faqFrequencyAnswer": "Daily/weekly bump test before use in critical environments."
+    },
+    "scba": {
+      "title": "Guide - Self-Contained Breathing Apparatus (SCBA)",
+      "howToRegisterInspection": "How to register inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Self-Contained Breathing Apparatus (SCBA)\"**\n2. Tap on the desired SCBA\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date\n5. Complete the checklist (includes functional tests)\n6. Add observations if necessary\n7. Tap **\"Save Inspection\"**",
+      "faqFrequency": "Inspection frequency?",
+      "faqFrequencyAnswer": "Monthly visual inspection required and before each use."
+    },
+    "abrigo": {
+      "title": "Guide - Emergency Shelters",
+      "howToRegisterInspection": "How to register inspection",
+      "howToRegisterInspectionContent": "1. Go to **\"Inspections\"** → **\"Emergency Shelters\"**\n2. Tap on the desired shelter\n3. Tap **\"Register New Inspection\"**\n4. Fill in the date\n5. Mark status: **Approved** or **Rejected**\n6. Add observations (optional)\n7. If rejected, attach photo\n8. Tap **\"Save Inspection\"**",
+      "faqFrequency": "Inspection frequency?",
+      "faqFrequencyAnswer": "Monthly inspection required according to NBR 13714."
+    },
+    "dashboard": {
+      "title": "Dashboard Guide",
+      "subtitle": "Overview of the status of all equipment",
+      "whatYouSee": "What do you see on the Dashboard?",
+      "whatYouSeeContent": "**Metrics (top cards):**\n- 📊 **Total:** Total number of registered equipment\n- ✅ **OK:** Equipment in compliance\n- ⚠️ **Pending:** Equipment without registered inspection\n\n**Alert List:**\n- Equipment with problems or pending items\n- Equipment with expired or rejected inspections",
+      "howToUse": "How to use",
+      "howToUseContent": "**To see equipment details:**\n1. Go to **\"Inspections\"** in the bottom menu\n2. Select the equipment type\n3. Tap on the desired equipment\n\n**To register new equipment:**\n1. Go to **\"Inspections\"**\n2. Select the equipment type\n3. Tap the **\"+\"** button in the bottom right corner\n\n**To see history:**\n- Tap **\"History\"** in the bottom menu",
+      "faqAccessEquipment": "How do I access a specific equipment?",
+      "faqAccessEquipmentAnswer": "Go to \"Inspections\" → Select the type → Tap on the desired equipment.",
+      "faqAlerts": "What to do with alerts?",
+      "faqAlertsAnswer": "Check the indicated equipment and register a new inspection or corrective action."
+    },
+    "qr": {
+      "tipFormat": "The QR Code may be in industrial format (e.g., 2#7036#EXT#008851#47#31)",
+      "tipScan": "Keep the QR Code within the reading area and wait for automatic detection."
+    },
+    "scbaChecklist": {
+      "pressureTest": "1. Lock the demand valve (bypass). 2. Open and close the cylinder valve completely. 3. Monitor the gauges for 1 minute. 4. Criterion: Pressure drop must be less than 10 bar.",
+      "lowPressureAlarm": "1. With the system still pressurized, slowly release air through the purge button. 2. Observe the gauge. 3. Criterion: The audible alarm must trigger between 50-55 bar.",
+      "maskSeal": "1. Put on the mask and adjust the straps. 2. Cover the demand valve inlet with your hand. 3. Inhale gently. 4. Criterion: The mask must be sucked against the face and remain so, without leaks."
+    }
   }
 }
 

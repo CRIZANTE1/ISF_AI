@@ -1,6 +1,7 @@
 import { Loader } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "../../utils/cn"
+import { useTranslation } from "../../hooks/useTranslation"
 
 interface SpinnerProps {
   size?: string
@@ -56,8 +57,9 @@ const strokeClasses = {
 } as StrokeProps
 
 export const Spinner = ({ size = "md", color = "slate" }: SpinnerProps) => {
+  const { t } = useTranslation();
   return (
-    <div aria-label="Loading..." role="status">
+    <div aria-label={t('common.loading')} role="status">
       <Loader
         className={cn(
           "animate-spin",
@@ -73,8 +75,9 @@ export const RoundSpinner = ({
   size = "md",
   color = "slate",
 }: SpinnerProps) => {
+  const { t } = useTranslation();
   return (
-    <div aria-label="Loading..." role="status">
+    <div aria-label={t('common.loading')} role="status">
       <svg
         className={cn(
           "animate-spin",

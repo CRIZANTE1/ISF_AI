@@ -38,7 +38,8 @@ import {
 } from 'lucide-react';
 import { Spinner } from '../components/ui/spinner';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
+import { useTranslation } from '../hooks/useTranslation';
 
 type LogType = 'security' | 'access' | 'audit';
 type SecurityEventType = 'failed_login' | 'permission_denied' | 'data_access' | 'suspicious_activity';
@@ -57,6 +58,7 @@ interface SecurityEvent {
 const AdminSecurityAuditPage = () => {
   const { showInfo } = useErrorHandler();
   const { profile } = useAuth();
+  const { currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<LogType>('security');
   const [loading, setLoading] = useState(true);
@@ -501,7 +503,7 @@ const AdminSecurityAuditPage = () => {
                       const last7Days = Array.from({ length: 7 }, (_, i) => {
                         const date = new Date();
                         date.setDate(date.getDate() - (6 - i));
-                        const dayStr = format(date, 'dd/MM', { locale: ptBR });
+                        const dayStr = format(date, 'dd/MM', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS });
                         const count = accessLogs.filter(log => {
                           const logDate = new Date(log.created_at);
                           return logDate.toDateString() === date.toDateString() && log.action === 'login' && log.success;
@@ -684,7 +686,7 @@ const AdminSecurityAuditPage = () => {
                           )}
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
-                            {format(new Date(event.timestamp), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            {format(new Date(event.timestamp), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                           </span>
                         </div>
                       </div>
@@ -742,7 +744,7 @@ const AdminSecurityAuditPage = () => {
                         )}
                       </div>
                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                       </span>
                     </div>
                   </div>
@@ -777,7 +779,7 @@ const AdminSecurityAuditPage = () => {
                         </p>
                       </div>
                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                       </span>
                     </div>
                     {log.details && (

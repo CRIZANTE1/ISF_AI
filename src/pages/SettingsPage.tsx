@@ -406,7 +406,7 @@ const SettingsPage = () => {
             onClick={() => navigate('/profile')}
             className="w-full p-3 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors"
           >
-            Voltar ao Perfil
+            {t('common.backToProfile')}
           </button>
         </div>
       </main>

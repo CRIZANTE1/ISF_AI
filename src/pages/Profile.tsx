@@ -163,8 +163,8 @@ const Profile = () => {
         return true;
       },
       'profile',
-      'Perfil atualizado com sucesso!',
-      'Falha ao atualizar perfil'
+      t('profile.profileUpdated'),
+      t('profile.profileUpdateFailed')
     );
 
     if (success) {
@@ -228,8 +228,8 @@ const Profile = () => {
         return true;
       },
       'profile',
-      'Avatar atualizado com sucesso!',
-      'Falha ao fazer upload do avatar'
+      t('profile.avatarUploadSuccess'),
+      t('profile.avatarUploadFailed')
     );
 
     if (success) {
@@ -261,7 +261,7 @@ const Profile = () => {
         {profile?.avatar_url ? (
           <LazyImage
             src={profile.avatar_url}
-            alt={profile.full_name || 'Avatar'}
+            alt={profile.full_name || t('profile.avatarAlt')}
             className="w-24 h-24 rounded-full object-cover border-2"
             style={{ borderColor: '#2A2A2A' }}
           />
@@ -343,7 +343,7 @@ const Profile = () => {
           )}
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center justify-center gap-2">
             <Mail size={16} />
-            {user?.email ?? 'email@exemplo.com'}
+            {user?.email ?? t('profile.emailPlaceholder')}
           </p>
           {user?.created_at && (
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center justify-center gap-1">
@@ -408,7 +408,7 @@ const Profile = () => {
         ) : (
           <div className="p-3 apple-card rounded-lg border text-center" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              Não foi possível carregar as estatísticas
+              {t('profile.noStats')}
             </p>
           </div>
         )}
@@ -421,7 +421,7 @@ const Profile = () => {
           className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
         >
           <User size={18} color="#72DEFF" />
-          <span>Meus Dados</span>
+          <span>{t('profile.myData')}</span>
         </button>
         <button 
           onClick={() => navigate('/profile/plan-payment')}
@@ -435,7 +435,7 @@ const Profile = () => {
           className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
         >
           <Settings size={18} color="#72DEFF" />
-          <span>Configurações</span>
+          <span>{t('settings.title')}</span>
         </button>
       </div>
 
