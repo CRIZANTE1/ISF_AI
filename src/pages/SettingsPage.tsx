@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 const SettingsPage = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { handleError, showInfo, showWarning } = useErrorHandler();
   const { t, changeLanguage, currentLanguage } = useTranslation();
@@ -140,9 +140,9 @@ const SettingsPage = () => {
       
       if (result.success) {
         showInfo(result.message);
-        // Recarregar página para atualizar dados
-        setTimeout(() => {
-          window.location.reload();
+        // Atualizar perfil sem recarregar a página
+        setTimeout(async () => {
+          await refreshProfile();
         }, 2000);
       } else {
         showWarning(result.message);

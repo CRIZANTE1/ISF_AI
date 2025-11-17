@@ -26,7 +26,7 @@ interface UserStats {
 }
 
 const Profile = () => {
-  const { profile, user, signOut, loading } = useAuth();
+  const { profile, user, signOut, loading, refreshProfile } = useAuth();
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
   const { t, currentLanguage } = useTranslation();
@@ -169,8 +169,8 @@ const Profile = () => {
 
     if (success) {
       setIsEditing(false);
-      // Força atualização do perfil no contexto
-      window.location.reload();
+      // Atualiza o perfil no contexto sem recarregar a página
+      await refreshProfile();
     }
   };
 
@@ -233,8 +233,8 @@ const Profile = () => {
     );
 
     if (success) {
-      // Força atualização do perfil no contexto
-      window.location.reload();
+      // Atualiza o perfil no contexto sem recarregar a página
+      await refreshProfile();
     }
     
     setIsUploadingAvatar(false);

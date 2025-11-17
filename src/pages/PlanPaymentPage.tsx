@@ -9,7 +9,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { logger } from '../utils/logger';
 
 const PlanPaymentPage = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { handleError, showWarning, showInfo } = useErrorHandler();
   const [upgrading, setUpgrading] = useState(false);
@@ -53,9 +53,9 @@ const PlanPaymentPage = () => {
         // A compra foi processada com sucesso
         // O plano será atualizado automaticamente pelo billingService
         showInfo('Compra processada com sucesso! Atualizando seu plano...');
-        // Recarregar a página após um breve delay para atualizar o perfil
-        setTimeout(() => {
-          window.location.reload();
+        // Atualizar o perfil após um breve delay sem recarregar a página
+        setTimeout(async () => {
+          await refreshProfile();
         }, 2000);
       }
     } catch (err) {

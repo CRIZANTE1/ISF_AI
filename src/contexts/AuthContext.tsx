@@ -19,6 +19,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -127,6 +128,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchProfile();
   }, [user]);
 
+  const refreshProfile = async () => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        if (error.code !== 'PGRST116') {
+          logger.error('Error refreshing profile', 'auth', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+        }
+        setProfile(null);
+      } else {
+        setProfile(data as Profile);
+      }
+    } catch (err: any) {
+      logger.error('Error refreshing profile', 'auth', {
+        message: err?.message || 'Unknown error',
+        details: err?.toString() || '',
+      });
+      setProfile(null);
+    }
+  };
+
   const signOut = async () => {
     // Log before sign out (non-blocking)
     logUserAccess('logout', true).catch((error) => {
@@ -141,6 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile,
     loading,
     signOut,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
