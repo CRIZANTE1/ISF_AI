@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import './i18n/config' // Inicializar i18n
 import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { EquipmentCacheProvider } from './contexts/EquipmentCacheContext.tsx';

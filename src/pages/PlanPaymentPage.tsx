@@ -178,7 +178,7 @@ const PlanPaymentPage = () => {
   if (error) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-        <PageHeader title="Planos e Preços" />
+        <PageHeader title={{ key: 'profile.plan', defaultValue: 'Planos e Preços' }} />
         <main className="py-8 pb-32 flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
           <div className="text-white text-center">
             <p className="text-red-500 mb-4">Erro ao carregar planos</p>
@@ -193,7 +193,7 @@ const PlanPaymentPage = () => {
   if (!plans || plans.length === 0) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-        <PageHeader title="Planos e Preços" />
+        <PageHeader title={{ key: 'profile.plan', defaultValue: 'Planos e Preços' }} />
         <main className="py-8 pb-32 flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
           <div className="text-white text-center">
             <p className="text-white/60">Carregando planos...</p>

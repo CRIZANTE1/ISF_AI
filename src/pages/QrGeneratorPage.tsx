@@ -287,7 +287,7 @@ const QrGeneratorPage = () => {
 
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
-      <PageHeader title="Gerador de QR Codes" />
+      <PageHeader title={{ key: 'qr.generate', defaultValue: 'Gerador de QR Codes' }} />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
         <div className="space-y-6">
           {/* Tabs para escolher modo */}

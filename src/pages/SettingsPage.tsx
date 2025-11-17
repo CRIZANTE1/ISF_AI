@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 import { exportUserData, downloadUserDataAsJSON, downloadUserDataAsCSV } from '../utils/dataExport';
 import { importUserData } from '../utils/dataImport';
 import { deleteUserAccount } from '../utils/accountDeletion';
@@ -19,13 +20,15 @@ import {
   Upload,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Languages
 } from 'lucide-react';
 
 const SettingsPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { handleError, showInfo, showWarning } = useErrorHandler();
+  const { t, changeLanguage, currentLanguage } = useTranslation();
   const { 
     permissionStatus, 
     isSupported, 
@@ -194,7 +197,7 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Configurações" />
+      <PageHeader title={{ key: 'settings.title' }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-md mx-auto space-y-6">
           {/* Preferências de Aparência */}
@@ -239,15 +242,15 @@ const SettingsPage = () => {
                 <div className="flex items-center gap-3">
                   <Bell size={20} color="#FFFFFF" />
                   <div>
-                    <p className="font-medium">Notificações</p>
+                    <p className="font-medium">{t('settings.notifications')}</p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                       {!isSupported 
-                        ? 'Notificações não suportadas neste dispositivo'
+                        ? t('settings.notificationsNotSupported', { defaultValue: 'Notificações não suportadas neste dispositivo' })
                         : permissionStatus.granted
-                        ? 'Recebendo alertas e notificações'
+                        ? t('settings.notificationsEnabled', { defaultValue: 'Recebendo alertas e notificações' })
                         : permissionStatus.denied
-                        ? 'Notificações bloqueadas - ative nas configurações'
-                        : 'Receber alertas e notificações'
+                        ? t('settings.notificationsBlocked', { defaultValue: 'Notificações bloqueadas - ative nas configurações' })
+                        : t('settings.notificationsDescription', { defaultValue: 'Receber alertas e notificações' })
                       }
                     </p>
                   </div>
@@ -265,6 +268,27 @@ const SettingsPage = () => {
                     }`}
                   />
                 </button>
+              </div>
+
+              {/* Idioma */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Languages size={20} color="#FFFFFF" />
+                  <div>
+                    <p className="font-medium">{t('settings.language')}</p>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                      {currentLanguage === 'pt-BR' ? t('settings.portuguese') : t('settings.english')}
+                    </p>
+                  </div>
+                </div>
+                <select
+                  value={currentLanguage}
+                  onChange={(e) => changeLanguage(e.target.value as 'pt-BR' | 'en-US')}
+                  className="px-3 py-1.5 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-white/30 focus:outline-none"
+                >
+                  <option value="pt-BR">{t('settings.portuguese')}</option>
+                  <option value="en-US">{t('settings.english')}</option>
+                </select>
               </div>
             </div>
           </div>

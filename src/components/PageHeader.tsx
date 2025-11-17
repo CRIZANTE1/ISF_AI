@@ -1,13 +1,20 @@
 import { ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface PageHeaderProps {
-  title: string;
+  title: string | { key: string; defaultValue?: string };
   children?: React.ReactNode;
 }
 
 const PageHeader = ({ title, children }: PageHeaderProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  // Se title for objeto com chave de tradução, traduz; senão usa como está
+  const displayTitle = typeof title === 'object' 
+    ? t(title.key, { defaultValue: title.defaultValue || title.key })
+    : title;
 
   return (
     <header 
@@ -32,7 +39,7 @@ const PageHeader = ({ title, children }: PageHeaderProps) => {
           <ChevronLeft size={24} style={{ color: 'inherit' }} />
         </button>
         <h1 className="text-xl font-bold truncate transition-colors duration-200" style={{ color: 'var(--foreground)' }}>
-          {title}
+          {displayTitle}
         </h1>
       </div>
       {children}
