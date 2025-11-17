@@ -8,10 +8,9 @@ import { ALARM_CHECKLIST } from '../../constants/checklists';
 interface AlarmChecklistProps {
   results: Record<string, string>;
   onResultChange: (question: string, value: string) => void;
-  focusedQuestionId?: string;
 }
 
-const AlarmChecklist = ({ results, onResultChange, focusedQuestionId }: AlarmChecklistProps) => {
+const AlarmChecklist = ({ results, onResultChange }: AlarmChecklistProps) => {
   return (
     <div>
       {Object.entries(ALARM_CHECKLIST).map(([category, questions]) => (
@@ -21,7 +20,6 @@ const AlarmChecklist = ({ results, onResultChange, focusedQuestionId }: AlarmChe
           questions={questions}
           results={results}
           onResultChange={onResultChange}
-          focusedQuestionId={focusedQuestionId}
         />
       ))}
     </div>

@@ -8,10 +8,9 @@ import { EYEWASH_CHECKLIST } from '../../constants/checklists';
 interface EyewashChecklistProps {
   results: Record<string, string>;
   onResultChange: (question: string, value: string) => void;
-  focusedQuestionId?: string;
 }
 
-const EyewashChecklist = ({ results, onResultChange, focusedQuestionId }: EyewashChecklistProps) => {
+const EyewashChecklist = ({ results, onResultChange }: EyewashChecklistProps) => {
   return (
     <div>
       {Object.entries(EYEWASH_CHECKLIST).map(([category, questions]) => (
@@ -21,7 +20,6 @@ const EyewashChecklist = ({ results, onResultChange, focusedQuestionId }: Eyewas
           questions={questions}
           results={results}
           onResultChange={onResultChange}
-          focusedQuestionId={focusedQuestionId}
         />
       ))}
     </div>

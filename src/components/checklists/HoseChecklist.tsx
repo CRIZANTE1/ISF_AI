@@ -8,10 +8,9 @@ import { HOSE_CHECKLIST } from '../../constants/checklists';
 interface HoseChecklistProps {
   results: Record<string, string>;
   onResultChange: (question: string, value: string) => void;
-  focusedQuestionId?: string;
 }
 
-const HoseChecklist = ({ results, onResultChange, focusedQuestionId }: HoseChecklistProps) => {
+const HoseChecklist = ({ results, onResultChange }: HoseChecklistProps) => {
   return (
     <div>
       {Object.entries(HOSE_CHECKLIST).map(([category, questions]) => (
@@ -21,7 +20,6 @@ const HoseChecklist = ({ results, onResultChange, focusedQuestionId }: HoseCheck
           questions={questions}
           results={results}
           onResultChange={onResultChange}
-          focusedQuestionId={focusedQuestionId}
         />
       ))}
     </div>

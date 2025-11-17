@@ -3,16 +3,12 @@
  */
 
 import { useTranslation } from '../hooks/useTranslation';
-import { Check, X, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useRef, useEffect } from 'react';
 
 interface ChecklistItemProps {
   question: string;
   value?: string;
   onChange: (value: string) => void;
-  isFocused?: boolean;
-  questionId?: string;
 }
 
 // Função helper para gerar chave de tradução baseada na pergunta
@@ -30,18 +26,8 @@ const getQuestionKey = (question: string): string => {
     .replace(/^_|_$/g, '');
 };
 
-const ChecklistItem = ({ question, value, onChange, isFocused = false, questionId }: ChecklistItemProps) => {
+const ChecklistItem = ({ question, value, onChange }: ChecklistItemProps) => {
   const { t } = useTranslation();
-  const itemRef = useRef<HTMLDivElement>(null);
-  
-  // Scroll automático quando o item recebe foco
-  useEffect(() => {
-    if (isFocused && itemRef.current) {
-      setTimeout(() => {
-        itemRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-    }
-  }, [isFocused]);
   
   // Tentar traduzir a pergunta, se não encontrar, usar o texto original
   const questionKey = `checklist.questions.${getQuestionKey(question)}`;
@@ -56,154 +42,143 @@ const ChecklistItem = ({ question, value, onChange, isFocused = false, questionI
     ? question 
     : translated;
 
-  // Determina se é não conforme
-  const isNonConform = value === 'Não Conforme' || value === 'Reprovado' || value === 'N/C';
+  // Determina se é não conforme para destacar
+  const isNonConform = value === 'Não Conforme';
   
-  // Cores e estilos baseados no valor
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'Conforme':
-      case 'C':
-      case 'Aprovado':
-        return {
-          color: '#10B981', // Verde
-          bgColor: 'rgba(16, 185, 129, 0.1)',
-          borderColor: 'rgba(16, 185, 129, 0.3)',
-          icon: <Check className="w-4 h-4" />
-        };
-      case 'Não Conforme':
-      case 'N/C':
-      case 'Reprovado':
-        return {
-          color: '#EF4444', // Vermelho
-          bgColor: 'rgba(239, 68, 68, 0.15)',
-          borderColor: 'rgba(239, 68, 68, 0.4)',
-          icon: <X className="w-4 h-4" />
-        };
-      case 'N/A':
-        return {
-          color: '#6B7280', // Cinza
-          bgColor: 'rgba(107, 114, 128, 0.1)',
-          borderColor: 'rgba(107, 114, 128, 0.2)',
-          icon: <Minus className="w-4 h-4" />
-        };
-      default:
-        return {
-          color: '#FFFFFF',
-          bgColor: 'rgba(28, 28, 30, 0.9)',
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          icon: null
-        };
+  // Estilos baseados no valor
+  const getCardStyle = () => {
+    if (isNonConform) {
+      return {
+        backgroundColor: 'rgba(252, 61, 57, 0.15)',
+        borderColor: 'rgba(252, 61, 57, 0.5)',
+        borderWidth: '2px',
+      };
     }
+    return {
+      backgroundColor: 'rgba(28, 28, 30, 0.9)',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderWidth: '1px',
+    };
   };
 
-  const statusStyle = value ? getStatusStyle(value) : getStatusStyle('');
+  const getOptionStyle = (optionValue: string) => {
+    if (value === optionValue) {
+      if (optionValue === 'Conforme') {
+        return { color: '#53D769', fontWeight: '600' };
+      } else if (optionValue === 'Não Conforme') {
+        return { color: '#FC3D39', fontWeight: '600' };
+      } else if (optionValue === 'N/A') {
+        return { color: '#8E8E93', fontWeight: '600' };
+      }
+    }
+    return { color: '#B0B0B0' };
+  };
 
+  const getIcon = (optionValue: string) => {
+    if (value === optionValue) {
+      if (optionValue === 'Conforme') {
+        return '✓';
+      } else if (optionValue === 'Não Conforme') {
+        return '✗';
+      } else if (optionValue === 'N/A') {
+        return '—';
+      }
+    }
+    return '';
+  };
+  
   return (
     <motion.div
-      ref={itemRef}
-      id={questionId}
-      className="mb-4 relative"
-      initial={{ opacity: 0, y: 10 }}
+      className="mb-3 p-4 rounded-lg border relative transition-all duration-200"
+      style={{
+        zIndex: 10,
+        position: 'relative',
+        ...getCardStyle(),
+      }}
+      initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.2 }}
+      whileHover={{ scale: 1.01 }}
     >
-      <div
-        className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-          isFocused ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent' : ''
-        } ${
-          isNonConform ? 'shadow-lg shadow-red-500/20' : ''
-        }`}
-        style={{
-          zIndex: isFocused ? 20 : 10,
-          position: 'relative',
-          backgroundColor: isNonConform ? statusStyle.bgColor : 'rgba(28, 28, 30, 0.9)',
-          borderColor: isNonConform ? statusStyle.borderColor : (isFocused ? '#3B82F6' : 'rgba(255, 255, 255, 0.1)'),
-          borderWidth: '2px',
-        }}
-      >
-        {/* Indicador de não conformidade */}
-        {isNonConform && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 shadow-lg"
-          >
-            <X className="w-3 h-3 text-white" />
-          </motion.div>
-        )}
-
-        <label className="block text-sm font-medium mb-3" style={{ color: '#FFFFFF' }}>
-          {translatedQuestion}
-        </label>
-        
-        <div className="flex gap-3 flex-wrap">
-          <motion.label
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg transition-all ${
-              value === 'Conforme' ? 'bg-green-500/20' : 'hover:bg-white/5'
-            }`}
-          >
-            <input
-              type="radio"
-              name={`checklist_${question}`}
-              value="Conforme"
-              checked={value === 'Conforme'}
-              onChange={() => onChange('Conforme')}
-              className="w-4 h-4"
-              style={{ accentColor: '#10B981' }}
-            />
-            <Check className="w-4 h-4" style={{ color: '#10B981' }} />
-            <span className="text-sm font-medium" style={{ color: value === 'Conforme' ? '#10B981' : '#FFFFFF' }}>
-              {t('checklist.conform')}
-            </span>
-          </motion.label>
-
-          <motion.label
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg transition-all ${
-              value === 'Não Conforme' ? 'bg-red-500/20' : 'hover:bg-white/5'
-            }`}
-          >
-            <input
-              type="radio"
-              name={`checklist_${question}`}
-              value="Não Conforme"
-              checked={value === 'Não Conforme'}
-              onChange={() => onChange('Não Conforme')}
-              className="w-4 h-4"
-              style={{ accentColor: '#EF4444' }}
-            />
-            <X className="w-4 h-4" style={{ color: '#EF4444' }} />
-            <span className="text-sm font-medium" style={{ color: value === 'Não Conforme' ? '#EF4444' : '#FFFFFF' }}>
-              {t('checklist.nonConform')}
-            </span>
-          </motion.label>
-
-          <motion.label
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg transition-all ${
-              value === 'N/A' ? 'bg-gray-500/20' : 'hover:bg-white/5'
-            }`}
-          >
-            <input
-              type="radio"
-              name={`checklist_${question}`}
-              value="N/A"
-              checked={value === 'N/A'}
-              onChange={() => onChange('N/A')}
-              className="w-4 h-4"
-              style={{ accentColor: '#6B7280' }}
-            />
-            <Minus className="w-4 h-4" style={{ color: '#6B7280' }} />
-            <span className="text-sm font-medium" style={{ color: value === 'N/A' ? '#6B7280' : '#FFFFFF' }}>
-              {t('checklist.notApplicable')}
-            </span>
-          </motion.label>
-        </div>
+      {isNonConform && (
+        <motion.div
+          className="absolute top-2 right-2"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+        >
+          <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(252, 61, 57, 0.3)', color: '#FC3D39' }}>
+            ⚠ Não Conforme
+          </span>
+        </motion.div>
+      )}
+      <label className="block text-sm font-medium mb-3" style={{ color: '#FFFFFF', paddingRight: isNonConform ? '100px' : '0' }}>
+        {translatedQuestion}
+      </label>
+      <div className="flex gap-4 flex-wrap">
+        <motion.label
+          className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg transition-all"
+          style={{
+            backgroundColor: value === 'Conforme' ? 'rgba(83, 215, 105, 0.15)' : 'transparent',
+            ...getOptionStyle('Conforme'),
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <input
+            type="radio"
+            name={`checklist_${question}`}
+            value="Conforme"
+            checked={value === 'Conforme'}
+            onChange={() => onChange('Conforme')}
+            className="w-4 h-4"
+            style={{ accentColor: '#53D769' }}
+          />
+          <span className="text-sm font-medium">{getIcon('Conforme')}</span>
+          <span className="text-sm">{t('checklist.conform')}</span>
+        </motion.label>
+        <motion.label
+          className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg transition-all"
+          style={{
+            backgroundColor: value === 'Não Conforme' ? 'rgba(252, 61, 57, 0.15)' : 'transparent',
+            ...getOptionStyle('Não Conforme'),
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <input
+            type="radio"
+            name={`checklist_${question}`}
+            value="Não Conforme"
+            checked={value === 'Não Conforme'}
+            onChange={() => onChange('Não Conforme')}
+            className="w-4 h-4"
+            style={{ accentColor: '#FC3D39' }}
+          />
+          <span className="text-sm font-medium">{getIcon('Não Conforme')}</span>
+          <span className="text-sm">{t('checklist.nonConform')}</span>
+        </motion.label>
+        <motion.label
+          className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg transition-all"
+          style={{
+            backgroundColor: value === 'N/A' ? 'rgba(142, 142, 147, 0.15)' : 'transparent',
+            ...getOptionStyle('N/A'),
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <input
+            type="radio"
+            name={`checklist_${question}`}
+            value="N/A"
+            checked={value === 'N/A'}
+            onChange={() => onChange('N/A')}
+            className="w-4 h-4"
+            style={{ accentColor: '#8E8E93' }}
+          />
+          <span className="text-sm font-medium">{getIcon('N/A')}</span>
+          <span className="text-sm">{t('checklist.notApplicable')}</span>
+        </motion.label>
       </div>
     </motion.div>
   );

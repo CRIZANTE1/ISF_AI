@@ -11,7 +11,6 @@ interface FoamChamberChecklistProps {
   inspectionType: 'Visual Semestral' | 'Funcional Anual';
   results: Record<string, string>;
   onResultChange: (question: string, value: string) => void;
-  focusedQuestionId?: string;
 }
 
 const FoamChamberChecklist = ({
@@ -19,7 +18,6 @@ const FoamChamberChecklist = ({
   inspectionType,
   results,
   onResultChange,
-  focusedQuestionId,
 }: FoamChamberChecklistProps) => {
   const { t } = useTranslation();
   
@@ -48,7 +46,6 @@ const FoamChamberChecklist = ({
           questions={checklist[category]}
           results={results}
           onResultChange={onResultChange}
-          focusedQuestionId={focusedQuestionId}
         />
       ))}
     </div>

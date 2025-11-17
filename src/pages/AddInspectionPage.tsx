@@ -17,7 +17,6 @@ import AlarmChecklist from '../components/checklists/AlarmChecklist';
 import CannonMonitorChecklist from '../components/checklists/CannonMonitorChecklist';
 import ScbaChecklist from '../components/checklists/ScbaChecklist';
 import HoseChecklist from '../components/checklists/HoseChecklist';
-import ChecklistProgress from '../components/ChecklistProgress';
 import { logger } from '../utils/logger';
 import { 
   generateActionPlan, 
@@ -82,7 +81,6 @@ const AddInspectionPage = () => {
   const [checklistResults, setChecklistResults] = useState<Record<string, string>>({});
   const [checklistObservations, setChecklistObservations] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [focusedQuestionId, setFocusedQuestionId] = useState<string | undefined>(undefined);
   const [foamChamberInspectionType, setFoamChamberInspectionType] = useState<'Visual Semestral' | 'Funcional Anual'>('Visual Semestral');
   const [cannonMonitorInspectionType, setCannonMonitorInspectionType] = useState<'Visual' | 'Funcional'>('Visual');
   
@@ -783,173 +781,6 @@ const AddInspectionPage = () => {
   const isMultigasEquipment = type === 'multigas';
   const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
 
-  // Calcula estatísticas do checklist para o componente de progresso
-  const getChecklistStats = () => {
-    if (!hasChecklist) return { total: 0, answered: 0, nonConformities: 0 };
-    
-    let allQuestions: string[] = [];
-    
-    switch (type) {
-      case 'chuveiro_lavaolhos':
-        Object.values(EYEWASH_CHECKLIST).forEach(questions => {
-          allQuestions = [...allQuestions, ...questions];
-        });
-        break;
-      case 'camara_espuma':
-        if (equipment?.model && FOAM_CHAMBER_CHECKLIST[equipment.model]) {
-          const checklist = FOAM_CHAMBER_CHECKLIST[equipment.model];
-          const sections = foamChamberInspectionType === 'Visual Semestral'
-            ? Object.keys(checklist).filter(s => s !== 'Teste Funcional')
-            : Object.keys(checklist);
-          sections.forEach(section => {
-            allQuestions = [...allQuestions, ...checklist[section]];
-          });
-        }
-        break;
-      case 'alarme':
-        Object.values(ALARM_CHECKLIST).forEach(questions => {
-          allQuestions = [...allQuestions, ...questions];
-        });
-        break;
-      case 'canhao_monitor':
-        const checklist = cannonMonitorInspectionType === 'Visual'
-          ? CANNON_MONITOR_CHECKLIST_VISUAL
-          : CANNON_MONITOR_CHECKLIST_FUNCIONAL;
-        Object.values(checklist).forEach(questions => {
-          allQuestions = [...allQuestions, ...questions];
-        });
-        break;
-      case 'mangueira':
-        Object.values(HOSE_CHECKLIST).forEach(questions => {
-          allQuestions = [...allQuestions, ...questions];
-        });
-        break;
-      case 'scba':
-        // SCBA tem estrutura diferente, conta manualmente
-        allQuestions = [
-          'Testes Funcionais.Estanqueidade Alta Pressão',
-          'Testes Funcionais.Alarme de Baixa Pressão',
-          'Testes Funcionais.Vedação da Máscara',
-          'Cilindro.Integridade Cilindro',
-          'Cilindro.Registro e Valvulas',
-          'Cilindro.Manômetro do Cilindro',
-          'Cilindro.Pressão Manômetro',
-          'Cilindro.Mangueiras e Conexões',
-          'Cilindro.Correias/ Tirantes e Alças',
-          'Mascara.Integridade da Máscara',
-          'Mascara.Visor ou Lente',
-          'Mascara.Borrachas de Vedação',
-          'Mascara.Conector da válvula de Inalação',
-          'Mascara.Correias/ Tirantes',
-          'Mascara.Fivelas e Alças',
-          'Mascara.Válvula de Exalação',
-        ];
-        break;
-    }
-    
-    const total = allQuestions.length;
-    const answered = allQuestions.filter(q => checklistResults[q]).length;
-    const nonConformitiesCount = allQuestions.filter(q => {
-      const value = checklistResults[q];
-      return value === 'Não Conforme' || value === 'Reprovado' || value === 'N/C';
-    }).length;
-    
-    return { total, answered, nonConformities: nonConformitiesCount };
-  };
-
-  const checklistStats = getChecklistStats();
-
-  // Encontra o próximo item não respondido e faz scroll
-  useEffect(() => {
-    if (!hasChecklist || checklistStats.answered === checklistStats.total) {
-      setFocusedQuestionId(undefined);
-      return;
-    }
-
-    // Encontra a primeira pergunta não respondida
-    let allQuestions: Array<{ question: string; id: string; section: string }> = [];
-    
-    const buildQuestionList = () => {
-      switch (type) {
-        case 'chuveiro_lavaolhos':
-          Object.entries(EYEWASH_CHECKLIST).forEach(([section, questions]) => {
-            questions.forEach((question, index) => {
-              allQuestions.push({
-                question,
-                id: `checklist-${section}-${index}`,
-                section
-              });
-            });
-          });
-          break;
-        case 'camara_espuma':
-          if (equipment?.model && FOAM_CHAMBER_CHECKLIST[equipment.model]) {
-            const checklist = FOAM_CHAMBER_CHECKLIST[equipment.model];
-            const sections = foamChamberInspectionType === 'Visual Semestral'
-              ? Object.keys(checklist).filter(s => s !== 'Teste Funcional')
-              : Object.keys(checklist);
-            sections.forEach(section => {
-              checklist[section].forEach((question, index) => {
-                allQuestions.push({
-                  question,
-                  id: `checklist-${section}-${index}`,
-                  section
-                });
-              });
-            });
-          }
-          break;
-        case 'alarme':
-          Object.entries(ALARM_CHECKLIST).forEach(([section, questions]) => {
-            questions.forEach((question, index) => {
-              allQuestions.push({
-                question,
-                id: `checklist-${section}-${index}`,
-                section
-              });
-            });
-          });
-          break;
-        case 'canhao_monitor':
-          const checklist = cannonMonitorInspectionType === 'Visual'
-            ? CANNON_MONITOR_CHECKLIST_VISUAL
-            : CANNON_MONITOR_CHECKLIST_FUNCIONAL;
-          Object.entries(checklist).forEach(([section, questions]) => {
-            questions.forEach((question, index) => {
-              allQuestions.push({
-                question,
-                id: `checklist-${section}-${index}`,
-                section
-              });
-            });
-          });
-          break;
-        case 'mangueira':
-          Object.entries(HOSE_CHECKLIST).forEach(([section, questions]) => {
-            questions.forEach((question, index) => {
-              allQuestions.push({
-                question,
-                id: `checklist-${section}-${index}`,
-                section
-              });
-            });
-          });
-          break;
-      }
-    };
-
-    buildQuestionList();
-
-    // Encontra a primeira pergunta não respondida
-    const unansweredQuestion = allQuestions.find(q => !checklistResults[q.question]);
-    
-    if (unansweredQuestion) {
-      setFocusedQuestionId(unansweredQuestion.id);
-    } else {
-      setFocusedQuestionId(undefined);
-    }
-  }, [checklistResults, type, equipment, foamChamberInspectionType, cannonMonitorInspectionType, hasChecklist, checklistStats.answered, checklistStats.total]);
-
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader title={t('inspection.register')} />
@@ -1436,32 +1267,98 @@ const AddInspectionPage = () => {
             </>
           )}
 
-          {hasChecklist && (
-            <motion.div 
-              className="mb-6 relative" 
-              style={{ zIndex: 10, position: 'relative' }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.45 }}
-            >
-              <h3 className="text-lg font-semibold mb-4 text-light-text-primary dark:text-dark-text-primary" style={{ color: '#FFFFFF' }}>
-                {t('inspection.checklistTitle')}
-              </h3>
-
-              {/* Indicador de progresso */}
-              {checklistStats.total > 0 && (
-                <ChecklistProgress
-                  total={checklistStats.total}
-                  answered={checklistStats.answered}
-                  nonConformities={checklistStats.nonConformities}
-                />
-              )}
+          {hasChecklist && (() => {
+            // Calcula progresso geral do checklist
+            const allQuestions = Object.keys(checklistResults);
+            const answered = allQuestions.filter(q => checklistResults[q]).length;
+            const total = allQuestions.length;
+            const nonConformitiesCount = allQuestions.filter(q => 
+              checklistResults[q] === 'Não Conforme' || 
+              checklistResults[q] === 'Reprovado' || 
+              checklistResults[q] === 'N/C'
+            ).length;
+            const progress = total > 0 ? (answered / total) * 100 : 0;
+            
+            return (
+              <motion.div 
+                className="mb-6 relative" 
+                style={{ zIndex: 10, position: 'relative' }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.45 }}
+              >
+                {/* Indicador de progresso geral */}
+                <motion.div
+                  className="mb-6 p-4 rounded-lg border"
+                  style={{
+                    backgroundColor: 'rgba(28, 28, 30, 0.9)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: '1px',
+                  }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
+                      {t('inspection.checklistTitle')}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium" style={{ color: '#B0B0B0' }}>
+                        {answered}/{total}
+                      </span>
+                      {nonConformitiesCount > 0 && (
+                        <span className="text-xs px-2 py-1 rounded-full flex items-center gap-1" style={{ backgroundColor: 'rgba(252, 61, 57, 0.3)', color: '#FC3D39' }}>
+                          <span>⚠</span>
+                          <span>{nonConformitiesCount} {t('inspection.nonConformities', { defaultValue: 'Não Conformes' })}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Barra de progresso geral */}
+                  <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        backgroundColor: nonConformitiesCount > 0 ? '#FC3D39' : '#53D769',
+                        width: `${progress}%`,
+                      }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
+                  </div>
+                  
+                  {/* Estatísticas */}
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#53D769' }} />
+                      <span className="text-xs" style={{ color: '#B0B0B0' }}>
+                        {allQuestions.filter(q => checklistResults[q] === 'Conforme' || checklistResults[q] === 'C' || checklistResults[q] === 'Aprovado').length} {t('checklist.conform', { defaultValue: 'Conforme' })}
+                      </span>
+                    </div>
+                    {nonConformitiesCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FC3D39' }} />
+                        <span className="text-xs" style={{ color: '#B0B0B0' }}>
+                          {nonConformitiesCount} {t('checklist.nonConform', { defaultValue: 'Não Conforme' })}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8E8E93' }} />
+                      <span className="text-xs" style={{ color: '#B0B0B0' }}>
+                        {allQuestions.filter(q => checklistResults[q] === 'N/A').length} {t('checklist.notApplicable', { defaultValue: 'N/A' })}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
 
               {type === 'chuveiro_lavaolhos' && (
                 <EyewashChecklist
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
-                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1471,7 +1368,6 @@ const AddInspectionPage = () => {
                   inspectionType={foamChamberInspectionType}
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
-                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1479,7 +1375,6 @@ const AddInspectionPage = () => {
                 <AlarmChecklist
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
-                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1488,7 +1383,6 @@ const AddInspectionPage = () => {
                   inspectionType={cannonMonitorInspectionType}
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
-                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1510,7 +1404,6 @@ const AddInspectionPage = () => {
                 <HoseChecklist
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
-                  focusedQuestionId={focusedQuestionId}
                 />
               )}
 
@@ -1528,8 +1421,9 @@ const AddInspectionPage = () => {
                   </p>
                 </motion.div>
               )}
-            </motion.div>
-          )}
+              </motion.div>
+            );
+          })()}
 
           {requiresPhoto && (
             <motion.div 

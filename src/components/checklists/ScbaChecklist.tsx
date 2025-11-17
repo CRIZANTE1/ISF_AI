@@ -4,6 +4,7 @@
 
 import ChecklistItem from '../ChecklistItem';
 import { useTranslation } from '../../hooks/useTranslation';
+import { motion } from 'framer-motion';
 
 interface ScbaChecklistProps {
   results: Record<string, string>;
@@ -75,116 +76,86 @@ const ScbaChecklist = ({
           {t('checklist.functionalTests')}
         </h3>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              {t('checklist.testSeal')}
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="teste_estanqueidade"
-                  value="Aprovado"
-                  checked={results["Testes Funcionais.Estanqueidade Alta Pressão"] === 'Aprovado'}
-                  onChange={(e) => onResultChange("Testes Funcionais.Estanqueidade Alta Pressão", e.target.value)}
-                  className="w-4 h-4"
-                  style={{ accentColor: '#FFFFFF' }}
-                />
-                <span style={{ color: '#FFFFFF' }}>{t('checklist.approved')}</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="teste_estanqueidade"
-                  value="Reprovado"
-                  checked={results["Testes Funcionais.Estanqueidade Alta Pressão"] === 'Reprovado'}
-                  onChange={(e) => onResultChange("Testes Funcionais.Estanqueidade Alta Pressão", e.target.value)}
-                  className="w-4 h-4"
-                  style={{ accentColor: '#FFFFFF' }}
-                />
-                <span style={{ color: '#FFFFFF' }}>{t('checklist.rejected')}</span>
-              </label>
-            </div>
-            <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-              <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                <strong>{t('guides.instructions')}</strong> {t('guides.scbaChecklist.pressureTest')}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              {t('checklist.testLowPressureAlarm')}
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="teste_alarme"
-                  value="Aprovado"
-                  checked={results["Testes Funcionais.Alarme de Baixa Pressão"] === 'Aprovado'}
-                  onChange={(e) => onResultChange("Testes Funcionais.Alarme de Baixa Pressão", e.target.value)}
-                  className="w-4 h-4"
-                  style={{ accentColor: '#FFFFFF' }}
-                />
-                <span style={{ color: '#FFFFFF' }}>{t('checklist.approved')}</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="teste_alarme"
-                  value="Reprovado"
-                  checked={results["Testes Funcionais.Alarme de Baixa Pressão"] === 'Reprovado'}
-                  onChange={(e) => onResultChange("Testes Funcionais.Alarme de Baixa Pressão", e.target.value)}
-                  className="w-4 h-4"
-                  style={{ accentColor: '#FFFFFF' }}
-                />
-                <span style={{ color: '#FFFFFF' }}>{t('checklist.rejected')}</span>
-              </label>
-            </div>
-            <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-              <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                <strong>{t('guides.instructions')}</strong> {t('guides.scbaChecklist.lowPressureAlarm')}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
-              {t('checklist.testMaskSeal')}
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="teste_vedacao_mascara"
-                  value="Aprovado"
-                  checked={results["Testes Funcionais.Vedação da Máscara"] === 'Aprovado'}
-                  onChange={(e) => onResultChange("Testes Funcionais.Vedação da Máscara", e.target.value)}
-                  className="w-4 h-4"
-                  style={{ accentColor: '#FFFFFF' }}
-                />
-                <span style={{ color: '#FFFFFF' }}>{t('checklist.approved')}</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="teste_vedacao_mascara"
-                  value="Reprovado"
-                  checked={results["Testes Funcionais.Vedação da Máscara"] === 'Reprovado'}
-                  onChange={(e) => onResultChange("Testes Funcionais.Vedação da Máscara", e.target.value)}
-                  className="w-4 h-4"
-                  style={{ accentColor: '#FFFFFF' }}
-                />
-                <span style={{ color: '#FFFFFF' }}>{t('checklist.rejected')}</span>
-              </label>
-            </div>
-            <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-              <p className="text-xs" style={{ color: '#9E9E9E' }}>
-                <strong>{t('guides.instructions')}</strong> {t('guides.scbaChecklist.maskSeal')}
-              </p>
-            </div>
-          </div>
+          {[
+            { key: 'Estanqueidade Alta Pressão', label: t('checklist.testSeal') },
+            { key: 'Alarme de Baixa Pressão', label: t('checklist.testLowPressureAlarm') },
+            { key: 'Vedação da Máscara', label: t('checklist.testMaskSeal') }
+          ].map(({ key, label }) => {
+            const resultKey = `Testes Funcionais.${key}`;
+            const currentValue = results[resultKey];
+            const isReprovado = currentValue === 'Reprovado';
+            
+            return (
+              <motion.div
+                key={key}
+                className="p-4 rounded-lg border relative"
+                style={{
+                  backgroundColor: isReprovado ? 'rgba(252, 61, 57, 0.15)' : '#1A1A1A',
+                  borderColor: isReprovado ? 'rgba(252, 61, 57, 0.5)' : '#2A2A2A',
+                  borderWidth: isReprovado ? '2px' : '1px',
+                  borderStyle: 'solid',
+                }}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isReprovado && (
+                  <motion.div
+                    className="absolute top-2 right-2"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200 }}
+                  >
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(252, 61, 57, 0.3)', color: '#FC3D39' }}>
+                      ⚠
+                    </span>
+                  </motion.div>
+                )}
+                <label className="block text-sm font-medium mb-3" style={{ color: '#B0B0B0', paddingRight: isReprovado ? '60px' : '0' }}>
+                  {label}
+                </label>
+                <div className="flex gap-4">
+                  {[
+                    { value: 'Aprovado', label: t('checklist.approved'), icon: '✓', color: '#53D769' },
+                    { value: 'Reprovado', label: t('checklist.rejected'), icon: '✗', color: '#FC3D39' }
+                  ].map(({ value, label, icon, color }) => (
+                    <motion.label
+                      key={value}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer"
+                      style={{
+                        backgroundColor: currentValue === value ? `${color}20` : 'transparent',
+                        color: currentValue === value ? color : '#B0B0B0',
+                        fontWeight: currentValue === value ? '600' : '400',
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <input
+                        type="radio"
+                        name={`teste_${key}`}
+                        value={value}
+                        checked={currentValue === value}
+                        onChange={(e) => onResultChange(resultKey, e.target.value)}
+                        className="w-4 h-4"
+                        style={{ accentColor: color }}
+                      />
+                      {currentValue === value && <span className="text-sm font-medium">{icon}</span>}
+                      <span className="text-sm">{label}</span>
+                    </motion.label>
+                  ))}
+                </div>
+                <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
+                  <p className="text-xs" style={{ color: '#9E9E9E' }}>
+                    <strong>{t('guides.instructions')}</strong> {
+                      key === 'Estanqueidade Alta Pressão' ? t('guides.scbaChecklist.pressureTest') :
+                      key === 'Alarme de Baixa Pressão' ? t('guides.scbaChecklist.lowPressureAlarm') :
+                      t('guides.scbaChecklist.maskSeal')
+                    }
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
@@ -202,31 +173,72 @@ const ScbaChecklist = ({
             {t('checklist.cylinder')}
           </h4>
           <div className="space-y-2">
-            {cilindroItems.map((item) => (
-              <div key={item} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-                <span style={{ color: '#FFFFFF' }}>{translateItem(item)}</span>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'C', label: t('checklist.conformShort') },
-                    { value: 'N/C', label: t('checklist.nonConformShort') },
-                    { value: 'N/A', label: t('checklist.notApplicable') }
-                  ].map(({ value, label }) => (
-                    <label key={value} className="flex items-center gap-1">
-                      <input
-                        type="radio"
-                        name={`cil_${item}`}
-                        value={value}
-                        checked={results[`Cilindro.${item}`] === value}
-                        onChange={(e) => onResultChange(`Cilindro.${item}`, e.target.value)}
-                        className="w-4 h-4"
-                        style={{ accentColor: '#FFFFFF' }}
-                      />
-                      <span className="text-xs" style={{ color: '#B0B0B0' }}>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {cilindroItems.map((item) => {
+              const currentValue = results[`Cilindro.${item}`];
+              const isNonConform = currentValue === 'N/C';
+              
+              return (
+                <motion.div
+                  key={item}
+                  className="flex items-center justify-between p-3 rounded-lg border relative"
+                  style={{
+                    backgroundColor: isNonConform ? 'rgba(252, 61, 57, 0.15)' : '#1A1A1A',
+                    borderColor: isNonConform ? 'rgba(252, 61, 57, 0.5)' : '#2A2A2A',
+                    borderWidth: isNonConform ? '2px' : '1px',
+                    borderStyle: 'solid',
+                  }}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ scale: 1.01 }}
+                >
+                  {isNonConform && (
+                    <motion.div
+                      className="absolute top-2 right-2"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 200 }}
+                    >
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(252, 61, 57, 0.3)', color: '#FC3D39' }}>
+                        ⚠
+                      </span>
+                    </motion.div>
+                  )}
+                  <span style={{ color: '#FFFFFF', paddingRight: isNonConform ? '40px' : '0' }}>{translateItem(item)}</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'C', label: t('checklist.conformShort'), icon: '✓', color: '#53D769' },
+                      { value: 'N/C', label: t('checklist.nonConformShort'), icon: '✗', color: '#FC3D39' },
+                      { value: 'N/A', label: t('checklist.notApplicable'), icon: '—', color: '#8E8E93' }
+                    ].map(({ value, label, icon, color }) => (
+                      <motion.label
+                        key={value}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg cursor-pointer"
+                        style={{
+                          backgroundColor: currentValue === value ? `${color}20` : 'transparent',
+                          color: currentValue === value ? color : '#B0B0B0',
+                          fontWeight: currentValue === value ? '600' : '400',
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <input
+                          type="radio"
+                          name={`cil_${item}`}
+                          value={value}
+                          checked={currentValue === value}
+                          onChange={(e) => onResultChange(`Cilindro.${item}`, e.target.value)}
+                          className="w-4 h-4"
+                          style={{ accentColor: color }}
+                        />
+                        {currentValue === value && <span className="text-xs font-medium">{icon}</span>}
+                        <span className="text-xs">{label}</span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
           <div className="mt-3">
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>
@@ -248,31 +260,72 @@ const ScbaChecklist = ({
             {t('checklist.mask')}
           </h4>
           <div className="space-y-2">
-            {mascaraItems.map((item) => (
-              <div key={item} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', borderStyle: 'solid' }}>
-                <span style={{ color: '#FFFFFF' }}>{translateItem(item)}</span>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'C', label: t('checklist.conformShort') },
-                    { value: 'N/C', label: t('checklist.nonConformShort') },
-                    { value: 'N/A', label: t('checklist.notApplicable') }
-                  ].map(({ value, label }) => (
-                    <label key={value} className="flex items-center gap-1">
-                      <input
-                        type="radio"
-                        name={`masc_${item}`}
-                        value={value}
-                        checked={results[`Mascara.${item}`] === value}
-                        onChange={(e) => onResultChange(`Mascara.${item}`, e.target.value)}
-                        className="w-4 h-4"
-                        style={{ accentColor: '#FFFFFF' }}
-                      />
-                      <span className="text-xs" style={{ color: '#B0B0B0' }}>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {mascaraItems.map((item) => {
+              const currentValue = results[`Mascara.${item}`];
+              const isNonConform = currentValue === 'N/C';
+              
+              return (
+                <motion.div
+                  key={item}
+                  className="flex items-center justify-between p-3 rounded-lg border relative"
+                  style={{
+                    backgroundColor: isNonConform ? 'rgba(252, 61, 57, 0.15)' : '#1A1A1A',
+                    borderColor: isNonConform ? 'rgba(252, 61, 57, 0.5)' : '#2A2A2A',
+                    borderWidth: isNonConform ? '2px' : '1px',
+                    borderStyle: 'solid',
+                  }}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ scale: 1.01 }}
+                >
+                  {isNonConform && (
+                    <motion.div
+                      className="absolute top-2 right-2"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 200 }}
+                    >
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(252, 61, 57, 0.3)', color: '#FC3D39' }}>
+                        ⚠
+                      </span>
+                    </motion.div>
+                  )}
+                  <span style={{ color: '#FFFFFF', paddingRight: isNonConform ? '40px' : '0' }}>{translateItem(item)}</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'C', label: t('checklist.conformShort'), icon: '✓', color: '#53D769' },
+                      { value: 'N/C', label: t('checklist.nonConformShort'), icon: '✗', color: '#FC3D39' },
+                      { value: 'N/A', label: t('checklist.notApplicable'), icon: '—', color: '#8E8E93' }
+                    ].map(({ value, label, icon, color }) => (
+                      <motion.label
+                        key={value}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg cursor-pointer"
+                        style={{
+                          backgroundColor: currentValue === value ? `${color}20` : 'transparent',
+                          color: currentValue === value ? color : '#B0B0B0',
+                          fontWeight: currentValue === value ? '600' : '400',
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <input
+                          type="radio"
+                          name={`masc_${item}`}
+                          value={value}
+                          checked={currentValue === value}
+                          onChange={(e) => onResultChange(`Mascara.${item}`, e.target.value)}
+                          className="w-4 h-4"
+                          style={{ accentColor: color }}
+                        />
+                        {currentValue === value && <span className="text-xs font-medium">{icon}</span>}
+                        <span className="text-xs">{label}</span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
           <div className="mt-3">
             <label className="block text-sm font-medium mb-2" style={{ color: '#B0B0B0' }}>

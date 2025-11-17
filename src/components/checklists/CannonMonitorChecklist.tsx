@@ -9,14 +9,12 @@ interface CannonMonitorChecklistProps {
   inspectionType: 'Visual' | 'Funcional';
   results: Record<string, string>;
   onResultChange: (question: string, value: string) => void;
-  focusedQuestionId?: string;
 }
 
 const CannonMonitorChecklist = ({
   inspectionType,
   results,
   onResultChange,
-  focusedQuestionId,
 }: CannonMonitorChecklistProps) => {
   const checklist = inspectionType === 'Visual' 
     ? CANNON_MONITOR_CHECKLIST_VISUAL 
@@ -31,7 +29,6 @@ const CannonMonitorChecklist = ({
           questions={questions}
           results={results}
           onResultChange={onResultChange}
-          focusedQuestionId={focusedQuestionId}
         />
       ))}
     </div>
