@@ -420,11 +420,10 @@ Acesse `http://localhost:5173` no navegador para testar a interface antes de com
 
 ## 📚 Documentação Adicional
 
-- [Configuração do Capacitor](./CAPACITOR_SETUP.md)
-- [Configuração do Supabase](./CONFIGURAR_SUPABASE.md)
-- [Setup de Geolocalização](./GEOLOCALIZACAO_SETUP.md)
-- [Gerador de QR Code para Android](./QR_GENERATOR_ANDROID_SETUP.md)
-- [Requisitos do Projeto](./REQUIREMENTS.md)
+- [Configuração do Capacitor](./docs/CAPACITOR_SETUP.md)
+- [Configuração do Supabase](./docs/CONFIGURAR_SUPABASE.md)
+- [Setup de Geolocalização](./docs/GEOLOCALIZACAO_SETUP.md)
+- [Requisitos do Projeto](./docs/REQUIREMENTS.md)
 
 ## 🆕 Novidades
 
