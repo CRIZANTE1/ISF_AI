@@ -54,14 +54,20 @@ const OfflineIndicator = () => {
       const newStats = await getOfflineStats();
       setStats(newStats);
 
-      // Limpa resultado após 3 segundos
-      setTimeout(() => setSyncResult(null), 3000);
-    } catch (error) {
+      // Limpa resultado após 5 segundos (mais tempo para ler)
+      setTimeout(() => setSyncResult(null), 5000);
+    } catch (error: any) {
       logger.error('Erro ao sincronizar', 'storage', error);
+      // Mostra erro ao usuário
+      setSyncResult({
+        success: 0,
+        failed: stats.pendingOperations,
+      });
+      setTimeout(() => setSyncResult(null), 5000);
     } finally {
       setIsSyncing(false);
     }
-  }, [isOnline, isSyncing]);
+  }, [isOnline, isSyncing, stats.pendingOperations]);
 
   // Sincroniza automaticamente quando volta online
   useEffect(() => {
@@ -167,9 +173,10 @@ const OfflineIndicator = () => {
                 <Wifi size={16} className="text-white" />
               )}
               <p className="text-xs text-white">
-                {syncResult.success > 0 && `${syncResult.success} sincronizada(s)`}
+                {syncResult.success > 0 && `${syncResult.success} sincronizada(s) com sucesso`}
                 {syncResult.success > 0 && syncResult.failed > 0 && ' • '}
                 {syncResult.failed > 0 && `${syncResult.failed} falharam`}
+                {syncResult.success === 0 && syncResult.failed > 0 && 'Todas as operações falharam. Verifique sua conexão e tente novamente.'}
               </p>
             </div>
           </motion.div>

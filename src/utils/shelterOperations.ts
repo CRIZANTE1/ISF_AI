@@ -22,10 +22,12 @@ export interface ShelterInspection {
   id_abrigo: string;
   status_geral?: string;
   resultados_json?: Record<string, any>;
+  plano_de_acao?: string;
   inspetor?: string;
   data_proxima_inspecao?: string;
   latitude?: number;
   longitude?: number;
+  link_foto_nao_conformidade?: string;
   created_at?: string;
   user_id?: string;
 }

@@ -4,10 +4,14 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, AlertTriangle, X } from 'lucide-react';
+import { Bell, AlertTriangle, X, RefreshCw, WifiOff, CheckCircle } from 'lucide-react';
 import LazyImage from './LazyImage';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useTranslation } from '../hooks/useTranslation';
+import { useSyncStatus } from '../hooks/useSyncStatus';
+import { supabase } from '../lib/supabase';
+import { isActionPlanOverdue, getActionPlanStatus, classifyActionPlanPriority } from '../utils/actionPlanUtils';
+import { logger } from '../utils/logger';
 
 interface Alert {
   id: string;
@@ -26,6 +30,7 @@ const DashboardHeader = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const { pendingOperations, isSyncing, lastSyncResult, hasError, errorMessage, sync, clearError } = useSyncStatus();
   const today = new Date();
   const locale = currentLanguage === 'pt-BR' ? ptBR : enUS;
   const localeString = currentLanguage === 'pt-BR' ? 'pt-BR' : 'en-US';
@@ -52,7 +57,7 @@ const DashboardHeader = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const fetchAlerts = () => {
+    const fetchAlerts = async () => {
       const allAlerts: Alert[] = [];
 
       const checkEquipment = (
@@ -107,7 +112,84 @@ const DashboardHeader = () => {
       checkEquipment(cache.alarmSystems, 'alarme', 'id_sistema', 'status', 'data_proxima_inspecao');
       checkEquipment(cache.shelters, 'abrigo', 'id_abrigo', 'status', 'data_proxima_inspecao');
 
+      // Buscar planos de ação vencidos
+      try {
+        const inspectionTables = [
+          { name: 'inspecoes_scba', type: 'scba', idField: 'numero_serie_equipamento', dateField: 'data_inspecao', typeLabel: 'SCBA' },
+          { name: 'inspecoes_multigas', type: 'multigas', idField: 'id_equipamento', dateField: 'data_teste', typeLabel: 'Multigás' },
+          { name: 'inspecoes_camaras_espuma', type: 'camara_espuma', idField: 'id_camara', dateField: 'data_inspecao', typeLabel: 'Câmara de Espuma' },
+          { name: 'inspecoes_canhoes_monitores', type: 'canhao_monitor', idField: 'id_equipamento', dateField: 'data_inspecao', typeLabel: 'Canhão Monitor' },
+          { name: 'inspecoes_chuveiros_lava_olhos', type: 'chuveiro_lavaolhos', idField: 'id_equipamento', dateField: 'data_inspecao', typeLabel: 'Chuveiro/Lava-olhos' },
+          { name: 'inspecoes_alarmes', type: 'alarme', idField: 'id_sistema', dateField: 'data_inspecao', typeLabel: 'Alarme' },
+          { name: 'inspecoes_abrigos', type: 'abrigo', idField: 'id_abrigo', dateField: 'data_inspecao', typeLabel: 'Abrigo' },
+          { name: 'inspecoes_mangueiras', type: 'mangueira', idField: 'id_mangueira', dateField: 'data_inspecao', typeLabel: 'Mangueira' },
+          { name: 'inspecoes_extintores', type: 'extintor', idField: 'numero_identificacao', dateField: 'data_servico', typeLabel: 'Extintor' },
+        ];
+
+        for (const table of inspectionTables) {
+          try {
+            const { data, error } = await supabase
+              .from(table.name as any)
+              .select('*')
+              .eq('user_id', user.id)
+              .not('plano_de_acao', 'is', null);
+
+            if (error) {
+              // Ignora erros de coluna não encontrada
+              if (error.message?.includes('column') && error.message?.includes('plano_de_acao')) {
+                continue;
+              }
+              logger.warn(`Erro ao buscar planos de ação de ${table.name}`, 'alerts', error);
+              continue;
+            }
+
+            if (data) {
+              data.forEach((insp: any) => {
+                const plan = insp.plano_de_acao;
+                if (!plan || plan.toLowerCase().includes('manter em monitoramento') || plan.trim() === 'N/A') {
+                  return;
+                }
+
+                const createdAt = insp[table.dateField] || insp.created_at;
+                if (!createdAt) return;
+
+                if (isActionPlanOverdue(plan, createdAt)) {
+                  const status = getActionPlanStatus(plan, createdAt);
+                  const priority = classifyActionPlanPriority(plan);
+                  const priorityLabel = priority === 'critical' 
+                    ? t('alerts.critical', { defaultValue: 'Crítico' })
+                    : priority === 'important'
+                    ? t('alerts.important', { defaultValue: 'Importante' })
+                    : t('alerts.normal', { defaultValue: 'Normal' });
+
+                  allAlerts.push({
+                    id: `action_plan_${table.name}_${insp.id}`,
+                    equipment_id: insp[table.idField],
+                    equipment_type: table.type,
+                    status: 'action_plan_overdue',
+                    message: t('alerts.actionPlanOverdue', {
+                      equipment: insp[table.idField],
+                      priority: priorityLabel,
+                      days: status.daysRemaining,
+                      defaultValue: `Plano de ação ${priorityLabel} vencido há ${status.daysRemaining} dia(s) - ${insp[table.idField]}`
+                    }),
+                  });
+                }
+              });
+            }
+          } catch (err) {
+            logger.error(`Erro ao processar planos de ação de ${table.name}`, 'alerts', err);
+          }
+        }
+      } catch (err) {
+        logger.error('Erro ao buscar planos de ação vencidos', 'alerts', err);
+      }
+
       allAlerts.sort((a, b) => {
+        // Prioriza planos de ação vencidos
+        if (a.status === 'action_plan_overdue' && b.status !== 'action_plan_overdue') return -1;
+        if (a.status !== 'action_plan_overdue' && b.status === 'action_plan_overdue') return 1;
+        
         if (!a.proxima_inspecao) return 1;
         if (!b.proxima_inspecao) return -1;
         return new Date(a.proxima_inspecao).getTime() - new Date(b.proxima_inspecao).getTime();
@@ -117,7 +199,7 @@ const DashboardHeader = () => {
     };
 
     fetchAlerts();
-  }, [user?.id, cache]);
+  }, [user?.id, cache, t]);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -172,8 +254,17 @@ const DashboardHeader = () => {
               aria-label={t('dashboard.notifications')}
             >
               <Bell size={22} strokeWidth={2} className="text-[#8E8E93]" />
+              {/* Indicador de alertas */}
               {alerts.length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-status-error"></span>
+              )}
+              {/* Indicador de sincronização pendente (amarelo) */}
+              {pendingOperations > 0 && alerts.length === 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-yellow-500"></span>
+              )}
+              {/* Indicador de erro de sincronização (vermelho) */}
+              {hasError && pendingOperations > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-status-error animate-pulse"></span>
               )}
             </motion.button>
 
@@ -202,6 +293,55 @@ const DashboardHeader = () => {
                       <X size={18} className="text-[#8E8E93]" />
                     </button>
                   </div>
+                  
+                  {/* Status de Sincronização */}
+                  {pendingOperations > 0 && (
+                    <div className={`p-3 border-b border-[var(--border-current)] ${
+                      hasError ? 'bg-red-500/10' : 'bg-yellow-500/10'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {isSyncing ? (
+                            <RefreshCw size={16} className="text-yellow-500 animate-spin flex-shrink-0" />
+                          ) : hasError ? (
+                            <WifiOff size={16} className="text-red-500 flex-shrink-0" />
+                          ) : (
+                            <AlertTriangle size={16} className="text-yellow-500 flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-white">
+                              {isSyncing 
+                                ? `Sincronizando ${pendingOperations} operação(ões)...`
+                                : hasError
+                                ? errorMessage || `${pendingOperations} operação(ões) pendente(s)`
+                                : `${pendingOperations} operação(ões) pendente(s)`
+                              }
+                            </p>
+                            {lastSyncResult && (
+                              <p className="text-xs text-[#8E8E93] mt-0.5">
+                                {lastSyncResult.success > 0 && `${lastSyncResult.success} sincronizada(s)`}
+                                {lastSyncResult.success > 0 && lastSyncResult.failed > 0 && ' • '}
+                                {lastSyncResult.failed > 0 && `${lastSyncResult.failed} falharam`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {!isSyncing && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sync();
+                            }}
+                            className="px-2 py-1 text-xs bg-white/10 hover:bg-white/20 rounded transition-colors flex items-center gap-1"
+                          >
+                            <RefreshCw size={12} />
+                            Sincronizar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="max-h-80 overflow-y-auto">
                     {alerts.length === 0 ? (
                       <div className="p-8 text-center">

@@ -51,6 +51,48 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
           className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
+      <div className="mb-4">
+        <label htmlFor="H2S_cilindro" className="block text-sm font-medium mb-1">H2S Cilindro</label>
+        <input
+          id="H2S_cilindro"
+          type="number"
+          step="1"
+          {...register('H2S_cilindro', { valueAsNumber: true })}
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="CO_cilindro" className="block text-sm font-medium mb-1">CO Cilindro</label>
+        <input
+          id="CO_cilindro"
+          type="number"
+          step="1"
+          {...register('CO_cilindro', { valueAsNumber: true })}
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="margem_erro_cilindro" className="block text-sm font-medium mb-1">
+          Margem de Erro do Cilindro (%)
+        </label>
+        <input
+          id="margem_erro_cilindro"
+          type="number"
+          step="0.1"
+          min="0"
+          max="100"
+          placeholder="20.0"
+          {...register('margem_erro_cilindro', { 
+            valueAsNumber: true,
+            min: { value: 0, message: 'A margem de erro deve ser maior ou igual a 0' },
+            max: { value: 100, message: 'A margem de erro deve ser menor ou igual a 100' }
+          })}
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Margem de tolerância em percentual para os valores do cilindro durante inspeções. Padrão: 20%
+        </p>
+      </div>
     </>
   );
 };

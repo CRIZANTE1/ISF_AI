@@ -147,11 +147,13 @@ async function generateIcons() {
     console.log('\n✅ Todos os ícones foram gerados com sucesso!');
 }
 
-try {
-    removeOldIcons();
-    await generateIcons();
-    console.log('\n✅ Processo concluído com sucesso!');
-} catch (error) {
-    console.error('❌ Erro ao processar ícones:', error);
-    process.exit(1);
-}
+(async () => {
+    try {
+        removeOldIcons();
+        await generateIcons();
+        console.log('\n✅ Processo concluído com sucesso!');
+    } catch (error) {
+        console.error('❌ Erro ao processar ícones:', error);
+        process.exit(1);
+    }
+})();

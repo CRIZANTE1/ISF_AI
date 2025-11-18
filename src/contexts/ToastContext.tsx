@@ -158,7 +158,7 @@ const ToastItem = ({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         <span className="text-lg font-bold flex-shrink-0" style={{ lineHeight: '1.2', color: styles.textColor || '#FFFFFF' }}>
           {styles.icon}
         </span>
-        <p className="text-sm font-medium flex-1" style={{ lineHeight: '1.4', color: styles.textColor || '#FFFFFF' }}>
+        <p className="text-sm font-medium flex-1" style={{ lineHeight: '1.4', color: styles.textColor || '#FFFFFF', whiteSpace: 'pre-line' }}>
           {toast.message}
         </p>
         <button

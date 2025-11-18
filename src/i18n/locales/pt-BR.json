@@ -366,6 +366,25 @@
     "rejected": "Rejeitado",
     "pending": "Pendente"
   },
+  "actionPlans": {
+    "title": "Planos de Ação",
+    "all": "Todos",
+    "pending": "Pendentes",
+    "resolved": "Resolvidos",
+    "equipment": "Equipamento",
+    "inspector": "Inspetor",
+    "viewEquipment": "Ver Equipamento",
+    "markResolved": "Marcar como Resolvido",
+    "noPlans": "Nenhum plano de ação encontrado",
+    "noPlansDescription": "Quando houver não conformidades, os planos de ação aparecerão aqui.",
+    "critical": "Crítico",
+    "important": "Importante",
+    "normal": "Normal",
+    "delete": "Excluir",
+    "deleteTitle": "Excluir Plano de Ação",
+    "deleteConfirm": "Tem certeza que deseja excluir este plano de ação?",
+    "deleteSuccess": "Plano de ação excluído com sucesso"
+  },
   "myData": {
     "title": "Meus Dados"
   },
@@ -373,14 +392,18 @@
     "title": "Mapa de Equipamentos"
   },
   "alerts": {
-    "critical": "Alertas Críticos",
+    "critical": "Crítico",
+    "important": "Importante",
+    "normal": "Normal",
     "noAlerts": "Nenhum alerta crítico no momento.",
     "inspectionExpired": "{{id}} está com inspeção vencida.",
-    "hasPending": "{{id}} possui pendências."
+    "hasPending": "{{id}} possui pendências.",
+    "actionPlanOverdue": "Plano de ação {{priority}} vencido há {{days}} dia(s) - {{equipment}}"
   },
   "navigation": {
     "inspections": "Inspeções",
     "history": "Histórico",
+    "actionPlans": "Planos de Ação",
     "home": "Home",
     "map": "Mapa",
     "utilities": "Utilitários",

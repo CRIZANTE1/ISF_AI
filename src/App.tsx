@@ -14,6 +14,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Inspections = lazy(() => import('./pages/Inspections'));
 const Profile = lazy(() => import('./pages/Profile'));
 const History = lazy(() => import('./pages/History'));
+const ActionPlansPage = lazy(() => import('./pages/ActionPlansPage'));
 const Utilities = lazy(() => import('./pages/Utilities'));
 const EquipmentListPage = lazy(() => import('./pages/EquipmentListPage'));
 const AddEquipmentPage = lazy(() => import('./pages/AddEquipmentPage'));
@@ -166,6 +167,14 @@ function App() {
             element={
               <PageSuspense>
                 <History />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="action-plans" 
+            element={
+              <PageSuspense>
+                <ActionPlansPage />
               </PageSuspense>
             } 
           />

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutGrid, ClipboardCheck, History, Wrench, MapPin, Shield } from 'lucide-react';
+import { LayoutGrid, ClipboardCheck, History, Wrench, MapPin, Shield, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -116,6 +116,12 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
       icon: <History size={16} />, 
       label: t('navigation.history'),
       to: '/history'
+    },
+    { 
+      id: 'action-plans', 
+      icon: <FileText size={16} />, 
+      label: t('navigation.actionPlans', { defaultValue: 'Planos de Ação' }),
+      to: '/action-plans'
     },
     { 
       id: 'home', 

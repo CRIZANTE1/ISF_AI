@@ -30,8 +30,10 @@ export interface SCBAInspection {
   numero_serie_equipamento: string;
   status_geral?: string;
   resultados_json?: Record<string, any>;
+  plano_de_acao?: string;
   inspetor?: string;
   data_proxima_inspecao?: string;
+  link_foto_nao_conformidade?: string;
   created_at?: string;
   user_id?: string;
 }

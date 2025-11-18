@@ -368,6 +368,18 @@
     "rejected": "Rejected",
     "pending": "Pending"
   },
+  "actionPlans": {
+    "title": "Action Plans",
+    "all": "All",
+    "pending": "Pending",
+    "resolved": "Resolved",
+    "equipment": "Equipment",
+    "inspector": "Inspector",
+    "viewEquipment": "View Equipment",
+    "markResolved": "Mark as Resolved",
+    "noPlans": "No action plans found",
+    "noPlansDescription": "When there are non-conformities, action plans will appear here."
+  },
   "myData": {
     "title": "My Data"
   },
@@ -383,6 +395,7 @@
   "navigation": {
     "inspections": "Inspections",
     "history": "History",
+    "actionPlans": "Action Plans",
     "home": "Home",
     "map": "Map",
     "utilities": "Utilities",

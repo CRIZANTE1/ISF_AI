@@ -9,16 +9,17 @@ import { logger } from './logger';
 export interface MultigasDetector {
   id?: number;
   id_equipamento: string;
-  marca?: string;
-  modelo?: string;
-  numero_serie?: string;
-  data_cadastro?: string;
-  LEL_cilindro?: number;
-  O2_cilindro?: number;
-  H2S_cilindro?: number;
-  CO_cilindro?: number;
+  marca?: string | null;
+  modelo?: string | null;
+  numero_serie?: string | null;
+  data_cadastro?: string | null;
+  LEL_cilindro?: number | null;
+  O2_cilindro?: number | null;
+  H2S_cilindro?: number | null;
+  CO_cilindro?: number | null;
+  margem_erro_cilindro?: number | null; // Margem de erro em percentual (padrão: 20%)
   created_at?: string;
-  user_id?: string;
+  user_id?: string | null;
 }
 
 export interface MultigasInspection {
@@ -51,6 +52,27 @@ export interface CylinderValues {
 }
 
 /**
+ * Mapeia dados do Supabase (minúsculas) para a interface (maiúsculas)
+ */
+function mapSupabaseToDetector(data: any): MultigasDetector {
+  return {
+    id: data.id,
+    id_equipamento: data.id_equipamento,
+    marca: data.marca,
+    modelo: data.modelo,
+    numero_serie: data.numero_serie,
+    data_cadastro: data.data_cadastro,
+    LEL_cilindro: data.lel_cilindro ?? data.LEL_cilindro,
+    O2_cilindro: data.o2_cilindro ?? data.O2_cilindro,
+    H2S_cilindro: data.h2s_cilindro ?? data.H2S_cilindro,
+    CO_cilindro: data.co_cilindro ?? data.CO_cilindro,
+    margem_erro_cilindro: data.margem_erro_cilindro ?? 20.00, // Valor padrão: 20%
+    created_at: data.created_at,
+    user_id: data.user_id,
+  };
+}
+
+/**
  * Salva um novo detector multigás
  */
 export async function saveNewMultigasDetector(
@@ -68,9 +90,24 @@ export async function saveNewMultigasDetector(
       throw new Error(`Detector com ID '${detector.id_equipamento}' já existe.`);
     }
 
+    // Mapeia campos da interface (maiúsculas) para o schema do Supabase (minúsculas)
+    const detectorData: any = {
+      id_equipamento: detector.id_equipamento,
+      marca: detector.marca || null,
+      modelo: detector.modelo || null,
+      numero_serie: detector.numero_serie || null,
+      data_cadastro: detector.data_cadastro || null,
+      lel_cilindro: detector.LEL_cilindro ?? null,
+      o2_cilindro: detector.O2_cilindro ?? null,
+      h2s_cilindro: detector.H2S_cilindro ?? null,
+      co_cilindro: detector.CO_cilindro ?? null,
+      margem_erro_cilindro: detector.margem_erro_cilindro ?? 20.00, // Valor padrão: 20%
+      user_id: detector.user_id || null,
+    };
+
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inventario_multigas', detector);
+    const result = await offlineInsert('inventario_multigas', detectorData);
     
     if (!result.success) {
       throw new Error('Falha ao salvar detector multigás');
@@ -103,7 +140,8 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
       .order('id_equipamento');
 
     if (error) throw error;
-    return data || [];
+    // Mapeia dados do Supabase para a interface
+    return (data || []).map(mapSupabaseToDetector);
   } catch (error) {
     logger.error('Erro ao buscar detectores multigás', 'equipment', error);
     return [];
@@ -206,7 +244,8 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
     }
     
     logger.debug('Detector multigas encontrado', 'equipment', { idEquipamento });
-    return data;
+    // Mapeia dados do Supabase para a interface
+    return mapSupabaseToDetector(data);
   } catch (error: any) {
     logger.error('Erro ao buscar detector multigás', 'equipment', error);
     // Se já for um Error customizado, relançá-lo
@@ -242,23 +281,61 @@ export async function getDetectorCylinderValues(idEquipamento: string): Promise<
  */
 export async function updateCylinderValues(
   idEquipamento: string,
-  values: CylinderValues
+  values: CylinderValues,
+  user_id?: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('inventario_multigas')
-      .update({
-        LEL_cilindro: values.LEL,
-        O2_cilindro: values.O2,
-        H2S_cilindro: values.H2S,
-        CO_cilindro: values.CO,
-      })
-      .eq('id_equipamento', idEquipamento);
+    // Usa wrapper offline para suportar modo offline
+    const { offlineUpdate } = await import('./offlineOperations');
+    
+    // Primeiro, busca o detector completo para obter o ID e verificar se existe
+    const detector = await getMultigasDetectorById(idEquipamento);
+    
+    if (!detector || !detector.id) {
+      logger.warn('Detector não encontrado para atualizar valores do cilindro', 'equipment', { idEquipamento });
+      return false;
+    }
 
-    if (error) throw error;
+    // Usa nomes de colunas corretos (minúsculas conforme schema do Supabase)
+    const updateData: any = {
+      lel_cilindro: values.LEL || null,
+      o2_cilindro: values.O2 || null,
+      h2s_cilindro: values.H2S || null,
+      co_cilindro: values.CO || null,
+    };
+
+    // Adiciona user_id se fornecido (para segurança no wrapper offline)
+    if (user_id) {
+      updateData.user_id = user_id;
+    } else if (detector.user_id) {
+      // Usa o user_id do detector se não foi fornecido
+      updateData.user_id = detector.user_id;
+    }
+
+    const result = await offlineUpdate('inventario_multigas', detector.id, updateData);
+    
+    if (!result.success) {
+      logger.error('Falha ao atualizar valores do cilindro via wrapper offline', 'equipment', {
+        idEquipamento,
+        detectorId: detector.id,
+        values
+      });
+      return false;
+    }
+
+    logger.info('Valores do cilindro atualizados com sucesso', 'equipment', { 
+      idEquipamento, 
+      detectorId: detector.id,
+      values 
+    });
     return true;
-  } catch (error) {
-    logger.error('Erro ao atualizar valores do cilindro', 'equipment', error);
+  } catch (error: any) {
+    logger.error('Erro ao atualizar valores do cilindro', 'equipment', {
+      error: error.message || error,
+      errorCode: error.code,
+      idEquipamento,
+      values
+    });
     return false;
   }
 }
@@ -270,9 +347,32 @@ export async function saveMultigasInspection(
   inspection: Omit<MultigasInspection, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    // Mapeia campos da interface (maiúsculas) para o schema do Supabase (minúsculas)
+    const inspectionData = {
+      id_equipamento: inspection.id_equipamento,
+      data_teste: inspection.data_teste || null,
+      tipo_teste: inspection.tipo_teste || null,
+      resultado_teste: inspection.resultado_teste || null,
+      // Mapeia valores de referência (maiúsculas -> minúsculas)
+      lel_referencia: inspection.LEL_referencia ?? null,
+      o2_referencia: inspection.O2_referencia ?? null,
+      h2s_referencia: inspection.H2S_referencia ?? null,
+      co_referencia: inspection.CO_referencia ?? null,
+      // Mapeia valores encontrados (maiúsculas -> minúsculas)
+      lel_encontrado: inspection.LEL_encontrado ?? null,
+      o2_encontrado: inspection.O2_encontrado ?? null,
+      h2s_encontrado: inspection.H2S_encontrado ?? null,
+      co_encontrado: inspection.CO_encontrado ?? null,
+      observacoes: inspection.observacoes || null,
+      plano_de_acao: inspection.plano_de_acao || null,
+      inspetor: inspection.inspetor || null,
+      data_proximo_teste: inspection.data_proximo_teste || null,
+      user_id: inspection.user_id || null,
+    };
+
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inspecoes_multigas', inspection);
+    const result = await offlineInsert('inspecoes_multigas', inspectionData);
     
     if (!result.success) {
       throw new Error('Falha ao salvar inspeção');
@@ -290,8 +390,15 @@ export async function saveMultigasInspection(
     }
     
     return true;
-  } catch (error) {
-    logger.error('Erro ao salvar inspeção multigás', 'equipment', error);
+  } catch (error: any) {
+    logger.error('Erro ao salvar inspeção multigás', 'equipment', {
+      error: error.message || error,
+      errorCode: error.code,
+      inspection: {
+        id_equipamento: inspection.id_equipamento,
+        tipo_teste: inspection.tipo_teste,
+      }
+    });
     return false;
   }
 }

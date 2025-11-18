@@ -230,6 +230,7 @@ export type Database = {
           id: number
           id_abrigo: string
           inspetor: string | null
+          plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
           user_id: string | null
@@ -241,6 +242,7 @@ export type Database = {
           id?: number
           id_abrigo: string
           inspetor?: string | null
+          plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
           user_id?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           id?: number
           id_abrigo?: string
           inspetor?: string | null
+          plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
           user_id?: string | null
@@ -554,6 +557,7 @@ export type Database = {
           id: number
           inspetor: string | null
           numero_serie_equipamento: string
+          plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
           user_id: string | null
@@ -565,6 +569,7 @@ export type Database = {
           id?: number
           inspetor?: string | null
           numero_serie_equipamento: string
+          plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
           user_id?: string | null
@@ -576,6 +581,7 @@ export type Database = {
           id?: number
           inspetor?: string | null
           numero_serie_equipamento?: string
+          plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
           user_id?: string | null
@@ -734,6 +740,7 @@ export type Database = {
           id: number
           id_equipamento: string
           lel_cilindro: number | null
+          margem_erro_cilindro: number | null
           marca: string | null
           modelo: string | null
           numero_serie: string | null
@@ -748,6 +755,7 @@ export type Database = {
           id?: number
           id_equipamento: string
           lel_cilindro?: number | null
+          margem_erro_cilindro?: number | null
           marca?: string | null
           modelo?: string | null
           numero_serie?: string | null
@@ -762,6 +770,7 @@ export type Database = {
           id?: number
           id_equipamento?: string
           lel_cilindro?: number | null
+          margem_erro_cilindro?: number | null
           marca?: string | null
           modelo?: string | null
           numero_serie?: string | null

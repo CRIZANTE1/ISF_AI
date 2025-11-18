@@ -160,6 +160,29 @@ const EditEquipmentPage = () => {
       case 'multigas':
         tableName = 'inventario_multigas';
         idColumn = 'id_equipamento';
+        // Mapeia campos maiúsculos para minúsculos (schema do Supabase)
+        const multigasData: any = {
+          ...dataToUpdate,
+        };
+        // Mapeia campos do cilindro se existirem
+        if ('LEL_cilindro' in multigasData) {
+          multigasData.lel_cilindro = multigasData.LEL_cilindro;
+          delete multigasData.LEL_cilindro;
+        }
+        if ('O2_cilindro' in multigasData) {
+          multigasData.o2_cilindro = multigasData.O2_cilindro;
+          delete multigasData.O2_cilindro;
+        }
+        if ('H2S_cilindro' in multigasData) {
+          multigasData.h2s_cilindro = multigasData.H2S_cilindro;
+          delete multigasData.H2S_cilindro;
+        }
+        if ('CO_cilindro' in multigasData) {
+          multigasData.co_cilindro = multigasData.CO_cilindro;
+          delete multigasData.CO_cilindro;
+        }
+        // Usa dataToUpdate mapeado para multigas
+        Object.assign(dataToUpdate, multigasData);
         break;
       case 'camara_espuma':
         tableName = 'inventario_camaras_espuma';

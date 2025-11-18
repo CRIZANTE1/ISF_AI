@@ -20,6 +20,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isLoadi
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           onClick={onClose}
+          style={{ touchAction: 'manipulation' }}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -51,17 +52,25 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isLoadi
             <div className="mt-5 sm:mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
               <button
                 type="button"
-                className="w-full justify-center rounded-md bg-light-surface dark:bg-dark-surface px-3 py-2 text-sm font-semibold text-light-text-primary dark:text-dark-text-primary shadow-sm ring-1 ring-inset ring-light-border dark:ring-dark-border hover:bg-gray-50 dark:hover:bg-dark-background sm:w-auto"
+                className="w-full justify-center rounded-md bg-light-surface dark:bg-dark-surface px-4 py-3 text-sm font-semibold text-light-text-primary dark:text-dark-text-primary shadow-sm ring-1 ring-inset ring-light-border dark:ring-dark-border hover:bg-gray-50 dark:hover:bg-dark-background active:bg-gray-100 dark:active:bg-dark-background sm:w-auto touch-manipulation min-h-[44px]"
                 onClick={onClose}
                 disabled={isLoading}
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                }}
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                className="w-full justify-center rounded-md bg-status-error px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto disabled:bg-red-400 disabled:cursor-not-allowed"
+                className="w-full justify-center rounded-md bg-status-error px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-500 active:bg-red-600 sm:w-auto disabled:bg-red-400 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
                 onClick={onConfirm}
                 disabled={isLoading}
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                }}
               >
                 {isLoading ? 'Excluindo...' : 'Excluir'}
               </button>

@@ -8,6 +8,7 @@ import { getCurrentLocation } from '../hooks/useGeolocation';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useToast } from '../contexts/ToastContext';
 import AnimatedFormField from '../components/AnimatedFormField';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
@@ -30,7 +31,7 @@ import { saveEyewashInspection, generateEyewashActionPlan } from '../utils/eyewa
 import { saveFoamChamberInspection } from '../utils/foamChamberOperations';
 import { saveAlarmInspection } from '../utils/alarmOperations';
 import { saveCannonMonitorInspection } from '../utils/cannonMonitorOperations';
-import { saveMultigasInspection, getMultigasDetectorById, updateCylinderValues, verifyBumpTest } from '../utils/multigasOperations';
+import { saveMultigasInspection, getMultigasDetectorById, updateCylinderValues, verifyBumpTest, generateMultigasActionPlan } from '../utils/multigasOperations';
 import type { CylinderValues } from '../utils/multigasOperations';
 import { saveSCBAVisualInspection, getSCBABySerial } from '../utils/scbaOperations';
 import { saveShelterInspection } from '../utils/shelterOperations';
@@ -74,6 +75,7 @@ const AddInspectionPage = () => {
   const { handleError } = useErrorHandler();
   const { getEquipmentByType } = useEquipmentCache();
   const { t } = useTranslation();
+  const { showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [loadingEquipment, setLoadingEquipment] = useState(true);
@@ -96,15 +98,27 @@ const AddInspectionPage = () => {
   const [multigasFoundCO, setMultigasFoundCO] = useState<string>('');
   const [multigasTestTime, setMultigasTestTime] = useState<string>('');
   const [multigasUpdateCylinder, setMultigasUpdateCylinder] = useState<boolean>(false);
+  const [multigasCylinderTolerance, setMultigasCylinderTolerance] = useState<string>('');
   
   // Estado para geolocalização
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   
+  // Formata data e hora atual para datetime-local (YYYY-MM-DDTHH:mm)
+  const getCurrentDateTimeLocal = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const { register, handleSubmit, formState: { errors }, watch, control } = useForm<AddInspectionFormData>({
     defaultValues: {
-      data_inspecao: new Date().toISOString().split('T')[0],
+      data_inspecao: getCurrentDateTimeLocal(),
       tipo_servico: 'Inspeção',
       aprovado_inspecao: 'Sim',
       status_geral: 'Aprovado',
@@ -235,12 +249,15 @@ const AddInspectionPage = () => {
                 O2_cilindro: multigasData.O2_cilindro,
                 H2S_cilindro: multigasData.H2S_cilindro,
                 CO_cilindro: multigasData.CO_cilindro,
+                margem_erro_cilindro: multigasData.margem_erro_cilindro, // Inclui margem de erro
               };
               // Carregar valores de referência do cilindro
               setMultigasReferenceLEL(multigasData.LEL_cilindro?.toString() || '');
               setMultigasReferenceO2(multigasData.O2_cilindro?.toString() || '');
               setMultigasReferenceH2S(multigasData.H2S_cilindro?.toString() || '');
               setMultigasReferenceCO(multigasData.CO_cilindro?.toString() || '');
+              // Carregar margem de erro do cilindro
+              setMultigasCylinderTolerance(multigasData.margem_erro_cilindro?.toString() || '20.0');
             }
             break;
           case 'scba':
@@ -452,7 +469,28 @@ const AddInspectionPage = () => {
     setLoading(true);
 
     try {
-      const inspectionDate = formData.data_inspecao || new Date().toISOString().split('T')[0];
+      // Processa data e hora: se for datetime-local, extrai apenas a data para compatibilidade
+      // Formato datetime-local: YYYY-MM-DDTHH:mm
+      let inspectionDate: string;
+      if (formData.data_inspecao) {
+        // Se contém 'T', é datetime-local, extrai apenas a data
+        if (formData.data_inspecao.includes('T')) {
+          inspectionDate = formData.data_inspecao.split('T')[0];
+        } else {
+          // Se não contém 'T', já é apenas data
+          inspectionDate = formData.data_inspecao;
+        }
+      } else {
+        inspectionDate = new Date().toISOString().split('T')[0];
+      }
+      
+      // Para multigas, também extrai a hora se disponível
+      let inspectionDateTime: string | undefined;
+      if (formData.data_inspecao && formData.data_inspecao.includes('T')) {
+        // Formata para ISO string completa (YYYY-MM-DDTHH:mm:ss)
+        const [datePart, timePart] = formData.data_inspecao.split('T');
+        inspectionDateTime = `${datePart}T${timePart}:00`;
+      }
       let photoLink: string | null = null;
 
       // Faz upload da foto se houver
@@ -477,6 +515,9 @@ const AddInspectionPage = () => {
       const overallStatus = hasChecklistForType
         ? (nonConformities.length > 0 ? 'Reprovado com Pendências' : 'Aprovado')
         : (aprovado === 'Não' || aprovado === 'Reprovado' ? 'Reprovado' : 'Aprovado');
+
+      // Variável para armazenar o status final de conformidade
+      let finalStatusConformidade: string = overallStatus;
 
       switch (type) {
         case 'extintor': {
@@ -619,23 +660,90 @@ const AddInspectionPage = () => {
             CO: parseInt(multigasFoundCO) || 0,
           };
 
-          // Verificar bump test automaticamente
-          const { isApproved, observations } = verifyBumpTest(referenceValues, foundValues);
+          // Obter margem de erro do cilindro (do campo editável ou do equipamento)
+          const cylinderTolerance = multigasCylinderTolerance 
+            ? Number(multigasCylinderTolerance) 
+            : (equipment?.margem_erro_cilindro ? Number(equipment.margem_erro_cilindro) : 20);
+          
+          // Verificar bump test automaticamente usando a margem de erro do cilindro
+          const { isApproved, observations } = verifyBumpTest(
+            referenceValues, 
+            foundValues, 
+            cylinderTolerance
+          );
           const autoObservations = observations.join(' ');
+          
+          // Armazena o status de conformidade para multigas
+          finalStatusConformidade = isApproved ? 'Aprovado' : 'Reprovado';
 
-          // Atualizar valores de referência do cilindro se solicitado
+          // Atualizar valores de referência do cilindro e margem de erro se solicitado
+          // Esta operação é opcional e não deve bloquear o salvamento da inspeção
           if (multigasUpdateCylinder) {
-            const updateSuccess = await updateCylinderValues(id, referenceValues);
-            if (!updateSuccess) {
-              throw new Error('Falha ao atualizar valores de referência do cilindro');
+            try {
+              // Atualiza valores do cilindro
+              const updateSuccess = await updateCylinderValues(id, referenceValues, user.id);
+              if (!updateSuccess) {
+                logger.warn('Falha ao atualizar valores de referência do cilindro, mas continuando com salvamento da inspeção', 'inspection', {
+                  id,
+                  referenceValues
+                });
+              }
+              
+              // Atualiza margem de erro se foi alterada
+              if (multigasCylinderTolerance && multigasCylinderTolerance !== equipment?.margem_erro_cilindro?.toString()) {
+                const { offlineUpdate } = await import('../utils/offlineOperations');
+                const detector = await getMultigasDetectorById(id);
+                if (detector && detector.id) {
+                  const toleranceValue = parseFloat(multigasCylinderTolerance);
+                  if (!isNaN(toleranceValue) && toleranceValue >= 0 && toleranceValue <= 100) {
+                    const toleranceResult = await offlineUpdate('inventario_multigas', detector.id, {
+                      margem_erro_cilindro: toleranceValue,
+                      user_id: user.id,
+                    });
+                    if (!toleranceResult.success) {
+                      logger.warn('Falha ao atualizar margem de erro do cilindro, mas continuando com salvamento da inspeção', 'inspection', {
+                        id,
+                        tolerance: toleranceValue
+                      });
+                    }
+                  }
+                }
+              }
+            } catch (updateError: any) {
+              // Log do erro mas não bloqueia o salvamento da inspeção
+              logger.error('Erro ao atualizar valores de referência do cilindro ou margem de erro', 'inspection', updateError);
+              // Não lança erro - apenas loga o problema
             }
           }
 
+          // Para multigas, usa data e hora se disponível, senão usa apenas data
+          // Se tiver datetime completo, usa ele; senão combina data com hora separada se houver
+          let multigasTestDateTime: string | null = inspectionDate;
+          if (inspectionDateTime) {
+            // Formata para ISO string completa (YYYY-MM-DDTHH:mm:ss)
+            multigasTestDateTime = inspectionDateTime;
+          } else if (multigasTestTime) {
+            // Fallback: combina data com hora separada
+            multigasTestDateTime = `${inspectionDate}T${multigasTestTime}:00`;
+          }
+          
+          // Garante que a data está no formato correto (ISO string ou apenas data)
+          if (!multigasTestDateTime) {
+            multigasTestDateTime = new Date().toISOString();
+          }
+          
+          // Gera plano de ação automaticamente baseado no resultado
+          const resultadoTeste = isApproved ? 'Aprovado' : 'Reprovado';
+          const planoDeAcao = generateMultigasActionPlan(resultadoTeste, multigasTestType);
+          
+          // Atualiza o estado do plano de ação para o feedback
+          setPlanAction(planoDeAcao);
+          
           const inspectionRecord = {
             id_equipamento: id,
-            data_teste: inspectionDate,
+            data_teste: multigasTestDateTime,
             tipo_teste: multigasTestType,
-            resultado_teste: isApproved ? 'Aprovado' : 'Reprovado',
+            resultado_teste: resultadoTeste,
             LEL_referencia: referenceValues.LEL || undefined,
             O2_referencia: referenceValues.O2 || undefined,
             H2S_referencia: referenceValues.H2S || undefined,
@@ -645,6 +753,7 @@ const AddInspectionPage = () => {
             H2S_encontrado: foundValues.H2S || undefined,
             CO_encontrado: foundValues.CO || undefined,
             observacoes: autoObservations || observacoes || undefined,
+            plano_de_acao: planoDeAcao,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proximo_teste: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             user_id: user.id,
@@ -690,6 +799,7 @@ const AddInspectionPage = () => {
             data_inspecao: inspectionDate,
             status_geral: overallStatus,
             resultados_json: resultsDict,
+            plano_de_acao: planAction || undefined,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -754,7 +864,38 @@ const AddInspectionPage = () => {
           throw new Error(`Tipo de equipamento '${type}' não suportado para inspeção`);
       }
 
-      navigate(`/inspections/${type}`);
+      // Verifica se plano de ação foi gerado (não é apenas "Manter em monitoramento")
+      // Para multigas, também verifica se foi reprovado (sempre tem plano de ação quando reprovado)
+      let hasPlanoAcao = false;
+      if (type === 'multigas') {
+        // Para multigas, se foi reprovado, sempre tem plano de ação válido
+        hasPlanoAcao = finalStatusConformidade === 'Reprovado' || 
+          (planAction && 
+           planAction.trim() !== '' && 
+           !planAction.toLowerCase().includes('manter em monitoramento') &&
+           !planAction.toLowerCase().includes('manter monitoramento'));
+      } else {
+        hasPlanoAcao = planAction && 
+          planAction.trim() !== '' && 
+          !planAction.toLowerCase().includes('manter em monitoramento') &&
+          !planAction.toLowerCase().includes('manter monitoramento');
+      }
+
+      // Monta mensagem de feedback
+      let feedbackMessage = `Inspeção salva com sucesso!\n\n`;
+      feedbackMessage += `Status: ${finalStatusConformidade}`;
+      if (hasPlanoAcao) {
+        feedbackMessage += `\n✓ Plano de ação gerado`;
+      } else {
+        feedbackMessage += `\n• Nenhum plano de ação necessário`;
+      }
+
+      showSuccess(feedbackMessage, 6000);
+
+      // Aguarda um pouco antes de navegar para o usuário ver o feedback
+      setTimeout(() => {
+        navigate(`/inspections/${type}`);
+      }, 500);
     } catch (err: any) {
       handleError(err, 'inspection', 'Falha ao registrar inspeção');
     } finally {
@@ -777,9 +918,11 @@ const AddInspectionPage = () => {
 
   const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '');
   const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
-  const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual');
+  const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual') || (type === 'extintor' && aprovado === 'Não') || (type === 'abrigo' && aprovado === 'Reprovado');
   const isMultigasEquipment = type === 'multigas';
   const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
+  // Sempre permite adicionar foto, mesmo em total conformidade
+  const canAddPhoto = true;
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
@@ -857,10 +1000,10 @@ const AddInspectionPage = () => {
         >
           <AnimatedFormField delay={0.25} className="mb-4">
             <label htmlFor="data_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              {t('inspection.dateRequired')}
+              {t('inspection.dateTimeRequired', { defaultValue: 'Data e Hora da Inspeção' })}
             </label>
             <input
-              type="date"
+              type="datetime-local"
               id="data_inspecao"
               {...register('data_inspecao', { required: t('inspection.dateRequiredError') })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
@@ -956,19 +1099,19 @@ const AddInspectionPage = () => {
                 </motion.div>
               )}
 
-              {aprovado === 'Não' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.45 }}
-                >
-                  <PhotoUpload
-                    value={photoFile}
-                    onChange={setPhotoFile}
-                    label={t('inspection.nonConformityPhoto')}
-                  />
-                </motion.div>
-              )}
+              {/* Sempre permite adicionar foto, mesmo quando aprovado */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.45 }}
+              >
+                <PhotoUpload
+                  value={photoFile}
+                  onChange={setPhotoFile}
+                  label={t('inspection.nonConformityPhoto')}
+                  required={aprovado === 'Não'}
+                />
+              </motion.div>
             </>
           )}
 
@@ -1132,6 +1275,37 @@ const AddInspectionPage = () => {
                     />
                   </div>
                 </div>
+                
+                {/* Campo de Margem de Erro */}
+                <div className="mt-4 pt-4 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  <label className="block text-xs mb-2" style={{ color: '#9E9E9E' }}>
+                    Margem de Erro do Cilindro (%)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={multigasCylinderTolerance}
+                      onChange={(e) => setMultigasCylinderTolerance(e.target.value)}
+                      placeholder="20.0"
+                      className="flex-1 p-2 rounded relative" 
+                      style={{ 
+                        zIndex: 10, 
+                        position: 'relative', 
+                        backgroundColor: 'rgba(18, 18, 18, 0.95)', 
+                        borderColor: '#2A2A2A', 
+                        borderWidth: '1px', 
+                        borderStyle: 'solid', 
+                        color: '#FFFFFF' 
+                      }}
+                    />
+                    <span className="text-xs" style={{ color: '#9E9E9E' }}>
+                      Tolerância usada na verificação do bump test
+                    </span>
+                  </div>
+                </div>
               </motion.div>
 
               <motion.div 
@@ -1251,19 +1425,19 @@ const AddInspectionPage = () => {
                 />
               </AnimatedFormField>
 
-              {aprovado === 'Reprovado' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.45 }}
-                >
-                  <PhotoUpload
-                    value={photoFile}
-                    onChange={setPhotoFile}
-                    label={t('inspection.nonConformityPhoto')}
-                  />
-                </motion.div>
-              )}
+              {/* Sempre permite adicionar foto, mesmo quando aprovado */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.45 }}
+              >
+                <PhotoUpload
+                  value={photoFile}
+                  onChange={setPhotoFile}
+                  label={t('inspection.nonConformityPhoto')}
+                  required={aprovado === 'Reprovado'}
+                />
+              </motion.div>
             </>
           )}
 
@@ -1425,7 +1599,8 @@ const AddInspectionPage = () => {
             );
           })()}
 
-          {requiresPhoto && (
+          {/* Sempre mostra o campo de foto, mesmo em total conformidade */}
+          {(canAddPhoto || requiresPhoto) && (
             <motion.div 
               className="mb-4"
               initial={{ opacity: 0, y: 10 }}

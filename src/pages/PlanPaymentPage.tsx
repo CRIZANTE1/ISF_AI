@@ -96,7 +96,7 @@ const PlanPaymentPage = () => {
       return freq === 'monthly' ? 5.00 : 12.00;
     } else {
       // Preços em reais para português
-      return freq === 'monthly' ? 24.90 : Math.round(24.90 * 12 * (1 - 0.12));
+    return freq === 'monthly' ? 24.90 : Math.round(24.90 * 12 * (1 - 0.12));
     }
   }, [getProductPrice, isEnglish]);
 
