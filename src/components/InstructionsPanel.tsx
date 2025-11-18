@@ -3,11 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Info, AlertCircle, HelpCircle, X } from 'lucide-react';
 import { EquipmentInstructions, getInstructions } from '../constants/instructions';
 import { useTranslation } from '../hooks/useTranslation';
+import DOMPurify from 'dompurify';
 
 interface InstructionsPanelProps {
   equipmentType: string;
   className?: string;
 }
+
+// Função para sanitizar HTML usando DOMPurify
+const sanitizeHtml = (html: string): string => {
+  if (!html) return '';
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'strong', 'em', 'u', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div'],
+    ALLOWED_ATTR: ['class', 'style'],
+    ALLOW_DATA_ATTR: false,
+  });
+};
 
 // Função para converter markdown básico para HTML
 const markdownToHtml = (text: string): string => {
@@ -367,7 +378,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                   <p
                     className="text-sm flex-1"
                     style={{ color: '#FFFFFF' }}
-                    dangerouslySetInnerHTML={{ __html: instructions.alert.message }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(instructions.alert.message) }}
                   />
                 </div>
               </motion.div>
@@ -466,7 +477,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                   <ol className="list-decimal list-inside space-y-ios-2 ml-ios-2">
                     {instructions.workflow.steps.map((step, index) => (
                       <li key={index} className="text-white text-sm">
-                        <span dangerouslySetInnerHTML={{ __html: step }} />
+                        <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(step) }} />
                       </li>
                     ))}
                   </ol>
@@ -514,7 +525,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                           >
                             <div
                               className="instructions-content p-ios-3 w-full"
-                              dangerouslySetInnerHTML={{ __html: markdownToHtml(section.content) }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownToHtml(section.content)) }}
                               style={{
                                 fontSize: '14px',
                                 lineHeight: '1.7',
@@ -634,7 +645,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                             >
                               <div
                                 className="text-[#8E8E93] text-sm"
-                                dangerouslySetInnerHTML={{ __html: item.answer }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.answer) }}
                                 style={{
                                   lineHeight: '1.6',
                                 }}
@@ -660,7 +671,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
               >
                 <p
                   className="text-white text-sm"
-                  dangerouslySetInnerHTML={{ __html: instructions.footer }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(instructions.footer) }}
                 />
               </motion.div>
             )}

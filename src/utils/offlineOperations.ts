@@ -32,6 +32,48 @@ async function isSupabaseOnline(): Promise<boolean> {
 }
 
 /**
+ * Obtém o ID do usuário autenticado
+ * @throws {Error} Se o usuário não estiver autenticado
+ */
+async function getAuthenticatedUserId(): Promise<string> {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      throw new Error('Erro ao verificar autenticação');
+    }
+    
+    if (!session || !session.user) {
+      throw new Error('Usuário não autenticado');
+    }
+    
+    return session.user.id;
+  } catch (error: any) {
+    logger.error('Erro ao obter ID do usuário autenticado', 'storage', error);
+    throw new Error('Usuário não autenticado. Faça login novamente.');
+  }
+}
+
+/**
+ * Valida que o user_id nos dados corresponde ao usuário autenticado
+ * @param data Dados da operação que podem conter user_id
+ * @param authenticatedUserId ID do usuário autenticado
+ * @throws {Error} Se o user_id não corresponder ao usuário autenticado
+ */
+function validateUserOwnership(data: any, authenticatedUserId: string): void {
+  // Se os dados contêm user_id, deve corresponder ao usuário autenticado
+  if (data.user_id !== undefined && data.user_id !== null) {
+    if (data.user_id !== authenticatedUserId) {
+      logger.error('Tentativa de acesso não autorizado detectada', 'security', {
+        dataUserId: data.user_id,
+        authenticatedUserId,
+      });
+      throw new Error('Acesso negado: os dados não pertencem ao usuário autenticado');
+    }
+  }
+}
+
+/**
  * Wrapper para operações de criação
  */
 export async function offlineInsert(
@@ -39,11 +81,21 @@ export async function offlineInsert(
   data: any
 ): Promise<{ success: boolean; offlineId?: string }> {
   try {
+    // Obtém o ID do usuário autenticado e valida
+    const authenticatedUserId = await getAuthenticatedUserId();
+    validateUserOwnership(data, authenticatedUserId);
+    
+    // Garante que o user_id está definido e correto
+    const dataWithUserId = {
+      ...data,
+      user_id: authenticatedUserId,
+    };
+    
     const isOnline = await isSupabaseOnline();
     
     if (isOnline) {
       // Tenta inserir diretamente
-      const { error, data: result } = await supabase.from(table).insert(data).select();
+      const { error, data: result } = await supabase.from(table).insert(dataWithUserId).select();
 
       if (error) {
         // Erros que devem ser salvos offline:
@@ -59,7 +111,7 @@ export async function offlineInsert(
         
         if (shouldSaveOffline) {
           logger.warn('Erro de conexão ao inserir, salvando offline', 'storage', error);
-          const offlineId = await savePendingOperation('create', table, data);
+          const offlineId = await savePendingOperation('create', table, dataWithUserId);
           return { success: true, offlineId };
         }
         
@@ -74,8 +126,8 @@ export async function offlineInsert(
 
       return { success: true };
     } else {
-      // Salva como operação pendente
-      const offlineId = await savePendingOperation('create', table, data);
+      // Salva como operação pendente (com user_id garantido)
+      const offlineId = await savePendingOperation('create', table, dataWithUserId);
       logger.info('Operação salva offline (sem conexão)', 'storage', { table, offlineId });
       return { success: true, offlineId };
     }
@@ -91,7 +143,12 @@ export async function offlineInsert(
       
       if (isNetworkError) {
         try {
-          const offlineId = await savePendingOperation('create', table, data);
+          // Garante que o user_id está definido antes de salvar offline
+          const dataWithUserId = {
+            ...data,
+            user_id: await getAuthenticatedUserId(),
+          };
+          const offlineId = await savePendingOperation('create', table, dataWithUserId);
           logger.warn('Erro de rede ao inserir, salvando offline', 'storage', error);
           return { success: true, offlineId };
         } catch (offlineError) {
@@ -113,17 +170,22 @@ export async function offlineUpdate(
   data: any
 ): Promise<{ success: boolean; offlineId?: string }> {
   try {
+    // Obtém o ID do usuário autenticado e valida
+    const authenticatedUserId = await getAuthenticatedUserId();
+    validateUserOwnership(data, authenticatedUserId);
+    
     const isOnline = await isSupabaseOnline();
     
     if (isOnline) {
-      // Preserva user_id se existir nos dados para segurança
+      // Remove user_id dos dados de atualização (não deve ser atualizado)
       const { user_id, ...updateData } = data;
-      let query = supabase.from(table).update(updateData).eq('id', id);
       
-      // Adiciona filtro user_id se existir
-      if (user_id) {
-        query = query.eq('user_id', user_id);
-      }
+      // Sempre adiciona filtro user_id para garantir que só atualiza dados do usuário autenticado
+      let query = supabase
+        .from(table)
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', authenticatedUserId);
       
       const { error, data: result } = await query.select();
 
@@ -137,7 +199,13 @@ export async function offlineUpdate(
         
         if (shouldSaveOffline) {
           logger.warn('Erro de conexão ao atualizar, salvando offline', 'storage', error);
-          const offlineId = await savePendingOperation('update', table, { id, ...data });
+          // Garante que o user_id está presente nos dados salvos
+          const operationData = {
+            id,
+            ...data,
+            user_id: authenticatedUserId,
+          };
+          const offlineId = await savePendingOperation('update', table, operationData);
           return { success: true, offlineId };
         }
         
@@ -151,8 +219,13 @@ export async function offlineUpdate(
 
       return { success: true };
     } else {
-      // Salva como operação pendente (preserva user_id)
-      const offlineId = await savePendingOperation('update', table, { id, ...data });
+      // Salva como operação pendente (garante que user_id está presente)
+      const operationData = {
+        id,
+        ...data,
+        user_id: authenticatedUserId,
+      };
+      const offlineId = await savePendingOperation('update', table, operationData);
       logger.info('Operação de update salva offline', 'storage', { table, offlineId });
       return { success: true, offlineId };
     }
@@ -167,7 +240,14 @@ export async function offlineUpdate(
       
       if (isNetworkError) {
         try {
-          const offlineId = await savePendingOperation('update', table, { id, ...data });
+          // Garante que o user_id está presente antes de salvar offline
+          const authenticatedUserId = await getAuthenticatedUserId();
+          const operationData = {
+            id,
+            ...data,
+            user_id: authenticatedUserId,
+          };
+          const offlineId = await savePendingOperation('update', table, operationData);
           logger.warn('Erro de rede ao atualizar, salvando offline', 'storage', error);
           return { success: true, offlineId };
         } catch (offlineError) {
@@ -189,15 +269,27 @@ export async function offlineDelete(
   user_id?: string
 ): Promise<{ success: boolean; offlineId?: string }> {
   try {
+    // Obtém o ID do usuário autenticado
+    const authenticatedUserId = await getAuthenticatedUserId();
+    
+    // Valida que o user_id fornecido corresponde ao usuário autenticado
+    if (user_id && user_id !== authenticatedUserId) {
+      logger.error('Tentativa de acesso não autorizado detectada', 'security', {
+        providedUserId: user_id,
+        authenticatedUserId,
+      });
+      throw new Error('Acesso negado: os dados não pertencem ao usuário autenticado');
+    }
+    
     const isOnline = await isSupabaseOnline();
     
     if (isOnline) {
-      let query = supabase.from(table).delete().eq('id', id);
-      
-      // Adiciona filtro user_id se fornecido (segurança)
-      if (user_id) {
-        query = query.eq('user_id', user_id);
-      }
+      // Sempre adiciona filtro user_id para garantir que só deleta dados do usuário autenticado
+      let query = supabase
+        .from(table)
+        .delete()
+        .eq('id', id)
+        .eq('user_id', authenticatedUserId);
       
       const { error } = await query;
 
@@ -211,7 +303,7 @@ export async function offlineDelete(
         
         if (shouldSaveOffline) {
           logger.warn('Erro de conexão ao deletar, salvando offline', 'storage', error);
-          const offlineId = await savePendingOperation('delete', table, { id, user_id });
+          const offlineId = await savePendingOperation('delete', table, { id, user_id: authenticatedUserId });
           return { success: true, offlineId };
         }
         
@@ -220,8 +312,8 @@ export async function offlineDelete(
 
       return { success: true };
     } else {
-      // Salva como operação pendente (preserva user_id se fornecido)
-      const offlineId = await savePendingOperation('delete', table, { id, user_id });
+      // Salva como operação pendente (garante que user_id está presente)
+      const offlineId = await savePendingOperation('delete', table, { id, user_id: authenticatedUserId });
       logger.info('Operação de delete salva offline', 'storage', { table, offlineId });
       return { success: true, offlineId };
     }
@@ -236,7 +328,9 @@ export async function offlineDelete(
       
       if (isNetworkError) {
         try {
-          const offlineId = await savePendingOperation('delete', table, { id, user_id });
+          // Garante que o user_id está presente antes de salvar offline
+          const authenticatedUserId = await getAuthenticatedUserId();
+          const offlineId = await savePendingOperation('delete', table, { id, user_id: authenticatedUserId });
           logger.warn('Erro de rede ao deletar, salvando offline', 'storage', error);
           return { success: true, offlineId };
         } catch (offlineError) {

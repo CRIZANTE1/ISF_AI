@@ -113,23 +113,71 @@ async function checkAuthentication(): Promise<boolean> {
 }
 
 /**
+ * Obtém o ID do usuário autenticado
+ * @throws {Error} Se o usuário não estiver autenticado
+ */
+async function getAuthenticatedUserId(): Promise<string> {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      throw new Error('Erro ao verificar autenticação');
+    }
+    
+    if (!session || !session.user) {
+      throw new Error('Usuário não autenticado');
+    }
+    
+    return session.user.id;
+  } catch (error: any) {
+    logger.error('Erro ao obter ID do usuário autenticado', 'sync', error);
+    throw new Error('Usuário não autenticado. Faça login novamente.');
+  }
+}
+
+/**
+ * Valida que o user_id nos dados corresponde ao usuário autenticado
+ * @param data Dados da operação que podem conter user_id
+ * @param authenticatedUserId ID do usuário autenticado
+ * @throws {Error} Se o user_id não corresponder ao usuário autenticado
+ */
+function validateUserOwnership(data: any, authenticatedUserId: string): void {
+  // Se os dados contêm user_id, deve corresponder ao usuário autenticado
+  if (data.user_id !== undefined && data.user_id !== null) {
+    if (data.user_id !== authenticatedUserId) {
+      logger.error('Tentativa de acesso não autorizado detectada', 'security', {
+        dataUserId: data.user_id,
+        authenticatedUserId,
+      });
+      throw new Error('Acesso negado: os dados não pertencem ao usuário autenticado');
+    }
+  }
+}
+
+/**
  * Executa uma operação pendente
  */
 async function executeOperation(operation: any): Promise<boolean> {
   try {
     const { type, table, data } = operation;
 
-    // Verifica autenticação antes de executar
-    const isAuthenticated = await checkAuthentication();
-    if (!isAuthenticated) {
-      throw new Error('Usuário não autenticado. Faça login novamente.');
-    }
+    // Obtém o ID do usuário autenticado (também valida autenticação)
+    const authenticatedUserId = await getAuthenticatedUserId();
+    
+    // Valida que o user_id nos dados corresponde ao usuário autenticado
+    validateUserOwnership(data, authenticatedUserId);
 
     switch (type) {
       case 'create': {
+        // Garante que o user_id está definido e correto para operações create
+        const dataWithUserId = {
+          ...data,
+          user_id: authenticatedUserId,
+        };
+        
         const { data: result, error } = await supabase
           .from(table)
-          .insert(data)
+          .insert(dataWithUserId)
           .select();
         
         if (error) {
@@ -145,10 +193,8 @@ async function executeOperation(operation: any): Promise<boolean> {
                   checkQuery = checkQuery.eq(field, value);
                 });
                 
-                // Adiciona filtro user_id se existir (segurança)
-                if (data.user_id) {
-                  checkQuery = checkQuery.eq('user_id', data.user_id);
-                }
+                // Sempre adiciona filtro user_id para segurança
+                checkQuery = checkQuery.eq('user_id', authenticatedUserId);
                 
                 const { data: existing, error: checkError } = await checkQuery;
                 
@@ -185,12 +231,12 @@ async function executeOperation(operation: any): Promise<boolean> {
         const { id, user_id, ...updateData } = data;
         
         // Constrói query com filtros apropriados
-        let query = supabase.from(table).update(updateData).eq('id', id);
-        
-        // Adiciona filtro user_id se existir (segurança)
-        if (user_id) {
-          query = query.eq('user_id', user_id);
-        }
+        // Sempre adiciona filtro user_id para garantir que só atualiza dados do usuário autenticado
+        let query = supabase
+          .from(table)
+          .update(updateData)
+          .eq('id', id)
+          .eq('user_id', authenticatedUserId);
         
         const { data: result, error } = await query.select();
         
@@ -207,12 +253,12 @@ async function executeOperation(operation: any): Promise<boolean> {
         const { id, user_id } = data;
         
         // Constrói query com filtros apropriados
-        let query = supabase.from(table).delete().eq('id', id);
-        
-        // Adiciona filtro user_id se existir (segurança)
-        if (user_id) {
-          query = query.eq('user_id', user_id);
-        }
+        // Sempre adiciona filtro user_id para garantir que só deleta dados do usuário autenticado
+        let query = supabase
+          .from(table)
+          .delete()
+          .eq('id', id)
+          .eq('user_id', authenticatedUserId);
         
         const { error } = await query;
         
