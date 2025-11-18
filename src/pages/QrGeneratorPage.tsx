@@ -29,10 +29,9 @@ const loadCapacitorPlugins = async () => {
 
   // Verifica se estamos em ambiente nativo
   if (Capacitor.isNativePlatform()) {
-    // Tenta importar dinamicamente usando eval para evitar análise estática do Vite
+    // Tenta importar dinamicamente usando import() padrão (mais seguro que eval)
     try {
-      // eslint-disable-next-line no-eval
-      const filesystemModule = await eval('import("@capacitor/filesystem")').catch(() => null);
+      const filesystemModule = await import('@capacitor/filesystem').catch(() => null);
       if (filesystemModule) {
         Filesystem = filesystemModule.Filesystem;
         Directory = filesystemModule.Directory;
@@ -43,8 +42,7 @@ const loadCapacitorPlugins = async () => {
     }
 
     try {
-      // eslint-disable-next-line no-eval
-      const shareModule = await eval('import("@capacitor/share")').catch(() => null);
+      const shareModule = await import('@capacitor/share').catch(() => null);
       if (shareModule) {
         Share = shareModule.Share;
       }
