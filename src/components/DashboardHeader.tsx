@@ -123,7 +123,7 @@ const DashboardHeader = () => {
           { name: 'inspecoes_alarmes', type: 'alarme', idField: 'id_sistema', dateField: 'data_inspecao', typeLabel: 'Alarme' },
           { name: 'inspecoes_abrigos', type: 'abrigo', idField: 'id_abrigo', dateField: 'data_inspecao', typeLabel: 'Abrigo' },
           { name: 'inspecoes_mangueiras', type: 'mangueira', idField: 'id_mangueira', dateField: 'data_inspecao', typeLabel: 'Mangueira' },
-          { name: 'inspecoes_extintores', type: 'extintor', idField: 'numero_identificacao', dateField: 'data_servico', typeLabel: 'Extintor' },
+          { name: 'extintores', type: 'extintor', idField: 'numero_identificacao', dateField: 'data_servico', typeLabel: 'Extintor' },
         ];
 
         for (const table of inspectionTables) {
@@ -147,6 +147,21 @@ const DashboardHeader = () => {
               data.forEach((insp: any) => {
                 const plan = insp.plano_de_acao;
                 if (!plan || plan.toLowerCase().includes('manter em monitoramento') || plan.trim() === 'N/A') {
+                  return;
+                }
+
+                // Verificar se o plano de ação já foi resolvido verificando o status da inspeção
+                // Para extintores, verifica aprovado_inspecao; para multigas, resultado_teste; para outros, status_geral
+                const statusValue = table.type === 'extintor' 
+                  ? insp.aprovado_inspecao 
+                  : table.type === 'multigas'
+                  ? insp.resultado_teste
+                  : insp.status_geral;
+                const statusLower = (statusValue || '').toLowerCase();
+                const isResolved = statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower === 'sim';
+                
+                // Se o plano foi resolvido, não criar alerta
+                if (isResolved) {
                   return;
                 }
 
@@ -199,6 +214,18 @@ const DashboardHeader = () => {
     };
 
     fetchAlerts();
+
+    // Escutar eventos de atualização de notificações (quando planos são resolvidos)
+    const handleRefreshAlerts = () => {
+      fetchAlerts();
+    };
+
+    // Escutar evento customizado para atualizar notificações
+    window.addEventListener('refresh-alerts', handleRefreshAlerts);
+
+    return () => {
+      window.removeEventListener('refresh-alerts', handleRefreshAlerts);
+    };
   }, [user?.id, cache, t]);
 
   // Fechar dropdown ao clicar fora

@@ -924,6 +924,9 @@ const AddInspectionPage = () => {
           throw new Error(`Tipo de equipamento '${type}' não suportado para inspeção`);
       }
 
+      // Disparar evento para atualizar notificações quando uma inspeção é salva
+      window.dispatchEvent(new CustomEvent('refresh-alerts'));
+
       // Verifica se plano de ação foi gerado (não é apenas "Manter em monitoramento")
       // Para multigas, também verifica se foi reprovado (sempre tem plano de ação quando reprovado)
       let hasPlanoAcao = false;

@@ -310,6 +310,9 @@ const ActionPlansPage = () => {
       setIsResolveModalOpen(false);
       setSelectedPlan(null);
       setResolveEvidenceFile(null);
+
+      // Disparar evento para atualizar notificações no DashboardHeader
+      window.dispatchEvent(new CustomEvent('refresh-alerts'));
     } catch (err: any) {
       logger.error('Erro ao marcar plano como resolvido', 'action-plans', err);
       handleError(err, 'action-plans', 'Falha ao atualizar status do plano de ação');
