@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { billingService, type BillingProduct } from '../services/billingService';
 import { useToast } from '../contexts/ToastContext';
+import { useTranslation } from './useTranslation';
 import { logger } from '../utils/logger';
 
 // IDs dos produtos no Google Play Console
@@ -13,6 +14,7 @@ export const PRODUCT_IDS = {
 
 export function useBilling() {
   const { showToast } = useToast();
+  const { isEnglish } = useTranslation();
   const [isAvailable, setIsAvailable] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -124,9 +126,13 @@ export function useBilling() {
       return product.price;
     }
     
-    // Fallback para preços padrão se os produtos não foram carregados
-    return frequency === 'monthly' ? 'R$ 24,90' : 'R$ 262,80';
-  }, [products]);
+    // Fallback para preços padrão baseado no idioma se os produtos não foram carregados
+    if (isEnglish) {
+      return frequency === 'monthly' ? '$5.00' : '$50.00';
+    } else {
+      return frequency === 'monthly' ? 'R$ 24,90' : 'R$ 262,80';
+    }
+  }, [products, isEnglish]);
 
   return {
     isAvailable,

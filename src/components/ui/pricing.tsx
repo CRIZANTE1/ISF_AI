@@ -17,8 +17,8 @@ interface Plan {
   name: string;
   info: string;
   price: {
-    monthly: number;
-    yearly: number;
+    monthly: number | string;
+    yearly: number | string;
   };
   features: {
     text: string;
@@ -128,12 +128,14 @@ export function PricingCard({
   frequency = frequencies[0],
   ...props
 }: PricingCardProps) {
-  const { t } = useTranslation();
+  const { t, isEnglish } = useTranslation();
   const price = plan.price[frequency];
   const isYearly = frequency === 'yearly';
-  const discount = isYearly 
+  const isPriceString = typeof price === 'string';
+  const discount = isYearly && !isPriceString && typeof plan.price.monthly === 'number' && typeof plan.price.yearly === 'number'
     ? Math.round(((plan.price.monthly * 12 - plan.price.yearly) / (plan.price.monthly * 12)) * 100)
     : 0;
+  const currencySymbol = isEnglish ? '$' : 'R$';
 
   return (
     <div
@@ -172,10 +174,12 @@ export function PricingCard({
         <p className="text-sm font-normal text-white/60">{plan.info}</p>
         <h3 className="mt-2 flex items-end gap-1">
           <span className="text-3xl font-bold text-white">
-            R$ {price.toFixed(2).replace('.', ',')}
+            {isPriceString ? price : isEnglish 
+              ? `${currencySymbol}${price.toFixed(2)}`
+              : `${currencySymbol} ${price.toFixed(2).replace('.', ',')}`}
           </span>
           <span className="text-white/60">
-            {plan.name !== 'Trial'
+            {!isPriceString && plan.name !== 'Trial'
               ? '/' + (frequency === 'monthly' ? t('pricing.month') : t('pricing.year'))
               : ''}
           </span>

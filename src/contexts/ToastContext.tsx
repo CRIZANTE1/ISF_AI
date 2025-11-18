@@ -88,7 +88,7 @@ export const useToast = () => {
 // Toast Container Component
 const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[]; removeToast: (id: string) => void }) => {
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '400px' }}>
+    <div className="fixed top-4 right-4 flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '400px', zIndex: 9999 }}>
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />

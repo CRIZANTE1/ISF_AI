@@ -393,7 +393,65 @@
     "year": "ano",
     "popular": "Popular",
     "off": "% off",
-    "access": "Acessar"
+    "access": "Acessar",
+    "title": "Planos e Preços",
+    "heading": "Planos que Crescem com Você",
+    "description": "Seja você um iniciante ou uma empresa em crescimento, nossos planos flexíveis têm tudo o que você precisa — sem custos ocultos.",
+    "errorLoading": "Erro ao carregar planos",
+    "loading": "Carregando planos...",
+    "noPlansAvailable": "Nenhum plano disponível",
+    "unknownError": "Erro desconhecido ao carregar planos",
+    "androidOnly": "💡 As compras in-app estão disponíveis apenas no aplicativo Android. Por favor, use o aplicativo para fazer upgrade do seu plano.",
+    "billingUnavailable": "⚠️ Google Play Billing não está disponível. Verifique sua conexão e tente novamente.",
+    "purchaseSuccess": "Compra processada com sucesso! Atualizando seu plano...",
+    "purchaseError": "Erro ao processar compra",
+    "plans": {
+      "trial": {
+        "name": "Trial",
+        "info": "Período de teste de 14 dias",
+        "features": {
+          "limitedAccess": "Acesso limitado a funcionalidades",
+          "upTo10Equipment": "Até 10 equipamentos",
+          "emailSupport": "Suporte por email"
+        },
+        "currentPlan": "Plano Atual",
+        "startTrial": "Começar Trial"
+      },
+      "premium": {
+        "name": "Premium",
+        "info": "Para pequenas e médias empresas",
+        "features": {
+          "unlimitedEquipment": "Gestão ilimitada de equipamentos",
+          "unlimitedInspections": "Inspeções ilimitadas",
+          "advancedReports": "Relatórios avançados",
+          "prioritySupport": "Suporte prioritário",
+          "prioritySupportTooltip": "Suporte 24/7 via chat",
+          "autoBackup": "Backup automático de dados",
+          "dataExport": "Exportação de dados"
+        },
+        "currentPlan": "Plano Atual",
+        "contactTeam": "Contatar Equipe",
+        "contactMessage": "Entre em contato conosco para adquirir o plano Premium via Play Store. Email: isfiasegurancanotrabalho@gmail.com",
+        "contactEmail": "isfiasegurancanotrabalho@gmail.com"
+      },
+      "business": {
+        "name": "Business",
+        "info": "Para organizações",
+        "price": "A combinar",
+        "features": {
+          "premiumFeatures": "Recursos do Premium",
+          "multipleUsers": "Múltiplos usuários e permissões",
+          "customApi": "API personalizada",
+          "dedicatedSupport": "Suporte dedicado",
+          "dedicatedSupportTooltip": "Gerente de conta dedicado",
+          "customTraining": "Treinamento personalizado",
+          "customApplication": "Aplicação customizada"
+        },
+        "contactTeam": "Contatar Equipe",
+        "contactMessage": "Entre em contato com nossa equipe de vendas para mais informações.",
+        "contactEmail": "isfiasegurancanotrabalho@gmail.com"
+      }
+    }
   },
   "timeline": {
     "completed": "COMPLETO",

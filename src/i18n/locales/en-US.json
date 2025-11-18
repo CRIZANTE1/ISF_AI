@@ -395,7 +395,65 @@
     "year": "year",
     "popular": "Popular",
     "off": "% off",
-    "access": "Access"
+    "access": "Access",
+    "title": "Plans and Pricing",
+    "heading": "Plans That Grow With You",
+    "description": "Whether you're a beginner or a growing business, our flexible plans have everything you need — with no hidden costs.",
+    "errorLoading": "Error loading plans",
+    "loading": "Loading plans...",
+    "noPlansAvailable": "No plans available",
+    "unknownError": "Unknown error loading plans",
+    "androidOnly": "💡 In-app purchases are only available on the Android app. Please use the app to upgrade your plan.",
+    "billingUnavailable": "⚠️ Google Play Billing is not available. Check your connection and try again.",
+    "purchaseSuccess": "Purchase processed successfully! Updating your plan...",
+    "purchaseError": "Error processing purchase",
+    "plans": {
+      "trial": {
+        "name": "Trial",
+        "info": "14-day trial period",
+        "features": {
+          "limitedAccess": "Limited access to features",
+          "upTo10Equipment": "Up to 10 equipment",
+          "emailSupport": "Email support"
+        },
+        "currentPlan": "Current Plan",
+        "startTrial": "Start Trial"
+      },
+      "premium": {
+        "name": "Premium",
+        "info": "For small and medium businesses",
+        "features": {
+          "unlimitedEquipment": "Unlimited equipment management",
+          "unlimitedInspections": "Unlimited inspections",
+          "advancedReports": "Advanced reports",
+          "prioritySupport": "Priority support",
+          "prioritySupportTooltip": "24/7 support via chat",
+          "autoBackup": "Automatic data backup",
+          "dataExport": "Data export"
+        },
+        "currentPlan": "Current Plan",
+        "contactTeam": "Contact Team",
+        "contactMessage": "Contact us to purchase the Premium plan via Play Store. Email: isfiasegurancanotrabalho@gmail.com",
+        "contactEmail": "isfiasegurancanotrabalho@gmail.com"
+      },
+      "business": {
+        "name": "Business",
+        "info": "For organizations",
+        "price": "Contact us",
+        "features": {
+          "premiumFeatures": "Premium features",
+          "multipleUsers": "Multiple users and permissions",
+          "customApi": "Custom API",
+          "dedicatedSupport": "Dedicated support",
+          "dedicatedSupportTooltip": "Dedicated account manager",
+          "customTraining": "Custom training",
+          "customApplication": "Custom application"
+        },
+        "contactTeam": "Contact Team",
+        "contactMessage": "Contact our sales team for more information.",
+        "contactEmail": "isfiasegurancanotrabalho@gmail.com"
+      }
+    }
   },
   "timeline": {
     "completed": "COMPLETE",

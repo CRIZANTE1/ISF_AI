@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
@@ -6,77 +6,83 @@ import PageHeader from '../components/PageHeader';
 import { PricingSection } from '../components/ui/pricing';
 import { useBilling, PRODUCT_IDS } from '../hooks/useBilling';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useTranslation } from '../hooks/useTranslation';
 import { logger } from '../utils/logger';
 
+/**
+ * Função helper para abrir mailto de forma robusta
+ * Funciona tanto em dispositivos móveis quanto no navegador
+ */
+const openMailto = (email: string, subject?: string, body?: string) => {
+  // Construir o link mailto
+  let mailtoLink = `mailto:${email}`;
+  const params: string[] = [];
+  
+  if (subject) {
+    params.push(`subject=${encodeURIComponent(subject)}`);
+  }
+  
+  if (body) {
+    params.push(`body=${encodeURIComponent(body)}`);
+  }
+  
+  if (params.length > 0) {
+    mailtoLink += `?${params.join('&')}`;
+  }
+  
+  try {
+    // Tentar abrir o mailto
+    if (Capacitor.isNativePlatform()) {
+      // Em dispositivos móveis, criar um elemento <a> e clicar nele
+      // Isso abre o app de email padrão do dispositivo
+      const link = document.createElement('a');
+      link.href = mailtoLink;
+      link.target = '_system';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      // Remover o elemento após um pequeno delay para garantir que o click foi processado
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+    } else {
+      // No navegador, usar window.location.href
+      // window.location.href é mais confiável para mailto
+      window.location.href = mailtoLink;
+    }
+  } catch (error) {
+    logger.error('Erro ao abrir mailto', 'pricing', error);
+    // Fallback: tentar abrir em nova janela
+    try {
+      window.open(mailtoLink, '_blank');
+    } catch (fallbackError) {
+      logger.error('Erro no fallback do mailto', 'pricing', fallbackError);
+    }
+  }
+};
+
 const PlanPaymentPage = () => {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
-  const { handleError, showWarning, showInfo } = useErrorHandler();
-  const [upgrading, setUpgrading] = useState(false);
+  const { showInfo } = useErrorHandler();
+  const { t, isEnglish } = useTranslation();
   const [error, setError] = useState<string | null>(null);
-  const [frequency, setFrequency] = useState<'monthly' | 'yearly'>('monthly');
   
   const {
-    isAvailable,
-    isInitialized,
-    isInitializing,
-    products,
-    loading: billingLoading,
-    purchase,
     getProductPrice,
   } = useBilling();
 
-  const handleUpgrade = async () => {
-    // Verificar se estamos no Android
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
-      showWarning('As compras in-app estão disponíveis apenas no aplicativo Android. Por favor, use o aplicativo para fazer upgrade.');
-      return;
-    }
 
-    // Verificar se o billing está disponível
-    if (!isAvailable || !isInitialized) {
-      showWarning('Google Play Billing não está disponível. Verifique sua conexão e tente novamente.');
-      return;
-    }
-
-    setUpgrading(true);
-    setError(null);
-
-    try {
-      const productId = frequency === 'monthly' 
-        ? PRODUCT_IDS.PREMIUM_MONTHLY 
-        : PRODUCT_IDS.PREMIUM_YEARLY;
-
-      const purchaseResult = await purchase(productId);
-      
-      if (purchaseResult) {
-        // A compra foi processada com sucesso
-        // O plano será atualizado automaticamente pelo billingService
-        showInfo('Compra processada com sucesso! Atualizando seu plano...');
-        // Atualizar o perfil após um breve delay sem recarregar a página
-        setTimeout(async () => {
-          await refreshProfile();
-        }, 2000);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao processar compra';
-      setError(errorMessage);
-      handleError(err, 'profile', errorMessage);
-    } finally {
-      setUpgrading(false);
-    }
-  };
-
-  // Função auxiliar para extrair preço numérico do formato "R$ 24,90"
+  // Função auxiliar para extrair preço numérico do formato "R$ 24,90" ou "$5.00"
   const parsePrice = (priceString: string): number => {
     if (!priceString) return 0;
-    // Remove "R$", espaços e substitui vírgula por ponto
-    const cleaned = priceString.replace(/R\$\s?/g, '').replace(',', '.').trim();
+    // Remove "R$", "$", espaços e substitui vírgula por ponto
+    const cleaned = priceString.replace(/R\$\s?|\$\s?/g, '').replace(',', '.').trim();
     return parseFloat(cleaned) || 0;
   };
 
-  // Obter preços dos produtos do Google Play ou usar fallback
-  const getPremiumPrice = (freq: 'monthly' | 'yearly'): number => {
+  // Obter preços dos produtos do Google Play ou usar fallback baseado no idioma
+  const getPremiumPrice = useCallback((freq: 'monthly' | 'yearly'): number => {
     const priceString = getProductPrice(PRODUCT_IDS.PREMIUM_MONTHLY, freq);
     const parsed = parsePrice(priceString);
     
@@ -84,25 +90,31 @@ const PlanPaymentPage = () => {
       return parsed;
     }
     
-    // Fallback para preços padrão
-    return freq === 'monthly' ? 24.90 : Math.round(24.90 * 12 * (1 - 0.12));
-  };
+    // Fallback para preços padrão baseado no idioma
+    if (isEnglish) {
+      // Preços em dólares para inglês
+      return freq === 'monthly' ? 5.00 : 12.00;
+    } else {
+      // Preços em reais para português
+      return freq === 'monthly' ? 24.90 : Math.round(24.90 * 12 * (1 - 0.12));
+    }
+  }, [getProductPrice, isEnglish]);
 
-  const plans = [
+  const plans = useMemo(() => [
     {
-      name: 'Trial',
-      info: 'Período de teste de 14 dias',
+      name: t('pricing.plans.trial.name'),
+      info: t('pricing.plans.trial.info'),
       price: {
         monthly: 0,
         yearly: 0,
       },
       features: [
-        { text: 'Acesso limitado a funcionalidades' },
-        { text: 'Até 10 equipamentos' },
-        { text: 'Suporte por email' },
+        { text: t('pricing.plans.trial.features.limitedAccess') },
+        { text: t('pricing.plans.trial.features.upTo10Equipment') },
+        { text: t('pricing.plans.trial.features.emailSupport') },
       ],
       btn: {
-        text: profile?.plan === 'trial' ? 'Plano Atual' : 'Começar Trial',
+        text: profile?.plan === 'trial' ? t('pricing.plans.trial.currentPlan') : t('pricing.plans.trial.startTrial'),
         href: '#',
         onClick: profile?.plan === 'trial' ? undefined : () => navigate('/auth'),
       },
@@ -110,78 +122,126 @@ const PlanPaymentPage = () => {
     },
     {
       highlighted: true,
-      name: 'Premium',
-      info: 'Para pequenas e médias empresas',
+      name: t('pricing.plans.premium.name'),
+      info: t('pricing.plans.premium.info'),
       price: {
         monthly: getPremiumPrice('monthly'),
         yearly: getPremiumPrice('yearly'),
       },
       features: [
-        { text: 'Gestão ilimitada de equipamentos' },
-        { text: 'Inspeções ilimitadas' },
-        { text: 'Relatórios avançados' },
-        { text: 'Suporte prioritário', tooltip: 'Suporte 24/7 via chat' },
-        { text: 'Backup automático de dados' },
-        { text: 'Exportação de dados' },
+        { text: t('pricing.plans.premium.features.unlimitedEquipment') },
+        { text: t('pricing.plans.premium.features.unlimitedInspections') },
+        { text: t('pricing.plans.premium.features.advancedReports') },
+        { text: t('pricing.plans.premium.features.prioritySupport'), tooltip: t('pricing.plans.premium.features.prioritySupportTooltip') },
+        { text: t('pricing.plans.premium.features.autoBackup') },
+        { text: t('pricing.plans.premium.features.dataExport') },
       ],
       btn: {
         text: profile?.plan === 'premium' 
-          ? 'Plano Atual' 
-          : (upgrading || billingLoading || isInitializing)
-          ? 'Processando...' 
-          : (!isAvailable || !isInitialized)
-          ? 'Indisponível'
-          : 'Fazer Upgrade',
+          ? t('pricing.plans.premium.currentPlan') 
+          : t('pricing.plans.premium.contactTeam'),
         href: '#',
         onClick: profile?.plan === 'premium' 
           ? undefined 
-          : (!isAvailable || !isInitialized || upgrading || billingLoading || isInitializing)
-          ? undefined
-          : handleUpgrade,
+          : (e?: React.MouseEvent) => {
+              if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+              
+              const email = t('pricing.plans.premium.contactEmail');
+              const message = t('pricing.plans.premium.contactMessage');
+              
+              // Mostrar mensagem informativa primeiro (a mensagem já contém o email)
+              // Usar duração maior para garantir que o usuário veja
+              showInfo(message, 8000);
+              
+              // Depois tentar abrir cliente de email
+              setTimeout(() => {
+                const subject = isEnglish ? 'Premium Plan - Play Store' : 'Plano Premium - Play Store';
+                const body = isEnglish 
+                  ? 'I would like to purchase the Premium plan via Play Store.'
+                  : 'Gostaria de adquirir o plano Premium via Play Store.';
+                
+                openMailto(email, subject, body);
+              }, 300);
+            },
       },
     },
     {
-      name: 'Enterprise',
-      info: 'Para grandes organizações',
+      name: t('pricing.plans.business.name'),
+      info: t('pricing.plans.business.info'),
       price: {
-        monthly: 99.90,
-        yearly: Math.round(99.90 * 12 * (1 - 0.12)),
+        monthly: t('pricing.plans.business.price'),
+        yearly: t('pricing.plans.business.price'),
       },
       features: [
-        { text: 'Tudo do Premium' },
-        { text: 'Múltiplos usuários e permissões' },
-        { text: 'API personalizada' },
-        { text: 'Suporte dedicado', tooltip: 'Gerente de conta dedicado' },
-        { text: 'Treinamento personalizado' },
-        { text: 'SLA garantido' },
+        { text: t('pricing.plans.business.features.premiumFeatures') },
+        { text: t('pricing.plans.business.features.multipleUsers') },
+        { text: t('pricing.plans.business.features.customApi') },
+        { text: t('pricing.plans.business.features.dedicatedSupport'), tooltip: t('pricing.plans.business.features.dedicatedSupportTooltip') },
+        { text: t('pricing.plans.business.features.customTraining') },
+        { text: t('pricing.plans.business.features.customApplication') },
       ],
       btn: {
-        text: 'Contatar Equipe',
+        text: t('pricing.plans.business.contactTeam'),
         href: '#',
-        onClick: () => showInfo('Entre em contato com nossa equipe de vendas para mais informações.'),
+        onClick: (e?: React.MouseEvent) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          
+          const email = t('pricing.plans.business.contactEmail');
+          const message = t('pricing.plans.business.contactMessage');
+          
+          // Mostrar mensagem informativa primeiro com email
+          const fullMessage = isEnglish 
+            ? `${message} Email: ${email}`
+            : `${message} Email: ${email}`;
+          // Usar duração maior para garantir que o usuário veja
+          showInfo(fullMessage, 8000);
+          
+          // Depois tentar abrir cliente de email
+          setTimeout(() => {
+            const subject = isEnglish ? 'Business Plan - Information' : 'Plano Business - Informações';
+            const body = isEnglish 
+              ? 'I would like more information about the Business plan.'
+              : 'Gostaria de mais informações sobre o plano Business.';
+            
+            openMailto(email, subject, body);
+          }, 300);
+        },
       },
     },
-  ];
+  ], [
+    t,
+    isEnglish,
+    profile?.plan,
+    navigate,
+    getPremiumPrice,
+    showInfo,
+  ]);
 
   useEffect(() => {
     // Verificar se há algum problema
     try {
       if (plans.length === 0) {
-        setError('Nenhum plano disponível');
+        setError(t('pricing.noPlansAvailable'));
       }
     } catch (err) {
       logger.error('Erro ao carregar página de planos', 'billing', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido ao carregar planos');
+      setError(err instanceof Error ? err.message : t('pricing.unknownError'));
     }
-  }, [plans.length]);
+  }, [plans.length, t]);
 
   if (error) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-        <PageHeader title={{ key: 'profile.plan', defaultValue: 'Planos e Preços' }} />
+        <PageHeader title={{ key: 'pricing.title', defaultValue: t('pricing.title') }} />
         <main className="py-8 pb-32 flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
           <div className="text-white text-center">
-            <p className="text-red-500 mb-4">Erro ao carregar planos</p>
+            <p className="text-red-500 mb-4">{t('pricing.errorLoading')}</p>
             <p className="text-white/60">{error}</p>
           </div>
         </main>
@@ -193,42 +253,20 @@ const PlanPaymentPage = () => {
   if (!plans || plans.length === 0) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-        <PageHeader title={{ key: 'profile.plan', defaultValue: 'Planos e Preços' }} />
+        <PageHeader title={{ key: 'pricing.title', defaultValue: t('pricing.title') }} />
         <main className="py-8 pb-32 flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
           <div className="text-white text-center">
-            <p className="text-white/60">Carregando planos...</p>
+            <p className="text-white/60">{t('pricing.loading')}</p>
           </div>
         </main>
       </div>
     );
   }
 
-  // Mostrar mensagem se não estiver no Android
-  const isAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title="Planos e Preços" />
+      <PageHeader title={{ key: 'pricing.title', defaultValue: t('pricing.title') }} />
       <main className="py-8 pb-32" style={{ backgroundColor: '#000000' }}>
-        {!isAndroid && (
-          <div className="mx-auto max-w-4xl mb-6 px-4">
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center">
-              <p className="text-yellow-400 text-sm">
-                💡 As compras in-app estão disponíveis apenas no aplicativo Android. 
-                Por favor, use o aplicativo para fazer upgrade do seu plano.
-              </p>
-            </div>
-          </div>
-        )}
-        {isAndroid && !isAvailable && (
-          <div className="mx-auto max-w-4xl mb-6 px-4">
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
-              <p className="text-red-400 text-sm">
-                ⚠️ Google Play Billing não está disponível. Verifique sua conexão e tente novamente.
-              </p>
-            </div>
-          </div>
-        )}
         {error && (
           <div className="mx-auto max-w-4xl mb-6 px-4">
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
@@ -238,8 +276,8 @@ const PlanPaymentPage = () => {
         )}
         <PricingSection
           plans={plans}
-          heading="Planos que Crescem com Você"
-          description="Seja você um iniciante ou uma empresa em crescimento, nossos planos flexíveis têm tudo o que você precisa — sem custos ocultos."
+          heading={t('pricing.heading')}
+          description={t('pricing.description')}
         />
       </main>
     </div>
