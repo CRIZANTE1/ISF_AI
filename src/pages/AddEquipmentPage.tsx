@@ -8,6 +8,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
+import MultigasForm from '../components/forms/MultigasForm';
 import { saveNewExtinguisher } from '../utils/extinguisherOperations';
 import { saveNewHose } from '../utils/hoseOperations';
 import { saveNewSCBA } from '../utils/scbaOperations';
@@ -142,6 +143,8 @@ const AddEquipmentPage = () => {
         return <HoseForm register={register} />;
       case 'scba':
         return <ScbaForm register={register} />;
+      case 'multigas':
+        return <MultigasForm register={register} />;
       default:
         return null;
     }
@@ -204,26 +207,6 @@ const AddEquipmentPage = () => {
             </div>
           )}
 
-          {type === 'multigas' && (
-            <>
-              <div className="mb-4">
-                <label htmlFor="marca" className="block text-sm font-medium mb-1">Marca</label>
-                <input
-                  id="marca"
-                  {...register('marca')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="modelo" className="block text-sm font-medium mb-1">Modelo</label>
-                <input
-                  id="modelo"
-                  {...register('modelo')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
-                />
-              </div>
-            </>
-          )}
 
           {type === 'alarme' && (
             <>

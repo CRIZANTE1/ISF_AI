@@ -8,7 +8,7 @@ import { logger } from './logger';
 
 /**
  * Faz upload de uma foto de evidência para o Supabase Storage
- * SEMPRE comprime a imagem antes do upload para garantir otimização
+ * OBRIGATÓRIO: SEMPRE comprime a imagem antes do upload para garantir otimização
  * Inclui upload da imagem original comprimida e thumbnail
  */
 export async function uploadEvidencePhoto(
@@ -18,10 +18,11 @@ export async function uploadEvidencePhoto(
   createThumb: boolean = true
 ): Promise<{ url: string; thumbnailUrl?: string } | null> {
   try {
-    // SEMPRE comprime a imagem antes do upload
-    logger.info('Comprimindo imagem antes do upload', 'storage', { 
-      originalSize: file.size, 
-      fileName: file.name 
+    // OBRIGATÓRIO: SEMPRE comprime a imagem antes do upload
+    logger.info('Comprimindo imagem de evidência (OBRIGATÓRIO)', 'storage', { 
+      originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`, 
+      fileName: file.name,
+      fileType: file.type
     });
 
     const compressedBlob = await compressImage(file, {
@@ -40,10 +41,12 @@ export async function uploadEvidencePhoto(
       compressedBlob.type
     );
 
-    logger.info('Imagem comprimida com sucesso', 'storage', {
-      originalSize: file.size,
-      compressedSize: compressedFile.size,
-      reduction: `${((1 - compressedFile.size / file.size) * 100).toFixed(1)}%`
+    const reduction = ((1 - compressedFile.size / file.size) * 100).toFixed(1);
+    logger.info('Imagem de evidência comprimida com sucesso', 'storage', {
+      originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      compressedSize: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
+      reduction: `${reduction}%`,
+      fileName: file.name
     });
 
     // Gera um nome único para o arquivo
@@ -116,7 +119,8 @@ export async function uploadEvidencePhoto(
 
 /**
  * Faz upload de um arquivo genérico para o Supabase Storage
- * Se for uma imagem, SEMPRE comprime antes do upload
+ * IMPORTANTE: Imagens são SEMPRE comprimidas antes do upload
+ * Documentos são validados quanto ao tamanho máximo (10MB)
  */
 export async function uploadFile(
   file: File,
@@ -130,12 +134,13 @@ export async function uploadFile(
 
     const timestamp = new Date().getTime();
 
-    // Se for uma imagem, comprime antes do upload
+    // Se for uma imagem, SEMPRE comprime antes do upload
     if (file.type.startsWith('image/')) {
       try {
-        logger.info('Comprimindo imagem antes do upload genérico', 'storage', {
+        logger.info('Comprimindo imagem antes do upload (OBRIGATÓRIO)', 'storage', {
           originalSize: file.size,
-          fileName: file.name
+          fileName: file.name,
+          fileType: file.type
         });
 
         const compressedBlob = await compressImage(file, {
@@ -156,15 +161,34 @@ export async function uploadFile(
         );
         finalFileName = compressedFileName;
 
-        logger.info('Imagem comprimida com sucesso (upload genérico)', 'storage', {
-          originalSize: file.size,
-          compressedSize: fileToUpload.size,
-          reduction: `${((1 - fileToUpload.size / file.size) * 100).toFixed(1)}%`
+        const reduction = ((1 - fileToUpload.size / file.size) * 100).toFixed(1);
+        logger.info('Imagem comprimida com sucesso', 'storage', {
+          originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+          compressedSize: `${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB`,
+          reduction: `${reduction}%`,
+          fileName: file.name
         });
       } catch (compressionError) {
-        logger.warn('Erro ao comprimir imagem, usando arquivo original', 'storage', compressionError);
-        // Continua com o arquivo original se a compressão falhar
+        logger.error('ERRO ao comprimir imagem - upload cancelado', 'storage', compressionError);
+        throw new Error('Falha ao comprimir imagem. Por favor, tente novamente.');
       }
+    } else {
+      // Para documentos não-imagem, valida tamanho máximo (10MB)
+      const maxDocumentSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxDocumentSize) {
+        logger.error('Documento excede tamanho máximo', 'storage', {
+          fileName: file.name,
+          fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+          maxSize: '10MB'
+        });
+        throw new Error(`Arquivo muito grande. Tamanho máximo: 10MB. Tamanho atual: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      }
+      
+      logger.info('Documento validado (não será comprimido)', 'storage', {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        fileType: file.type
+      });
     }
 
     const fileExt = fileToUpload.name?.split('.').pop() || 'bin';

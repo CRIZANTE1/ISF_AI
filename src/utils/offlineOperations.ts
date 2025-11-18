@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { savePendingOperation } from './offlineDB';
 import { syncPendingOperations } from './offlineSync';
 import { logger } from './logger';
+import { getSchemaForTable, safeValidateData, tableNameSchema } from './validation/schemas';
 
 /**
  * Verifica se está online (navegador)
@@ -81,9 +82,30 @@ export async function offlineInsert(
   data: any
 ): Promise<{ success: boolean; offlineId?: string }> {
   try {
+    // Valida nome da tabela
+    const tableValidation = tableNameSchema.safeParse(table);
+    if (!tableValidation.success) {
+      logger.error('Nome de tabela inválido', 'storage', { table, error: tableValidation.error });
+      throw new Error(`Tabela inválida: ${table}`);
+    }
+
     // Obtém o ID do usuário autenticado e valida
     const authenticatedUserId = await getAuthenticatedUserId();
     validateUserOwnership(data, authenticatedUserId);
+    
+    // Valida dados com schema específico da tabela
+    const schema = getSchemaForTable(table);
+    if (schema) {
+      const dataValidation = safeValidateData(schema, data);
+      if (!dataValidation.success) {
+        logger.error('Dados inválidos para inserção', 'storage', { 
+          table, 
+          error: dataValidation.error,
+          data: JSON.stringify(data).substring(0, 200)
+        });
+        throw new Error(`Dados inválidos para tabela ${table}: ${dataValidation.error}`);
+      }
+    }
     
     // Garante que o user_id está definido e correto
     const dataWithUserId = {
@@ -170,9 +192,36 @@ export async function offlineUpdate(
   data: any
 ): Promise<{ success: boolean; offlineId?: string }> {
   try {
+    // Valida nome da tabela
+    const tableValidation = tableNameSchema.safeParse(table);
+    if (!tableValidation.success) {
+      logger.error('Nome de tabela inválido', 'storage', { table, error: tableValidation.error });
+      throw new Error(`Tabela inválida: ${table}`);
+    }
+
+    // Valida ID
+    if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
+      throw new Error('ID inválido para atualização');
+    }
+
     // Obtém o ID do usuário autenticado e valida
     const authenticatedUserId = await getAuthenticatedUserId();
     validateUserOwnership(data, authenticatedUserId);
+
+    // Valida dados com schema específico da tabela (apenas campos que serão atualizados)
+    const schema = getSchemaForTable(table);
+    if (schema) {
+      // Para update, valida apenas os campos presentes nos dados
+      const dataValidation = safeValidateData(schema.partial(), data);
+      if (!dataValidation.success) {
+        logger.error('Dados inválidos para atualização', 'storage', { 
+          table, 
+          error: dataValidation.error,
+          data: JSON.stringify(data).substring(0, 200)
+        });
+        throw new Error(`Dados inválidos para tabela ${table}: ${dataValidation.error}`);
+      }
+    }
     
     const isOnline = await isSupabaseOnline();
     

@@ -10,6 +10,7 @@ import {
   updateOperationRetry,
 } from './offlineDB';
 import { logger } from './logger';
+import { offlineOperationSchema, getSchemaForTable, safeValidateData, tableNameSchema } from './validation/schemas';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 segundo
@@ -159,13 +160,41 @@ function validateUserOwnership(data: any, authenticatedUserId: string): void {
  */
 async function executeOperation(operation: any): Promise<boolean> {
   try {
+    // Valida estrutura da operação
+    const operationValidation = safeValidateData(offlineOperationSchema, operation);
+    if (!operationValidation.success) {
+      logger.error('Operação offline inválida', 'sync', { error: operationValidation.error, operation });
+      throw new Error(`Operação inválida: ${operationValidation.error}`);
+    }
+
     const { type, table, data } = operation;
+
+    // Valida nome da tabela
+    const tableValidation = tableNameSchema.safeParse(table);
+    if (!tableValidation.success) {
+      logger.error('Nome de tabela inválido', 'sync', { table, error: tableValidation.error });
+      throw new Error(`Tabela inválida: ${table}`);
+    }
 
     // Obtém o ID do usuário autenticado (também valida autenticação)
     const authenticatedUserId = await getAuthenticatedUserId();
     
     // Valida que o user_id nos dados corresponde ao usuário autenticado
     validateUserOwnership(data, authenticatedUserId);
+
+    // Valida dados com schema específico da tabela
+    const schema = getSchemaForTable(table);
+    if (schema) {
+      const dataValidation = safeValidateData(schema, data);
+      if (!dataValidation.success) {
+        logger.error('Dados da operação inválidos', 'sync', { 
+          table, 
+          error: dataValidation.error,
+          data: JSON.stringify(data).substring(0, 200) // Log apenas primeiros 200 chars
+        });
+        throw new Error(`Dados inválidos para tabela ${table}: ${dataValidation.error}`);
+      }
+    }
 
     switch (type) {
       case 'create': {

@@ -39,6 +39,12 @@ import { getHoseById, saveHoseInspection } from '../utils/hoseOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
 import { Spinner } from '../components/ui/spinner';
 import { 
+  extinguisherInspectionSchema, 
+  multigasInspectionSchema, 
+  scbaInspectionSchema,
+  safeValidateData 
+} from '../utils/validation/schemas';
+import { 
   EYEWASH_CHECKLIST, 
   FOAM_CHAMBER_CHECKLIST, 
   ALARM_CHECKLIST, 
@@ -242,8 +248,8 @@ const AddInspectionPage = () => {
                 id: multigasData.id_equipamento,
                 name: multigasData.id_equipamento,
                 location: (multigasData as any).localizacao,
-                marca: multigasData.marca,
-                modelo: multigasData.modelo,
+                marca: multigasData.marca || undefined,
+                modelo: multigasData.modelo || undefined,
                 numero_serie: multigasData.numero_serie,
                 LEL_cilindro: multigasData.LEL_cilindro,
                 O2_cilindro: multigasData.O2_cilindro,
@@ -555,7 +561,25 @@ const AddInspectionPage = () => {
             user_id: user.id,
           };
 
-          const success = await saveExtinguisherInspection(inspectionRecord);
+          // Valida dados antes de salvar
+          const validation = safeValidateData(extinguisherInspectionSchema, inspectionRecord);
+          if (!validation.success) {
+            logger.error('Dados de inspeção inválidos', 'inspection', { 
+              error: validation.error,
+              type: 'extintor'
+            });
+            throw new Error(`Dados inválidos: ${validation.error}`);
+          }
+
+          // Converte null para undefined para compatibilidade
+          const cleanedData = Object.fromEntries(
+            Object.entries(validation.data).map(([key, value]) => [
+              key, 
+              value === null || value === '' ? undefined : value
+            ])
+          ) as any;
+
+          const success = await saveExtinguisherInspection(cleanedData);
           if (!success) throw new Error('Falha ao salvar inspeção');
           break;
         }
@@ -759,7 +783,25 @@ const AddInspectionPage = () => {
             user_id: user.id,
           };
 
-          const success = await saveMultigasInspection(inspectionRecord);
+          // Valida dados antes de salvar
+          const validation = safeValidateData(multigasInspectionSchema, inspectionRecord);
+          if (!validation.success) {
+            logger.error('Dados de inspeção inválidos', 'inspection', { 
+              error: validation.error,
+              type: 'multigas'
+            });
+            throw new Error(`Dados inválidos: ${validation.error}`);
+          }
+
+          // Converte null para undefined para compatibilidade
+          const cleanedData = Object.fromEntries(
+            Object.entries(validation.data).map(([key, value]) => [
+              key, 
+              value === null || value === '' ? undefined : value
+            ])
+          ) as any;
+
+          const success = await saveMultigasInspection(cleanedData);
           if (!success) throw new Error('Falha ao salvar inspeção');
           break;
         }
@@ -806,7 +848,25 @@ const AddInspectionPage = () => {
             user_id: user.id,
           };
 
-          const success = await saveSCBAVisualInspection(inspectionRecord);
+          // Valida dados antes de salvar
+          const validation = safeValidateData(scbaInspectionSchema, inspectionRecord);
+          if (!validation.success) {
+            logger.error('Dados de inspeção inválidos', 'inspection', { 
+              error: validation.error,
+              type: 'scba'
+            });
+            throw new Error(`Dados inválidos: ${validation.error}`);
+          }
+
+          // Converte null para undefined para compatibilidade
+          const cleanedData = Object.fromEntries(
+            Object.entries(validation.data).map(([key, value]) => [
+              key, 
+              value === null || value === '' ? undefined : value
+            ])
+          ) as any;
+
+          const success = await saveSCBAVisualInspection(cleanedData);
           if (!success) throw new Error('Falha ao salvar inspeção');
           break;
         }
@@ -869,16 +929,16 @@ const AddInspectionPage = () => {
       let hasPlanoAcao = false;
       if (type === 'multigas') {
         // Para multigas, se foi reprovado, sempre tem plano de ação válido
-        hasPlanoAcao = finalStatusConformidade === 'Reprovado' || 
+        hasPlanoAcao = !!(finalStatusConformidade === 'Reprovado' || 
           (planAction && 
            planAction.trim() !== '' && 
            !planAction.toLowerCase().includes('manter em monitoramento') &&
-           !planAction.toLowerCase().includes('manter monitoramento'));
+           !planAction.toLowerCase().includes('manter monitoramento')));
       } else {
-        hasPlanoAcao = planAction && 
+        hasPlanoAcao = !!(planAction && 
           planAction.trim() !== '' && 
           !planAction.toLowerCase().includes('manter em monitoramento') &&
-          !planAction.toLowerCase().includes('manter monitoramento');
+          !planAction.toLowerCase().includes('manter monitoramento'));
       }
 
       // Monta mensagem de feedback

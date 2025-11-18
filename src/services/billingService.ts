@@ -4,6 +4,7 @@ import { updateUserPlan } from '../utils/adminOperations';
 import { Billing } from '../plugins/BillingPlugin';
 import type { BillingProduct, Purchase, BillingResult } from '../plugins/BillingPlugin';
 import { logger } from '../utils/logger';
+import { purchaseSchema, safeValidateData } from '../utils/validation/schemas';
 
 class BillingService {
   private initialized = false;
@@ -185,9 +186,19 @@ class BillingService {
           } as any,
         };
 
+        // Valida dados da compra antes de inserir
+        const validation = safeValidateData(purchaseSchema, purchaseData);
+        if (!validation.success) {
+          logger.error('Dados de compra inválidos', 'billing', { 
+            error: validation.error,
+            purchaseData: JSON.stringify(purchaseData).substring(0, 200)
+          });
+          throw new Error(`Dados de compra inválidos: ${validation.error}`);
+        }
+
         const { error: insertError } = await supabase
           .from('purchases')
-          .insert(purchaseData);
+          .insert(validation.data);
 
         if (insertError) {
           logger.error('Erro ao registrar compra', 'billing', insertError);

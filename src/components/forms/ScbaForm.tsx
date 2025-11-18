@@ -1,8 +1,7 @@
 import { UseFormRegister } from 'react-hook-form';
-import { AddEquipmentFormData } from '../../pages/AddEquipmentPage';
 
 interface ScbaFormProps {
-  register: UseFormRegister<AddEquipmentFormData>;
+  register: UseFormRegister<any>;
 }
 
 const ScbaForm = ({ register }: ScbaFormProps) => {
@@ -12,7 +11,7 @@ const ScbaForm = ({ register }: ScbaFormProps) => {
         <label htmlFor="marca" className="block text-sm font-medium mb-1">Marca</label>
         <input
           id="marca"
-          {...register('specifications.marca')}
+          {...register('marca')}
           className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
@@ -20,24 +19,23 @@ const ScbaForm = ({ register }: ScbaFormProps) => {
         <label htmlFor="modelo" className="block text-sm font-medium mb-1">Modelo</label>
         <input
           id="modelo"
-          {...register('specifications.modelo')}
+          {...register('modelo')}
           className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="numero_serie_cilindro" className="block text-sm font-medium mb-1">Nº de Série (Cilindro)</label>
+        <label htmlFor="numero_serie_mascara" className="block text-sm font-medium mb-1">Nº de Série (Máscara) <span className="text-gray-400 text-xs">(opcional)</span></label>
         <input
-          id="numero_serie_cilindro"
-          {...register('specifications.numero_serie_cilindro')}
+          id="numero_serie_mascara"
+          {...register('numero_serie_mascara')}
           className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="pressao_trabalho" className="block text-sm font-medium mb-1">Pressão de Trabalho (bar)</label>
+        <label htmlFor="numero_serie_segundo_estagio" className="block text-sm font-medium mb-1">Nº de Série (Segundo Estágio) <span className="text-gray-400 text-xs">(opcional)</span></label>
         <input
-          id="pressao_trabalho"
-          type="number"
-          {...register('specifications.pressao_trabalho', { valueAsNumber: true })}
+          id="numero_serie_segundo_estagio"
+          {...register('numero_serie_segundo_estagio')}
           className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
         />
       </div>

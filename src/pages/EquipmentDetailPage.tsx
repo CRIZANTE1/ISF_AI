@@ -514,11 +514,269 @@ const EquipmentDetailPage = () => {
         )}
         {!loading && equipment && (
           <>
-            <div className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border mb-6" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
-              <h2 className="font-bold text-lg mb-2">{t('equipment.details')}</h2>
-              <p><span className="font-semibold">ID:</span> {equipment.name}</p>
-              {equipment.location && (
-                <p><span className="font-semibold">{t('equipment.location')}:</span> {equipment.location}</p>
+            <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border mb-4" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+              <h2 className="font-bold text-base mb-3">{t('equipment.details')}</h2>
+              
+              {/* Informações básicas comuns */}
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-semibold text-gray-400">ID:</span>
+                  <span className="text-white text-right">{equipment.name}</span>
+                </div>
+                {equipment.location && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-semibold text-gray-400">{t('equipment.location')}:</span>
+                    <span className="text-white text-right">{equipment.location}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Informações específicas por tipo de equipamento */}
+              {type === 'extintor' && (
+                <div className="space-y-2 pt-3 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  {equipment.tipo_agente && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Tipo de Agente:</span>
+                      <span className="text-white text-right">{equipment.tipo_agente}</span>
+                    </div>
+                  )}
+                  {equipment.capacidade && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Capacidade:</span>
+                      <span className="text-white text-right">{equipment.capacidade}L</span>
+                    </div>
+                  )}
+                  {equipment.marca_fabricante && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Marca:</span>
+                      <span className="text-white text-right">{equipment.marca_fabricante}</span>
+                    </div>
+                  )}
+                  {equipment.ano_fabricacao && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Ano de Fabricação:</span>
+                      <span className="text-white text-right">{equipment.ano_fabricacao}</span>
+                    </div>
+                  )}
+                  {equipment.numero_selo_inmetro && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Nº Selo Inmetro:</span>
+                      <span className="text-white text-right">{equipment.numero_selo_inmetro}</span>
+                    </div>
+                  )}
+                  {equipment.tipo_servico && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Tipo de Serviço:</span>
+                      <span className="text-white text-right">{equipment.tipo_servico}</span>
+                    </div>
+                  )}
+                  {equipment.data_servico && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Data do Serviço:</span>
+                      <span className="text-white text-right">{format(new Date(equipment.data_servico), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                    </div>
+                  )}
+                  {equipment.data_proxima_inspecao && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Próxima Inspeção:</span>
+                      <span className="text-white text-right">{format(new Date(equipment.data_proxima_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                    </div>
+                  )}
+                  {equipment.aprovado_inspecao && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Status:</span>
+                      <span className={`text-right px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadge(equipment.aprovado_inspecao)}`}>
+                        {equipment.aprovado_inspecao}
+                      </span>
+                    </div>
+                  )}
+                  {equipment.inspetor_responsavel && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Inspetor:</span>
+                      <span className="text-white text-right text-xs">{equipment.inspetor_responsavel}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {type === 'scba' && (
+                <div className="space-y-2 pt-3 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  {equipment.marca && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Marca:</span>
+                      <span className="text-white text-right">{equipment.marca}</span>
+                    </div>
+                  )}
+                  {equipment.modelo && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Modelo:</span>
+                      <span className="text-white text-right">{equipment.modelo}</span>
+                    </div>
+                  )}
+                  {equipment.numero_serie_mascara && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Nº Série (Máscara):</span>
+                      <span className="text-white text-right">{equipment.numero_serie_mascara}</span>
+                    </div>
+                  )}
+                  {equipment.numero_serie_segundo_estagio && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Nº Série (Segundo Estágio):</span>
+                      <span className="text-white text-right">{equipment.numero_serie_segundo_estagio}</span>
+                    </div>
+                  )}
+                  {equipment.data_teste && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Data do Teste:</span>
+                      <span className="text-white text-right">{format(new Date(equipment.data_teste), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                    </div>
+                  )}
+                  {equipment.data_validade && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Data de Validade:</span>
+                      <span className="text-white text-right">{format(new Date(equipment.data_validade), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                    </div>
+                  )}
+                  {equipment.resultado_final && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Resultado:</span>
+                      <span className={`text-right px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadge(equipment.resultado_final)}`}>
+                        {equipment.resultado_final}
+                      </span>
+                    </div>
+                  )}
+                  {equipment.inspetor_responsavel && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Inspetor:</span>
+                      <span className="text-white text-right text-xs">{equipment.inspetor_responsavel}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {type === 'multigas' && (
+                <div className="space-y-2 pt-3 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  {equipment.marca && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Marca:</span>
+                      <span className="text-white text-right">{equipment.marca}</span>
+                    </div>
+                  )}
+                  {equipment.modelo && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Modelo:</span>
+                      <span className="text-white text-right">{equipment.modelo}</span>
+                    </div>
+                  )}
+                  {equipment.numero_serie && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Nº de Série:</span>
+                      <span className="text-white text-right">{equipment.numero_serie}</span>
+                    </div>
+                  )}
+                  {equipment.data_cadastro && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Data de Cadastro:</span>
+                      <span className="text-white text-right">{format(new Date(equipment.data_cadastro), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                    </div>
+                  )}
+                  {(equipment.lel_cilindro !== null && equipment.lel_cilindro !== undefined) && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">LEL Cilindro:</span>
+                      <span className="text-white text-right">{equipment.lel_cilindro}%</span>
+                    </div>
+                  )}
+                  {(equipment.o2_cilindro !== null && equipment.o2_cilindro !== undefined) && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">O2 Cilindro:</span>
+                      <span className="text-white text-right">{equipment.o2_cilindro}%</span>
+                    </div>
+                  )}
+                  {(equipment.h2s_cilindro !== null && equipment.h2s_cilindro !== undefined) && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">H2S Cilindro:</span>
+                      <span className="text-white text-right">{equipment.h2s_cilindro}ppm</span>
+                    </div>
+                  )}
+                  {(equipment.co_cilindro !== null && equipment.co_cilindro !== undefined) && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">CO Cilindro:</span>
+                      <span className="text-white text-right">{equipment.co_cilindro}ppm</span>
+                    </div>
+                  )}
+                  {(equipment.margem_erro_cilindro !== null && equipment.margem_erro_cilindro !== undefined) && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Margem de Erro:</span>
+                      <span className="text-white text-right">{equipment.margem_erro_cilindro}%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {type === 'mangueira' && (
+                <div className="space-y-2 pt-3 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  {equipment.diametro && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Diâmetro:</span>
+                      <span className="text-white text-right">{equipment.diametro}mm</span>
+                    </div>
+                  )}
+                  {equipment.comprimento && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Comprimento:</span>
+                      <span className="text-white text-right">{equipment.comprimento}m</span>
+                    </div>
+                  )}
+                  {equipment.tipo_mangueira && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Tipo:</span>
+                      <span className="text-white text-right">{equipment.tipo_mangueira}</span>
+                    </div>
+                  )}
+                  {equipment.pressao_trabalho && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Pressão de Trabalho:</span>
+                      <span className="text-white text-right">{equipment.pressao_trabalho}bar</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(type === 'chuveiro_lavaolhos' || type === 'camara_espuma' || type === 'alarme' || type === 'canhao_monitor' || type === 'abrigo') && (
+                <div className="space-y-2 pt-3 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  {equipment.marca && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Marca:</span>
+                      <span className="text-white text-right">{equipment.marca}</span>
+                    </div>
+                  )}
+                  {equipment.modelo && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Modelo:</span>
+                      <span className="text-white text-right">{equipment.modelo}</span>
+                    </div>
+                  )}
+                  {equipment.numero_serie && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Nº de Série:</span>
+                      <span className="text-white text-right">{equipment.numero_serie}</span>
+                    </div>
+                  )}
+                  {equipment.data_cadastro && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Data de Cadastro:</span>
+                      <span className="text-white text-right">{format(new Date(equipment.data_cadastro), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Observações gerais se existirem */}
+              {equipment.observacoes_gerais && (
+                <div className="pt-3 border-t mt-3" style={{ borderColor: '#2A2A2A' }}>
+                  <span className="font-semibold text-gray-400 block mb-1 text-sm">Observações:</span>
+                  <p className="text-white text-xs leading-relaxed">{equipment.observacoes_gerais}</p>
+                </div>
               )}
             </div>
 
