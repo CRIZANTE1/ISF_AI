@@ -26,14 +26,14 @@ import {
   saveExtinguisherInspection,
   getExtinguisherById,
 } from '../utils/extinguisherOperations';
-import { saveEyewashInspection, generateEyewashActionPlan, getAllEyewashStations } from '../utils/eyewashOperations';
-import { saveFoamChamberInspection, getAllFoamChambers } from '../utils/foamChamberOperations';
-import { saveAlarmInspection, getAllAlarmSystems } from '../utils/alarmOperations';
-import { saveCannonMonitorInspection, getAllCannonMonitors } from '../utils/cannonMonitorOperations';
-import { saveMultigasInspection, getAllMultigasDetectors, getMultigasDetectorById, updateCylinderValues, verifyBumpTest } from '../utils/multigasOperations';
+import { saveEyewashInspection, generateEyewashActionPlan } from '../utils/eyewashOperations';
+import { saveFoamChamberInspection } from '../utils/foamChamberOperations';
+import { saveAlarmInspection } from '../utils/alarmOperations';
+import { saveCannonMonitorInspection } from '../utils/cannonMonitorOperations';
+import { saveMultigasInspection, getMultigasDetectorById, updateCylinderValues, verifyBumpTest } from '../utils/multigasOperations';
 import type { CylinderValues } from '../utils/multigasOperations';
-import { saveSCBAVisualInspection, getAllSCBAs, getSCBABySerial } from '../utils/scbaOperations';
-import { saveShelterInspection, getAllShelters } from '../utils/shelterOperations';
+import { saveSCBAVisualInspection, getSCBABySerial } from '../utils/scbaOperations';
+import { saveShelterInspection } from '../utils/shelterOperations';
 import { getHoseById, saveHoseInspection } from '../utils/hoseOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
 import { Spinner } from '../components/ui/spinner';
@@ -71,7 +71,7 @@ const AddInspectionPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { handleError, executeWithFeedback } = useErrorHandler();
+  const { handleError } = useErrorHandler();
   const { getEquipmentByType } = useEquipmentCache();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
