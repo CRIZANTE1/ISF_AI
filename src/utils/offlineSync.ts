@@ -26,7 +26,8 @@ function extractUniqueFields(table: string, data: any): Array<{ field: string; v
   const fields: Array<{ field: string; value: any }> = [];
   
   // Campos comuns que são únicos em várias tabelas
-  const commonUniqueFields = ['id', 'numero_identificacao', 'id_equipamento', 'id_sistema', 
+  // NOTA: numero_identificacao NÃO é único para extintores, pois permite múltiplas inspeções (histórico)
+  const commonUniqueFields = ['id', 'id_equipamento', 'id_sistema', 
     'id_camara', 'id_abrigo', 'id_mangueira', 'numero_serie_equipamento'];
   
   // Verifica campos únicos comuns
@@ -37,10 +38,12 @@ function extractUniqueFields(table: string, data: any): Array<{ field: string; v
   }
   
   // Para tabelas específicas, adiciona campos únicos conhecidos
+  // Extintores permitem múltiplas inspeções com o mesmo numero_identificacao
+  // A unicidade deve ser baseada em (numero_identificacao + data_servico + user_id) se necessário
+  // Por enquanto, não adicionamos campos únicos para extintores para permitir histórico de inspeções
   if (table.includes('extintor')) {
-    if (data.numero_identificacao) {
-      fields.push({ field: 'numero_identificacao', value: data.numero_identificacao });
-    }
+    // Não adiciona numero_identificacao como único, pois permite múltiplas inspeções
+    // Se houver constraint única na tabela, ela deve ser composta (ex: numero_identificacao + data_servico)
   }
   
   return fields;
@@ -215,8 +218,47 @@ async function executeOperation(operation: any): Promise<boolean> {
         if (error) {
           // Trata erros específicos
           if (error.code === '23505') { // Violação de constraint única
-            // Verifica se o registro realmente existe antes de considerar sucesso
-            // Tenta buscar o registro para confirmar
+            // Para extintores, permite múltiplas inspeções (histórico)
+            // Se houver erro 23505 para extintores sem campos únicos identificados,
+            // pode ser uma constraint única no banco que precisa ser ajustada
+            if (table.includes('extintor')) {
+              // Para extintores, verifica se é realmente uma duplicata baseada em (numero_identificacao + data_servico + user_id)
+              const uniqueFields = extractUniqueFields(table, data);
+              if (uniqueFields.length === 0) {
+                // Não há campos únicos identificados, mas houve erro de constraint
+                // Verifica se já existe registro com mesmo numero_identificacao + data_servico + user_id
+                if (data.numero_identificacao && data.data_servico) {
+                  try {
+                    const { data: existing, error: checkError } = await supabase
+                      .from(table)
+                      .select('id')
+                      .eq('numero_identificacao', data.numero_identificacao)
+                      .eq('data_servico', data.data_servico)
+                      .eq('user_id', authenticatedUserId)
+                      .limit(1);
+                    
+                    if (!checkError && existing && existing.length > 0) {
+                      logger.warn(`Inspeção de extintor já existe para esta data, removendo da fila`, 'sync', {
+                        table,
+                        numero_identificacao: data.numero_identificacao,
+                        data_servico: data.data_servico
+                      });
+                      return true; // Considera sucesso pois a inspeção já existe
+                    }
+                  } catch (checkErr) {
+                    logger.warn('Erro ao verificar inspeção duplicada de extintor', 'sync', checkErr);
+                  }
+                }
+                // Se não conseguiu verificar, propaga o erro para que o usuário veja a mensagem real
+                logger.error(`Erro de constraint única na tabela ${table} para extintor`, 'sync', {
+                  error: error.message,
+                  data: { numero_identificacao: data.numero_identificacao, data_servico: data.data_servico }
+                });
+                throw error; // Propaga o erro para tratamento adequado
+              }
+            }
+            
+            // Para outras tabelas ou quando há campos únicos identificados
             const uniqueFields = extractUniqueFields(table, data);
             if (uniqueFields.length > 0) {
               try {
