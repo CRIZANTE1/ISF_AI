@@ -26,6 +26,8 @@ import {
   type EquipmentDates,
   saveExtinguisherInspection,
   getExtinguisherById,
+  ACTION_MAP,
+  getActionKeywords,
 } from '../utils/extinguisherOperations';
 import { saveEyewashInspection, generateEyewashActionPlan } from '../utils/eyewashOperations';
 import { saveFoamChamberInspection } from '../utils/foamChamberOperations';
@@ -122,7 +124,7 @@ const AddInspectionPage = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const { register, handleSubmit, formState: { errors }, watch, control } = useForm<AddInspectionFormData>({
+  const { register, handleSubmit, formState: { errors }, watch, control, setValue } = useForm<AddInspectionFormData>({
     defaultValues: {
       data_inspecao: getCurrentDateTimeLocal(),
       tipo_servico: 'Inspeção',
@@ -133,6 +135,9 @@ const AddInspectionPage = () => {
 
   const aprovado = watch('aprovado_inspecao');
   const observacoes = watch('observacoes_gerais');
+  
+  // Obtém palavras-chave únicas do ACTION_MAP
+  const actionKeywords = getActionKeywords();
 
   // Captura geolocalização automaticamente quando a página carrega
   useEffect(() => {
@@ -429,15 +434,39 @@ const AddInspectionPage = () => {
     initializeChecklist();
   }, [type, equipment, foamChamberInspectionType, cannonMonitorInspectionType]);
 
-  // Gera plano de ação para extintores
+  // Limpa observações quando status muda para "Sim"
   useEffect(() => {
-    if (type === 'extintor' && aprovado && observacoes !== undefined) {
-      const record: InspectionRecord = {
-        aprovado_inspecao: aprovado,
-        observacoes_gerais: observacoes || ''
-      };
-      const plan = generateActionPlan(record);
-      setPlanAction(plan);
+    if (type === 'extintor' && aprovado === 'Sim' && observacoes) {
+      setValue('observacoes_gerais', '');
+    }
+  }, [aprovado, type, setValue]);
+
+  // Gera plano de ação para extintores automaticamente baseado na seleção
+  useEffect(() => {
+    if (type === 'extintor') {
+      if (aprovado === 'Não' && observacoes) {
+        // Busca diretamente no ACTION_MAP pela palavra-chave selecionada
+        const selectedKeyword = observacoes.trim();
+        if (ACTION_MAP[selectedKeyword]) {
+          // Retorna o plano de ação padronizado do ACTION_MAP
+          setPlanAction(ACTION_MAP[selectedKeyword]);
+        } else {
+          // Se não encontrar exatamente, tenta gerar usando a função normal
+          const record: InspectionRecord = {
+            aprovado_inspecao: aprovado,
+            observacoes_gerais: observacoes
+          };
+          const plan = generateActionPlan(record);
+          setPlanAction(plan);
+        }
+      } else if (aprovado === 'Sim') {
+        setPlanAction("Manter em monitoramento periódico.");
+      } else {
+        setPlanAction('');
+      }
+    } else {
+      // Limpa o plano de ação quando não é extintor
+      setPlanAction('');
     }
   }, [aprovado, observacoes, type]);
 
@@ -981,7 +1010,8 @@ const AddInspectionPage = () => {
 
   const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '');
   const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
-  const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual') || (type === 'extintor' && aprovado === 'Não') || (type === 'abrigo' && aprovado === 'Reprovado');
+  // Foto não é obrigatória para extintores, apenas opcional quando reprovado
+  const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual') || (type === 'abrigo' && aprovado === 'Reprovado');
   const isMultigasEquipment = type === 'multigas';
   const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
   // Sempre permite adicionar foto, mesmo em total conformidade
@@ -1138,43 +1168,67 @@ const AddInspectionPage = () => {
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   {t('inspection.generalObservations')}
                 </label>
-                <textarea
-                  id="observacoes_gerais"
-                  rows={4}
-                  {...register('observacoes_gerais')}
-                  placeholder={t('inspection.observationsPlaceholder')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                <Controller
+                  name="observacoes_gerais"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      id="observacoes_gerais"
+                      className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" 
+                      style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                      disabled={aprovado !== 'Não'}
+                    >
+                      <option value="">
+                        {aprovado === 'Não' ? 'Selecione uma não conformidade...' : 'Selecione "Não" acima para escolher uma não conformidade'}
+                      </option>
+                      {aprovado === 'Não' && actionKeywords.map((keyword) => (
+                        <option key={keyword} value={keyword}>
+                          {keyword}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 />
               </AnimatedFormField>
 
-              {planAction && (
+              {planAction && planAction !== 'N/A' && (
                 <motion.div 
-                  className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" 
-                  style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-4 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 dark:bg-gradient-to-r dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border relative" 
+                  style={{ zIndex: 10, position: 'relative', borderColor: '#3B82F6', borderWidth: '1px' }}
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className="text-sm font-semibold mb-1">{t('inspection.actionPlanGenerated')}</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    {planAction}
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">✅</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold mb-2" style={{ color: '#60A5FA' }}>
+                        {t('inspection.actionPlanGenerated')}
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap" style={{ color: '#E5E7EB' }}>
+                        {planAction}
+                      </p>
+                    </div>
+                  </div>
                 </motion.div>
               )}
 
-              {/* Sempre permite adicionar foto, mesmo quando aprovado */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.45 }}
-              >
-                <PhotoUpload
-                  value={photoFile}
-                  onChange={setPhotoFile}
-                  label={t('inspection.nonConformityPhoto')}
-                  required={aprovado === 'Não'}
-                />
-              </motion.div>
+              {/* Foto de não conformidade - aparece apenas quando reprovado */}
+              {aprovado === 'Não' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.45 }}
+                >
+                  <PhotoUpload
+                    value={photoFile}
+                    onChange={setPhotoFile}
+                    label={t('inspection.nonConformityPhoto')}
+                    required={false}
+                  />
+                </motion.div>
+              )}
             </>
           )}
 

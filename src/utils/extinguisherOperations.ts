@@ -8,7 +8,7 @@ import { logUserAction } from './adminOperations';
 import { logger } from './logger';
 
 // Mapeamento de ações para plano de ação baseado em não conformidades
-const ACTION_MAP: Record<string, string> = {
+export const ACTION_MAP: Record<string, string> = {
   PINTURA: "Programar a repintura corretiva do extintor.",
   MANÔMETRO: "Realizar a substituição imediata do manômetro.",
   MANOMETRO: "Realizar a substituição imediata do manômetro.",
@@ -72,11 +72,55 @@ export interface Extinguisher {
 }
 
 /**
+ * Normaliza string removendo acentos e convertendo para maiúsculas
+ */
+function normalizeString(str: string): string {
+  return str
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .trim();
+}
+
+/**
+ * Retorna lista de palavras-chave únicas do ACTION_MAP (sem duplicatas)
+ * Remove variações com/sem acentos, mantendo apenas uma versão
+ * Prefere versões com acentos e nomes mais descritivos
+ */
+export function getActionKeywords(): string[] {
+  const keywords = Object.keys(ACTION_MAP);
+  const normalized = new Map<string, string>();
+  
+  // Primeiro, coleta todas as palavras-chave e suas versões normalizadas
+  for (const keyword of keywords) {
+    const normalizedKey = normalizeString(keyword);
+    
+    // Se já existe uma versão, prefere a que tem acento ou é mais descritiva
+    if (!normalized.has(normalizedKey)) {
+      normalized.set(normalizedKey, keyword);
+    } else {
+      const existing = normalized.get(normalizedKey)!;
+      // Prefere versão com acento ou mais longa
+      if (keyword.length > existing.length || 
+          (keyword.match(/[áàâãéêíóôõúç]/i) && !existing.match(/[áàâãéêíóôõúç]/i))) {
+        normalized.set(normalizedKey, keyword);
+      }
+    }
+  }
+  
+  // Retorna valores únicos ordenados alfabeticamente
+  return Array.from(normalized.values()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+/**
  * Gera plano de ação baseado na aprovação e observações
  */
 export function generateActionPlan(record: InspectionRecord): string {
   const aprovado = record.aprovado_inspecao?.trim() || '';
-  const observacoes = (record.observacoes_gerais || '').toUpperCase().trim();
+  const observacoes = record.observacoes_gerais || '';
+  
+  // Normaliza as observações para busca (remove acentos, converte para maiúsculas)
+  const observacoesNormalizadas = normalizeString(observacoes);
 
   // Caso 1: Equipamento aprovado
   if (aprovado === "Sim") {
@@ -85,16 +129,22 @@ export function generateActionPlan(record: InspectionRecord): string {
 
   // Caso 2: Equipamento não aprovado
   if (aprovado === "Não") {
-    // Busca ação específica no mapa
-    for (const [keyword, plan] of Object.entries(ACTION_MAP)) {
-      if (observacoes.includes(keyword)) {
-        return plan;
+    // Ordena as palavras-chave por tamanho (mais longas primeiro) para melhor matching
+    // Isso garante que "DANO VISIVEL" seja encontrado antes de apenas "DANO"
+    const sortedKeywords = Object.keys(ACTION_MAP).sort((a, b) => b.length - a.length);
+    
+    // Busca ação específica no mapa usando normalização
+    for (const keyword of sortedKeywords) {
+      const keywordNormalizada = normalizeString(keyword);
+      // Verifica se a palavra-chave está contida nas observações normalizadas
+      if (observacoesNormalizadas.includes(keywordNormalizada)) {
+        return ACTION_MAP[keyword];
       }
     }
 
     // Se nenhuma palavra-chave for encontrada, retorna ação genérica
-    if (observacoes) {
-      return `Analisar e corrigir a não conformidade reportada: '${record.observacoes_gerais || 'Não especificado'}'`;
+    if (observacoes.trim()) {
+      return `Analisar e corrigir a não conformidade reportada: '${observacoes.trim()}'`;
     } else {
       return "Equipamento reprovado. Avaliar não conformidade e tomar ação corretiva apropriada.";
     }
@@ -330,11 +380,16 @@ export async function saveExtinguisherInspection(
   inspection: Omit<Extinguisher, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    // Gera plano de ação
-    const planoDeAcao = generateActionPlan({
-      aprovado_inspecao: inspection.aprovado_inspecao,
-      observacoes_gerais: inspection.observacoes_gerais,
-    });
+    // Gera plano de ação automaticamente se não foi fornecido ou se está vazio
+    // Usa o plano passado se já existir e for válido
+    let planoDeAcao = inspection.plano_de_acao;
+    
+    if (!planoDeAcao || planoDeAcao.trim() === '' || planoDeAcao === 'N/A') {
+      planoDeAcao = generateActionPlan({
+        aprovado_inspecao: inspection.aprovado_inspecao,
+        observacoes_gerais: inspection.observacoes_gerais,
+      });
+    }
 
     // Calcula próximas datas
     const existingDates: EquipmentDates = {
@@ -349,10 +404,15 @@ export async function saveExtinguisherInspection(
       existingDates
     );
 
+    // Converte null para undefined para compatibilidade com o tipo
+    const cleanDates = Object.fromEntries(
+      Object.entries(nextDates).map(([key, value]) => [key, value ?? undefined])
+    );
+
     const inspectionData: Omit<Extinguisher, 'id' | 'created_at'> = {
       ...inspection,
       plano_de_acao: planoDeAcao,
-      ...nextDates,
+      ...cleanDates,
     };
 
     // Usa wrapper offline para suportar modo offline
