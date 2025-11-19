@@ -424,6 +424,7 @@ Acesse `http://localhost:5173` no navegador para testar a interface antes de com
 - [Configuração do Supabase](./docs/CONFIGURAR_SUPABASE.md)
 - [Setup de Geolocalização](./docs/GEOLOCALIZACAO_SETUP.md)
 - [Requisitos do Projeto](./docs/REQUIREMENTS.md)
+- [Hospedar APK no GitHub Releases](./docs/HOSPEDAR_APK_GITHUB.md) - 📦 Guia completo para distribuir o app antes da publicação
 
 ## 🆕 Novidades
 
