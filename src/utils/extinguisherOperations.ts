@@ -29,7 +29,6 @@ const ACTION_MAP: Record<string, string> = {
   "DANO VISIVEL": "Realizar inspeção detalhada para avaliar a integridade do casco. Se necessário, enviar para teste hidrostático.",
   VENCIDO: "Retirar de uso e enviar para manutenção (Nível 2 ou 3) imediatamente.",
   CORROSÃO: "Avaliar extensão da corrosão. Se superficial, limpar e pintar. Se profunda, reprovar equipamento.",
-  CORROSAO: "Avaliar extensão da corrosão. Se superficial, limpar e pintar. Se profunda, reprovar equipamento.",
 };
 
 export interface EquipmentDates {
