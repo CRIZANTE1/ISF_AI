@@ -162,7 +162,7 @@ const EquipmentMap = () => {
         
         setMarkers(equipmentMarkers);
       } catch (error) {
-        handleError(error, 'equipment', 'Erro ao carregar equipamentos no mapa');
+        handleError(error, 'equipment', t('equipmentMap.errorLoadingEquipment'));
       } finally {
         setLoading(false);
       }
@@ -256,8 +256,8 @@ const EquipmentMap = () => {
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             {markers.length > 0 
-              ? `${markers.length} equipamento(s)`
-              : 'Nenhum equipamento encontrado'
+              ? t('equipmentMap.equipmentCount', { count: markers.length })
+              : t('equipmentMap.noEquipmentFound')
             }
           </p>
         </div>
@@ -283,12 +283,12 @@ const EquipmentMap = () => {
               >
                 <Popup>
                   <div className="p-2">
-                    <h3 className="font-semibold text-sm mb-2">📍 Sua Localização</h3>
+                    <h3 className="font-semibold text-sm mb-2">{t('equipmentMap.yourLocation')}</h3>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Lat:</strong> {userLocation.latitude.toFixed(6)}
+                      <strong>{t('equipmentMap.latitude')}</strong> {userLocation.latitude.toFixed(6)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Lng:</strong> {userLocation.longitude.toFixed(6)}
+                      <strong>{t('equipmentMap.longitude')}</strong> {userLocation.longitude.toFixed(6)}
                     </p>
                   </div>
                 </Popup>
@@ -314,18 +314,18 @@ const EquipmentMap = () => {
                       <h3 className="font-semibold text-sm">{getTypeLabel(marker.type)}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">
-                      <strong>Nº Série:</strong> {marker.serial}
+                      <strong>{t('equipmentMap.serialNumber')}</strong> {marker.serial}
                     </p>
                     {marker.status && (
                       <p className="text-xs text-muted-foreground mb-2">
-                        <strong>Status:</strong> {marker.status}
+                        <strong>{t('equipmentMap.status')}</strong> {marker.status}
                       </p>
                     )}
                     <button
                       onClick={() => navigate(`/equipment/${marker.type}/${marker.id}`)}
                       className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition-colors"
                     >
-                      Ver Detalhes
+                      {t('equipmentMap.viewDetails')}
                     </button>
                   </div>
                 </Popup>
@@ -338,10 +338,10 @@ const EquipmentMap = () => {
           {markers.length === 0 && (
             <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-[1000] bg-black/70 dark:bg-black/80 backdrop-blur-sm rounded-lg shadow-lg px-4 py-2 max-w-[90%]">
               <p className="text-white text-center text-sm font-medium">
-                Nenhum equipamento com localização encontrado
+                {t('equipmentMap.noEquipmentWithLocation')}
               </p>
               <p className="text-xs text-white/80 mt-1 text-center">
-                Registre inspeções com geolocalização
+                {t('equipmentMap.registerWithGeolocation')}
               </p>
             </div>
           )}

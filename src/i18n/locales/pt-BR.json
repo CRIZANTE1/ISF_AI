@@ -389,7 +389,18 @@
     "title": "Meus Dados"
   },
   "equipmentMap": {
-    "title": "Mapa de Equipamentos"
+    "title": "Mapa de Equipamentos",
+    "equipmentCount": "{{count}} equipamento(s)",
+    "noEquipmentFound": "Nenhum equipamento encontrado",
+    "yourLocation": "📍 Sua Localização",
+    "latitude": "Lat:",
+    "longitude": "Lng:",
+    "serialNumber": "Nº Série:",
+    "status": "Status:",
+    "viewDetails": "Ver Detalhes",
+    "noEquipmentWithLocation": "Nenhum equipamento com localização encontrado",
+    "registerWithGeolocation": "Registre inspeções com geolocalização",
+    "errorLoadingEquipment": "Erro ao carregar equipamentos no mapa"
   },
   "alerts": {
     "critical": "Crítico",

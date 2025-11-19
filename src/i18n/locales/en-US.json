@@ -384,7 +384,19 @@
     "title": "My Data"
   },
   "equipmentMap": {
-    "title": "Equipment Map"
+    "title": "Equipment Map",
+    "equipmentCount": "{{count}} equipment",
+    "equipmentCount_plural": "{{count}} equipment",
+    "noEquipmentFound": "No equipment found",
+    "yourLocation": "📍 Your Location",
+    "latitude": "Lat:",
+    "longitude": "Lng:",
+    "serialNumber": "Serial No.:",
+    "status": "Status:",
+    "viewDetails": "View Details",
+    "noEquipmentWithLocation": "No equipment with location found",
+    "registerWithGeolocation": "Register inspections with geolocation",
+    "errorLoadingEquipment": "Error loading equipment on map"
   },
   "alerts": {
     "critical": "Critical Alerts",
