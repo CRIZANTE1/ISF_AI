@@ -131,6 +131,17 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
     // Fallback para web API (navegador) - otimizado
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       logger.info('Usando API web de geolocalização (fallback ou ambiente web)', 'geolocation');
+      
+      // Verifica se está em HTTPS ou localhost (requisito para geolocalização)
+      const isSecure = window.location.protocol === 'https:' || 
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+      
+      if (!isSecure) {
+        logger.warn('⚠️ Geolocalização requer HTTPS ou localhost. Protocolo atual: ' + window.location.protocol, 'geolocation');
+        // Ainda tenta, mas pode falhar
+      }
+      
       return new Promise((resolve) => {
         const options: PositionOptions = {
           enableHighAccuracy: true,
@@ -143,6 +154,7 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
         navigator.geolocation.getCurrentPosition(
           (position) => {
             logger.info(`✅ Localização obtida via web: ${position.coords.latitude}, ${position.coords.longitude}`, 'geolocation');
+            logger.info(`Precisão: ${position.coords.accuracy}m`, 'geolocation');
             resolve({
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
@@ -161,6 +173,15 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
             };
             logger.error(`Descrição: ${errorMessages[error.code] || 'Erro desconhecido'}`, 'permission');
             
+            // Dicas adicionais baseadas no erro
+            if (error.code === 1) {
+              logger.warn('💡 Dica: Verifique as configurações de permissão de localização do navegador', 'geolocation');
+            } else if (error.code === 2) {
+              logger.warn('💡 Dica: Verifique se o GPS está ativo ou se há conexão com internet', 'geolocation');
+            } else if (error.code === 3) {
+              logger.warn('💡 Dica: O tempo limite expirou. Tente novamente em um local com melhor sinal', 'geolocation');
+            }
+            
             resolve(null);
           },
           options
@@ -170,6 +191,17 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
       logger.warn('❌ Geolocalização não suportada: navigator.geolocation não está disponível', 'geolocation');
       logger.warn(`navigator disponível: ${typeof navigator !== 'undefined'}`, 'geolocation');
       logger.warn(`navigator.geolocation disponível: ${typeof navigator !== 'undefined' && !!navigator.geolocation}`, 'geolocation');
+      
+      // Verifica se está em HTTPS
+      if (typeof window !== 'undefined') {
+        logger.warn(`Protocolo: ${window.location.protocol}`, 'geolocation');
+        logger.warn(`Hostname: ${window.location.hostname}`, 'geolocation');
+        if (window.location.protocol !== 'https:' && 
+            window.location.hostname !== 'localhost' && 
+            window.location.hostname !== '127.0.0.1') {
+          logger.warn('⚠️ Geolocalização requer HTTPS ou localhost', 'geolocation');
+        }
+      }
     }
 
     logger.warn('❌ Não foi possível obter localização por nenhum método', 'geolocation');
