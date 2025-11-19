@@ -4,9 +4,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { getOfflineStats, cleanExpiredCache } from '../utils/offlineDB';
+import { getOfflineStats, cleanExpiredCache, cleanOldOperations, cleanFailedOperations } from '../utils/offlineDB';
 import { syncPendingOperations } from '../utils/offlineSync';
-import { WifiOff, Wifi, RefreshCw, AlertCircle } from 'lucide-react';
+import { WifiOff, Wifi, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../utils/logger';
 
@@ -22,6 +22,11 @@ const OfflineIndicator = () => {
     cacheEntries: 0,
   });
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{
+    current: number;
+    total: number;
+    currentOperation: string | null;
+  } | null>(null);
   const [syncResult, setSyncResult] = useState<{
     success: number;
     failed: number;
@@ -45,10 +50,20 @@ const OfflineIndicator = () => {
 
     setIsSyncing(true);
     setSyncResult(null);
+    setSyncProgress(null);
 
     try {
-      const result = await syncPendingOperations();
+      const result = await syncPendingOperations((current, total, operation) => {
+        // Atualiza progresso em tempo real
+        setSyncProgress({
+          current,
+          total,
+          currentOperation: `${operation.type} em ${operation.table}`,
+        });
+      });
+
       setSyncResult(result);
+      setSyncProgress(null);
 
       // Atualiza estatísticas
       const newStats = await getOfflineStats();
@@ -58,6 +73,7 @@ const OfflineIndicator = () => {
       setTimeout(() => setSyncResult(null), 5000);
     } catch (error: any) {
       logger.error('Erro ao sincronizar', 'storage', error);
+      setSyncProgress(null);
       // Mostra erro ao usuário
       setSyncResult({
         success: 0,
@@ -76,14 +92,20 @@ const OfflineIndicator = () => {
     }
   }, [wasOffline, isOnline, stats.pendingOperations, handleSync]);
 
-  // Limpa cache expirado periodicamente
+  // Limpa cache expirado e operações antigas periodicamente
   useEffect(() => {
-    const cleanCache = async () => {
+    const performCleanup = async () => {
       await cleanExpiredCache();
+      await cleanOldOperations(30); // Remove operações com mais de 30 dias
+      await cleanFailedOperations(5); // Remove operações que falharam 5+ vezes
+      
+      // Atualiza estatísticas após limpeza
+      const newStats = await getOfflineStats();
+      setStats(newStats);
     };
 
-    cleanCache();
-    const interval = setInterval(cleanCache, 60 * 60 * 1000); // A cada hora
+    performCleanup();
+    const interval = setInterval(performCleanup, 60 * 60 * 1000); // A cada hora
 
     return () => clearInterval(interval);
   }, []);
@@ -120,12 +142,31 @@ const OfflineIndicator = () => {
             ) : (
               <WifiOff size={20} className="text-white" />
             )}
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-semibold text-white">
                 {isOnline
-                  ? `Sincronizando ${stats.pendingOperations} operação(ões) pendente(s)`
+                  ? isSyncing && syncProgress
+                    ? `Sincronizando ${syncProgress.current}/${syncProgress.total}...`
+                    : `Sincronizando ${stats.pendingOperations} operação(ões) pendente(s)`
                   : 'Modo Offline'}
               </p>
+              {isSyncing && syncProgress && (
+                <div className="mt-1">
+                  <div className="w-full bg-white/20 rounded-full h-1.5 mb-1">
+                    <motion.div
+                      className="bg-white h-1.5 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                  {syncProgress.currentOperation && (
+                    <p className="text-xs text-white/80 truncate">
+                      {syncProgress.currentOperation}
+                    </p>
+                  )}
+                </div>
+              )}
               {!isOnline && stats.pendingOperations > 0 && (
                 <p className="text-xs text-white/80">
                   {stats.pendingOperations} operação(ões) aguardando sincronização
@@ -160,6 +201,7 @@ const OfflineIndicator = () => {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             className={`px-4 py-2 ${
               syncResult.failed > 0
                 ? 'bg-red-500/90'
@@ -170,7 +212,7 @@ const OfflineIndicator = () => {
               {syncResult.failed > 0 ? (
                 <AlertCircle size={16} className="text-white" />
               ) : (
-                <Wifi size={16} className="text-white" />
+                <CheckCircle2 size={16} className="text-white" />
               )}
               <p className="text-xs text-white">
                 {syncResult.success > 0 && `${syncResult.success} sincronizada(s) com sucesso`}

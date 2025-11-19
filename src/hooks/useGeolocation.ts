@@ -15,12 +15,27 @@ interface GeolocationState {
  */
 function isCapacitorEnvironment(): boolean {
   try {
+    // Verifica se Capacitor está disponível
+    if (!Capacitor) {
+      logger.info('Capacitor não disponível, usando ambiente web', 'geolocation');
+      return false;
+    }
+    
     const isNative = Capacitor.isNativePlatform();
-    logger.info(`Verificando ambiente Capacitor: isNativePlatform=${isNative}`, 'geolocation');
-    logger.info(`Capacitor.getPlatform()=${Capacitor.getPlatform()}`, 'geolocation');
-    return isNative;
+    const platform = Capacitor.getPlatform();
+    
+    logger.info(`Verificando ambiente Capacitor: isNativePlatform=${isNative}, platform=${platform}`, 'geolocation');
+    
+    // Se não for nativo ou for 'web', não é ambiente Capacitor
+    if (!isNative || platform === 'web') {
+      logger.info('Ambiente web detectado (não nativo)', 'geolocation');
+      return false;
+    }
+    
+    return true;
   } catch (error: any) {
     logger.error(`Erro ao verificar ambiente Capacitor: ${error.message}`, 'geolocation');
+    // Em caso de erro, assume ambiente web
     return false;
   }
 }

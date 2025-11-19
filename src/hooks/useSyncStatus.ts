@@ -73,7 +73,10 @@ export function useSyncStatus(): SyncStatus & {
     setLastSyncResult(null);
 
     try {
-      const result = await syncPendingOperations();
+      const result = await syncPendingOperations((current, total, operation) => {
+        // Callback de progresso pode ser usado aqui se necessário
+        // Por enquanto apenas sincroniza
+      });
       setLastSyncResult({
         success: result.success,
         failed: result.failed,
