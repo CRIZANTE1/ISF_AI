@@ -14,7 +14,7 @@ npm run build
 npm run cap:sync
 
 # Navegar para android e executar gradlew
-cd android
+Set-Location android
 
 # Verificar se foi passado um argumento (assembleRelease ou bundleRelease)
 $gradleTask = $args[0]

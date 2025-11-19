@@ -14,7 +14,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { Trash2, Edit } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
-import { getExtinguisherById } from '../utils/extinguisherOperations';
+import { getExtinguisherById, getLastExtinguisherInspection } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
 import { getMultigasDetectorById } from '../utils/multigasOperations';
@@ -77,21 +77,55 @@ const EquipmentDetailPage = () => {
         case 'extintor': {
           const extData = await getExtinguisherById(id);
           if (extData) {
+            // Busca o selo do Inmetro da última inspeção de nível 2 ou 3
+            let numeroSeloInmetro: string | undefined = undefined;
+            if (user?.id) {
+              // Busca última inspeção de nível 2 ou 3 para obter o selo atual
+              const { data: lastMaintenance } = await supabase
+                .from('inspecoes_extintores' as any)
+                .select('numero_selo_inmetro, tipo_servico, data_servico')
+                .eq('numero_identificacao', id)
+                .eq('user_id', user.id)
+                .in('tipo_servico', ['Manutenção Nível 2', 'Manutenção Nível 3'])
+                .order('data_servico', { ascending: false })
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              
+              if (lastMaintenance?.numero_selo_inmetro) {
+                numeroSeloInmetro = lastMaintenance.numero_selo_inmetro;
+              }
+            }
+            
             equipmentData = {
               id: extData.numero_identificacao,
               name: extData.numero_identificacao,
               location: extData.local_id || undefined,
+              numero_selo_inmetro: numeroSeloInmetro, // Selo vem da última manutenção
               ...extData,
             };
-            // Buscar inspeções de extintores
-            const { data, error: inspError } = await supabase
-              .from('extintores')
-              .select('*')
-              .eq('numero_identificacao', id)
-              .single();
-            if (data && !inspError) {
-              // Para extintores, as inspeções estão na própria tabela como histórico
-              inspectionsData = [];
+            
+            // Buscar inspeções de extintores da nova tabela
+            if (user?.id) {
+              const { data: inspections, error: inspError } = await supabase
+                .from('inspecoes_extintores' as any)
+                .select('*')
+                .eq('numero_identificacao', id)
+                .eq('user_id', user.id)
+                .order('data_servico', { ascending: false })
+                .order('created_at', { ascending: false });
+              
+              if (inspections && !inspError) {
+                inspectionsData = inspections.map((insp: any) => ({
+                  id: insp.id,
+                  data_inspecao: insp.data_servico,
+                  tipo_servico: insp.tipo_servico,
+                  aprovado: insp.aprovado_inspecao,
+                  observacoes: insp.observacoes_gerais,
+                  plano_acao: insp.plano_de_acao,
+                  link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                }));
+              }
             }
           }
           break;

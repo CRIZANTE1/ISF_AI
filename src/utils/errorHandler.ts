@@ -67,6 +67,10 @@ const getSupabaseErrorMessage = (error: any): string => {
 
   // Erros de validação
   if (error.code === '23505') { // Unique violation
+    // Mensagem mais específica para extintores
+    if (error.message?.includes('extintor') || error.message?.includes('numero_identificacao')) {
+      return 'Não foi possível salvar a inspeção. Pode haver uma inspeção duplicada ou uma configuração incorreta no banco de dados. Tente novamente com uma data diferente.';
+    }
     return 'Este registro já existe.';
   }
 

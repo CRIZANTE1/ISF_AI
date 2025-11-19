@@ -39,11 +39,16 @@ export async function saveNewShelter(
   shelter: Omit<Shelter, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('abrigos')
       .select('id_abrigo')
       .eq('id_abrigo', shelter.id_abrigo)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Abrigo com ID '${shelter.id_abrigo}' já existe.`);

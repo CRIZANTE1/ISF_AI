@@ -70,11 +70,16 @@ export async function saveNewEyewashStation(
   station: Omit<EyewashStation, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('inventario_chuveiros_lava_olhos')
       .select('id_equipamento')
       .eq('id_equipamento', station.id_equipamento)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Chuveiro/lava-olhos com ID '${station.id_equipamento}' já existe.`);

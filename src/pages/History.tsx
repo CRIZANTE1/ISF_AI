@@ -47,6 +47,7 @@ const History = () => {
           alarmInspections,
           shelterInspections,
           hoseInspections,
+          extinguisherInspections,
         ] = await Promise.all([
           supabase.from('inspecoes_scba').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_multigas').select('*').eq('user_id', user.id).order('data_teste', { ascending: false }),
@@ -56,6 +57,7 @@ const History = () => {
           supabase.from('inspecoes_alarmes').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_abrigos').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_mangueiras').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
+          supabase.from('inspecoes_extintores' as any).select('*').eq('user_id', user.id).order('data_servico', { ascending: false }),
         ]);
 
         // Processar inspeções SCBA
@@ -181,6 +183,22 @@ const History = () => {
               status: insp.status_geral || insp.resultado || 'pendente',
               inspector: insp.inspetor,
               observations: insp.observacoes || (insp.resultados_json ? JSON.stringify(insp.resultados_json) : null),
+              created_at: insp.created_at,
+            });
+          });
+        }
+
+        // Processar inspeções Extintores
+        if (extinguisherInspections.data) {
+          extinguisherInspections.data.forEach((insp: any) => {
+            allInspections.push({
+              id: insp.id,
+              type: 'Extintor',
+              equipmentId: insp.numero_identificacao,
+              date: insp.data_servico || insp.created_at,
+              status: insp.aprovado_inspecao || 'pendente',
+              inspector: insp.inspetor_responsavel,
+              observations: insp.observacoes_gerais,
               created_at: insp.created_at,
             });
           });

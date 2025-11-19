@@ -221,11 +221,10 @@ async function executeOperation(operation: any): Promise<boolean> {
             // Para extintores, permite múltiplas inspeções (histórico)
             // Se houver erro 23505 para extintores sem campos únicos identificados,
             // pode ser uma constraint única no banco que precisa ser ajustada
-            if (table.includes('extintor')) {
-              // Para extintores, verifica se é realmente uma duplicata baseada em (numero_identificacao + data_servico + user_id)
+            // Para inspecoes_extintores, verifica se é realmente uma duplicata baseada em (numero_identificacao + data_servico + user_id)
+            if (table === 'inspecoes_extintores') {
               const uniqueFields = extractUniqueFields(table, data);
-              if (uniqueFields.length === 0) {
-                // Não há campos únicos identificados, mas houve erro de constraint
+              if (uniqueFields.length === 0 || !uniqueFields.some(f => f.field === 'numero_identificacao')) {
                 // Verifica se já existe registro com mesmo numero_identificacao + data_servico + user_id
                 if (data.numero_identificacao && data.data_servico) {
                   try {

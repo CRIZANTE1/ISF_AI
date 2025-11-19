@@ -14,7 +14,7 @@ const baseEquipmentSchema = z.object({
 // Schema para Extintor
 export const extinguisherSchema = baseEquipmentSchema.extend({
   numero_identificacao: z.string().min(1, 'Número de identificação é obrigatório').max(100),
-  numero_selo_inmetro: z.string().max(100).nullable().optional(),
+  // numero_selo_inmetro removido - agora é registrado apenas nas inspeções de manutenção nível 2 ou 3
   tipo_agente: z.string().max(50).nullable().optional(),
   capacidade: z.number().positive().max(1000).nullable().optional(),
   marca_fabricante: z.string().max(100).nullable().optional(),
@@ -71,6 +71,8 @@ export const scbaSchema = baseEquipmentSchema.extend({
 export const extinguisherInspectionSchema = baseEquipmentSchema.extend({
   numero_identificacao: z.string().min(1).max(100),
   data_servico: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  tipo_servico: z.string().max(50).nullable().optional(),
+  numero_selo_inmetro: z.string().max(100).nullable().optional(), // Atualizado em manutenções nível 2 ou 3
   aprovado_inspecao: z.enum(['Sim', 'Não', 'Pendente']).nullable().optional(),
   observacoes_gerais: z.string().max(5000).nullable().optional(),
   plano_de_acao: z.string().max(2000).nullable().optional(),

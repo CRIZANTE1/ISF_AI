@@ -26,6 +26,7 @@ import {
   type EquipmentDates,
   saveExtinguisherInspection,
   getExtinguisherById,
+  getLastExtinguisherInspection,
   ACTION_MAP,
   getActionKeywords,
 } from '../utils/extinguisherOperations';
@@ -64,6 +65,7 @@ type AddInspectionFormData = {
   observacoes_gerais?: string;
   foto_nao_conformidade?: File | null;
   resultados_json?: Record<string, any>;
+  numero_selo_inmetro?: string; // Número do selo do Inmetro (atualizado em manutenções nível 2 ou 3)
 };
 
 type EquipmentInfo = {
@@ -556,12 +558,12 @@ const AddInspectionPage = () => {
 
       switch (type) {
         case 'extintor': {
-          // Busca último registro para preservar datas
-          const lastRecord = await getExtinguisherById(id);
+          // Busca última inspeção para preservar datas
+          const lastInspection = await getLastExtinguisherInspection(id, user.id);
           const existingDates: EquipmentDates = {
-            data_proxima_manutencao_2_nivel: lastRecord?.data_proxima_manutencao_2_nivel || null,
-            data_proxima_manutencao_3_nivel: lastRecord?.data_proxima_manutencao_3_nivel || null,
-            data_ultimo_ensaio_hidrostatico: lastRecord?.data_ultimo_ensaio_hidrostatico || null,
+            data_proxima_manutencao_2_nivel: lastInspection?.data_proxima_manutencao_2_nivel || null,
+            data_proxima_manutencao_3_nivel: lastInspection?.data_proxima_manutencao_3_nivel || null,
+            data_ultimo_ensaio_hidrostatico: lastInspection?.data_ultimo_ensaio_hidrostatico || null,
           };
 
           const nextDates = calculateNextDates(
@@ -579,6 +581,7 @@ const AddInspectionPage = () => {
             numero_identificacao: id,
             tipo_servico: formData.tipo_servico || 'Inspeção',
             data_servico: inspectionDate,
+            numero_selo_inmetro: formData.numero_selo_inmetro || undefined, // Salva o selo do Inmetro (atualizado em manutenções nível 2 ou 3)
             inspetor_responsavel: user.user_metadata?.full_name || user.email || 'Usuário',
             aprovado_inspecao: aprovado || 'Sim',
             observacoes_gerais: observacoes || '',
@@ -622,7 +625,12 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção mensal - calcula 1 mês após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -665,7 +673,12 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Teste semanal - calcula 1 semana após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setDate(nextDate.getDate() + 7);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -686,7 +699,12 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção trimestral - calcula 3 meses após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 3);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -873,7 +891,12 @@ const AddInspectionPage = () => {
             plano_de_acao: planAction || undefined,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção mensal - calcula 1 mês após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             user_id: user.id,
           };
 
@@ -918,7 +941,12 @@ const AddInspectionPage = () => {
             observacoes: observacoes || undefined,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção anual - calcula 1 ano após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setFullYear(nextDate.getFullYear() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -938,7 +966,12 @@ const AddInspectionPage = () => {
             plano_de_acao: planAction,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção mensal - calcula 1 mês após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -1130,6 +1163,29 @@ const AddInspectionPage = () => {
                   )}
                 />
               </AnimatedFormField>
+
+              {/* Campo Nº Selo INMETRO - aparece apenas em manutenções nível 2 ou 3 */}
+              {watch('tipo_servico') === 'Manutenção Nível 2' || watch('tipo_servico') === 'Manutenção Nível 3' ? (
+                <AnimatedFormField delay={0.33} className="mb-4">
+                  <label htmlFor="numero_selo_inmetro" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+                    Nº Selo INMETRO
+                  </label>
+                  <Controller
+                    name="numero_selo_inmetro"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="numero_selo_inmetro"
+                        type="text"
+                        className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none"
+                        style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                        placeholder="Digite o número do selo do INMETRO"
+                      />
+                    )}
+                  />
+                </AnimatedFormField>
+              ) : null}
 
               <AnimatedFormField delay={0.35} className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>

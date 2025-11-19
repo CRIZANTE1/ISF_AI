@@ -9,14 +9,7 @@ interface ExtinguisherFormProps {
 const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
   return (
     <>
-      <div className="mb-4">
-        <label htmlFor="numero_selo_inmetro" className="block text-sm font-medium mb-1">Nº Selo INMETRO</label>
-        <input
-          id="numero_selo_inmetro"
-          {...register('specifications.numero_selo_inmetro')}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
-        />
-      </div>
+      {/* Nº Selo INMETRO removido - agora é registrado apenas nas inspeções de manutenção nível 2 ou 3 */}
       <div className="mb-4">
         <label htmlFor="tipo_agente" className="block text-sm font-medium mb-1">Tipo de Agente</label>
         <input

@@ -60,6 +60,7 @@ export interface Extinguisher {
   data_proxima_manutencao_3_nivel?: string;
   data_ultimo_ensaio_hidrostatico?: string;
   aprovado_inspecao?: string;
+  status_geral?: string; // 'aprovado', 'pendente', 'reprovado'
   observacoes_gerais?: string;
   plano_de_acao?: string;
   link_relatorio_pdf?: string;
@@ -292,25 +293,114 @@ export function daysUntilExpiration(dateStr: string | null | undefined): number 
 }
 
 /**
- * Busca todos os extintores
+ * Busca todos os extintores com dados da última inspeção
  */
 export async function getAllExtinguishers(): Promise<Extinguisher[]> {
   try {
-    const { data, error } = await supabase
+    // Busca cadastros de extintores
+    const { data: extinguishers, error: extError } = await supabase
       .from('extintores')
       .select('*')
       .order('numero_identificacao');
 
-    if (error) throw error;
-    return data || [];
+    if (extError) {
+      logger.error('Erro ao buscar cadastros de extintores', 'equipment', extError);
+      throw extError;
+    }
+    
+    if (!extinguishers || extinguishers.length === 0) {
+      return [];
+    }
+
+    // Tenta buscar última inspeção de cada extintor para obter as datas atualizadas
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user?.id) {
+        // Se não conseguir obter usuário, retorna apenas os cadastros
+        logger.warn('Usuário não autenticado ao buscar inspeções de extintores', 'equipment');
+        return extinguishers as Extinguisher[];
+      }
+
+      // Busca última inspeção de cada extintor
+      // Como o Supabase não suporta DISTINCT ON diretamente, vamos buscar todas e agrupar
+      const { data: allInspections, error: inspError } = await supabase
+        .from('inspecoes_extintores' as any)
+        .select('numero_identificacao, data_proxima_inspecao, data_proxima_manutencao_2_nivel, data_proxima_manutencao_3_nivel, data_ultimo_ensaio_hidrostatico, aprovado_inspecao, status_geral, data_servico, created_at')
+        .eq('user_id', user.id)
+        .order('data_servico', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (inspError) {
+        // Se a tabela não existir ou houver erro, retorna apenas os cadastros
+        // Isso permite que o sistema funcione mesmo se a migração não foi executada
+        logger.warn('Erro ao buscar últimas inspeções de extintores (tabela pode não existir ainda)', 'equipment', inspError);
+        return extinguishers as Extinguisher[];
+      }
+
+      // Log para debug: verifica se encontrou inspeções
+      if (!allInspections || allInspections.length === 0) {
+        logger.info(`Nenhuma inspeção encontrada para ${extinguishers.length} extintores cadastrados`, 'equipment');
+      } else {
+        logger.info(`Encontradas ${allInspections.length} inspeções para ${extinguishers.length} extintores`, 'equipment');
+      }
+
+      // Cria um mapa das últimas inspeções por número de identificação
+      // Como já está ordenado por data_servico DESC e created_at DESC, a primeira de cada extintor é a mais recente
+      const inspectionMap = new Map<string, any>();
+      if (allInspections && Array.isArray(allInspections)) {
+        allInspections.forEach((insp: any) => {
+          if (insp && insp.numero_identificacao) {
+            const numId = insp.numero_identificacao;
+            // Mantém apenas a primeira (mais recente) inspeção de cada extintor
+            if (!inspectionMap.has(numId)) {
+              inspectionMap.set(numId, insp);
+            }
+          }
+        });
+      }
+
+      // Mescla dados de cadastro com dados da última inspeção
+      const extinguishersWithInspections = extinguishers.map((ext: any) => {
+        if (!ext || !ext.numero_identificacao) return ext;
+        
+        const lastInspection = inspectionMap.get(ext.numero_identificacao);
+        if (lastInspection) {
+          // Prioriza dados da última inspeção sobre dados de cadastro
+          return {
+            ...ext,
+            data_proxima_inspecao: lastInspection.data_proxima_inspecao || ext.data_proxima_inspecao || null,
+            data_proxima_manutencao_2_nivel: lastInspection.data_proxima_manutencao_2_nivel || ext.data_proxima_manutencao_2_nivel || null,
+            data_proxima_manutencao_3_nivel: lastInspection.data_proxima_manutencao_3_nivel || ext.data_proxima_manutencao_3_nivel || null,
+            data_ultimo_ensaio_hidrostatico: lastInspection.data_ultimo_ensaio_hidrostatico || ext.data_ultimo_ensaio_hidrostatico || null,
+            // IMPORTANTE: aprovado_inspecao e status_geral vêm sempre da última inspeção (não do cadastro)
+            aprovado_inspecao: lastInspection.aprovado_inspecao || null,
+            status_geral: lastInspection.status_geral || null,
+          };
+        }
+        // Se não tem inspeção, mantém dados do cadastro mas sem aprovado_inspecao e status_geral (pois não foi inspecionado ainda)
+        return {
+          ...ext,
+          aprovado_inspecao: ext.aprovado_inspecao || null,
+          status_geral: ext.status_geral || null, // Garante que status_geral seja null quando não há inspeção
+        };
+      });
+
+      return extinguishersWithInspections as Extinguisher[];
+    } catch (inspectionError) {
+      // Se houver qualquer erro ao buscar inspeções, retorna apenas os cadastros
+      logger.warn('Erro ao processar inspeções de extintores, retornando apenas cadastros', 'equipment', inspectionError);
+      return extinguishers as Extinguisher[];
+    }
   } catch (error) {
     logger.error('Erro ao buscar extintores', 'equipment', error);
+    // Retorna array vazio em caso de erro crítico para não quebrar a aplicação
     return [];
   }
 }
 
 /**
- * Busca um extintor por ID
+ * Busca um extintor por ID (busca o cadastro)
  */
 export async function getExtinguisherById(numeroIdentificacao: string): Promise<Extinguisher | null> {
   try {
@@ -318,14 +408,40 @@ export async function getExtinguisherById(numeroIdentificacao: string): Promise<
       .from('extintores')
       .select('*')
       .eq('numero_identificacao', numeroIdentificacao)
-      .order('data_servico', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    return data;
+    if (error && error.code !== 'PGRST116') throw error;
+    return (data as Extinguisher) || null;
   } catch (error) {
     logger.error('Erro ao buscar extintor', 'equipment', error);
+    return null;
+  }
+}
+
+/**
+ * Busca a última inspeção de um extintor
+ */
+export async function getLastExtinguisherInspection(numeroIdentificacao: string, userId?: string): Promise<Extinguisher | null> {
+  try {
+    let query = supabase
+      .from('inspecoes_extintores' as any)
+      .select('*')
+      .eq('numero_identificacao', numeroIdentificacao)
+      .order('data_servico', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return (data as any) || null;
+  } catch (error) {
+    logger.error('Erro ao buscar última inspeção de extintor', 'equipment', error);
     return null;
   }
 }
@@ -338,12 +454,17 @@ export async function saveNewExtinguisher(
 ): Promise<boolean> {
   try {
     // Verifica se já existe
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('extintores')
       .select('numero_identificacao')
       .eq('numero_identificacao', extinguisher.numero_identificacao)
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Extintor com ID '${extinguisher.numero_identificacao}' já existe.`);
@@ -381,7 +502,6 @@ export async function saveExtinguisherInspection(
 ): Promise<boolean> {
   try {
     // Gera plano de ação automaticamente se não foi fornecido ou se está vazio
-    // Usa o plano passado se já existir e for válido
     let planoDeAcao = inspection.plano_de_acao;
     
     if (!planoDeAcao || planoDeAcao.trim() === '' || planoDeAcao === 'N/A') {
@@ -409,15 +529,90 @@ export async function saveExtinguisherInspection(
       Object.entries(nextDates).map(([key, value]) => [key, value ?? undefined])
     );
 
-    const inspectionData: Omit<Extinguisher, 'id' | 'created_at'> = {
-      ...inspection,
+    // Converte aprovado_inspecao para status_geral (formato usado no banco)
+    let statusGeral: string | undefined;
+    const aprovado = (inspection.aprovado_inspecao || '').trim();
+    if (aprovado === 'Sim') {
+      statusGeral = 'aprovado';
+    } else if (aprovado === 'Não' || aprovado === 'Nao') {
+      statusGeral = 'reprovado';
+    } else if (aprovado === 'Pendente') {
+      statusGeral = 'pendente';
+    }
+    // Se já tem status_geral definido, usa ele (prioridade)
+    if (inspection.status_geral) {
+      statusGeral = inspection.status_geral;
+    }
+
+    // Prepara dados da inspeção para a nova tabela inspecoes_extintores
+    const inspectionData = {
+      numero_identificacao: inspection.numero_identificacao,
+      data_servico: inspection.data_servico || new Date().toISOString().split('T')[0],
+      tipo_servico: inspection.tipo_servico || 'Inspeção',
+      numero_selo_inmetro: inspection.numero_selo_inmetro, // Salva o selo do Inmetro (atualizado em manutenções nível 2 ou 3)
+      inspetor_responsavel: inspection.inspetor_responsavel,
+      empresa_executante: inspection.empresa_executante,
+      aprovado_inspecao: inspection.aprovado_inspecao,
+      status_geral: statusGeral, // Salva status_geral no formato do banco ('aprovado', 'pendente', 'reprovado')
+      observacoes_gerais: inspection.observacoes_gerais,
       plano_de_acao: planoDeAcao,
-      ...cleanDates,
+      link_foto_nao_conformidade: inspection.link_foto_nao_conformidade,
+      link_relatorio_pdf: inspection.link_relatorio_pdf,
+      latitude: inspection.latitude,
+      longitude: inspection.longitude,
+      data_proxima_inspecao: cleanDates.data_proxima_inspecao,
+      data_proxima_manutencao_2_nivel: cleanDates.data_proxima_manutencao_2_nivel,
+      data_proxima_manutencao_3_nivel: cleanDates.data_proxima_manutencao_3_nivel,
+      data_ultimo_ensaio_hidrostatico: cleanDates.data_ultimo_ensaio_hidrostatico,
+      user_id: inspection.user_id,
     };
 
+    // Verifica se já existe uma inspeção para esta data
+    if (inspection.numero_identificacao && inspection.data_servico && inspection.user_id) {
+      const { data: existing } = await supabase
+        .from('inspecoes_extintores' as any)
+        .select('id')
+        .eq('numero_identificacao', inspection.numero_identificacao)
+        .eq('data_servico', inspection.data_servico)
+        .eq('user_id', inspection.user_id)
+        .limit(1)
+        .maybeSingle();
+      
+      if (existing && (existing as any).id) {
+        // Inspeção já existe para esta data, atualiza ao invés de inserir
+        logger.info('Inspeção já existe para esta data, atualizando registro existente', 'equipment', {
+          numero_identificacao: inspection.numero_identificacao,
+          data_servico: inspection.data_servico
+        });
+
+        const { error: updateError } = await supabase
+          .from('inspecoes_extintores' as any)
+          .update(inspectionData)
+          .eq('id', (existing as any).id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        // Log action
+        try {
+          await logUserAction('update', 'inspection', inspection.numero_identificacao, {
+            type: 'extintor',
+            tipo_servico: inspection.tipo_servico,
+            aprovado: inspection.aprovado_inspecao,
+          });
+        } catch (logError) {
+          logger.error('Failed to log action', 'equipment', logError);
+        }
+
+        return true;
+      }
+    }
+
     // Usa wrapper offline para suportar modo offline
+    // Agora usa a tabela inspecoes_extintores ao invés de extintores
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('extintores', inspectionData);
+    const result = await offlineInsert('inspecoes_extintores', inspectionData);
     
     if (!result.success) {
       throw new Error('Falha ao salvar inspeção');
