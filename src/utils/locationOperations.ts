@@ -40,9 +40,12 @@ export async function getLocationById(localId: string): Promise<Location | null>
       .from('locais')
       .select('*')
       .eq('local_id', localId)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    // Se não encontrou (PGRST116), retorna null (comportamento esperado)
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
     return data;
   } catch (error) {
     logger.error('Erro ao buscar local', 'equipment', error);

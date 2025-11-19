@@ -72,7 +72,7 @@ const ActionPlansPage = () => {
           { name: 'inspecoes_alarmes', type: 'alarme', idField: 'id_sistema', dateField: 'data_inspecao', typeLabel: 'Alarme' },
           { name: 'inspecoes_abrigos', type: 'abrigo', idField: 'id_abrigo', dateField: 'data_inspecao', typeLabel: 'Abrigo' },
           { name: 'inspecoes_mangueiras', type: 'mangueira', idField: 'id_mangueira', dateField: 'data_inspecao', typeLabel: 'Mangueira' },
-          { name: 'extintores', type: 'extintor', idField: 'numero_identificacao', dateField: 'data_servico', typeLabel: 'Extintor' },
+          { name: 'inspecoes_extintores', type: 'extintor', idField: 'numero_identificacao', dateField: 'data_servico', typeLabel: 'Extintor' },
         ];
 
         const queries = inspectionTables.map(table => 

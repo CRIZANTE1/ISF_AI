@@ -41,11 +41,16 @@ export async function saveNewCannonMonitor(
   cannon: Omit<CannonMonitor, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('inventario_canhoes_monitores')
       .select('id_equipamento')
       .eq('id_equipamento', cannon.id_equipamento)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Canhão monitor com ID '${cannon.id_equipamento}' já existe.`);

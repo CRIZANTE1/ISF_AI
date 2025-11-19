@@ -80,11 +80,16 @@ export async function saveNewMultigasDetector(
 ): Promise<boolean> {
   try {
     // Verifica se já existe
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('inventario_multigas')
       .select('id_equipamento')
       .eq('id_equipamento', detector.id_equipamento)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Detector com ID '${detector.id_equipamento}' já existe.`);
@@ -134,14 +139,68 @@ export async function saveNewMultigasDetector(
  */
 export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
   try {
-    const { data, error } = await supabase
+    // Busca cadastros de detectores multigás
+    const { data: detectors, error: detError } = await supabase
       .from('inventario_multigas')
       .select('*')
       .order('id_equipamento');
 
-    if (error) throw error;
-    // Mapeia dados do Supabase para a interface
-    return (data || []).map(mapSupabaseToDetector);
+    if (detError) throw detError;
+    if (!detectors || detectors.length === 0) return [];
+
+    // Busca última inspeção de cada detector
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user?.id) {
+        return (detectors || []).map(mapSupabaseToDetector);
+      }
+
+      const { data: allInspections, error: inspError } = await supabase
+        .from('inspecoes_multigas' as any)
+        .select('id_equipamento, data_proximo_teste, resultado_teste, data_teste, created_at')
+        .eq('user_id', user.id)
+        .order('data_teste', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (inspError) {
+        logger.warn('Erro ao buscar últimas inspeções de multigás', 'equipment', inspError);
+        return (detectors || []).map(mapSupabaseToDetector);
+      }
+
+      // Cria mapa das últimas inspeções
+      const inspectionMap = new Map<string, any>();
+      if (allInspections && Array.isArray(allInspections)) {
+        allInspections.forEach((insp: any) => {
+          if (insp && insp.id_equipamento) {
+            const id = insp.id_equipamento;
+            if (!inspectionMap.has(id)) {
+              inspectionMap.set(id, insp);
+            }
+          }
+        });
+      }
+
+      // Mescla dados de cadastro com dados da última inspeção
+      const detectorsWithInspections = detectors.map((det: any) => {
+        const mapped = mapSupabaseToDetector(det);
+        const lastInspection = inspectionMap.get(det.id_equipamento);
+        if (lastInspection) {
+          return {
+            ...mapped,
+            data_proximo_teste: lastInspection.data_proximo_teste || mapped.data_proximo_teste || null,
+            status: lastInspection.resultado_teste || mapped.status || null,
+            resultado_teste: lastInspection.resultado_teste || mapped.resultado_teste || null,
+          };
+        }
+        return mapped;
+      });
+
+      return detectorsWithInspections;
+    } catch (inspectionError) {
+      logger.warn('Erro ao processar inspeções de multigás, retornando apenas cadastros', 'equipment', inspectionError);
+      return (detectors || []).map(mapSupabaseToDetector);
+    }
   } catch (error) {
     logger.error('Erro ao buscar detectores multigás', 'equipment', error);
     return [];

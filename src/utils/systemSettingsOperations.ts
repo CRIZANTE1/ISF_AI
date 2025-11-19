@@ -90,9 +90,12 @@ export async function getSystemSetting(key: string): Promise<any> {
     .from('system_settings')
     .select('*')
     .eq('setting_key', key)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  // Se não encontrou (PGRST116), retorna undefined (comportamento esperado)
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
   return data?.setting_value?.value;
 }
 

@@ -321,3 +321,64 @@ export async function getOfflineStats(): Promise<{
   }
 }
 
+/**
+ * Limpa operações antigas automaticamente
+ * Remove operações com mais de X dias
+ */
+export async function cleanOldOperations(maxAgeDays: number = 30): Promise<number> {
+  try {
+    const database = await initDB();
+    const maxAge = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
+    let cleaned = 0;
+
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction([STORE_OPERATIONS], 'readwrite');
+      const store = transaction.objectStore(STORE_OPERATIONS);
+      const index = store.index('timestamp');
+      const request = index.openCursor(IDBKeyRange.upperBound(maxAge));
+
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+        if (cursor) {
+          cursor.delete();
+          cleaned++;
+          cursor.continue();
+        } else {
+          logger.info(`Limpeza automática: ${cleaned} operação(ões) antiga(s) removida(s)`, 'storage');
+          resolve(cleaned);
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    logger.error('Erro ao limpar operações antigas', 'storage', error);
+    return 0;
+  }
+}
+
+/**
+ * Limpa operações que falharam múltiplas vezes
+ */
+export async function cleanFailedOperations(maxRetries: number = 5): Promise<number> {
+  try {
+    const operations = await getPendingOperations();
+    const failedOperations = operations.filter((op) => op.retries >= maxRetries);
+    let cleaned = 0;
+
+    for (const operation of failedOperations) {
+      await removePendingOperation(operation.id);
+      cleaned++;
+    }
+
+    if (cleaned > 0) {
+      logger.info(`Limpeza automática: ${cleaned} operação(ões) falhada(s) removida(s)`, 'storage');
+    }
+
+    return cleaned;
+  } catch (error) {
+    logger.error('Erro ao limpar operações falhadas', 'storage', error);
+    return 0;
+  }
+}
+

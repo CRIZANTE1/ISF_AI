@@ -12,8 +12,11 @@ import {
 import { logger } from './logger';
 import { offlineOperationSchema, getSchemaForTable, safeValidateData, tableNameSchema } from './validation/schemas';
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 segundo
+const MAX_RETRIES = 5; // Aumentado para dar mais chances
+const INITIAL_RETRY_DELAY = 1000; // 1 segundo inicial
+const MAX_RETRY_DELAY = 30000; // 30 segundos máximo
+const BATCH_SIZE = 10; // Processa até 10 operações em paralelo por tabela
+const MAX_OPERATION_AGE_DAYS = 30; // Remove operações com mais de 30 dias
 
 /**
  * Extrai campos únicos de uma tabela baseado nos dados
@@ -23,7 +26,8 @@ function extractUniqueFields(table: string, data: any): Array<{ field: string; v
   const fields: Array<{ field: string; value: any }> = [];
   
   // Campos comuns que são únicos em várias tabelas
-  const commonUniqueFields = ['id', 'numero_identificacao', 'id_equipamento', 'id_sistema', 
+  // NOTA: numero_identificacao NÃO é único para extintores, pois permite múltiplas inspeções (histórico)
+  const commonUniqueFields = ['id', 'id_equipamento', 'id_sistema', 
     'id_camara', 'id_abrigo', 'id_mangueira', 'numero_serie_equipamento'];
   
   // Verifica campos únicos comuns
@@ -34,10 +38,12 @@ function extractUniqueFields(table: string, data: any): Array<{ field: string; v
   }
   
   // Para tabelas específicas, adiciona campos únicos conhecidos
+  // Extintores permitem múltiplas inspeções com o mesmo numero_identificacao
+  // A unicidade deve ser baseada em (numero_identificacao + data_servico + user_id) se necessário
+  // Por enquanto, não adicionamos campos únicos para extintores para permitir histórico de inspeções
   if (table.includes('extintor')) {
-    if (data.numero_identificacao) {
-      fields.push({ field: 'numero_identificacao', value: data.numero_identificacao });
-    }
+    // Não adiciona numero_identificacao como único, pois permite múltiplas inspeções
+    // Se houver constraint única na tabela, ela deve ser composta (ex: numero_identificacao + data_servico)
   }
   
   return fields;
@@ -212,8 +218,46 @@ async function executeOperation(operation: any): Promise<boolean> {
         if (error) {
           // Trata erros específicos
           if (error.code === '23505') { // Violação de constraint única
-            // Verifica se o registro realmente existe antes de considerar sucesso
-            // Tenta buscar o registro para confirmar
+            // Para extintores, permite múltiplas inspeções (histórico)
+            // Se houver erro 23505 para extintores sem campos únicos identificados,
+            // pode ser uma constraint única no banco que precisa ser ajustada
+            // Para inspecoes_extintores, verifica se é realmente uma duplicata baseada em (numero_identificacao + data_servico + user_id)
+            if (table === 'inspecoes_extintores') {
+              const uniqueFields = extractUniqueFields(table, data);
+              if (uniqueFields.length === 0 || !uniqueFields.some(f => f.field === 'numero_identificacao')) {
+                // Verifica se já existe registro com mesmo numero_identificacao + data_servico + user_id
+                if (data.numero_identificacao && data.data_servico) {
+                  try {
+                    const { data: existing, error: checkError } = await supabase
+                      .from(table)
+                      .select('id')
+                      .eq('numero_identificacao', data.numero_identificacao)
+                      .eq('data_servico', data.data_servico)
+                      .eq('user_id', authenticatedUserId)
+                      .limit(1);
+                    
+                    if (!checkError && existing && existing.length > 0) {
+                      logger.warn(`Inspeção de extintor já existe para esta data, removendo da fila`, 'sync', {
+                        table,
+                        numero_identificacao: data.numero_identificacao,
+                        data_servico: data.data_servico
+                      });
+                      return true; // Considera sucesso pois a inspeção já existe
+                    }
+                  } catch (checkErr) {
+                    logger.warn('Erro ao verificar inspeção duplicada de extintor', 'sync', checkErr);
+                  }
+                }
+                // Se não conseguiu verificar, propaga o erro para que o usuário veja a mensagem real
+                logger.error(`Erro de constraint única na tabela ${table} para extintor`, 'sync', {
+                  error: error.message,
+                  data: { numero_identificacao: data.numero_identificacao, data_servico: data.data_servico }
+                });
+                throw error; // Propaga o erro para tratamento adequado
+              }
+            }
+            
+            // Para outras tabelas ou quando há campos únicos identificados
             const uniqueFields = extractUniqueFields(table, data);
             if (uniqueFields.length > 0) {
               try {
@@ -304,9 +348,170 @@ async function executeOperation(operation: any): Promise<boolean> {
 }
 
 /**
- * Sincroniza todas as operações pendentes
+ * Calcula delay de retry com backoff exponencial adaptativo
+ * Considera o tipo de erro para ajustar o delay
  */
-export async function syncPendingOperations(): Promise<{
+function calculateRetryDelay(retryCount: number, error: any): number {
+  const baseDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount - 1);
+  
+  // Ajusta delay baseado no tipo de erro
+  let multiplier = 1;
+  if (error?.message?.includes('timeout') || error?.message?.includes('network')) {
+    multiplier = 1.5; // Erros de rede: delay maior
+  } else if (error?.code === '23505') {
+    multiplier = 0.5; // Duplicatas: delay menor (pode ser resolvido rapidamente)
+  }
+  
+  const delay = Math.min(baseDelay * multiplier, MAX_RETRY_DELAY);
+  return Math.max(delay, INITIAL_RETRY_DELAY); // Mínimo de 1 segundo
+}
+
+/**
+ * Verifica se um erro é recuperável (deve tentar novamente)
+ */
+function isRecoverableError(error: any): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error.message || '';
+  const errorCode = error.code || '';
+  
+  // Erros recuperáveis: rede, timeout, conexão
+  const recoverablePatterns = [
+    'fetch',
+    'network',
+    'timeout',
+    'Failed to fetch',
+    'connection',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'PGRST301', // PostgREST connection error
+  ];
+  
+  // Erros não recuperáveis: validação, permissão, constraint (exceto duplicatas)
+  const nonRecoverablePatterns = [
+    'permission denied',
+    'unauthorized',
+    'invalid',
+    'validation',
+  ];
+  
+  // Se for erro de duplicata, pode ser recuperável (registro pode ter sido criado)
+  if (errorCode === '23505') {
+    return true;
+  }
+  
+  // Se contém padrão não recuperável, não é recuperável
+  if (nonRecoverablePatterns.some(pattern => 
+    errorMessage.toLowerCase().includes(pattern)
+  )) {
+    return false;
+  }
+  
+  // Se contém padrão recuperável, é recuperável
+  return recoverablePatterns.some(pattern => 
+    errorMessage.includes(pattern) || errorCode.includes(pattern)
+  );
+}
+
+/**
+ * Agrupa operações por tabela e tipo para processamento em lote
+ */
+function groupOperationsByTable(operations: any[]): Map<string, any[]> {
+  const grouped = new Map<string, any[]>();
+  
+  for (const op of operations) {
+    const key = `${op.table}_${op.type}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(op);
+  }
+  
+  return grouped;
+}
+
+/**
+ * Processa um lote de operações em paralelo
+ */
+async function processBatch(
+  batch: any[],
+  totalOperations: number,
+  offset: number,
+  onProgress?: (current: number, total: number, operation: any) => void
+): Promise<{ success: number; failed: number; errors: Array<{ id: string; error: string }> }> {
+  let success = 0;
+  let failed = 0;
+  const errors: Array<{ id: string; error: string }> = [];
+  
+  // Processa operações em paralelo (até BATCH_SIZE por vez)
+  for (let i = 0; i < batch.length; i += BATCH_SIZE) {
+    const chunk = batch.slice(i, i + BATCH_SIZE);
+    
+    // Executa chunk em paralelo
+    const results = await Promise.allSettled(
+      chunk.map(async (operation, chunkIndex) => {
+        if (onProgress) {
+          onProgress(offset + i + chunkIndex + 1, totalOperations, operation);
+        }
+        
+        try {
+          await executeOperation(operation);
+          await removePendingOperation(operation.id);
+          return { success: true, id: operation.id };
+        } catch (error: any) {
+          const errorMessage = error.message || error.code || 'Erro desconhecido';
+          const newRetries = operation.retries + 1;
+          
+          // Verifica se é erro recuperável
+          if (isRecoverableError(error) && newRetries < MAX_RETRIES) {
+            await updateOperationRetry(operation.id, newRetries, errorMessage);
+            return { success: false, id: operation.id, error: errorMessage, retry: true };
+          } else {
+            // Erro não recuperável ou excedeu tentativas
+            if (newRetries >= MAX_RETRIES) {
+              await removePendingOperation(operation.id); // Remove após muitas tentativas
+            } else {
+              await updateOperationRetry(operation.id, newRetries, errorMessage);
+            }
+            return { success: false, id: operation.id, error: errorMessage, retry: false };
+          }
+        }
+      })
+    );
+    
+    // Processa resultados
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        if (result.value.success) {
+          success++;
+        } else {
+          if (!result.value.retry) {
+            failed++;
+            errors.push({
+              id: result.value.id,
+              error: result.value.error,
+            });
+          }
+        }
+      } else {
+        failed++;
+        errors.push({
+          id: 'unknown',
+          error: result.reason?.message || 'Erro desconhecido',
+        });
+      }
+    }
+  }
+  
+  return { success, failed, errors };
+}
+
+/**
+ * Sincroniza todas as operações pendentes com suporte a progresso
+ */
+export async function syncPendingOperations(
+  onProgress?: (current: number, total: number, operation: any) => void
+): Promise<{
   success: number;
   failed: number;
   errors: Array<{ id: string; error: string }>;
@@ -324,70 +529,81 @@ export async function syncPendingOperations(): Promise<{
   }
 
   const operations = await getPendingOperations();
-  let success = 0;
-  let failed = 0;
-  const errors: Array<{ id: string; error: string }> = [];
+  let totalSuccess = 0;
+  let totalFailed = 0;
+  const allErrors: Array<{ id: string; error: string }> = [];
 
   if (operations.length === 0) {
     return { success: 0, failed: 0, errors: [] };
   }
 
-  logger.info(`Iniciando sincronização de ${operations.length} operação(ões)`, 'sync');
+  logger.info(`Iniciando sincronização otimizada de ${operations.length} operação(ões)`, 'sync');
 
-  // Processa operações em sequência para evitar conflitos
-  for (const operation of operations) {
-    // Pula operações que excederam o limite de tentativas
-    if (operation.retries >= MAX_RETRIES) {
-      failed++;
-      errors.push({
-        id: operation.id,
-        error: `Máximo de tentativas excedido: ${operation.error || 'Erro desconhecido'}`,
-      });
-      continue;
-    }
-
-    try {
-      await executeOperation(operation);
-      await removePendingOperation(operation.id);
-      success++;
-      logger.info(`Operação ${operation.id} sincronizada com sucesso`, 'sync', { 
-        type: operation.type, 
-        table: operation.table 
-      });
-    } catch (error: any) {
-      const errorMessage = error.message || error.code || 'Erro desconhecido';
-      
-      // Atualiza contador de tentativas
-      const newRetries = operation.retries + 1;
-      await updateOperationRetry(
-        operation.id,
-        newRetries,
-        errorMessage
-      );
-
-      logger.warn(`Erro ao sincronizar operação ${operation.id} (tentativa ${newRetries}/${MAX_RETRIES})`, 'sync', {
-        error: errorMessage,
-        type: operation.type,
-        table: operation.table
-      });
-
-      if (newRetries >= MAX_RETRIES) {
-        failed++;
-        errors.push({
-          id: operation.id,
-          error: errorMessage,
-        });
-      } else {
-        // Aguarda antes de tentar novamente (backoff exponencial)
-        const delay = RETRY_DELAY * Math.pow(2, newRetries - 1);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+  // Remove operações muito antigas antes de sincronizar
+  const maxAge = Date.now() - (MAX_OPERATION_AGE_DAYS * 24 * 60 * 60 * 1000);
+  const validOperations = operations.filter(op => op.timestamp > maxAge);
+  const removedOld = operations.length - validOperations.length;
+  
+  if (removedOld > 0) {
+    logger.info(`Removendo ${removedOld} operação(ões) antiga(s) (>${MAX_OPERATION_AGE_DAYS} dias)`, 'sync');
+    for (const oldOp of operations.filter(op => op.timestamp <= maxAge)) {
+      await removePendingOperation(oldOp.id);
     }
   }
 
-  logger.info(`Sincronização concluída: ${success} sucesso, ${failed} falhas`, 'sync');
+  // Filtra operações que excederam tentativas
+  const operationsToSync = validOperations.filter(op => op.retries < MAX_RETRIES);
+  const skippedFailed = validOperations.length - operationsToSync.length;
+  
+  if (skippedFailed > 0) {
+    totalFailed += skippedFailed;
+    for (const failedOp of validOperations.filter(op => op.retries >= MAX_RETRIES)) {
+      allErrors.push({
+        id: failedOp.id,
+        error: `Máximo de tentativas excedido: ${failedOp.error || 'Erro desconhecido'}`,
+      });
+    }
+  }
 
-  return { success, failed, errors };
+  if (operationsToSync.length === 0) {
+    logger.info(`Nenhuma operação válida para sincronizar`, 'sync');
+    return { success: totalSuccess, failed: totalFailed, errors: allErrors };
+  }
+
+  // Agrupa operações por tabela e tipo para processamento otimizado
+  const grouped = groupOperationsByTable(operationsToSync);
+  const totalToSync = operationsToSync.length;
+  let processedCount = 0;
+  
+  // Processa cada grupo (tabela+tipo) em sequência, mas operações dentro do grupo em paralelo
+  for (const [key, groupOps] of grouped) {
+    const [table, type] = key.split('_');
+    logger.info(`Sincronizando ${groupOps.length} operação(ões) de ${type} na tabela ${table}`, 'sync');
+    
+    // Ordena por timestamp (mais antigas primeiro) e prioridade
+    groupOps.sort((a, b) => {
+      // Prioriza operações de inspeção (mais críticas)
+      const aPriority = a.table.includes('inspecao') ? 0 : 1;
+      const bPriority = b.table.includes('inspecao') ? 0 : 1;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return a.timestamp - b.timestamp;
+    });
+    
+    const batchResult = await processBatch(groupOps, totalToSync, processedCount, onProgress);
+    processedCount += groupOps.length;
+    totalSuccess += batchResult.success;
+    totalFailed += batchResult.failed;
+    allErrors.push(...batchResult.errors);
+    
+    // Pequeno delay entre grupos para não sobrecarregar o servidor
+    if (grouped.size > 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  logger.info(`Sincronização concluída: ${totalSuccess} sucesso, ${totalFailed} falhas`, 'sync');
+
+  return { success: totalSuccess, failed: totalFailed, errors: allErrors };
 }
 
 /**

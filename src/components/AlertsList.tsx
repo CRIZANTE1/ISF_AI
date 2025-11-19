@@ -92,10 +92,59 @@ const AlertsList = ({ userId }: AlertsListProps) => {
     const shelters = cache.shelters;
 
     // Verificar cada tipo de equipamento
-    allAlerts.push(...checkEquipment(extinguishers, 'extintor', 'numero_identificacao', 'status', 'proxima_inspecao'));
-    allAlerts.push(...checkEquipment(hoses, 'mangueira', 'id_mangueira', 'resultado', 'data_proximo_teste'));
-    allAlerts.push(...checkEquipment(scbas, 'scba', 'numero_serie_equipamento', 'status', 'data_proxima_inspecao'));
-    allAlerts.push(...checkEquipment(multigasDetectors, 'multigas', 'id_equipamento', 'status', 'data_proximo_teste'));
+    // Para extintores, verifica data_proxima_inspecao, data_proxima_manutencao_2_nivel e data_proxima_manutencao_3_nivel
+    extinguishers.forEach((eq: any) => {
+      if (!eq.user_id || eq.user_id === userId) {
+        const id = eq.numero_identificacao;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Verifica todas as datas relevantes de extintores
+        const datesToCheck = [
+          { date: eq.data_proxima_inspecao, label: 'inspeção' },
+          { date: eq.data_proxima_manutencao_2_nivel, label: 'manutenção nível 2' },
+          { date: eq.data_proxima_manutencao_3_nivel, label: 'manutenção nível 3' },
+        ].filter(d => d.date);
+
+        datesToCheck.forEach(({ date, label }) => {
+          const inspectionDate = new Date(date);
+          inspectionDate.setHours(0, 0, 0, 0);
+
+          if (inspectionDate < today) {
+            allAlerts.push({
+              id: `extintor_${id}_${label}`,
+              equipment_id: id,
+              equipment_type: 'extintor',
+              status: 'vencido',
+              proxima_inspecao: date,
+              message: t('alerts.inspectionExpired', { id, defaultValue: `${id} está com ${label} vencida.` }),
+            });
+          }
+        });
+
+        // Verifica status pendente/reprovado (não aprovado)
+        // Prioriza status_geral (campo principal do banco: 'aprovado', 'pendente', 'reprovado')
+        const statusGeral = (eq.status_geral || '').toLowerCase().trim();
+        const aprovado = (eq.aprovado_inspecao || '').toLowerCase().trim();
+        
+        const isPending = statusGeral === 'pendente' || statusGeral === 'reprovado' || 
+                         aprovado === 'não' || aprovado === 'nao' || aprovado === 'pendente';
+        
+        if (isPending) {
+          allAlerts.push({
+            id: `extintor_${id}_pendente`,
+            equipment_id: id,
+            equipment_type: 'extintor',
+            status: 'pendente',
+            proxima_inspecao: eq.data_proxima_inspecao,
+            message: t('alerts.hasPending', { id, defaultValue: `${id} possui pendências (${eq.status_geral || eq.aprovado_inspecao || 'Não aprovado'}).` }),
+          });
+        }
+      }
+    });
+    allAlerts.push(...checkEquipment(hoses, 'mangueira', 'id_mangueira', 'status_geral', 'data_proximo_teste'));
+    allAlerts.push(...checkEquipment(scbas, 'scba', 'numero_serie_equipamento', 'status_geral', 'data_proxima_inspecao'));
+    allAlerts.push(...checkEquipment(multigasDetectors, 'multigas', 'id_equipamento', 'resultado_teste', 'data_proximo_teste'));
     allAlerts.push(...checkEquipment(foamChambers, 'camara_espuma', 'id_camara', 'status', 'data_proxima_inspecao'));
     allAlerts.push(...checkEquipment(cannonMonitors, 'canhao_monitor', 'id_equipamento', 'status', 'data_proxima_inspecao'));
     allAlerts.push(...checkEquipment(eyewashStations, 'chuveiro_lavaolhos', 'id_equipamento', 'status_geral', 'data_proxima_inspecao'));

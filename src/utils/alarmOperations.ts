@@ -92,11 +92,16 @@ export async function saveNewAlarmSystem(
   alarm: Omit<AlarmSystem, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('inventario_alarmes')
       .select('id_sistema')
       .eq('id_sistema', alarm.id_sistema)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Sistema de alarme com ID '${alarm.id_sistema}' já existe.`);

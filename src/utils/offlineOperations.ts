@@ -120,6 +120,43 @@ export async function offlineInsert(
       const { error, data: result } = await supabase.from(table).insert(dataWithUserId).select();
 
       if (error) {
+        // Tratamento especial para inspeções de extintores com erro de constraint única
+        if (table === 'inspecoes_extintores' && error.code === '23505') {
+          // Verifica se é realmente uma duplicata baseada em (numero_identificacao + data_servico + user_id)
+          if (dataWithUserId.numero_identificacao && dataWithUserId.data_servico) {
+            try {
+              const { data: existing, error: checkError } = await supabase
+                .from(table as any)
+                .select('id')
+                .eq('numero_identificacao', dataWithUserId.numero_identificacao)
+                .eq('data_servico', dataWithUserId.data_servico)
+                .eq('user_id', authenticatedUserId)
+                .limit(1);
+              
+              if (!checkError && existing && existing.length > 0) {
+                // Inspeção já existe para esta data, considera sucesso
+                logger.warn('Inspeção de extintor já existe para esta data', 'storage', {
+                  numero_identificacao: dataWithUserId.numero_identificacao,
+                  data_servico: dataWithUserId.data_servico
+                });
+                return { success: true };
+              }
+            } catch (checkErr) {
+              logger.warn('Erro ao verificar inspeção duplicada de extintor', 'storage', checkErr);
+            }
+          }
+          // Se não encontrou duplicata real, pode ser constraint única incorreta no banco
+          // Propaga o erro com mensagem mais clara
+          logger.error('Erro de constraint única ao inserir inspeção de extintor', 'storage', {
+            error: error.message,
+            data: {
+              numero_identificacao: dataWithUserId.numero_identificacao,
+              data_servico: dataWithUserId.data_servico
+            }
+          });
+          throw new Error(`Não foi possível salvar a inspeção. Pode haver uma inspeção duplicada para esta data ou uma configuração incorreta no banco de dados. Detalhes: ${error.message}`);
+        }
+        
         // Erros que devem ser salvos offline:
         // - Erros de rede (fetch, network)
         // - Timeout

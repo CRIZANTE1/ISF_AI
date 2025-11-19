@@ -24,11 +24,16 @@ export interface Hose {
 export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promise<boolean> {
   try {
     // Verifica se já existe
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('mangueiras')
       .select('id_mangueira')
       .eq('id_mangueira', hose.id_mangueira)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Mangueira com ID '${hose.id_mangueira}' já existe.`);
@@ -59,17 +64,75 @@ export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promis
 }
 
 /**
- * Busca todas as mangueiras
+ * Busca todas as mangueiras com dados da última inspeção
  */
 export async function getAllHoses(): Promise<Hose[]> {
   try {
-    const { data, error } = await supabase
+    // Busca cadastros de mangueiras
+    const { data: hoses, error: hoseError } = await supabase
       .from('mangueiras')
       .select('*')
       .order('id_mangueira');
 
-    if (error) throw error;
-    return data || [];
+    if (hoseError) throw hoseError;
+    if (!hoses || hoses.length === 0) return [];
+
+    // Busca última inspeção de cada mangueira
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user?.id) {
+        return hoses as Hose[];
+      }
+
+      const { data: allInspections, error: inspError } = await supabase
+        .from('inspecoes_mangueiras' as any)
+        .select('id_mangueira, data_proxima_inspecao, resultado, status_geral, data_inspecao, created_at')
+        .eq('user_id', user.id)
+        .order('data_inspecao', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (inspError) {
+        logger.warn('Erro ao buscar últimas inspeções de mangueiras', 'equipment', inspError);
+        return hoses as Hose[];
+      }
+
+      // Cria mapa das últimas inspeções
+      const inspectionMap = new Map<string, any>();
+      if (allInspections && Array.isArray(allInspections)) {
+        allInspections.forEach((insp: any) => {
+          if (insp && insp.id_mangueira) {
+            const id = insp.id_mangueira;
+            if (!inspectionMap.has(id)) {
+              inspectionMap.set(id, insp);
+            }
+          }
+        });
+      }
+
+      // Mescla dados de cadastro com dados da última inspeção
+      const hosesWithInspections = hoses.map((hose: any) => {
+        if (!hose || !hose.id_mangueira) return hose;
+        
+        const lastInspection = inspectionMap.get(hose.id_mangueira);
+        if (lastInspection) {
+          return {
+            ...hose,
+            data_proximo_teste: lastInspection.data_proxima_inspecao || hose.data_proximo_teste || null,
+            data_proxima_inspecao: lastInspection.data_proxima_inspecao || hose.data_proxima_inspecao || null,
+            resultado: lastInspection.resultado || hose.resultado || null,
+            status_geral: lastInspection.status_geral || hose.status_geral || null,
+            status: lastInspection.status_geral || lastInspection.resultado || hose.status || null,
+          };
+        }
+        return hose;
+      });
+
+      return hosesWithInspections as Hose[];
+    } catch (inspectionError) {
+      logger.warn('Erro ao processar inspeções de mangueiras, retornando apenas cadastros', 'equipment', inspectionError);
+      return hoses as Hose[];
+    }
   } catch (error) {
     logger.error('Erro ao buscar mangueiras', 'equipment', error);
     return [];
@@ -85,9 +148,12 @@ export async function getHoseById(idMangueira: string): Promise<Hose | null> {
       .from('mangueiras')
       .select('*')
       .eq('id_mangueira', idMangueira)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    // Se não encontrou (PGRST116), retorna null (comportamento esperado)
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
     return data;
   } catch (error) {
     logger.error('Erro ao buscar mangueira', 'equipment', error);
@@ -139,7 +205,7 @@ export interface HoseInspection {
 
 export async function saveHoseInspection(inspection: Omit<HoseInspection, 'id' | 'created_at'>): Promise<boolean> {
   try {
-    // Calcula próxima data de teste (1 ano após a inspeção atual)
+    // Calcula próxima data de teste (anual - 1 ano após a inspeção atual)
     const inspectionDate = new Date(inspection.data_inspecao);
     const nextTestDate = new Date(inspectionDate);
     nextTestDate.setFullYear(nextTestDate.getFullYear() + 1);

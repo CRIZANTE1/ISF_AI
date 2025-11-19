@@ -44,11 +44,16 @@ export interface SCBAInspection {
 export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promise<boolean> {
   try {
     // Verifica se já existe
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('conjuntos_autonomos')
       .select('numero_serie_equipamento')
       .eq('numero_serie_equipamento', scba.numero_serie_equipamento)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`SCBA com número de série '${scba.numero_serie_equipamento}' já existe.`);
@@ -79,17 +84,73 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
 }
 
 /**
- * Busca todos os SCBAs
+ * Busca todos os SCBAs com dados da última inspeção
  */
 export async function getAllSCBAs(): Promise<SCBA[]> {
   try {
-    const { data, error } = await supabase
+    // Busca cadastros de SCBAs
+    const { data: scbas, error: scbaError } = await supabase
       .from('conjuntos_autonomos')
       .select('*')
       .order('numero_serie_equipamento');
 
-    if (error) throw error;
-    return data || [];
+    if (scbaError) throw scbaError;
+    if (!scbas || scbas.length === 0) return [];
+
+    // Busca última inspeção de cada SCBA
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user?.id) {
+        return scbas as SCBA[];
+      }
+
+      const { data: allInspections, error: inspError } = await supabase
+        .from('inspecoes_scba' as any)
+        .select('numero_serie_equipamento, data_proxima_inspecao, status_geral, data_inspecao, created_at')
+        .eq('user_id', user.id)
+        .order('data_inspecao', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (inspError) {
+        logger.warn('Erro ao buscar últimas inspeções de SCBAs', 'equipment', inspError);
+        return scbas as SCBA[];
+      }
+
+      // Cria mapa das últimas inspeções
+      const inspectionMap = new Map<string, any>();
+      if (allInspections && Array.isArray(allInspections)) {
+        allInspections.forEach((insp: any) => {
+          if (insp && insp.numero_serie_equipamento) {
+            const serial = insp.numero_serie_equipamento;
+            if (!inspectionMap.has(serial)) {
+              inspectionMap.set(serial, insp);
+            }
+          }
+        });
+      }
+
+      // Mescla dados de cadastro com dados da última inspeção
+      const scbasWithInspections = scbas.map((scba: any) => {
+        if (!scba || !scba.numero_serie_equipamento) return scba;
+        
+        const lastInspection = inspectionMap.get(scba.numero_serie_equipamento);
+        if (lastInspection) {
+          return {
+            ...scba,
+            data_proxima_inspecao: lastInspection.data_proxima_inspecao || scba.data_proxima_inspecao || null,
+            status_geral: lastInspection.status_geral || scba.status_geral || null,
+            status: lastInspection.status_geral || scba.status || null,
+          };
+        }
+        return scba;
+      });
+
+      return scbasWithInspections as SCBA[];
+    } catch (inspectionError) {
+      logger.warn('Erro ao processar inspeções de SCBAs, retornando apenas cadastros', 'equipment', inspectionError);
+      return scbas as SCBA[];
+    }
   } catch (error) {
     logger.error('Erro ao buscar SCBAs', 'equipment', error);
     return [];
@@ -105,9 +166,12 @@ export async function getSCBABySerial(serialNumber: string): Promise<SCBA | null
       .from('conjuntos_autonomos')
       .select('*')
       .eq('numero_serie_equipamento', serialNumber)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    // Se não encontrou (PGRST116), retorna null (comportamento esperado)
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
     return data;
   } catch (error) {
     logger.error('Erro ao buscar SCBA', 'equipment', error);

@@ -29,6 +29,32 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
 
+  // Função auxiliar para normalizar status (remover "Sim"/"Não" e converter para status apropriado)
+  const normalizeStatus = (status: string | null | undefined): string => {
+    if (!status) return 'pendente';
+    const statusLower = status.toLowerCase().trim();
+    
+    // Converter "Sim" e "Não" para status apropriado
+    if (statusLower === 'sim') return 'aprovado';
+    if (statusLower === 'não' || statusLower === 'nao') return 'reprovado';
+    
+    // Normalizar outros status
+    if (statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
+      return 'aprovado';
+    }
+    if (statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
+      return 'reprovado';
+    }
+    if (statusLower.includes('vencido')) {
+      return 'vencido';
+    }
+    if (statusLower.includes('pendente')) {
+      return 'pendente';
+    }
+    
+    return statusLower; // Retornar status em minúsculas se não for reconhecido
+  };
+
   useEffect(() => {
     const fetchInspections = async () => {
       if (!user) return;
@@ -47,6 +73,7 @@ const History = () => {
           alarmInspections,
           shelterInspections,
           hoseInspections,
+          extinguisherInspections,
         ] = await Promise.all([
           supabase.from('inspecoes_scba').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_multigas').select('*').eq('user_id', user.id).order('data_teste', { ascending: false }),
@@ -56,6 +83,7 @@ const History = () => {
           supabase.from('inspecoes_alarmes').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_abrigos').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
           supabase.from('inspecoes_mangueiras').select('*').eq('user_id', user.id).order('data_inspecao', { ascending: false }),
+          supabase.from('inspecoes_extintores' as any).select('*').eq('user_id', user.id).order('data_servico', { ascending: false }),
         ]);
 
         // Processar inspeções SCBA
@@ -66,7 +94,7 @@ const History = () => {
               type: 'SCBA',
               equipmentId: insp.numero_serie_equipamento,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || 'pendente',
+              status: normalizeStatus(insp.status_geral),
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
               created_at: insp.created_at,
@@ -82,7 +110,7 @@ const History = () => {
               type: 'Multigás',
               equipmentId: insp.id_equipamento,
               date: insp.data_teste || insp.created_at,
-              status: insp.resultado_teste || 'pendente',
+              status: normalizeStatus(insp.resultado_teste),
               inspector: insp.inspetor,
               observations: insp.observacoes,
               created_at: insp.created_at,
@@ -98,7 +126,7 @@ const History = () => {
               type: 'Câmara de Espuma',
               equipmentId: insp.id_camara,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || 'pendente',
+              status: normalizeStatus(insp.status_geral),
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
               created_at: insp.created_at,
@@ -114,7 +142,7 @@ const History = () => {
               type: 'Canhão Monitor',
               equipmentId: insp.id_equipamento,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || 'pendente',
+              status: normalizeStatus(insp.status_geral),
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
               created_at: insp.created_at,
@@ -130,7 +158,7 @@ const History = () => {
               type: 'Chuveiro/Lava-olhos',
               equipmentId: insp.id_equipamento,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || 'pendente',
+              status: normalizeStatus(insp.status_geral),
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
               created_at: insp.created_at,
@@ -146,7 +174,7 @@ const History = () => {
               type: 'Sistema de Alarme',
               equipmentId: insp.id_sistema,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || 'pendente',
+              status: normalizeStatus(insp.status_geral),
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
               created_at: insp.created_at,
@@ -162,7 +190,7 @@ const History = () => {
               type: 'Abrigo',
               equipmentId: insp.id_abrigo,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || 'pendente',
+              status: normalizeStatus(insp.status_geral),
               inspector: insp.inspetor,
               observations: insp.resultados_json ? JSON.stringify(insp.resultados_json) : null,
               created_at: insp.created_at,
@@ -178,9 +206,28 @@ const History = () => {
               type: 'Mangueira',
               equipmentId: insp.id_mangueira,
               date: insp.data_inspecao || insp.created_at,
-              status: insp.status_geral || insp.resultado || 'pendente',
+              status: normalizeStatus(insp.status_geral || insp.resultado),
               inspector: insp.inspetor,
               observations: insp.observacoes || (insp.resultados_json ? JSON.stringify(insp.resultados_json) : null),
+              created_at: insp.created_at,
+            });
+          });
+        }
+
+        // Processar inspeções Extintores
+        if (extinguisherInspections.data) {
+          extinguisherInspections.data.forEach((insp: any) => {
+            // Priorizar status_geral, senão usar aprovado_inspecao
+            const status = normalizeStatus(insp.status_geral || insp.aprovado_inspecao);
+            
+            allInspections.push({
+              id: insp.id,
+              type: 'Extintor',
+              equipmentId: insp.numero_identificacao,
+              date: insp.data_servico || insp.created_at,
+              status: status,
+              inspector: insp.inspetor_responsavel,
+              observations: insp.observacoes_gerais,
               created_at: insp.created_at,
             });
           });
@@ -206,33 +253,54 @@ const History = () => {
 
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
-    if (statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
-      return 'var(--chart-2)'; // Verde
-    } else if (statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
-      return 'var(--destructive)'; // Vermelho
+    // Tratar "Sim" e "Não" também
+    if (statusLower === 'sim' || statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
+      return '#53D769'; // Verde
+    } else if (statusLower === 'não' || statusLower === 'nao' || statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
+      return '#FC3D39'; // Vermelho
+    } else if (statusLower.includes('vencido') || statusLower.includes('pendente')) {
+      return '#FFD60A'; // Amarelo
     }
-    return 'var(--chart-3)'; // Âmbar (pending)
+    return '#FFD60A'; // Amarelo (padrão para pendente/vencido)
+  };
+
+  const formatStatus = (status: string) => {
+    const statusLower = status.toLowerCase();
+    // Remover "Sim" e "Não", converter para status apropriado
+    if (statusLower === 'sim' || statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
+      return 'Aprovado';
+    } else if (statusLower === 'não' || statusLower === 'nao' || statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
+      return 'Reprovado';
+    } else if (statusLower.includes('vencido')) {
+      return 'Vencido';
+    } else if (statusLower.includes('pendente')) {
+      return 'Pendente';
+    }
+    return status; // Fallback para outros status
   };
 
   const getStatusIcon = (status: string) => {
     const statusLower = status.toLowerCase();
-    if (statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
-      return <CheckCircle size={20} style={{ color: 'var(--chart-2)' }} />;
-    } else if (statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
-      return <XCircle size={20} style={{ color: 'var(--destructive)' }} />;
+    if (statusLower === 'sim' || statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada')) {
+      return <CheckCircle size={20} style={{ color: '#53D769' }} />;
+    } else if (statusLower === 'não' || statusLower === 'nao' || statusLower.includes('reprovado') || statusLower.includes('reprovada')) {
+      return <XCircle size={20} style={{ color: '#FC3D39' }} />;
+    } else if (statusLower.includes('vencido')) {
+      return <Clock size={20} style={{ color: '#FFD60A' }} />;
     }
-    return <Clock size={20} style={{ color: 'var(--chart-3)' }} />;
+    return <Clock size={20} style={{ color: '#FFD60A' }} />; // Pendente em amarelo
   };
 
   const filteredInspections = inspections.filter((insp) => {
     if (filter === 'all') return true;
     const statusLower = insp.status.toLowerCase();
     if (filter === 'approved') {
-      return statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower.includes('aprovada');
+      return statusLower === 'aprovado' || statusLower.includes('ok') || statusLower.includes('aprovada');
     } else if (filter === 'rejected') {
-      return statusLower.includes('reprovado') || statusLower.includes('reprovada');
+      return statusLower === 'reprovado' || statusLower.includes('reprovada');
     } else if (filter === 'pending') {
-      return !statusLower.includes('aprovado') && !statusLower.includes('reprovado') && !statusLower.includes('ok');
+      return statusLower === 'pendente' || statusLower === 'vencido' || 
+             (!statusLower.includes('aprovado') && !statusLower.includes('reprovado') && !statusLower.includes('ok'));
     }
     return true;
   });
@@ -361,10 +429,10 @@ const History = () => {
                               className="text-xs font-medium px-ios-2 py-ios-1 rounded-full"
                               style={{
                                 backgroundColor: getStatusColor(insp.status),
-                                color: 'var(--card-foreground)',
+                                color: '#000000', // Texto preto para contraste em fundos coloridos
                               }}
                             >
-                              {insp.status}
+                              {formatStatus(insp.status)}
                             </span>
                           </div>
                         </div>

@@ -68,11 +68,16 @@ export async function saveNewFoamChamber(
   chamber: Omit<FoamChamber, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('inventario_camaras_espuma')
       .select('id_camara')
       .eq('id_camara', chamber.id_camara)
-      .single();
+      .maybeSingle();
+
+    // Se houver erro diferente de "não encontrado", lança o erro
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error(`Câmara com ID '${chamber.id_camara}' já existe.`);

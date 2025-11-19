@@ -26,6 +26,9 @@ import {
   type EquipmentDates,
   saveExtinguisherInspection,
   getExtinguisherById,
+  getLastExtinguisherInspection,
+  ACTION_MAP,
+  getActionKeywords,
 } from '../utils/extinguisherOperations';
 import { saveEyewashInspection, generateEyewashActionPlan } from '../utils/eyewashOperations';
 import { saveFoamChamberInspection } from '../utils/foamChamberOperations';
@@ -62,6 +65,7 @@ type AddInspectionFormData = {
   observacoes_gerais?: string;
   foto_nao_conformidade?: File | null;
   resultados_json?: Record<string, any>;
+  numero_selo_inmetro?: string; // Número do selo do Inmetro (atualizado em manutenções nível 2 ou 3)
 };
 
 type EquipmentInfo = {
@@ -122,7 +126,7 @@ const AddInspectionPage = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const { register, handleSubmit, formState: { errors }, watch, control } = useForm<AddInspectionFormData>({
+  const { register, handleSubmit, formState: { errors }, watch, control, setValue } = useForm<AddInspectionFormData>({
     defaultValues: {
       data_inspecao: getCurrentDateTimeLocal(),
       tipo_servico: 'Inspeção',
@@ -133,6 +137,9 @@ const AddInspectionPage = () => {
 
   const aprovado = watch('aprovado_inspecao');
   const observacoes = watch('observacoes_gerais');
+  
+  // Obtém palavras-chave únicas do ACTION_MAP
+  const actionKeywords = getActionKeywords();
 
   // Captura geolocalização automaticamente quando a página carrega
   useEffect(() => {
@@ -429,15 +436,39 @@ const AddInspectionPage = () => {
     initializeChecklist();
   }, [type, equipment, foamChamberInspectionType, cannonMonitorInspectionType]);
 
-  // Gera plano de ação para extintores
+  // Limpa observações quando status muda para "Sim"
   useEffect(() => {
-    if (type === 'extintor' && aprovado && observacoes !== undefined) {
-      const record: InspectionRecord = {
-        aprovado_inspecao: aprovado,
-        observacoes_gerais: observacoes || ''
-      };
-      const plan = generateActionPlan(record);
-      setPlanAction(plan);
+    if (type === 'extintor' && aprovado === 'Sim' && observacoes) {
+      setValue('observacoes_gerais', '');
+    }
+  }, [aprovado, type, setValue]);
+
+  // Gera plano de ação para extintores automaticamente baseado na seleção
+  useEffect(() => {
+    if (type === 'extintor') {
+      if (aprovado === 'Não' && observacoes) {
+        // Busca diretamente no ACTION_MAP pela palavra-chave selecionada
+        const selectedKeyword = observacoes.trim();
+        if (ACTION_MAP[selectedKeyword]) {
+          // Retorna o plano de ação padronizado do ACTION_MAP
+          setPlanAction(ACTION_MAP[selectedKeyword]);
+        } else {
+          // Se não encontrar exatamente, tenta gerar usando a função normal
+          const record: InspectionRecord = {
+            aprovado_inspecao: aprovado,
+            observacoes_gerais: observacoes
+          };
+          const plan = generateActionPlan(record);
+          setPlanAction(plan);
+        }
+      } else if (aprovado === 'Sim') {
+        setPlanAction("Manter em monitoramento periódico.");
+      } else {
+        setPlanAction('');
+      }
+    } else {
+      // Limpa o plano de ação quando não é extintor
+      setPlanAction('');
     }
   }, [aprovado, observacoes, type]);
 
@@ -527,12 +558,12 @@ const AddInspectionPage = () => {
 
       switch (type) {
         case 'extintor': {
-          // Busca último registro para preservar datas
-          const lastRecord = await getExtinguisherById(id);
+          // Busca última inspeção para preservar datas
+          const lastInspection = await getLastExtinguisherInspection(id, user.id);
           const existingDates: EquipmentDates = {
-            data_proxima_manutencao_2_nivel: lastRecord?.data_proxima_manutencao_2_nivel || null,
-            data_proxima_manutencao_3_nivel: lastRecord?.data_proxima_manutencao_3_nivel || null,
-            data_ultimo_ensaio_hidrostatico: lastRecord?.data_ultimo_ensaio_hidrostatico || null,
+            data_proxima_manutencao_2_nivel: lastInspection?.data_proxima_manutencao_2_nivel || null,
+            data_proxima_manutencao_3_nivel: lastInspection?.data_proxima_manutencao_3_nivel || null,
+            data_ultimo_ensaio_hidrostatico: lastInspection?.data_ultimo_ensaio_hidrostatico || null,
           };
 
           const nextDates = calculateNextDates(
@@ -550,6 +581,7 @@ const AddInspectionPage = () => {
             numero_identificacao: id,
             tipo_servico: formData.tipo_servico || 'Inspeção',
             data_servico: inspectionDate,
+            numero_selo_inmetro: formData.numero_selo_inmetro || undefined, // Salva o selo do Inmetro (atualizado em manutenções nível 2 ou 3)
             inspetor_responsavel: user.user_metadata?.full_name || user.email || 'Usuário',
             aprovado_inspecao: aprovado || 'Sim',
             observacoes_gerais: observacoes || '',
@@ -593,7 +625,12 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção mensal - calcula 1 mês após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -636,7 +673,12 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Teste semanal - calcula 1 semana após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setDate(nextDate.getDate() + 7);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -657,7 +699,12 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção trimestral - calcula 3 meses após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 3);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -756,6 +803,12 @@ const AddInspectionPage = () => {
             multigasTestDateTime = new Date().toISOString();
           }
           
+          // Extrai apenas a data (YYYY-MM-DD) para o campo data_teste (sem hora)
+          // O schema espera apenas a data no formato YYYY-MM-DD
+          const dataTesteFormatada = multigasTestDateTime.includes('T') 
+            ? multigasTestDateTime.split('T')[0] 
+            : multigasTestDateTime;
+          
           // Gera plano de ação automaticamente baseado no resultado
           const resultadoTeste = isApproved ? 'Aprovado' : 'Reprovado';
           const planoDeAcao = generateMultigasActionPlan(resultadoTeste, multigasTestType);
@@ -765,7 +818,7 @@ const AddInspectionPage = () => {
           
           const inspectionRecord = {
             id_equipamento: id,
-            data_teste: multigasTestDateTime,
+            data_teste: dataTesteFormatada,
             tipo_teste: multigasTestType,
             resultado_teste: resultadoTeste,
             LEL_referencia: referenceValues.LEL || undefined,
@@ -844,7 +897,12 @@ const AddInspectionPage = () => {
             plano_de_acao: planAction || undefined,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção mensal - calcula 1 mês após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             user_id: user.id,
           };
 
@@ -889,7 +947,12 @@ const AddInspectionPage = () => {
             observacoes: observacoes || undefined,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção anual - calcula 1 ano após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setFullYear(nextDate.getFullYear() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -909,7 +972,12 @@ const AddInspectionPage = () => {
             plano_de_acao: planAction,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Inspeção mensal - calcula 1 mês após a data de inspeção
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -981,7 +1049,8 @@ const AddInspectionPage = () => {
 
   const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '');
   const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
-  const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual') || (type === 'extintor' && aprovado === 'Não') || (type === 'abrigo' && aprovado === 'Reprovado');
+  // Foto não é obrigatória para extintores, apenas opcional quando reprovado
+  const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual') || (type === 'abrigo' && aprovado === 'Reprovado');
   const isMultigasEquipment = type === 'multigas';
   const isSimpleSafetyEquipment = ['abrigo'].includes(type || '');
   // Sempre permite adicionar foto, mesmo em total conformidade
@@ -1101,6 +1170,29 @@ const AddInspectionPage = () => {
                 />
               </AnimatedFormField>
 
+              {/* Campo Nº Selo INMETRO - aparece apenas em manutenções nível 2 ou 3 */}
+              {watch('tipo_servico') === 'Manutenção Nível 2' || watch('tipo_servico') === 'Manutenção Nível 3' ? (
+                <AnimatedFormField delay={0.33} className="mb-4">
+                  <label htmlFor="numero_selo_inmetro" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+                    Nº Selo INMETRO
+                  </label>
+                  <Controller
+                    name="numero_selo_inmetro"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="numero_selo_inmetro"
+                        type="text"
+                        className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none"
+                        style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                        placeholder="Digite o número do selo do INMETRO"
+                      />
+                    )}
+                  />
+                </AnimatedFormField>
+              ) : null}
+
               <AnimatedFormField delay={0.35} className="mb-4">
                 <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   {t('inspection.approvedInspection')}
@@ -1138,43 +1230,67 @@ const AddInspectionPage = () => {
                 <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
                   {t('inspection.generalObservations')}
                 </label>
-                <textarea
-                  id="observacoes_gerais"
-                  rows={4}
-                  {...register('observacoes_gerais')}
-                  placeholder={t('inspection.observationsPlaceholder')}
-                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                <Controller
+                  name="observacoes_gerais"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      id="observacoes_gerais"
+                      className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" 
+                      style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                      disabled={aprovado !== 'Não'}
+                    >
+                      <option value="">
+                        {aprovado === 'Não' ? 'Selecione uma não conformidade...' : 'Selecione "Não" acima para escolher uma não conformidade'}
+                      </option>
+                      {aprovado === 'Não' && actionKeywords.map((keyword) => (
+                        <option key={keyword} value={keyword}>
+                          {keyword}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 />
               </AnimatedFormField>
 
-              {planAction && (
+              {planAction && planAction !== 'N/A' && (
                 <motion.div 
-                  className="mb-4 p-3 bg-light-background dark:bg-dark-background rounded-lg border relative" 
-                  style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(18, 18, 18, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-4 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 dark:bg-gradient-to-r dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border relative" 
+                  style={{ zIndex: 10, position: 'relative', borderColor: '#3B82F6', borderWidth: '1px' }}
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className="text-sm font-semibold mb-1">{t('inspection.actionPlanGenerated')}</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    {planAction}
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">✅</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold mb-2" style={{ color: '#60A5FA' }}>
+                        {t('inspection.actionPlanGenerated')}
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap" style={{ color: '#E5E7EB' }}>
+                        {planAction}
+                      </p>
+                    </div>
+                  </div>
                 </motion.div>
               )}
 
-              {/* Sempre permite adicionar foto, mesmo quando aprovado */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.45 }}
-              >
-                <PhotoUpload
-                  value={photoFile}
-                  onChange={setPhotoFile}
-                  label={t('inspection.nonConformityPhoto')}
-                  required={aprovado === 'Não'}
-                />
-              </motion.div>
+              {/* Foto de não conformidade - aparece apenas quando reprovado */}
+              {aprovado === 'Não' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.45 }}
+                >
+                  <PhotoUpload
+                    value={photoFile}
+                    onChange={setPhotoFile}
+                    label={t('inspection.nonConformityPhoto')}
+                    required={false}
+                  />
+                </motion.div>
+              )}
             </>
           )}
 
