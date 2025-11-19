@@ -803,6 +803,12 @@ const AddInspectionPage = () => {
             multigasTestDateTime = new Date().toISOString();
           }
           
+          // Extrai apenas a data (YYYY-MM-DD) para o campo data_teste (sem hora)
+          // O schema espera apenas a data no formato YYYY-MM-DD
+          const dataTesteFormatada = multigasTestDateTime.includes('T') 
+            ? multigasTestDateTime.split('T')[0] 
+            : multigasTestDateTime;
+          
           // Gera plano de ação automaticamente baseado no resultado
           const resultadoTeste = isApproved ? 'Aprovado' : 'Reprovado';
           const planoDeAcao = generateMultigasActionPlan(resultadoTeste, multigasTestType);
@@ -812,7 +818,7 @@ const AddInspectionPage = () => {
           
           const inspectionRecord = {
             id_equipamento: id,
-            data_teste: multigasTestDateTime,
+            data_teste: dataTesteFormatada,
             tipo_teste: multigasTestType,
             resultado_teste: resultadoTeste,
             LEL_referencia: referenceValues.LEL || undefined,
