@@ -11,13 +11,14 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import ProgressiveImage from '../components/ProgressiveImage';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
-import { Trash2, Edit } from 'lucide-react';
+import { Trash2, Edit, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
 import { getExtinguisherById, getLastExtinguisherInspection } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
 import { getMultigasDetectorById } from '../utils/multigasOperations';
+import { generateInspectionReport, savePdfToDevice, type InspectionData, type EquipmentData } from '../utils/pdfReportGenerator';
 
 type EquipmentInfo = {
   id: string;
@@ -52,6 +53,9 @@ const EquipmentDetailPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'equipment' | 'inspection'; id: number | string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // State for PDF generation
+  const [generatingPdf, setGeneratingPdf] = useState<number | null>(null);
 
   const fetchDetails = async () => {
     if (!id || !type) return;
@@ -523,6 +527,115 @@ const EquipmentDetailPage = () => {
     return 'bg-gray-200 dark:bg-gray-700';
   };
 
+  const handleGenerateReport = async (inspectionId: number) => {
+    if (!equipment || !type || !user) return;
+    
+    setGeneratingPdf(inspectionId);
+    
+    try {
+      // Buscar dados completos da inspeção
+      let inspectionData: any = null;
+      let tableName = '';
+
+      switch (type) {
+        case 'extintor':
+          tableName = 'inspecoes_extintores';
+          break;
+        case 'chuveiro_lavaolhos':
+          tableName = 'inspecoes_chuveiros_lava_olhos';
+          break;
+        case 'camara_espuma':
+          tableName = 'inspecoes_camaras_espuma';
+          break;
+        case 'alarme':
+          tableName = 'inspecoes_alarmes';
+          break;
+        case 'canhao_monitor':
+          tableName = 'inspecoes_canhoes_monitores';
+          break;
+        case 'scba':
+          tableName = 'inspecoes_scba';
+          break;
+        case 'multigas':
+          tableName = 'inspecoes_multigas';
+          break;
+        case 'abrigo':
+          tableName = 'inspecoes_abrigos';
+          break;
+        case 'mangueira':
+          tableName = 'inspecoes_mangueiras';
+          break;
+      }
+
+      if (tableName) {
+        const { data, error } = await supabase
+          .from(tableName as any)
+          .select('*')
+          .eq('id', inspectionId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) throw error;
+        inspectionData = data;
+      }
+
+      if (!inspectionData) {
+        throw new Error('Inspeção não encontrada');
+      }
+
+      // Buscar perfil do usuário para nome do responsável
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      // Preparar dados para o relatório
+      const reportData = {
+        equipment: {
+          id: equipment.id,
+          name: equipment.name,
+          type: type,
+          location: equipment.location,
+          ...equipment,
+        } as EquipmentData,
+        inspection: {
+          id: inspectionData.id,
+          data_inspecao: inspectionData.data_inspecao || inspectionData.data_servico || inspectionData.data_teste || '',
+          status_geral: inspectionData.status_geral,
+          tipo_servico: inspectionData.tipo_servico,
+          tipo_inspecao: inspectionData.tipo_inspecao,
+          inspetor: inspectionData.inspetor || inspectionData.inspetor_responsavel,
+          observacoes_gerais: inspectionData.observacoes_gerais,
+          plano_de_acao: inspectionData.plano_de_acao,
+          link_foto_nao_conformidade: inspectionData.link_foto_nao_conformidade,
+          resultados_json: inspectionData.resultados_json,
+          latitude: inspectionData.latitude,
+          longitude: inspectionData.longitude,
+          data_proxima_inspecao: inspectionData.data_proxima_inspecao,
+        } as InspectionData,
+        companyName: undefined, // Pode ser adicionado depois
+        responsibleName: profile?.full_name || inspectionData.inspetor || inspectionData.inspetor_responsavel,
+      };
+
+      // Gerar PDF
+      const pdfBlob = await generateInspectionReport(reportData);
+
+      // Salvar/compartilhar PDF
+      const dateStr = format(new Date(inspectionData.data_inspecao || inspectionData.data_servico || new Date()), 'yyyy-MM-dd');
+      const filename = `Relatorio_Inspecao_${equipment.name}_${dateStr}.pdf`;
+      await savePdfToDevice(pdfBlob, filename);
+
+      // Mostrar mensagem de sucesso
+      handleError(null, 'success', 'Relatório gerado com sucesso!');
+    } catch (error) {
+      logger.error('Erro ao gerar relatório PDF', 'pdf', { error, inspectionId });
+      handleError(error, 'pdf', 'Erro ao gerar relatório. Tente novamente.');
+    } finally {
+      setGeneratingPdf(null);
+    }
+  };
+
   const modalTitle = itemToDelete?.type === 'equipment' ? t('equipment.delete') : t('inspection.delete', { defaultValue: 'Excluir Inspeção' });
   const modalMessage = t('common.deleteConfirm', { defaultValue: 'Você tem certeza que deseja excluir este item? Esta ação é irreversível e todos os dados associados serão perdidos.' });
 
@@ -857,9 +970,23 @@ const EquipmentDetailPage = () => {
                           </div>
                         )}
                       </div>
-                      <button onClick={() => handleDeleteClick('inspection', insp.id)} className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors flex-shrink-0">
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button 
+                          onClick={() => handleGenerateReport(insp.id)} 
+                          disabled={generatingPdf === insp.id}
+                          className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-400 transition-colors disabled:opacity-50"
+                          title="Gerar relatório PDF"
+                        >
+                          {generatingPdf === insp.id ? (
+                            <Spinner size="sm" color="blue" />
+                          ) : (
+                            <FileText size={16} />
+                          )}
+                        </button>
+                        <button onClick={() => handleDeleteClick('inspection', insp.id)} className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
