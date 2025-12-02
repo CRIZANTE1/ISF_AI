@@ -354,7 +354,7 @@ const AdminSecurityAuditPage = () => {
           {loading && (
             <div className="flex items-center justify-center p-8">
               <Spinner size="lg" color="white" />
-              <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">Carregando...</span>
+              <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">{t('common.loading')}</span>
             </div>
           )}
 

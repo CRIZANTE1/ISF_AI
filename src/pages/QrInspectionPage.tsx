@@ -6,7 +6,8 @@ import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import { parseQrCodeData } from '../utils/qrInspectionUtils';
 import { findEquipmentByIdentifier, getEquipmentTypeName } from '../utils/qrGeneratorUtils';
-import { QrCode, Camera, Search, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { QrCode, Camera, Search, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Spinner } from '../components/ui/spinner';
 import { logger } from '../utils/logger';
 import { motion } from 'framer-motion';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -338,9 +339,9 @@ const QrInspectionPage = () => {
               {/* Loading overlay */}
               {loading && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <div className="text-center">
-                    <Loader2 className="animate-spin mx-auto mb-2 text-white" size={32} />
-                    <p className="text-sm text-white">Processando QR Code...</p>
+                  <div className="flex flex-col items-center gap-2">
+                    <Spinner size="xl" color="white" />
+                    <p className="text-sm text-white/80">{t('common.loading')}</p>
                   </div>
                 </div>
               )}

@@ -41,10 +41,16 @@ export async function saveNewCannonMonitor(
   cannon: Omit<CannonMonitor, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
     const { data: existing, error: checkError } = await supabase
       .from('inventario_canhoes_monitores')
       .select('id_equipamento')
       .eq('id_equipamento', cannon.id_equipamento)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -58,7 +64,7 @@ export async function saveNewCannonMonitor(
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inventario_canhoes_monitores', cannon);
+    const result = await offlineInsert('inventario_canhoes_monitores', { ...cannon, user_id: user.id });
     
     if (!result.success) {
       throw new Error('Falha ao salvar canhão monitor');
@@ -135,9 +141,19 @@ export async function saveCannonMonitorInspection(
  */
 export async function getAllCannonMonitors(): Promise<CannonMonitor[]> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar canhões monitores', 'equipment');
+      return [];
+    }
+
+    // Busca canhões monitores APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inventario_canhoes_monitores')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_equipamento');
 
     if (error) throw error;

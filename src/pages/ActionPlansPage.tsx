@@ -10,6 +10,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../components/ui/spinner';
+import LoadingScreen from '../components/LoadingScreen';
 import { logger } from '../utils/logger';
 import { getActionPlanStatus, classifyActionPlanPriority, getActionPlanStatusMessage, type ActionPlanPriority } from '../utils/actionPlanUtils';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -405,7 +406,7 @@ const ActionPlansPage = () => {
         <PageHeader title={{ key: 'actionPlans.title', defaultValue: 'Planos de Ação' }} />
         <main className="p-4">
           <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="blue" />
+            <LoadingScreen size="lg" color="blue" />
           </div>
         </main>
       </div>

@@ -82,13 +82,59 @@ export async function optimizeExistingImage(
       };
     }
 
-    // Atualiza o registro no banco
-    const { error: updateError } = await supabase
+    // Obtém o ID do usuário autenticado para garantir isolamento
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      return {
+        success: false,
+        error: 'Usuário não autenticado',
+      };
+    }
+
+    // Verifica se o registro pertence ao usuário antes de atualizar
+    // Primeiro busca o registro para verificar user_id
+    const { data: existingRecord, error: checkError } = await supabase
+      .from(record.table)
+      .select('id, user_id')
+      .eq('id', record.id)
+      .maybeSingle();
+
+    if (checkError) {
+      return {
+        success: false,
+        error: checkError.message,
+      };
+    }
+
+    if (!existingRecord) {
+      return {
+        success: false,
+        error: 'Registro não encontrado',
+      };
+    }
+
+    // Se o registro tem user_id, verifica se pertence ao usuário autenticado
+    if (existingRecord.user_id && existingRecord.user_id !== user.id) {
+      return {
+        success: false,
+        error: 'Você não tem permissão para atualizar este registro',
+      };
+    }
+
+    // Atualiza o registro no banco (com filtro user_id se a tabela tiver essa coluna)
+    let updateQuery = supabase
       .from(record.table)
       .update({
         [record.column]: optimizedUrl,
       })
       .eq('id', record.id);
+
+    // Se o registro tem user_id, adiciona filtro para garantir isolamento
+    if (existingRecord.user_id) {
+      updateQuery = updateQuery.eq('user_id', user.id);
+    }
+
+    const { error: updateError } = await updateQuery;
 
     if (updateError) {
       return {
@@ -126,12 +172,20 @@ export async function optimizeExistingImage(
           .single();
 
         if (tableInfo && thumbnailColumn in tableInfo) {
-          await supabase
+          // Atualiza thumbnail com filtro user_id se aplicável
+          let thumbnailUpdateQuery = supabase
             .from(record.table)
             .update({
               [thumbnailColumn]: thumbnailUrl,
             })
             .eq('id', record.id);
+
+          // Se o registro tem user_id, adiciona filtro
+          if (existingRecord?.user_id) {
+            thumbnailUpdateQuery = thumbnailUpdateQuery.eq('user_id', user.id);
+          }
+
+          await thumbnailUpdateQuery;
         }
       } catch (thumbError) {
         logger.warn('Erro ao criar thumbnail', 'storage', thumbError);
@@ -178,11 +232,24 @@ export async function optimizeTableImages(
   let totalSizeReduction = 0;
 
   try {
-    // Busca todos os registros com imagens
-    const { data, error } = await supabase
+    // Obtém o ID do usuário autenticado para filtrar apenas registros do usuário
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Busca todos os registros com imagens APENAS do usuário autenticado
+    let query = supabase
       .from(table)
-      .select(`id, ${column}`)
+      .select(`id, ${column}, user_id`)
       .not(column, 'is', null);
+
+    // Adiciona filtro user_id se a tabela tiver essa coluna
+    // Nota: Algumas tabelas podem não ter user_id (como system_settings)
+    // Nesse caso, o RLS do banco deve garantir o isolamento
+    query = query.eq('user_id', user.id);
+
+    const { data, error } = await query;
 
     if (error) {
       throw error;

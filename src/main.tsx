@@ -56,7 +56,7 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <HashRouter>
+    <HashRouter future={{ v7_relativeSplatPath: true }}>
       <AuthProvider>
         <EquipmentCacheProvider>
           <ToastProvider>

@@ -4,7 +4,7 @@ import { Icon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { Spinner } from '../components/ui/spinner';
+import LoadingScreen from '../components/LoadingScreen';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from '../hooks/useTranslation';
 import { 
@@ -238,11 +238,11 @@ const EquipmentMap = () => {
 
   if (loading) {
     return (
-      <main className="min-h-screen pb-32 bg-light-background dark:bg-dark-background">
-        <div className="flex items-center justify-center h-screen">
-          <Spinner size="xl" color="blue" />
-        </div>
-      </main>
+      <LoadingScreen 
+        fullScreen={true} 
+        size="xl" 
+        color="blue"
+      />
     );
   }
 

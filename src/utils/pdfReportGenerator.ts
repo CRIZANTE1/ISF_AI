@@ -170,41 +170,124 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.BLACK);
-  doc.text('1. DADOS DO EQUIPAMENTO', PAGE_MARGINS.LEFT, yPos);
-  yPos += 8;
+  doc.text('1. DETALHES DO EQUIPAMENTO', PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   
+  // ID do Equipamento (sempre presente)
+  const equipmentId = equipment.id || equipment.name || equipment.numero_identificacao || 
+                      equipment.id_equipamento || equipment.id_mangueira || 
+                      equipment.id_camara || equipment.id_sistema || equipment.id_abrigo ||
+                      equipment.numero_serie_equipamento || 'N/A';
+  doc.text(`ID: ${equipmentId}`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 7;
+
   const equipmentType = getEquipmentTypeName(equipment.type);
   doc.text(`Tipo: ${equipmentType}`, PAGE_MARGINS.LEFT, yPos);
-  yPos += 6;
+  yPos += 7;
 
-  doc.text(`Identificação: ${equipment.name}`, PAGE_MARGINS.LEFT, yPos);
-  yPos += 6;
-
-  if (equipment.location) {
-    doc.text(`Localização: ${equipment.location}`, PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
-  }
-
-  // Informações adicionais específicas por tipo
-  if (equipment.type === 'extintor') {
+  // Informações específicas por tipo de equipamento
+  if (equipment.type === 'multigas') {
+    if (equipment.marca) {
+      doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.modelo) {
+      doc.text(`Modelo: ${equipment.modelo}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_serie) {
+      doc.text(`Nº de Série: ${equipment.numero_serie}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.data_cadastro) {
+      doc.text(`Data de Cadastro: ${formatDateShort(equipment.data_cadastro)}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.margem_erro_cilindro !== undefined && equipment.margem_erro_cilindro !== null) {
+      doc.text(`Margem de Erro: ${equipment.margem_erro_cilindro}%`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+  } else if (equipment.type === 'extintor') {
+    if (equipment.marca_fabricante) {
+      doc.text(`Marca: ${equipment.marca_fabricante}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
     if (equipment.tipo_agente) {
       doc.text(`Agente Extintor: ${equipment.tipo_agente}`, PAGE_MARGINS.LEFT, yPos);
-      yPos += 6;
+      yPos += 7;
     }
     if (equipment.capacidade) {
       doc.text(`Capacidade: ${equipment.capacidade} kg`, PAGE_MARGINS.LEFT, yPos);
-      yPos += 6;
+      yPos += 7;
     }
     if (equipment.numero_selo_inmetro) {
       doc.text(`Selo Inmetro: ${equipment.numero_selo_inmetro}`, PAGE_MARGINS.LEFT, yPos);
-      yPos += 6;
+      yPos += 7;
+    }
+    if (equipment.ano_fabricacao) {
+      doc.text(`Ano de Fabricação: ${equipment.ano_fabricacao}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+  } else if (equipment.type === 'scba') {
+    if (equipment.marca) {
+      doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.modelo) {
+      doc.text(`Modelo: ${equipment.modelo}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_serie_mascara) {
+      doc.text(`Nº de Série da Máscara: ${equipment.numero_serie_mascara}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+  } else if (equipment.type === 'mangueira') {
+    if (equipment.marca) {
+      doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.diametro) {
+      doc.text(`Diâmetro: ${equipment.diametro} mm`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.comprimento) {
+      doc.text(`Comprimento: ${equipment.comprimento} m`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.ano_fabricacao) {
+      doc.text(`Ano de Fabricação: ${equipment.ano_fabricacao}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+  } else {
+    // Para outros tipos (chuveiro_lavaolhos, camara_espuma, canhao_monitor, alarme, abrigo)
+    if (equipment.marca) {
+      doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.modelo) {
+      doc.text(`Modelo: ${equipment.modelo}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_serie) {
+      doc.text(`Nº de Série: ${equipment.numero_serie}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.data_cadastro) {
+      doc.text(`Data de Cadastro: ${formatDateShort(equipment.data_cadastro)}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
     }
   }
 
-  yPos += 5;
+  if (equipment.location || equipment.localizacao || equipment.local) {
+    const location = equipment.location || equipment.localizacao || equipment.local;
+    doc.text(`Localização: ${location}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+  }
+
+  yPos += 8; // Espaço extra antes da próxima seção
   return yPos;
 }
 
@@ -216,40 +299,40 @@ function addInspectionInfo(doc: jsPDF, yPos: number, inspection: InspectionData)
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.BLACK);
   doc.text('2. DADOS DA INSPEÇÃO', PAGE_MARGINS.LEFT, yPos);
-  yPos += 8;
+  yPos += 10;
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
 
   if (inspection.data_inspecao) {
     doc.text(`Data da Inspeção: ${formatDate(inspection.data_inspecao)}`, PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
   }
 
   if (inspection.tipo_servico || inspection.tipo_inspecao) {
     doc.text(`Tipo de Serviço: ${inspection.tipo_servico || inspection.tipo_inspecao}`, PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
   }
 
   if (inspection.inspetor) {
     doc.text(`Inspetor Responsável: ${inspection.inspetor}`, PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
   }
 
   if (inspection.status_geral) {
     doc.setFont('helvetica', 'bold');
     const statusText = `Status: ${inspection.status_geral.toUpperCase()}`;
     doc.text(statusText, PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
     doc.setFont('helvetica', 'normal');
   }
 
   if (inspection.data_proxima_inspecao) {
     doc.text(`Próxima Inspeção: ${formatDate(inspection.data_proxima_inspecao)}`, PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
   }
 
-  yPos += 5;
+  yPos += 8; // Espaço extra antes da próxima seção
   return yPos;
 }
 
@@ -316,7 +399,7 @@ function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.BLACK);
     doc.text('4. OBSERVAÇÕES E PLANO DE AÇÃO', PAGE_MARGINS.LEFT, yPos);
-    yPos += 8;
+    yPos += 10;
     hasContent = true;
   }
 
@@ -324,27 +407,27 @@ function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Observações Gerais:', PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
 
     doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(inspection.observacoes_gerais, CONTENT_WIDTH);
     doc.text(lines, PAGE_MARGINS.LEFT, yPos);
-    yPos += lines.length * 5 + 5;
+    yPos += lines.length * 6 + 8;
   }
 
   if (inspection.plano_de_acao) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
-    yPos += 6;
+    yPos += 7;
 
     doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(inspection.plano_de_acao, CONTENT_WIDTH);
     doc.text(lines, PAGE_MARGINS.LEFT, yPos);
-    yPos += lines.length * 5 + 5;
+    yPos += lines.length * 6 + 8;
   }
 
-  return hasContent ? yPos : yPos - 8;
+  return hasContent ? yPos : yPos - 10;
 }
 
 /**
@@ -500,6 +583,196 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
   yPos = addSignature(doc, yPos, data.responsibleName);
 
   // Gera o blob do PDF
+  const pdfBlob = doc.output('blob');
+  return pdfBlob;
+}
+
+export interface MultipleInspectionReportData {
+  equipment: EquipmentData;
+  inspections: InspectionData[];
+  companyName?: string;
+  responsibleName?: string;
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+}
+
+/**
+ * Gera relatório de múltiplas inspeções de um equipamento
+ */
+export async function generateMultipleInspectionReport(
+  data: MultipleInspectionReportData
+): Promise<Blob> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  let yPos = PAGE_MARGINS.TOP;
+
+  // Cabeçalho
+  yPos = addHeader(doc, data.companyName);
+
+  // Informações do equipamento (completo)
+  yPos = addEquipmentInfo(doc, yPos, data.equipment);
+
+  // Verifica se precisa de nova página
+  if (yPos > PAGE_HEIGHT - 100) {
+    doc.addPage();
+    yPos = PAGE_MARGINS.TOP;
+  }
+
+  // Informações do intervalo de datas (se fornecido)
+  if (data.dateRange) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.BLACK);
+    doc.text('PERÍODO DE INSPEÇÕES', PAGE_MARGINS.LEFT, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`De: ${formatDate(data.dateRange.start)}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+    doc.text(`Até: ${formatDate(data.dateRange.end)}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 10;
+  }
+
+  // Lista de inspeções
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text(`INSPEÇÕES (${data.inspections.length})`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
+
+  // Processa cada inspeção
+  for (let i = 0; i < data.inspections.length; i++) {
+    const inspection = data.inspections[i];
+
+    // Verifica se precisa de nova página
+    if (yPos > PAGE_HEIGHT - 150) {
+      doc.addPage();
+      yPos = PAGE_MARGINS.TOP;
+    }
+
+    // Título da inspeção
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Inspeção ${i + 1} de ${data.inspections.length}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 8;
+
+    // Dados da inspeção
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    if (inspection.data_inspecao) {
+      doc.text(`Data: ${formatDate(inspection.data_inspecao)}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+
+    if (inspection.tipo_servico || inspection.tipo_inspecao) {
+      doc.text(`Tipo: ${inspection.tipo_servico || inspection.tipo_inspecao}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+
+    if (inspection.status_geral) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Status: ${inspection.status_geral.toUpperCase()}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+      doc.setFont('helvetica', 'normal');
+    }
+
+    if (inspection.inspetor) {
+      doc.text(`Inspetor: ${inspection.inspetor}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+
+    if (inspection.observacoes_gerais) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Observações:', PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+      doc.setFont('helvetica', 'normal');
+      const obsLines = doc.splitTextToSize(inspection.observacoes_gerais, CONTENT_WIDTH);
+      doc.text(obsLines, PAGE_MARGINS.LEFT, yPos);
+      yPos += obsLines.length * 6 + 8;
+    }
+
+    if (inspection.plano_de_acao) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+      doc.setFont('helvetica', 'normal');
+      const planoLines = doc.splitTextToSize(inspection.plano_de_acao, CONTENT_WIDTH);
+      doc.text(planoLines, PAGE_MARGINS.LEFT, yPos);
+      yPos += planoLines.length * 6 + 8;
+    }
+
+    // Resultados do checklist (se houver)
+    if (inspection.resultados_json && Object.keys(inspection.resultados_json).length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Resultados:', PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+      doc.setFont('helvetica', 'normal');
+      
+      const tableData: string[][] = [];
+      for (const [key, value] of Object.entries(inspection.resultados_json)) {
+        const status = value === true || value === 'sim' || value === 'Sim' ? 'Conforme' : 
+                       value === false || value === 'não' || value === 'Não' ? 'Não Conforme' : 
+                       String(value);
+        tableData.push([key, status]);
+      }
+
+      if (tableData.length > 0) {
+        doc.autoTable({
+          startY: yPos,
+          head: [['Item', 'Status']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [0, 0, 0],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+          },
+          bodyStyles: {
+            textColor: [0, 0, 0],
+          },
+          alternateRowStyles: {
+            fillColor: [224, 224, 224],
+          },
+          margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+          },
+        });
+        yPos = (doc as any).lastAutoTable.finalY + 5;
+      }
+    }
+
+    // Foto (se houver)
+    if (inspection.link_foto_nao_conformidade) {
+      if (yPos > PAGE_HEIGHT - 100) {
+        doc.addPage();
+        yPos = PAGE_MARGINS.TOP;
+      }
+      yPos = await addPhoto(doc, yPos, inspection.link_foto_nao_conformidade);
+    }
+
+    // Linha separadora entre inspeções
+    if (i < data.inspections.length - 1) {
+      yPos += 5;
+      doc.setDrawColor(COLORS.LIGHT_GRAY);
+      doc.setLineWidth(0.3);
+      doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + CONTENT_WIDTH, yPos);
+      yPos += 10;
+    }
+  }
+
+  // Assinatura final
+  yPos = addSignature(doc, yPos, data.responsibleName);
+
   const pdfBlob = doc.output('blob');
   return pdfBlob;
 }

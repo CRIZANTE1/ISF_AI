@@ -297,10 +297,19 @@ export function daysUntilExpiration(dateStr: string | null | undefined): number 
  */
 export async function getAllExtinguishers(): Promise<Extinguisher[]> {
   try {
-    // Busca cadastros de extintores
+    // Obtém o ID do usuário autenticado primeiro
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar extintores', 'equipment');
+      return [];
+    }
+
+    // Busca cadastros de extintores APENAS do usuário autenticado
     const { data: extinguishers, error: extError } = await supabase
       .from('extintores')
       .select('*')
+      .eq('user_id', user.id)
       .order('numero_identificacao');
 
     if (extError) {
@@ -314,13 +323,6 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
 
     // Tenta buscar última inspeção de cada extintor para obter as datas atualizadas
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user?.id) {
-        // Se não conseguir obter usuário, retorna apenas os cadastros
-        logger.warn('Usuário não autenticado ao buscar inspeções de extintores', 'equipment');
-        return extinguishers as Extinguisher[];
-      }
 
       // Busca última inspeção de cada extintor
       // Como o Supabase não suporta DISTINCT ON diretamente, vamos buscar todas e agrupar
@@ -404,10 +406,20 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
  */
 export async function getExtinguisherById(numeroIdentificacao: string): Promise<Extinguisher | null> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar extintor', 'equipment');
+      return null;
+    }
+
+    // Busca extintor APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('extintores')
       .select('*')
       .eq('numero_identificacao', numeroIdentificacao)
+      .eq('user_id', user.id)
       .limit(1)
       .maybeSingle();
 
@@ -424,19 +436,27 @@ export async function getExtinguisherById(numeroIdentificacao: string): Promise<
  */
 export async function getLastExtinguisherInspection(numeroIdentificacao: string, userId?: string): Promise<Extinguisher | null> {
   try {
-    let query = supabase
+    // Obtém o ID do usuário autenticado se não foi fornecido
+    let authenticatedUserId = userId;
+    if (!authenticatedUserId) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user?.id) {
+        logger.warn('Usuário não autenticado ao buscar inspeção de extintor', 'equipment');
+        return null;
+      }
+      authenticatedUserId = user.id;
+    }
+
+    // Sempre filtra por user_id para garantir isolamento
+    const { data, error } = await supabase
       .from('inspecoes_extintores' as any)
       .select('*')
       .eq('numero_identificacao', numeroIdentificacao)
+      .eq('user_id', authenticatedUserId)
       .order('data_servico', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(1);
-    
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data, error } = await query.maybeSingle();
+      .limit(1)
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') throw error;
     return (data as any) || null;
@@ -453,11 +473,19 @@ export async function saveNewExtinguisher(
   extinguisher: Omit<Extinguisher, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
-    // Verifica se já existe
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verifica se já existe APENAS para este usuário
     const { data: existing, error: checkError } = await supabase
       .from('extintores')
       .select('numero_identificacao')
       .eq('numero_identificacao', extinguisher.numero_identificacao)
+      .eq('user_id', user.id)
       .limit(1)
       .maybeSingle();
 
@@ -585,10 +613,18 @@ export async function saveExtinguisherInspection(
           data_servico: inspection.data_servico
         });
 
+        // Obtém o ID do usuário autenticado para garantir isolamento
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser?.id) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        // Atualiza APENAS inspeções do usuário autenticado
         const { error: updateError } = await supabase
           .from('inspecoes_extintores' as any)
           .update(inspectionData)
-          .eq('id', (existing as any).id);
+          .eq('id', (existing as any).id)
+          .eq('user_id', authUser.id);
 
         if (updateError) {
           throw updateError;
@@ -648,6 +684,27 @@ export async function registerExtinguisherDisposal(
   linkFoto?: string
 ): Promise<boolean> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verifica se o extintor pertence ao usuário antes de registrar baixa
+    const { data: extinguisher, error: checkError } = await supabase
+      .from('extintores')
+      .select('id')
+      .eq('numero_identificacao', numeroIdentificacao)
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+    if (!extinguisher) {
+      throw new Error('Extintor não encontrado ou não pertence ao usuário autenticado');
+    }
+
     // Salva no log de baixa
     const { error: logError } = await supabase
       .from('log_baixa_extintores')
@@ -659,21 +716,23 @@ export async function registerExtinguisherDisposal(
         observacoes: observacoes || null,
         link_foto_evidencia: linkFoto || null,
         data_baixa: new Date().toISOString().split('T')[0],
+        user_id: user.id,
       });
 
     if (logError) throw logError;
 
-    // Marca o equipamento como baixado
+    // Marca o equipamento como baixado (atualiza o registro existente)
     const { error: updateError } = await supabase
       .from('extintores')
-      .insert({
-        numero_identificacao: numeroIdentificacao,
+      .update({
         tipo_servico: 'Baixa Definitiva',
         data_servico: new Date().toISOString().split('T')[0],
         aprovado_inspecao: 'N/A',
         observacoes_gerais: `EQUIPAMENTO BAIXADO - ${motivoCondenacao}`,
         plano_de_acao: `BAIXADO DEFINITIVAMENTE - SUBSTITUTO: ${numeroSubstituto || 'AGUARDANDO'}`,
-      });
+      })
+      .eq('id', extinguisher.id)
+      .eq('user_id', user.id);
 
     if (updateError) throw updateError;
     return true;

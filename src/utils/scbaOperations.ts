@@ -43,11 +43,19 @@ export interface SCBAInspection {
  */
 export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promise<boolean> {
   try {
-    // Verifica se já existe
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verifica se já existe APENAS para este usuário
     const { data: existing, error: checkError } = await supabase
       .from('conjuntos_autonomos')
       .select('numero_serie_equipamento')
       .eq('numero_serie_equipamento', scba.numero_serie_equipamento)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -88,10 +96,19 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
  */
 export async function getAllSCBAs(): Promise<SCBA[]> {
   try {
-    // Busca cadastros de SCBAs
+    // Obtém o ID do usuário autenticado primeiro
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar SCBAs', 'equipment');
+      return [];
+    }
+
+    // Busca cadastros de SCBAs APENAS do usuário autenticado
     const { data: scbas, error: scbaError } = await supabase
       .from('conjuntos_autonomos')
       .select('*')
+      .eq('user_id', user.id)
       .order('numero_serie_equipamento');
 
     if (scbaError) throw scbaError;
@@ -99,11 +116,6 @@ export async function getAllSCBAs(): Promise<SCBA[]> {
 
     // Busca última inspeção de cada SCBA
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user?.id) {
-        return scbas as SCBA[];
-      }
 
       const { data: allInspections, error: inspError } = await supabase
         .from('inspecoes_scba' as any)
@@ -162,10 +174,20 @@ export async function getAllSCBAs(): Promise<SCBA[]> {
  */
 export async function getSCBABySerial(serialNumber: string): Promise<SCBA | null> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar SCBA', 'equipment');
+      return null;
+    }
+
+    // Busca SCBA APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('conjuntos_autonomos')
       .select('*')
       .eq('numero_serie_equipamento', serialNumber)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se não encontrou (PGRST116), retorna null (comportamento esperado)
@@ -216,10 +238,20 @@ export async function saveSCBAVisualInspection(
  */
 export async function getSCBAInspections(serialNumber: string): Promise<SCBAInspection[]> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar inspeções SCBA', 'equipment');
+      return [];
+    }
+
+    // Busca inspeções APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inspecoes_scba')
       .select('*')
       .eq('numero_serie_equipamento', serialNumber)
+      .eq('user_id', user.id)
       .order('data_inspecao', { ascending: false });
 
     if (error) throw error;

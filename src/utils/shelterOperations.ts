@@ -39,10 +39,19 @@ export async function saveNewShelter(
   shelter: Omit<Shelter, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verifica se já existe APENAS para este usuário
     const { data: existing, error: checkError } = await supabase
       .from('abrigos')
       .select('id_abrigo')
       .eq('id_abrigo', shelter.id_abrigo)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -54,11 +63,13 @@ export async function saveNewShelter(
       throw new Error(`Abrigo com ID '${shelter.id_abrigo}' já existe.`);
     }
 
-    const { error } = await supabase
-      .from('abrigos')
-      .insert(shelter);
-
-    if (error) throw error;
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('abrigos', { ...shelter, user_id: user.id });
+    
+    if (!result.success) {
+      throw new Error('Falha ao salvar abrigo');
+    }
     
     // Log action
     try {
@@ -113,9 +124,19 @@ export async function saveShelterInspection(
  */
 export async function getAllShelters(): Promise<Shelter[]> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar abrigos', 'equipment');
+      return [];
+    }
+
+    // Busca abrigos APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('abrigos')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_abrigo');
 
     if (error) throw error;

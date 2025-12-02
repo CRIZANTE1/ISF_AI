@@ -70,10 +70,16 @@ export async function saveNewEyewashStation(
   station: Omit<EyewashStation, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
     const { data: existing, error: checkError } = await supabase
       .from('inventario_chuveiros_lava_olhos')
       .select('id_equipamento')
       .eq('id_equipamento', station.id_equipamento)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -87,7 +93,7 @@ export async function saveNewEyewashStation(
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inventario_chuveiros_lava_olhos', station);
+    const result = await offlineInsert('inventario_chuveiros_lava_olhos', { ...station, user_id: user.id });
     
     if (!result.success) {
       throw new Error('Falha ao salvar chuveiro/lava-olhos');
@@ -161,9 +167,19 @@ export async function saveEyewashInspection(
  */
 export async function getAllEyewashStations(): Promise<EyewashStation[]> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar chuveiros/lava-olhos', 'equipment');
+      return [];
+    }
+
+    // Busca chuveiros/lava-olhos APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inventario_chuveiros_lava_olhos')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_equipamento');
 
     if (error) throw error;

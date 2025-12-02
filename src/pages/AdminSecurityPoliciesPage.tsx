@@ -28,7 +28,6 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
-import { useTranslation } from '../hooks/useTranslation';
 import { logger } from '../utils/logger';
 
 const AdminSecurityPoliciesPage = () => {

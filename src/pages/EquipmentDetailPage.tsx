@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
-import Skeleton from '../components/Skeleton';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Spinner } from '../components/ui/spinner';
 import { useErrorHandler } from '../hooks/useErrorHandler';
@@ -14,11 +13,11 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { Trash2, Edit, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
-import { getExtinguisherById, getLastExtinguisherInspection } from '../utils/extinguisherOperations';
+import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
 import { getMultigasDetectorById } from '../utils/multigasOperations';
-import { generateInspectionReport, savePdfToDevice, type InspectionData, type EquipmentData } from '../utils/pdfReportGenerator';
+import { generateInspectionReport, generateMultipleInspectionReport, savePdfToDevice, type InspectionData, type EquipmentData } from '../utils/pdfReportGenerator';
 
 type EquipmentInfo = {
   id: string;
@@ -30,12 +29,12 @@ type EquipmentInfo = {
 type InspectionInfo = {
   id: number;
   data_inspecao: string;
-  status_geral?: string;
+  status_geral?: string | null;
   status?: string;
   notes?: string;
-  observacoes_gerais?: string;
-  plano_de_acao?: string;
-  link_foto_nao_conformidade?: string;
+  observacoes_gerais?: string | null;
+  plano_de_acao?: string | null;
+  link_foto_nao_conformidade?: string | null;
 };
 
 const EquipmentDetailPage = () => {
@@ -56,6 +55,12 @@ const EquipmentDetailPage = () => {
 
   // State for PDF generation
   const [generatingPdf, setGeneratingPdf] = useState<number | null>(null);
+  
+  // State for multiple inspection report
+  const [showMultipleReportModal, setShowMultipleReportModal] = useState(false);
+  const [selectedInspections, setSelectedInspections] = useState<Set<number>>(new Set());
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+  const [generatingMultiplePdf, setGeneratingMultiplePdf] = useState(false);
 
   const fetchDetails = async () => {
     if (!id || !type) return;
@@ -96,17 +101,17 @@ const EquipmentDetailPage = () => {
                 .limit(1)
                 .maybeSingle();
               
-              if (lastMaintenance?.numero_selo_inmetro) {
-                numeroSeloInmetro = lastMaintenance.numero_selo_inmetro;
+              if (lastMaintenance && (lastMaintenance as any).numero_selo_inmetro) {
+                numeroSeloInmetro = (lastMaintenance as any).numero_selo_inmetro;
               }
             }
             
             equipmentData = {
+              ...extData,
               id: extData.numero_identificacao,
               name: extData.numero_identificacao,
               location: extData.local_id || undefined,
               numero_selo_inmetro: numeroSeloInmetro, // Selo vem da última manutenção
-              ...extData,
             };
             
             // Buscar inspeções de extintores da nova tabela
@@ -127,7 +132,7 @@ const EquipmentDetailPage = () => {
                   aprovado: insp.aprovado_inspecao,
                   observacoes: insp.observacoes_gerais,
                   plano_acao: insp.plano_de_acao,
-                  link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                  link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
                 }));
               }
             }
@@ -154,10 +159,10 @@ const EquipmentDetailPage = () => {
               inspectionsData = data.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
-                observacoes_gerais: insp.plano_de_acao,
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                status_geral: insp.status_geral || undefined,
+                observacoes_gerais: insp.plano_de_acao || undefined,
+                plano_de_acao: insp.plano_de_acao || undefined,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
               }));
             }
           }
@@ -183,9 +188,9 @@ const EquipmentDetailPage = () => {
               inspectionsData = data.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                status_geral: insp.status_geral || undefined,
+                plano_de_acao: insp.plano_de_acao || undefined,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
               }));
             }
           }
@@ -211,9 +216,9 @@ const EquipmentDetailPage = () => {
               inspectionsData = data.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                status_geral: insp.status_geral || undefined,
+                plano_de_acao: insp.plano_de_acao || undefined,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
               }));
             }
           }
@@ -239,9 +244,9 @@ const EquipmentDetailPage = () => {
               inspectionsData = data.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                status_geral: insp.status_geral || undefined,
+                plano_de_acao: insp.plano_de_acao || undefined,
+                link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
               }));
             }
           }
@@ -252,10 +257,10 @@ const EquipmentDetailPage = () => {
           const scba = await getSCBABySerial(id);
           if (scba) {
             equipmentData = {
-              id: scba.numero_serie_equipamento,
-              name: scba.numero_serie_equipamento,
-              location: undefined, // conjuntos_autonomos não tem coluna localizacao
               ...scba,
+              id: String(scba.numero_serie_equipamento),
+              name: String(scba.numero_serie_equipamento),
+              location: undefined, // conjuntos_autonomos não tem coluna localizacao
             };
             const { data: inspData, error: inspError } = await supabase
               .from('inspecoes_scba')
@@ -266,9 +271,9 @@ const EquipmentDetailPage = () => {
               inspectionsData = inspData.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                status_geral: insp.status_geral || undefined,
+                plano_de_acao: insp.plano_de_acao || undefined,
+                link_foto_nao_conformidade: (insp as any).link_foto_nao_conformidade || undefined,
               }));
             }
           } else {
@@ -283,10 +288,10 @@ const EquipmentDetailPage = () => {
             if (detector) {
               
               equipmentData = {
-                id: detector.id_equipamento,
-                name: detector.id_equipamento,
-                location: undefined, // inventario_multigas não tem coluna localizacao
                 ...detector,
+                id: String(detector.id_equipamento),
+                name: String(detector.id_equipamento),
+                location: undefined, // inventario_multigas não tem coluna localizacao
               };
               const { data: inspData, error: inspError } = await supabase
                 .from('inspecoes_multigas')
@@ -297,13 +302,12 @@ const EquipmentDetailPage = () => {
                 inspectionsData = inspData.map(insp => ({
                   id: insp.id || 0,
                   data_inspecao: insp.data_teste || '',
-                  status_geral: insp.resultado_teste || '',
-                  plano_de_acao: insp.plano_de_acao,
-                  link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                  status_geral: insp.resultado_teste || undefined,
+                  plano_de_acao: insp.plano_de_acao || undefined,
+                  link_foto_nao_conformidade: (insp as any).link_foto_nao_conformidade || undefined,
                 }));
               }
             } else {
-              const errorMsg = `Multigas não encontrado: ${id}`;
               logger.warn('Multigas não encontrado', 'equipment', { id });
             }
           } catch (permError: any) {
@@ -316,14 +320,10 @@ const EquipmentDetailPage = () => {
           }
           
           if (!equipmentData) {
-            const errorMsg = `Multigas não encontrado: ${id}`;
             logger.warn('Multigas não encontrado após tentativas', 'equipment', { id });
             
-            // Fallback: tentar buscar do cache
-            const allDetectors = getEquipmentByType('multigas');
-            
             // Tentar buscar diretamente via Supabase sem usar a função wrapper
-            const { data: directData, error: directError } = await supabase
+            const { data: directData } = await supabase
               .from('inventario_multigas')
               .select('*')
               .eq('id_equipamento', id)
@@ -331,10 +331,10 @@ const EquipmentDetailPage = () => {
             
             if (directData) {
               equipmentData = {
+                ...directData,
                 id: directData.id_equipamento,
                 name: directData.id_equipamento,
                 location: undefined,
-                ...directData,
               };
             }
           }
@@ -360,9 +360,9 @@ const EquipmentDetailPage = () => {
               inspectionsData = inspData.map(insp => ({
                 id: insp.id || 0,
                 data_inspecao: insp.data_inspecao || '',
-                status_geral: insp.status_geral,
-                plano_de_acao: insp.plano_de_acao,
-                link_foto_nao_conformidade: insp.link_foto_nao_conformidade,
+                status_geral: insp.status_geral || undefined,
+                plano_de_acao: insp.plano_de_acao || undefined,
+                link_foto_nao_conformidade: (insp as any).link_foto_nao_conformidade || undefined,
               }));
             }
           } else {
@@ -379,10 +379,10 @@ const EquipmentDetailPage = () => {
           const hose = await getHoseById(id);
           if (hose) {
             equipmentData = {
+              ...hose,
               id: hose.id_mangueira,
               name: hose.id_mangueira,
-              location: hose.localizacao,
-              ...hose,
+              location: (hose as any).localizacao || undefined,
             };
             inspectionsData = [];
           }
@@ -397,7 +397,6 @@ const EquipmentDetailPage = () => {
         setInspections(inspectionsData);
       }
     } catch (err: any) {
-      const errorMsg = `Falha ao buscar detalhes do equipamento: ${err?.message || JSON.stringify(err)}`;
       handleError(err, 'equipment', 'Falha ao buscar detalhes do equipamento');
     } finally {
       setLoading(false);
@@ -527,58 +526,53 @@ const EquipmentDetailPage = () => {
     return 'bg-gray-200 dark:bg-gray-700';
   };
 
+  const getInspectionTableName = (): string => {
+    switch (type) {
+      case 'extintor':
+        return 'inspecoes_extintores';
+      case 'chuveiro_lavaolhos':
+        return 'inspecoes_chuveiros_lava_olhos';
+      case 'camara_espuma':
+        return 'inspecoes_camaras_espuma';
+      case 'alarme':
+        return 'inspecoes_alarmes';
+      case 'canhao_monitor':
+        return 'inspecoes_canhoes_monitores';
+      case 'scba':
+        return 'inspecoes_scba';
+      case 'multigas':
+        return 'inspecoes_multigas';
+      case 'abrigo':
+        return 'inspecoes_abrigos';
+      case 'mangueira':
+        return 'inspecoes_mangueiras';
+      default:
+        return '';
+    }
+  };
+
+  const fetchInspectionData = async (inspectionId: number): Promise<any> => {
+    const tableName = getInspectionTableName();
+    if (!tableName || !user) return null;
+
+    const { data, error } = await supabase
+      .from(tableName as any)
+      .select('*')
+      .eq('id', inspectionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  };
+
   const handleGenerateReport = async (inspectionId: number) => {
     if (!equipment || !type || !user) return;
     
     setGeneratingPdf(inspectionId);
     
     try {
-      // Buscar dados completos da inspeção
-      let inspectionData: any = null;
-      let tableName = '';
-
-      switch (type) {
-        case 'extintor':
-          tableName = 'inspecoes_extintores';
-          break;
-        case 'chuveiro_lavaolhos':
-          tableName = 'inspecoes_chuveiros_lava_olhos';
-          break;
-        case 'camara_espuma':
-          tableName = 'inspecoes_camaras_espuma';
-          break;
-        case 'alarme':
-          tableName = 'inspecoes_alarmes';
-          break;
-        case 'canhao_monitor':
-          tableName = 'inspecoes_canhoes_monitores';
-          break;
-        case 'scba':
-          tableName = 'inspecoes_scba';
-          break;
-        case 'multigas':
-          tableName = 'inspecoes_multigas';
-          break;
-        case 'abrigo':
-          tableName = 'inspecoes_abrigos';
-          break;
-        case 'mangueira':
-          tableName = 'inspecoes_mangueiras';
-          break;
-      }
-
-      if (tableName) {
-        const { data, error } = await supabase
-          .from(tableName as any)
-          .select('*')
-          .eq('id', inspectionId)
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) throw error;
-        inspectionData = data;
-      }
-
+      const inspectionData = await fetchInspectionData(inspectionId);
       if (!inspectionData) {
         throw new Error('Inspeção não encontrada');
       }
@@ -593,11 +587,11 @@ const EquipmentDetailPage = () => {
       // Preparar dados para o relatório
       const reportData = {
         equipment: {
+          ...equipment,
           id: equipment.id,
           name: equipment.name,
           type: type,
           location: equipment.location,
-          ...equipment,
         } as EquipmentData,
         inspection: {
           id: inspectionData.id,
@@ -627,12 +621,119 @@ const EquipmentDetailPage = () => {
       await savePdfToDevice(pdfBlob, filename);
 
       // Mostrar mensagem de sucesso
-      handleError(null, 'success', 'Relatório gerado com sucesso!');
+      handleError(null, 'equipment', 'Relatório gerado com sucesso!');
     } catch (error) {
-      logger.error('Erro ao gerar relatório PDF', 'pdf', { error, inspectionId });
-      handleError(error, 'pdf', 'Erro ao gerar relatório. Tente novamente.');
+      logger.error('Erro ao gerar relatório PDF', 'equipment', { error, inspectionId });
+      handleError(error, 'equipment', 'Erro ao gerar relatório. Tente novamente.');
     } finally {
       setGeneratingPdf(null);
+    }
+  };
+
+  const handleToggleInspection = (inspectionId: number) => {
+    const newSelected = new Set(selectedInspections);
+    if (newSelected.has(inspectionId)) {
+      newSelected.delete(inspectionId);
+    } else {
+      newSelected.add(inspectionId);
+    }
+    setSelectedInspections(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedInspections.size === inspections.length) {
+      setSelectedInspections(new Set());
+    } else {
+      setSelectedInspections(new Set(inspections.map(insp => insp.id)));
+    }
+  };
+
+  const handleGenerateMultipleReport = async () => {
+    if (!equipment || !type || !user || selectedInspections.size === 0) return;
+
+    setGeneratingMultiplePdf(true);
+
+    try {
+      // Buscar dados completos das inspeções selecionadas
+      const inspectionDataList: InspectionData[] = [];
+      
+      for (const inspectionId of selectedInspections) {
+        const inspectionData = await fetchInspectionData(inspectionId);
+        if (inspectionData) {
+          inspectionDataList.push({
+            id: inspectionData.id,
+            data_inspecao: inspectionData.data_inspecao || inspectionData.data_servico || inspectionData.data_teste || '',
+            status_geral: inspectionData.status_geral,
+            tipo_servico: inspectionData.tipo_servico,
+            tipo_inspecao: inspectionData.tipo_inspecao,
+            inspetor: inspectionData.inspetor || inspectionData.inspetor_responsavel,
+            observacoes_gerais: inspectionData.observacoes_gerais,
+            plano_de_acao: inspectionData.plano_de_acao,
+            link_foto_nao_conformidade: inspectionData.link_foto_nao_conformidade,
+            resultados_json: inspectionData.resultados_json,
+            latitude: inspectionData.latitude,
+            longitude: inspectionData.longitude,
+            data_proxima_inspecao: inspectionData.data_proxima_inspecao,
+          });
+        }
+      }
+
+      if (inspectionDataList.length === 0) {
+        throw new Error('Nenhuma inspeção válida selecionada');
+      }
+
+      // Ordenar por data
+      inspectionDataList.sort((a, b) => {
+        const dateA = new Date(a.data_inspecao).getTime();
+        const dateB = new Date(b.data_inspecao).getTime();
+        return dateA - dateB;
+      });
+
+      // Buscar perfil do usuário
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      // Preparar dados para o relatório
+      const reportData = {
+        equipment: {
+          ...equipment,
+          id: equipment.id,
+          name: equipment.name,
+          type: type,
+          location: equipment.location,
+        } as EquipmentData,
+        inspections: inspectionDataList,
+        companyName: undefined,
+        responsibleName: profile?.full_name || undefined,
+        dateRange: dateRange.start && dateRange.end ? {
+          start: dateRange.start,
+          end: dateRange.end,
+        } : undefined,
+      };
+
+      // Gerar PDF
+      const pdfBlob = await generateMultipleInspectionReport(reportData);
+
+      // Salvar/compartilhar PDF
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const filename = `Relatorio_Multiplas_Inspecoes_${equipment.name}_${dateStr}.pdf`;
+      await savePdfToDevice(pdfBlob, filename);
+
+      // Fechar modal e limpar seleção
+      setShowMultipleReportModal(false);
+      setSelectedInspections(new Set());
+      setDateRange({ start: '', end: '' });
+
+      // Mostrar mensagem de sucesso
+      handleError(null, 'equipment', 'Relatório de múltiplas inspeções gerado com sucesso!');
+    } catch (error) {
+      logger.error('Erro ao gerar relatório de múltiplas inspeções', 'equipment', { error });
+      handleError(error, 'equipment', 'Erro ao gerar relatório. Tente novamente.');
+    } finally {
+      setGeneratingMultiplePdf(false);
     }
   };
 
@@ -647,7 +748,7 @@ const EquipmentDetailPage = () => {
             <Link to={`/equipment/${type}/${id}/edit`} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-white transition-colors">
               <Edit size={20} />
             </Link>
-            <button onClick={() => handleDeleteClick('equipment', id)} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors">
+            <button onClick={() => id && handleDeleteClick('equipment', id)} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-status-error transition-colors">
               <Trash2 size={20} />
             </button>
           </div>
@@ -927,13 +1028,22 @@ const EquipmentDetailPage = () => {
               )}
             </div>
 
-            <div className="mb-6">
+            <div className="mb-6 flex gap-2">
               <Link
                 to={`/equipment/${type}/${id}/inspections/new`}
-                className="w-full text-center block p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 text-center block p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
               >
                 {t('inspection.add')}
               </Link>
+              {inspections.length > 0 && (
+                <button
+                  onClick={() => setShowMultipleReportModal(true)}
+                  className="px-4 p-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                  title="Gerar relatório de múltiplas inspeções"
+                >
+                  <FileText size={20} />
+                </button>
+              )}
             </div>
 
             <div>
@@ -962,18 +1072,20 @@ const EquipmentDetailPage = () => {
                               src={insp.link_foto_nao_conformidade}
                               alt="Foto de evidência"
                               className="w-full h-32 object-cover rounded-lg cursor-pointer"
-                              onClick={() => window.open(insp.link_foto_nao_conformidade, '_blank')}
+                              onClick={() => insp.link_foto_nao_conformidade && window.open(insp.link_foto_nao_conformidade, '_blank')}
                             />
-                            <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-white mt-1 block">
-                              {t('common.viewFullPhoto', { defaultValue: 'Ver foto completa' })}
-                            </a>
+                            {insp.link_foto_nao_conformidade && (
+                              <a href={insp.link_foto_nao_conformidade} target="_blank" rel="noopener noreferrer" className="text-xs text-white mt-1 block">
+                                {t('common.viewFullPhoto', { defaultValue: 'Ver foto completa' })}
+                              </a>
+                            )}
                           </div>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button 
-                          onClick={() => handleGenerateReport(insp.id)} 
-                          disabled={generatingPdf === insp.id}
+                          onClick={() => handleGenerateReport(insp.id || 0)} 
+                          disabled={generatingPdf === (insp.id || 0)}
                           className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-400 transition-colors disabled:opacity-50"
                           title="Gerar relatório PDF"
                         >
@@ -1005,6 +1117,126 @@ const EquipmentDetailPage = () => {
         message={modalMessage}
         isLoading={isDeleting}
       />
+
+      {/* Modal para seleção de múltiplas inspeções */}
+      {showMultipleReportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-light-surface dark:bg-dark-surface rounded-lg border max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+            <div className="p-4 border-b" style={{ borderColor: '#2A2A2A' }}>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white">Gerar Relatório de Múltiplas Inspeções</h3>
+                <button
+                  onClick={() => {
+                    setShowMultipleReportModal(false);
+                    setSelectedInspections(new Set());
+                    setDateRange({ start: '', end: '' });
+                  }}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Intervalo de datas (opcional) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-400 mb-2">Intervalo de Datas (Opcional)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-black border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
+                    style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  />
+                  <input
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-black border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
+                    style={{ borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  />
+                </div>
+              </div>
+
+              {/* Seleção de inspeções */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-semibold text-gray-400">Selecionar Inspeções</label>
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-sm text-blue-400 hover:text-blue-300"
+                  >
+                    {selectedInspections.size === inspections.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {inspections.map(insp => (
+                    <label
+                      key={insp.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedInspections.has(insp.id)}
+                        onChange={() => handleToggleInspection(insp.id)}
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-sm font-medium">
+                            {format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                          </span>
+                          {insp.status_geral && (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.status_geral)}`}>
+                              {insp.status_geral}
+                            </span>
+                          )}
+                        </div>
+                        {insp.plano_de_acao && (
+                          <p className="text-xs text-gray-400 mt-1 truncate">{insp.plano_de_acao}</p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  {selectedInspections.size} de {inspections.length} inspeções selecionadas
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 border-t flex justify-end gap-2" style={{ borderColor: '#2A2A2A' }}>
+              <button
+                onClick={() => {
+                  setShowMultipleReportModal(false);
+                  setSelectedInspections(new Set());
+                  setDateRange({ start: '', end: '' });
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                disabled={generatingMultiplePdf}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGenerateMultipleReport}
+                disabled={selectedInspections.size === 0 || generatingMultiplePdf}
+                className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {generatingMultiplePdf ? (
+                  <>
+                    <Spinner size="sm" color="white" />
+                    Gerando...
+                  </>
+                ) : (
+                  'Gerar Relatório'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

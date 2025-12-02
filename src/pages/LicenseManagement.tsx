@@ -26,10 +26,11 @@ import {
   Plus,
 } from 'lucide-react';
 import { Spinner } from '../components/ui/spinner';
+import LoadingScreen from '../components/LoadingScreen';
 import { logger } from '../utils/logger';
 
 const LicenseManagement = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { handleError, showInfo } = useErrorHandler();
   const { t } = useTranslation();
   const [licenses, setLicenses] = useState<License[]>([]);
@@ -419,7 +420,12 @@ const LicenseManagement = () => {
     showInfo('Copiado para a área de transferência!');
   };
 
-  // Verificar permissão
+  // Aguardar carregamento do perfil antes de verificar permissão
+  if (authLoading) {
+    return <LoadingScreen fullScreen={true} size="lg" color="white" />;
+  }
+
+  // Verificar permissão (dev OU admin)
   if (profile?.dev !== true && profile?.role !== 'admin') {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
@@ -427,6 +433,7 @@ const LicenseManagement = () => {
         <main className="p-4">
           <div className="p-6 bg-light-surface dark:bg-dark-surface rounded-lg border text-center" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>
             <p className="text-white">Você não tem permissão para acessar esta página.</p>
+            <p className="text-gray-400 mt-2 text-sm">Dev: {profile?.dev ? 'true' : 'false'}, Role: {profile?.role || 'N/A'}</p>
           </div>
         </main>
       </div>
@@ -515,7 +522,7 @@ const LicenseManagement = () => {
           {loading && filteredLicenses.length === 0 ? (
             <div className="text-center py-12">
               <Spinner size="lg" color="white" />
-              <p className="text-gray-400 mt-4">Carregando licenças...</p>
+              <p className="text-gray-400 mt-4">{t('common.loading')}</p>
             </div>
           ) : filteredLicenses.length === 0 ? (
             <div className="text-center py-12 p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>

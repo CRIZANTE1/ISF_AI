@@ -92,10 +92,19 @@ export async function saveNewAlarmSystem(
   alarm: Omit<AlarmSystem, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verifica se já existe APENAS para este usuário
     const { data: existing, error: checkError } = await supabase
       .from('inventario_alarmes')
       .select('id_sistema')
       .eq('id_sistema', alarm.id_sistema)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -109,7 +118,7 @@ export async function saveNewAlarmSystem(
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inventario_alarmes', alarm);
+    const result = await offlineInsert('inventario_alarmes', { ...alarm, user_id: user.id });
     
     if (!result.success) {
       throw new Error('Falha ao salvar sistema de alarme');
@@ -189,9 +198,19 @@ export async function saveAlarmInspection(
  */
 export async function getAllAlarmSystems(): Promise<AlarmSystem[]> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar sistemas de alarme', 'equipment');
+      return [];
+    }
+
+    // Busca sistemas de alarme APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inventario_alarmes')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_sistema');
 
     if (error) throw error;

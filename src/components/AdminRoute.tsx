@@ -1,16 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import LoadingScreen from './LoadingScreen';
 
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
   const { profile, loading, user } = useAuth();
 
   if (loading) {
-    return (
-        <div className="flex items-center justify-center h-screen bg-light-background dark:bg-dark-background transition-colors duration-200">
-            <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#FFFFFF', borderTopColor: 'transparent' }}></div>
-        </div>
-    );
+    return <LoadingScreen fullScreen={true} size="lg" color="white" />;
   }
 
   if (!user) {
@@ -18,9 +15,13 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (profile?.role !== 'admin') {
+  // Permitir acesso para admins OU usuários com dev = true
+  if (profile?.role !== 'admin' && profile?.dev !== true) {
     // Redirect non-admin users to the dashboard with a message
-    logger.warn('Acesso negado: Usuário não é administrador', 'permission', { role: profile?.role });
+    logger.warn('Acesso negado: Usuário não é administrador nem desenvolvedor', 'permission', { 
+      role: profile?.role, 
+      dev: profile?.dev 
+    });
     return <Navigate to="/" replace />;
   }
 

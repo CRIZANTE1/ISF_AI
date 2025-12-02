@@ -26,11 +26,33 @@ const ActivateLicense = () => {
       try {
         const machineIdValue = await licenseService.getMachineId();
         setMachineId(machineIdValue);
-        const licenseStatus = await licenseService.checkLicenseStatus(machineIdValue);
-        setStatus(licenseStatus);
+        try {
+          const licenseStatus = await licenseService.checkLicenseStatus(machineIdValue);
+          setStatus(licenseStatus);
+        } catch (statusError) {
+          logger.error('Erro ao verificar status da licença', 'license', statusError);
+          // Em caso de erro, definir status padrão para não travar a página
+          setStatus({
+            valid: false,
+            daysRemaining: 0,
+            expired: true,
+            isActivated: false,
+            isLifetime: false,
+            isRevoked: false,
+          });
+        }
       } catch (err) {
-        logger.error('Erro ao verificar status', 'license', err);
-        handleError(err, 'license', 'Erro ao verificar status da licença');
+        logger.error('Erro ao obter Machine ID', 'license', err);
+        // Em caso de erro crítico, definir valores padrão
+        setMachineId('erro-ao-obter-id');
+        setStatus({
+          valid: false,
+          daysRemaining: 0,
+          expired: true,
+          isActivated: false,
+          isLifetime: false,
+          isRevoked: false,
+        });
       } finally {
         setCheckingStatus(false);
       }

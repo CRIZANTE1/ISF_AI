@@ -3,7 +3,8 @@
  */
 
 import { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 import { compressImage, getImageInfo } from '../utils/imageCompression';
 import { logger } from '../utils/logger';
 
@@ -110,7 +111,7 @@ const PhotoUpload = ({
       {isCompressing ? (
         <div className="w-full h-48 rounded-lg border border-light-border dark:border-dark-border flex items-center justify-center" style={{ borderColor: '#2A2A2A' }}>
           <div className="flex flex-col items-center gap-2">
-            <Loader2 size={24} className="animate-spin" style={{ color: '#FFFFFF' }} />
+            <Spinner size="md" color="white" />
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
               Comprimindo imagem...
             </p>

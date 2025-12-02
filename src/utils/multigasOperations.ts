@@ -79,11 +79,17 @@ export async function saveNewMultigasDetector(
   detector: Omit<MultigasDetector, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
     // Verifica se já existe
     const { data: existing, error: checkError } = await supabase
       .from('inventario_multigas')
       .select('id_equipamento')
       .eq('id_equipamento', detector.id_equipamento)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -107,7 +113,7 @@ export async function saveNewMultigasDetector(
       h2s_cilindro: detector.H2S_cilindro ?? null,
       co_cilindro: detector.CO_cilindro ?? null,
       margem_erro_cilindro: detector.margem_erro_cilindro ?? 20.00, // Valor padrão: 20%
-      user_id: detector.user_id || null,
+      user_id: user.id,
     };
 
     // Usa wrapper offline para suportar modo offline
@@ -139,10 +145,19 @@ export async function saveNewMultigasDetector(
  */
 export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
   try {
-    // Busca cadastros de detectores multigás
+    // Obtém o ID do usuário autenticado primeiro
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar detectores multigás', 'equipment');
+      return [];
+    }
+
+    // Busca cadastros de detectores multigás APENAS do usuário autenticado
     const { data: detectors, error: detError } = await supabase
       .from('inventario_multigas')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_equipamento');
 
     if (detError) throw detError;
@@ -150,11 +165,6 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
 
     // Busca última inspeção de cada detector
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user?.id) {
-        return (detectors || []).map(mapSupabaseToDetector);
-      }
 
       const { data: allInspections, error: inspError } = await supabase
         .from('inspecoes_multigas' as any)
@@ -186,12 +196,12 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
         const mapped = mapSupabaseToDetector(det);
         const lastInspection = inspectionMap.get(det.id_equipamento);
         if (lastInspection) {
+          // Adiciona propriedades da inspeção como propriedades opcionais
           return {
             ...mapped,
-            data_proximo_teste: lastInspection.data_proximo_teste || mapped.data_proximo_teste || null,
-            status: lastInspection.resultado_teste || mapped.status || null,
-            resultado_teste: lastInspection.resultado_teste || mapped.resultado_teste || null,
-          };
+            data_proximo_teste: lastInspection.data_proximo_teste || null,
+            resultado_teste: lastInspection.resultado_teste || null,
+          } as MultigasDetector & { data_proximo_teste?: string | null; resultado_teste?: string | null };
         }
         return mapped;
       });
@@ -213,18 +223,20 @@ export async function getAllMultigasDetectors(): Promise<MultigasDetector[]> {
 export async function getMultigasDetectorById(idEquipamento: string): Promise<MultigasDetector | null> {
   try {
     // Verificar autenticação primeiro
-    const { data: { session } } = await supabase.auth.getSession();
-    logger.debug('Buscando detector multigas', 'equipment', { idEquipamento, userId: session?.user?.id });
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    logger.debug('Buscando detector multigas', 'equipment', { idEquipamento, userId: user?.id });
     
-    if (!session?.user) {
+    if (userError || !user?.id) {
       logger.warn('Usuário não autenticado ao buscar detector multigas', 'equipment');
       throw new Error('Você precisa estar autenticado para acessar este equipamento.');
     }
     
+    // Busca detector APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inventario_multigas')
       .select('*')
       .eq('id_equipamento', idEquipamento)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (error) {
@@ -247,59 +259,14 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
     }
     
     if (!data) {
-      logger.warn('Detector multigas não encontrado ou sem permissão RLS', 'equipment', {
+      logger.warn('Detector multigas não encontrado ou não pertence ao usuário', 'equipment', {
         idEquipamento,
-        userId: session.user.id
+        userId: user.id
       });
       
-      // Verificar se o equipamento existe mas pertence a outro usuário
-      // IMPORTANTE: Esta query pode falhar também por RLS, mas vamos tentar
-      try {
-        const { data: allData, error: allError } = await supabase
-          .from('inventario_multigas')
-          .select('id_equipamento, user_id')
-          .eq('id_equipamento', idEquipamento);
-        
-        if (allError) {
-          logger.error('Erro ao verificar equipamento (provavelmente RLS bloqueando)', 'equipment', {
-            error: allError,
-            idEquipamento
-          });
-          throw new Error(`O equipamento '${idEquipamento}' existe no banco, mas você não tem permissão para acessá-lo. Este equipamento pertence a outra conta (user_id diferente).`);
-        } else if (allData && allData.length === 0) {
-          logger.info('Equipamento realmente não existe no banco de dados', 'equipment', { idEquipamento });
-          return null;
-        } else {
-          logger.warn('Equipamento existe mas user_id não corresponde', 'equipment', {
-            equipamento_user_id: allData[0]?.user_id,
-            usuario_atual: session.user.id,
-            corresponde: allData[0]?.user_id === session.user.id
-          });
-          
-          if (allData[0]?.user_id !== session.user.id) {
-            throw new Error(`O equipamento '${idEquipamento}' existe, mas pertence a outra conta. Seu user_id: ${session.user.id}, Equipamento user_id: ${allData[0]?.user_id}`);
-          }
-        }
-      } catch (checkError: any) {
-        // Se já é um erro customizado, relançá-lo
-        if (checkError instanceof Error && checkError.message.includes('permissão')) {
-          throw checkError;
-        }
-        // Se for erro de RLS na verificação, significa que não temos acesso
-        logger.error('Erro ao verificar permissão', 'equipment', { error: checkError, idEquipamento });
-        throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Verifique se está autenticado com a conta correta.`);
-      }
-      
+      // Não precisa verificar se pertence a outro usuário - já filtramos por user_id
+      // Se não encontrou, é porque não existe ou não pertence ao usuário
       return null;
-    }
-    
-    // Verificar se o user_id corresponde
-    if (data.user_id && data.user_id !== session.user.id) {
-      logger.error('User ID não corresponde', 'equipment', { 
-        equipamento_user_id: data.user_id, 
-        usuario_atual: session.user.id 
-      });
-      throw new Error(`Você não tem permissão para acessar o equipamento '${idEquipamento}'. Este equipamento pertence a outra conta.`);
     }
     
     logger.debug('Detector multigas encontrado', 'equipment', { idEquipamento });

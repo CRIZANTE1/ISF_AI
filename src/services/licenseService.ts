@@ -54,6 +54,11 @@ export class LicenseService {
 
     // Fallback: usar localStorage com fingerprint do browser
     try {
+      // Verificar se localStorage está disponível
+      if (typeof localStorage === 'undefined') {
+        throw new Error('localStorage não disponível');
+      }
+
       // Tentar obter do localStorage primeiro
       const storedId = localStorage.getItem('machine_id');
       if (storedId) {
@@ -62,31 +67,43 @@ export class LicenseService {
         return storedId;
       }
 
+      // Verificar se APIs do navegador estão disponíveis
+      if (typeof document === 'undefined' || typeof navigator === 'undefined' || typeof window === 'undefined') {
+        throw new Error('APIs do navegador não disponíveis');
+      }
+
       // Gerar novo ID baseado em características do navegador
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.textBaseline = 'top';
-        ctx.font = '14px "Arial"';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = '#f60';
-        ctx.fillRect(125, 1, 62, 20);
-        ctx.fillStyle = '#069';
-        ctx.fillText('ISF IA - License', 2, 15);
-        ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-        ctx.fillText('ISF IA - License', 4, 17);
+      let canvasData = '';
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.textBaseline = 'top';
+          ctx.font = '14px "Arial"';
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillStyle = '#f60';
+          ctx.fillRect(125, 1, 62, 20);
+          ctx.fillStyle = '#069';
+          ctx.fillText('ISF IA - License', 2, 15);
+          ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+          ctx.fillText('ISF IA - License', 4, 17);
+          canvasData = canvas.toDataURL();
+        }
+      } catch (canvasError) {
+        logger.warn('Erro ao gerar canvas fingerprint', 'license', canvasError);
+        canvasData = 'canvas-unavailable';
       }
 
       const fingerprint = [
-        navigator.userAgent,
-        navigator.language,
-        screen.width + 'x' + screen.height,
+        navigator.userAgent || 'unknown',
+        navigator.language || 'unknown',
+        (typeof screen !== 'undefined' ? screen.width + 'x' + screen.height : 'unknown'),
         new Date().getTimezoneOffset(),
-        canvas.toDataURL(),
+        canvasData,
         navigator.hardwareConcurrency || 0,
-        navigator.deviceMemory || 0,
-        navigator.platform,
-        window.location.hostname,
+        (navigator as any).deviceMemory || 0,
+        navigator.platform || 'unknown',
+        (typeof window !== 'undefined' && window.location ? window.location.hostname : 'unknown'),
       ].join('|');
 
       // Gerar hash SHA-256
@@ -94,7 +111,12 @@ export class LicenseService {
       const deviceId = hash.substring(0, 16);
 
       // Salvar no localStorage para persistência
-      localStorage.setItem('machine_id', deviceId);
+      try {
+        localStorage.setItem('machine_id', deviceId);
+      } catch (storageError) {
+        logger.warn('Erro ao salvar machine_id no localStorage', 'license', storageError);
+      }
+      
       this.machineId = deviceId;
 
       logger.info('Machine ID gerado (fallback web)', 'license', { deviceId });
@@ -104,7 +126,15 @@ export class LicenseService {
       // Último fallback: usar timestamp + random
       const fallbackId = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
       const deviceId = fallbackId.substring(0, 16).padEnd(16, '0');
-      localStorage.setItem('machine_id', deviceId);
+      
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('machine_id', deviceId);
+        }
+      } catch (storageError) {
+        logger.warn('Erro ao salvar machine_id no localStorage (fallback)', 'license', storageError);
+      }
+      
       this.machineId = deviceId;
       return deviceId;
     }

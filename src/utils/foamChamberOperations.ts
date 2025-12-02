@@ -68,10 +68,16 @@ export async function saveNewFoamChamber(
   chamber: Omit<FoamChamber, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
     const { data: existing, error: checkError } = await supabase
       .from('inventario_camaras_espuma')
       .select('id_camara')
       .eq('id_camara', chamber.id_camara)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -85,7 +91,7 @@ export async function saveNewFoamChamber(
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inventario_camaras_espuma', chamber);
+    const result = await offlineInsert('inventario_camaras_espuma', { ...chamber, user_id: user.id });
     
     if (!result.success) {
       throw new Error('Falha ao salvar câmara de espuma');
@@ -160,9 +166,19 @@ export async function saveFoamChamberInspection(
  */
 export async function getAllFoamChambers(): Promise<FoamChamber[]> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar câmaras de espuma', 'equipment');
+      return [];
+    }
+
+    // Busca câmaras de espuma APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inventario_camaras_espuma')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_camara');
 
     if (error) throw error;

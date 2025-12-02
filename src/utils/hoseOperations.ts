@@ -23,11 +23,19 @@ export interface Hose {
  */
 export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promise<boolean> {
   try {
-    // Verifica se já existe
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Verifica se já existe APENAS para este usuário
     const { data: existing, error: checkError } = await supabase
       .from('mangueiras')
       .select('id_mangueira')
       .eq('id_mangueira', hose.id_mangueira)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se houver erro diferente de "não encontrado", lança o erro
@@ -68,10 +76,19 @@ export async function saveNewHose(hose: Omit<Hose, 'id' | 'created_at'>): Promis
  */
 export async function getAllHoses(): Promise<Hose[]> {
   try {
-    // Busca cadastros de mangueiras
+    // Obtém o ID do usuário autenticado primeiro
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar mangueiras', 'equipment');
+      return [];
+    }
+
+    // Busca cadastros de mangueiras APENAS do usuário autenticado
     const { data: hoses, error: hoseError } = await supabase
       .from('mangueiras')
       .select('*')
+      .eq('user_id', user.id)
       .order('id_mangueira');
 
     if (hoseError) throw hoseError;
@@ -79,11 +96,6 @@ export async function getAllHoses(): Promise<Hose[]> {
 
     // Busca última inspeção de cada mangueira
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user?.id) {
-        return hoses as Hose[];
-      }
 
       const { data: allInspections, error: inspError } = await supabase
         .from('inspecoes_mangueiras' as any)
@@ -144,10 +156,20 @@ export async function getAllHoses(): Promise<Hose[]> {
  */
 export async function getHoseById(idMangueira: string): Promise<Hose | null> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar mangueira', 'equipment');
+      return null;
+    }
+
+    // Busca mangueira APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('mangueiras')
       .select('*')
       .eq('id_mangueira', idMangueira)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     // Se não encontrou (PGRST116), retorna null (comportamento esperado)
@@ -169,10 +191,19 @@ export async function updateHose(
   updates: Partial<Omit<Hose, 'id' | 'id_mangueira' | 'created_at' | 'user_id'>>
 ): Promise<boolean> {
   try {
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Atualiza APENAS mangueiras do usuário autenticado
     const { error } = await supabase
       .from('mangueiras')
       .update(updates)
-      .eq('id_mangueira', idMangueira);
+      .eq('id_mangueira', idMangueira)
+      .eq('user_id', user.id);
 
     if (error) throw error;
     return true;
@@ -255,11 +286,20 @@ export async function saveHoseInspection(inspection: Omit<HoseInspection, 'id' |
  */
 export async function getHoseInspections(idMangueira: string): Promise<HoseInspection[]> {
   try {
-    // Usar query direta já que a tabela ainda não está nos tipos gerados
+    // Obtém o ID do usuário autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar inspeções de mangueira', 'equipment');
+      return [];
+    }
+
+    // Busca inspeções APENAS do usuário autenticado
     const { data, error } = await supabase
       .from('inspecoes_mangueiras' as any)
       .select('*')
       .eq('id_mangueira', idMangueira)
+      .eq('user_id', user.id)
       .order('data_inspecao', { ascending: false });
 
     if (error) throw error;

@@ -152,7 +152,8 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
 
   const filteredItems = allDockItems.filter(item => {
     if (item.adminOnly) {
-      return profile?.role === 'admin';
+      // Permitir acesso para admins OU usuários com dev = true
+      return profile?.role === 'admin' || profile?.dev === true;
     }
     return true;
   });
