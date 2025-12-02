@@ -11,6 +11,7 @@ export interface Profile {
   role: 'admin' | 'user';
   plan: 'trial' | 'premium';
   trial_ends_at: string | null;
+  dev?: boolean; // Quando true, tem bypass em todas as verificações de licença
 }
 
 interface AuthContextType {

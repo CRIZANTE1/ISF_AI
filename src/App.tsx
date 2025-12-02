@@ -34,6 +34,8 @@ const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 const AdminSystemSettingsPage = lazy(() => import('./pages/AdminSystemSettingsPage'));
 const AdminSecurityAuditPage = lazy(() => import('./pages/AdminSecurityAuditPage'));
 const AdminSecurityPoliciesPage = lazy(() => import('./pages/AdminSecurityPoliciesPage'));
+const LicenseManagement = lazy(() => import('./pages/LicenseManagement'));
+const ActivateLicense = lazy(() => import('./pages/ActivateLicense'));
 
 /**
  * Componente de loading para Suspense
@@ -55,6 +57,14 @@ function App() {
           element={
             <PageSuspense>
               <AuthPage />
+            </PageSuspense>
+          } 
+        />
+        <Route 
+          path="/activate-license" 
+          element={
+            <PageSuspense>
+              <ActivateLicense />
             </PageSuspense>
           } 
         />
@@ -248,6 +258,16 @@ function App() {
               <AdminRoute>
                 <PageSuspense>
                   <AdminSecurityPoliciesPage />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/licenses" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <LicenseManagement />
                 </PageSuspense>
               </AdminRoute>
             } 
