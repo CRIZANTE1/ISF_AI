@@ -185,6 +185,32 @@ export class LicenseService {
         .single();
 
       if (createError) {
+        // Tratar erro 409 (Conflict) ou 23505 (Unique violation)
+        // Isso pode acontecer em condições de corrida onde duas requisições
+        // tentam criar a mesma licença simultaneamente
+        if (createError.code === '23505' || createError.status === 409 || 
+            createError.message?.includes('duplicate key') ||
+            createError.message?.includes('unique constraint')) {
+          logger.warn('Licença já existe (condição de corrida detectada), buscando novamente...', 'license', createError);
+          
+          // Tentar buscar a licença novamente (pode ter sido criada por outra requisição)
+          const { data: retryLicense, error: retryError } = await supabase
+            .from('licenses')
+            .select('*')
+            .eq('machine_id', machineId)
+            .maybeSingle();
+
+          if (retryError && retryError.code !== 'PGRST116') {
+            logger.error('Erro ao buscar licença após conflito', 'license', retryError);
+            return null;
+          }
+
+          if (retryLicense) {
+            logger.info('Licença encontrada após conflito de criação', 'license');
+            return retryLicense as License;
+          }
+        }
+        
         logger.error('Erro ao criar licença', 'license', createError);
         return null;
       }

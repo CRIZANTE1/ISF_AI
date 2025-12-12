@@ -68,11 +68,32 @@ export interface ReportData {
 
 /**
  * Converte uma URL de imagem para base64
+ * Melhoria para Android: adicione tratamento de timeout e limitação de tamanho
  */
 async function imageUrlToBase64(url: string): Promise<string> {
   try {
-    const response = await fetch(url);
+    // Adiciona timeout para evitar congelamentos em dispositivos lentos
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout ao carregar imagem')), 10000); // 10 segundos
+    });
+
+    // Faz a requisição com timeout
+    const response = await Promise.race([
+      fetch(url),
+      timeoutPromise
+    ]);
+
+    if (!response.ok) {
+      throw new Error(`Falha ao carregar imagem: ${response.status} ${response.statusText}`);
+    }
+
     const blob = await response.blob();
+
+    // Verifica o tamanho da imagem para evitar problemas de memória no Android
+    if (blob.size > 5 * 1024 * 1024) { // 5MB
+      console.warn('Imagem muito grande, pode causar problemas de memória no Android:', url, blob.size);
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -461,8 +482,20 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
     const maxWidth = 150;
     const maxHeight = 100;
 
-    // Adiciona a imagem
-    doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+    // Adiciona a imagem com tratamento de erro para dispositivos Android
+    try {
+      doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+    } catch (imgError) {
+      console.error('Erro ao adicionar imagem ao PDF:', imgError);
+      // Se não conseguir adicionar a imagem, apenas mostra mensagem
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(COLORS.GRAY);
+      doc.text('Foto não pôde ser adicionada', PAGE_MARGINS.LEFT, yPos + 10);
+      yPos += 15;
+      return yPos;
+    }
+
     yPos += maxHeight + 10;
 
     // Legenda
@@ -531,10 +564,14 @@ function addSignature(doc: jsPDF, yPos: number, responsibleName?: string): numbe
  * Gera relatório em PDF no formato ABNT
  */
 export async function generateInspectionReport(data: ReportData): Promise<Blob> {
+  // Configuração otimizada para dispositivos Android
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
+    // Otimizações para melhor performance e menor uso de memória
+    putOnlyUsedFonts: true,
+    compress: true,
   });
 
   let yPos = PAGE_MARGINS.TOP;
@@ -574,7 +611,7 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
   // Observações e plano de ação
   yPos = addObservations(doc, yPos, data.inspection);
 
-  // Foto (se houver)
+  // Foto (se houver) - otimizado para Android
   if (data.inspection.link_foto_nao_conformidade) {
     yPos = await addPhoto(doc, yPos, data.inspection.link_foto_nao_conformidade);
   }
@@ -584,6 +621,11 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
 
   // Gera o blob do PDF
   const pdfBlob = doc.output('blob');
+
+  // jsPDF gerencia sua própria memória internamente
+  // O objeto doc será coletado pelo garbage collector automaticamente
+  // Não é necessário fazer cleanup manual
+
   return pdfBlob;
 }
 
@@ -604,10 +646,14 @@ export interface MultipleInspectionReportData {
 export async function generateMultipleInspectionReport(
   data: MultipleInspectionReportData
 ): Promise<Blob> {
+  // Configuração otimizada para dispositivos Android
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
+    // Otimizações para melhor performance e menor uso de memória
+    putOnlyUsedFonts: true,
+    compress: true,
   });
 
   let yPos = PAGE_MARGINS.TOP;
@@ -715,11 +761,11 @@ export async function generateMultipleInspectionReport(
       doc.text('Resultados:', PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
       doc.setFont('helvetica', 'normal');
-      
+
       const tableData: string[][] = [];
       for (const [key, value] of Object.entries(inspection.resultados_json)) {
-        const status = value === true || value === 'sim' || value === 'Sim' ? 'Conforme' : 
-                       value === false || value === 'não' || value === 'Não' ? 'Não Conforme' : 
+        const status = value === true || value === 'sim' || value === 'Sim' ? 'Conforme' :
+                       value === false || value === 'não' || value === 'Não' ? 'Não Conforme' :
                        String(value);
         tableData.push([key, status]);
       }
@@ -751,7 +797,7 @@ export async function generateMultipleInspectionReport(
       }
     }
 
-    // Foto (se houver)
+    // Foto (se houver) - otimizado para Android
     if (inspection.link_foto_nao_conformidade) {
       if (yPos > PAGE_HEIGHT - 100) {
         doc.addPage();
@@ -774,7 +820,37 @@ export async function generateMultipleInspectionReport(
   yPos = addSignature(doc, yPos, data.responsibleName);
 
   const pdfBlob = doc.output('blob');
+
+  // jsPDF gerencia sua própria memória internamente
+  // O objeto doc será coletado pelo garbage collector automaticamente
+  // Não é necessário fazer cleanup manual
+
   return pdfBlob;
+}
+
+/**
+ * Converte ArrayBuffer para base64 de forma eficiente (evita problemas com arquivos grandes)
+ * Processa em chunks para evitar problemas de memória no Android
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 16384; // Chunks de 16KB para melhor performance
+  
+  // Processa em chunks para evitar problemas com apply() e limites de argumentos
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    // Usa apply com slice do chunk para evitar problemas de memória
+    // Limita a 8KB por vez dentro do apply para segurança
+    const applyChunkSize = 8192;
+    for (let j = 0; j < chunk.length; j += applyChunkSize) {
+      const applyChunk = chunk.subarray(j, Math.min(j + applyChunkSize, chunk.length));
+      const chunkArray = Array.from(applyChunk);
+      binary += String.fromCharCode.apply(null, chunkArray);
+    }
+  }
+  
+  return btoa(binary);
 }
 
 /**
@@ -782,33 +858,102 @@ export async function generateMultipleInspectionReport(
  */
 export async function savePdfToDevice(pdfBlob: Blob, filename: string): Promise<void> {
   try {
-    const { Filesystem, Directory, Encoding, Share } = await import('@capacitor/filesystem');
+    const { Filesystem, Directory, Share } = await import('@capacitor/filesystem');
     const { Capacitor } = await import('@capacitor/core');
+    const { logger } = await import('./logger');
 
     if (Capacitor.isNativePlatform() && Filesystem && Share) {
-      // Converte blob para base64
-      const arrayBuffer = await pdfBlob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-      // Salva o arquivo
-      const result = await Filesystem.writeFile({
-        path: filename,
-        data: base64,
-        directory: Directory.Documents,
-        encoding: Encoding.UTF8,
-      });
-
-      // Tenta compartilhar o arquivo
       try {
-        await Share.share({
-          title: 'Relatório de Inspeção',
-          text: 'Relatório de inspeção gerado',
-          url: result.uri,
-          dialogTitle: 'Compartilhar relatório',
-        });
-      } catch (shareError) {
-        // Se não conseguir compartilhar, apenas salva
-        console.log('Arquivo salvo em:', result.uri);
+        // Converte blob para base64 de forma eficiente
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const base64 = arrayBufferToBase64(arrayBuffer);
+
+        // Limpa o nome do arquivo (remove caracteres inválidos)
+        const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+        // Salva o arquivo
+        // IMPORTANTE: Para dados binários base64 (PDFs), NÃO usar encoding
+        // O Capacitor Filesystem trata base64 como dados binários quando não especificamos encoding
+        let result;
+        try {
+          // Primeira tentativa: sem encoding (recomendado para binários)
+          result = await Filesystem.writeFile({
+            path: cleanFilename,
+            data: base64,
+            directory: Directory.Documents,
+            // Não especificar encoding para dados binários
+          });
+        } catch (writeError: any) {
+          // Se falhar, pode ser que a versão do Capacitor precise de encoding explícito
+          // Tenta novamente com encoding (algumas versões antigas podem precisar)
+          logger.warn('Tentando salvar PDF com encoding alternativo', 'pdf', writeError);
+          const { Encoding } = await import('@capacitor/filesystem');
+          result = await Filesystem.writeFile({
+            path: cleanFilename,
+            data: base64,
+            directory: Directory.Documents,
+            encoding: Encoding.UTF8,
+          });
+        }
+
+        logger.info('PDF salvo com sucesso', 'pdf', { uri: result.uri, filename: cleanFilename });
+
+        // Tenta compartilhar o arquivo
+        try {
+          // Primeira tentativa: usar o URI retornado
+          await Share.share({
+            title: 'Relatório de Inspeção',
+            text: 'Relatório de inspeção gerado',
+            url: result.uri,
+            dialogTitle: 'Compartilhar relatório',
+          });
+        } catch (shareError: any) {
+          // Se falhar, tenta obter o URI novamente usando getUri
+          try {
+            const fileUri = await Filesystem.getUri({
+              path: cleanFilename,
+              directory: Directory.Documents,
+            });
+            
+            await Share.share({
+              title: 'Relatório de Inspeção',
+              text: 'Relatório de inspeção gerado',
+              url: fileUri.uri,
+              dialogTitle: 'Compartilhar relatório',
+            });
+          } catch (shareError2: any) {
+            // Se ainda falhar, apenas loga (arquivo já foi salvo)
+            logger.warn('PDF salvo mas não foi possível compartilhar', 'pdf', { 
+              error: shareError2?.message || shareError?.message,
+              uri: result.uri 
+            });
+          }
+        }
+      } catch (nativeError: any) {
+        logger.error('Erro ao salvar PDF no dispositivo nativo', 'pdf', nativeError);
+        
+        // Se falhar completamente no nativo, tenta fallback web
+        // Mas apenas se não for um erro de permissão ou sistema
+        if (!nativeError.message?.includes('permission') && 
+            !nativeError.message?.includes('Permission') &&
+            !nativeError.message?.includes('EACCES')) {
+          logger.warn('Tentando fallback web para salvar PDF', 'pdf');
+          try {
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            return; // Sucesso no fallback
+          } catch (webError) {
+            logger.error('Fallback web também falhou', 'pdf', webError);
+          }
+        }
+        
+        throw nativeError;
       }
     } else {
       // Fallback para navegador
@@ -822,7 +967,8 @@ export async function savePdfToDevice(pdfBlob: Blob, filename: string): Promise<
       URL.revokeObjectURL(url);
     }
   } catch (error) {
-    console.error('Erro ao salvar PDF:', error);
+    const { logger } = await import('./logger');
+    logger.error('Erro ao salvar PDF', 'pdf', error);
     throw error;
   }
 }

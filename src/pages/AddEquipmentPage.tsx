@@ -49,11 +49,19 @@ const AddEquipmentPage = () => {
     if (!user || !type) return;
     setLoading(true);
 
+    // data_cadastro não existe em todas as tabelas
+    // Tabelas COM data_cadastro: multigas, camara_espuma, canhao_monitor, chuveiro_lavaolhos, alarme
+    // Tabelas SEM data_cadastro: extintor, mangueira, scba, abrigo
     const dataToInsert: any = {
       ...formData,
       user_id: user.id,
-      data_cadastro: new Date().toISOString().split('T')[0],
     };
+
+    // Adiciona data_cadastro apenas para tipos que suportam essa coluna
+    const tablesWithDataCadastro = ['multigas', 'camara_espuma', 'canhao_monitor', 'chuveiro_lavaolhos', 'alarme'];
+    if (tablesWithDataCadastro.includes(type)) {
+      dataToInsert.data_cadastro = new Date().toISOString().split('T')[0];
+    }
 
     let saveFunction: (data: any) => Promise<boolean>;
 

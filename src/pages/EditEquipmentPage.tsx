@@ -144,6 +144,13 @@ const EditEquipmentPage = () => {
     let idColumn = '';
     const { id: _, created_at, user_id, ...dataToUpdate } = formData;
 
+    // Remove data_cadastro se o tipo não suportar essa coluna
+    // Tabelas SEM data_cadastro: extintor, mangueira, scba, abrigo
+    const tablesWithoutDataCadastro = ['extintor', 'mangueira', 'scba', 'abrigo'];
+    if (tablesWithoutDataCadastro.includes(type) && 'data_cadastro' in dataToUpdate) {
+      delete dataToUpdate.data_cadastro;
+    }
+
     switch (type) {
       case 'extintor':
         tableName = 'extintores';
