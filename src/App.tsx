@@ -33,6 +33,8 @@ const AdminUtilities = lazy(() => import('./pages/AdminUtilities'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 const AdminSystemSettingsPage = lazy(() => import('./pages/AdminSystemSettingsPage'));
 const AdminSecurityAuditPage = lazy(() => import('./pages/AdminSecurityAuditPage'));
+const AdminCustomEquipmentPage = lazy(() => import('./pages/AdminCustomEquipmentPage'));
+const CustomEquipmentTypesPage = lazy(() => import('./pages/CustomEquipmentTypesPage'));
 const AdminSecurityPoliciesPage = lazy(() => import('./pages/AdminSecurityPoliciesPage'));
 const LicenseManagement = lazy(() => import('./pages/LicenseManagement'));
 const ActivateLicense = lazy(() => import('./pages/ActivateLicense'));
@@ -213,6 +215,14 @@ function App() {
             } 
           />
           <Route 
+            path="utilities/custom-equipment" 
+            element={
+              <PageSuspense>
+                <CustomEquipmentTypesPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
             path="admin/utilities" 
             element={
               <AdminRoute>
@@ -268,6 +278,16 @@ function App() {
               <AdminRoute>
                 <PageSuspense>
                   <LicenseManagement />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/custom-equipment" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <AdminCustomEquipmentPage />
                 </PageSuspense>
               </AdminRoute>
             } 

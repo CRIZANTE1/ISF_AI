@@ -160,7 +160,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
 
     // Limitar a 5 alertas mais urgentes
     return allAlerts.slice(0, 5);
-  }, [cache, checkEquipment]);
+  }, [cache, checkEquipment, userId, t]);
 
   useEffect(() => {
     if (!userId) {

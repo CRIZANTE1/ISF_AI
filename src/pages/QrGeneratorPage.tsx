@@ -94,6 +94,36 @@ const QrGeneratorPage = () => {
   const [generatedQrs, setGeneratedQrs] = useState<Record<string, { data: string; qrString: string; type: string; identifier: string }>>({});
   const [loading, setLoading] = useState(false);
 
+  const [customEquipment, setCustomEquipment] = useState<Record<string, any[]>>({});
+  const [customTypes, setCustomTypes] = useState<Array<{ slug: string; name: string }>>([]);
+
+  // Carrega equipamentos customizados
+  useEffect(() => {
+    const loadCustomEquipment = async () => {
+      try {
+        const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
+        const customTypesList = await getAllCustomEquipmentTypes();
+        const customEquipmentsMap: Record<string, any[]> = {};
+        
+        for (const customType of customTypesList) {
+          const equipments = await getAllCustomEquipment(customType.id);
+          customEquipmentsMap[`custom-${customType.slug}`] = equipments.map((eq: any) => ({
+            ...eq,
+            id_equipamento: eq.id_equipamento,
+            equipment_id: eq.id_equipamento,
+          }));
+        }
+        
+        setCustomEquipment(customEquipmentsMap);
+        setCustomTypes(customTypesList.map(t => ({ slug: t.slug, name: t.name })));
+      } catch (error) {
+        console.error('Erro ao carregar equipamentos customizados:', error);
+      }
+    };
+
+    loadCustomEquipment();
+  }, []);
+
   // Todos os equipamentos disponíveis
   const allEquipment = useMemo(() => ({
     extinguishers: cache.extinguishers || [],
@@ -105,7 +135,8 @@ const QrGeneratorPage = () => {
     eyewashStations: cache.eyewashStations || [],
     alarmSystems: cache.alarmSystems || [],
     shelters: cache.shelters || [],
-  }), [cache]);
+    ...customEquipment,
+  }), [cache, customEquipment]);
 
   // Buscar equipamentos por ID ou número de série
   const handleSearch = () => {
@@ -135,7 +166,7 @@ const QrGeneratorPage = () => {
         const identifier = getEquipmentIdentifier(equipment, type);
         if (identifier && identifier.toString().toLowerCase().includes(searchTerm)) {
           const typeName = getEquipmentTypeName(type, t);
-          const fieldName = getIdentifierFieldName(type, t);
+          const fieldName = getIdentifierFieldName(type);
           results.push({
             id: `${type}_${identifier}`,
             type,
@@ -321,36 +352,62 @@ const QrGeneratorPage = () => {
             if (Filesystem && Share) {
               // No Android/iOS, usa Filesystem do Capacitor (se disponível)
               try {
+                // Converte blob para base64 de forma mais eficiente
                 const arrayBuffer = await blob.arrayBuffer();
-                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+                }
+                const base64 = btoa(binary);
                 
-                const result = await Filesystem.writeFile({
-                  path: fileName,
-                  data: base64,
-                  directory: Directory.Documents,
-                  encoding: Encoding.UTF8,
-                });
+                // Para dados binários base64 (imagens), não especificar encoding
+                // O Capacitor Filesystem trata base64 como dados binários quando não especificamos encoding
+                let result;
+                try {
+                  result = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64,
+                    directory: Directory.Documents,
+                    // Não especificar encoding para dados binários
+                  });
+                } catch (writeError: any) {
+                  // Se falhar, pode ser que a versão do Capacitor precise de encoding explícito
+                  logger.warn('Tentando salvar QR Code com encoding alternativo', 'qr_generator', writeError);
+                  result = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64,
+                    directory: Directory.Documents,
+                    encoding: Encoding.UTF8, // Fallback para versões antigas
+                  });
+                }
                 
                 // Tenta compartilhar o arquivo
                 try {
                   await Share.share({
                     title: `QR Code ${id}`,
-                    text: `${t('qr.qrGeneratedFor')} ${id}`,
+                    text: `${t('qr.qrGeneratedFor', { defaultValue: 'QR Code gerado para' })} ${id}`,
                     url: result.uri,
-                    dialogTitle: t('qr.shareQrCode'),
+                    dialogTitle: t('qr.shareQrCode', { defaultValue: 'Compartilhar QR Code' }),
                   });
-                  return; // Sucesso, não precisa continuar
-                } catch (shareError) {
-                  // Se não conseguir compartilhar, apenas mostra mensagem
-                  // QR Code salvo com sucesso (feedback já dado pelo toast)
+                  // Sucesso - mostra feedback
+                  const { showSuccess } = await import('../contexts/ToastContext');
+                  showSuccess(t('qr.downloadSuccess', { defaultValue: 'QR Code baixado e compartilhado com sucesso!' }));
                   return;
+                } catch (shareError) {
+                  // Se não conseguir compartilhar, tenta abrir o arquivo ou usa fallback
+                  logger.warn('Não foi possível compartilhar, tentando fallback', 'qr_generator', shareError);
+                  // Continua para o fallback web
                 }
-              } catch (fsError) {
-                // Fallback para método web (erro já tratado silenciosamente)
+              } catch (fsError: any) {
+                // Log do erro para debug
+                logger.warn('Erro ao salvar no Filesystem, usando fallback web', 'qr_generator', fsError);
+                // Continua para o fallback web
               }
             }
           } catch (pluginError) {
             // Plugins não disponíveis, usa fallback (comportamento esperado)
+            logger.info('Plugins do Capacitor não disponíveis, usando método web', 'qr_generator');
           }
         }
         
@@ -362,15 +419,63 @@ const QrGeneratorPage = () => {
     }
   };
 
-  const downloadQrCodeWeb = (blob: Blob, fileName: string) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+  const downloadQrCodeWeb = async (blob: Blob, fileName: string) => {
+    try {
+      const isNative = Capacitor.isNativePlatform();
+      
+      // No Android, tenta usar Share do Capacitor como alternativa
+      if (isNative) {
+        try {
+          const { Share } = await loadCapacitorPlugins();
+          if (Share) {
+            // Converte blob para data URL para compartilhar
+            const reader = new FileReader();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            
+            // Tenta compartilhar a imagem
+            await Share.share({
+              title: `QR Code ${fileName}`,
+              text: t('qr.qrGeneratedFor', { defaultValue: 'QR Code gerado' }),
+              url: dataUrl,
+              dialogTitle: t('qr.shareQrCode', { defaultValue: 'Compartilhar QR Code' }),
+            });
+            
+            const { showSuccess } = await import('../contexts/ToastContext');
+            showSuccess(t('qr.downloadSuccess', { defaultValue: 'QR Code compartilhado com sucesso!' }));
+            return;
+          }
+        } catch (shareError) {
+          // Se falhar, continua com método tradicional
+          logger.info('Share não disponível, usando download direto', 'qr_generator');
+        }
+      }
+      
+      // Método tradicional de download (funciona em navegadores e como fallback)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpa após um pequeno delay
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      
+      // Feedback de sucesso
+      const { showSuccess } = await import('../contexts/ToastContext');
+      showSuccess(t('qr.downloadSuccess', { defaultValue: 'QR Code baixado com sucesso!' }));
+    } catch (error) {
+      logger.error('Erro ao baixar QR Code', 'qr_generator', error);
+      handleError(error, 'qr_generator', t('qr.errorDownloadingQr', { defaultValue: 'Erro ao baixar QR Code' }));
+    }
   };
 
   const downloadAllQrCodes = async () => {
@@ -500,21 +605,32 @@ const QrGeneratorPage = () => {
                   <option value="chuveiro_lavaolhos">{t('equipment.eyewash')}</option>
                   <option value="alarme">{t('equipment.alarm')}</option>
                   <option value="abrigo">{t('equipment.shelter')}</option>
+                  {customTypes.map(customType => (
+                    <option key={customType.slug} value={`custom-${customType.slug}`}>
+                      {customType.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               {(() => {
-                const equipmentList = allEquipment[
-                  selectedEquipmentType === 'extintor' ? 'extinguishers' :
-                  selectedEquipmentType === 'mangueira' ? 'hoses' :
-                  selectedEquipmentType === 'scba' ? 'scbas' :
-                  selectedEquipmentType === 'multigas' ? 'multigasDetectors' :
-                  selectedEquipmentType === 'camara_espuma' ? 'foamChambers' :
-                  selectedEquipmentType === 'canhao_monitor' ? 'cannonMonitors' :
-                  selectedEquipmentType === 'chuveiro_lavaolhos' ? 'eyewashStations' :
-                  selectedEquipmentType === 'alarme' ? 'alarmSystems' :
-                  'shelters'
-                ] as any[];
+                let equipmentList: any[] = [];
+                
+                if (selectedEquipmentType.startsWith('custom-')) {
+                  equipmentList = allEquipment[selectedEquipmentType] || [];
+                } else {
+                  equipmentList = allEquipment[
+                    selectedEquipmentType === 'extintor' ? 'extinguishers' :
+                    selectedEquipmentType === 'mangueira' ? 'hoses' :
+                    selectedEquipmentType === 'scba' ? 'scbas' :
+                    selectedEquipmentType === 'multigas' ? 'multigasDetectors' :
+                    selectedEquipmentType === 'camara_espuma' ? 'foamChambers' :
+                    selectedEquipmentType === 'canhao_monitor' ? 'cannonMonitors' :
+                    selectedEquipmentType === 'chuveiro_lavaolhos' ? 'eyewashStations' :
+                    selectedEquipmentType === 'alarme' ? 'alarmSystems' :
+                    'shelters'
+                  ] as any[];
+                }
 
                 if (equipmentList.length === 0) {
                   return (
@@ -560,7 +676,7 @@ const QrGeneratorPage = () => {
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     const typeName = getEquipmentTypeName(selectedEquipmentType, t);
-                                    const fieldName = getIdentifierFieldName(selectedEquipmentType, t);
+                                    const fieldName = getIdentifierFieldName(selectedEquipmentType);
                                     setSelectedEquipment([...selectedEquipment, {
                                       id: equipmentId,
                                       type: selectedEquipmentType,
@@ -597,26 +713,58 @@ const QrGeneratorPage = () => {
 
                     {selectedEquipment.length > 0 && (
                       <>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                            {t('qr.locationCode')} <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={locationCode}
-                            onChange={(e) => setLocationCode(e.target.value)}
-                            placeholder="7036"
-                            className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
-                            style={{
-                              backgroundColor: 'rgba(26, 26, 26, 0.95)',
-                              borderColor: '#2A2A2A',
-                              color: '#FFFFFF',
-                            }}
-                          />
-                          <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
-                            Extintores serão gerados no formato industrial: 2#[código]#EXT#[ID]#[capacidade]#31
-                          </p>
-                        </div>
+                        {/* Mostra campo de código apenas se houver extintores selecionados */}
+                        {selectedEquipment.some(eq => eq.type === 'extintor') && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                              Código de Planta/Instalação <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={locationCode}
+                              onChange={(e) => setLocationCode(e.target.value)}
+                              placeholder="Ex: 7036"
+                              className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
+                              style={{
+                                backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                                borderColor: '#2A2A2A',
+                                color: '#FFFFFF',
+                              }}
+                            />
+                            <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(252, 61, 57, 0.1)', borderColor: '#FC3D39', borderWidth: '1px' }}>
+                              <p className="text-xs font-semibold mb-1" style={{ color: '#FFFFFF' }}>
+                                ⚠️ Importante:
+                              </p>
+                              <p className="text-xs mb-2" style={{ color: '#B0B0B0' }}>
+                                Este código <strong>NÃO é a localização física</strong> do equipamento (latitude/longitude ou nome do local). É um <strong>código numérico de identificação da planta/instalação</strong> usado especificamente no formato industrial do QR code.
+                              </p>
+                              <p className="text-xs font-semibold mt-3 mb-1" style={{ color: '#FFFFFF' }}>
+                                📋 Formato Industrial para Extintores:
+                              </p>
+                              <p className="text-xs font-mono mb-2" style={{ color: '#B0B0B0' }}>
+                                2#[código_planta]#[tipo]#[ID]#[capacidade]#31
+                              </p>
+                              <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                                <strong>Exemplo:</strong> 2#7036#CO2#021769#10#31
+                              </p>
+                              <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+                                • <strong>Código de Planta:</strong> Identificador numérico da instalação/planta (ex: 7036)
+                              </p>
+                              <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                                • <strong>Tipo:</strong> Primeiras 3 letras do agente extintor (CO2, ABC, PQS)
+                              </p>
+                              <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                                • <strong>ID:</strong> Número de identificação do extintor (6 dígitos)
+                              </p>
+                              <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                                • <strong>Capacidade:</strong> Capacidade em litros
+                              </p>
+                              <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+                                <strong>Nota:</strong> A localização física (coordenadas ou nome) é armazenada separadamente no cadastro do equipamento.
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
                           <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
@@ -715,26 +863,58 @@ const QrGeneratorPage = () => {
 
               {selectedEquipment.length > 0 && (
                 <>
-                    <div>
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                        {t('qr.locationCode')} <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={locationCode}
-                        onChange={(e) => setLocationCode(e.target.value)}
-                        placeholder="7036"
-                        className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
-                        style={{
-                          backgroundColor: 'rgba(26, 26, 26, 0.95)',
-                          borderColor: '#2A2A2A',
-                          color: '#FFFFFF',
-                        }}
-                      />
-                      <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
-                        Extintores serão gerados no formato industrial: 2#[código]#EXT#[ID]#[capacidade]#31
-                      </p>
-                    </div>
+                    {/* Mostra campo de código apenas se houver extintores selecionados */}
+                    {selectedEquipment.some(eq => eq.type === 'extintor') && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+                          Código de Planta/Instalação <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={locationCode}
+                          onChange={(e) => setLocationCode(e.target.value)}
+                          placeholder="Ex: 7036"
+                          className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
+                          style={{
+                            backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                            borderColor: '#2A2A2A',
+                            color: '#FFFFFF',
+                          }}
+                        />
+                        <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(252, 61, 57, 0.1)', borderColor: '#FC3D39', borderWidth: '1px' }}>
+                          <p className="text-xs font-semibold mb-1" style={{ color: '#FFFFFF' }}>
+                            ⚠️ Importante:
+                          </p>
+                          <p className="text-xs mb-2" style={{ color: '#B0B0B0' }}>
+                            Este código <strong>NÃO é a localização física</strong> do equipamento (latitude/longitude ou nome do local). É um <strong>código numérico de identificação da planta/instalação</strong> usado especificamente no formato industrial do QR code.
+                          </p>
+                          <p className="text-xs font-semibold mt-3 mb-1" style={{ color: '#FFFFFF' }}>
+                            📋 Formato Industrial para Extintores:
+                          </p>
+                          <p className="text-xs font-mono mb-2" style={{ color: '#B0B0B0' }}>
+                            2#[código_planta]#[tipo]#[ID]#[capacidade]#31
+                          </p>
+                          <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                            <strong>Exemplo:</strong> 2#7036#CO2#021769#10#31
+                          </p>
+                          <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+                            • <strong>Código de Planta:</strong> Identificador numérico da instalação/planta (ex: 7036)
+                          </p>
+                          <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                            • <strong>Tipo:</strong> Primeiras 3 letras do agente extintor (CO2, ABC, PQS)
+                          </p>
+                          <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                            • <strong>ID:</strong> Número de identificação do extintor (6 dígitos)
+                          </p>
+                          <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                            • <strong>Capacidade:</strong> Capacidade em litros
+                          </p>
+                          <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+                            <strong>Nota:</strong> A localização física (coordenadas ou nome) é armazenada separadamente no cadastro do equipamento.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                   <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A' }}>
                     <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
@@ -794,13 +974,13 @@ const QrGeneratorPage = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                  {t('qr.locationCode')} <span className="text-xs text-gray-400">(obrigatório para formato industrial)</span>
+                  Código de Planta/Instalação <span className="text-xs text-gray-400">(opcional - usado apenas para extintores encontrados)</span>
                 </label>
                 <input
                   type="text"
                   value={locationCode}
                   onChange={(e) => setLocationCode(e.target.value)}
-                  placeholder="7036"
+                  placeholder="Ex: 7036"
                   className="w-full p-3 rounded-lg border bg-light-surface dark:bg-dark-surface text-white placeholder:text-gray-500"
                   style={{
                     backgroundColor: 'rgba(26, 26, 26, 0.95)',
@@ -808,9 +988,41 @@ const QrGeneratorPage = () => {
                     color: '#FFFFFF',
                   }}
                 />
-                <p className="text-xs mt-1" style={{ color: '#B0B0B0' }}>
-                  Extintores encontrados serão gerados no formato industrial: 2#[código]#EXT#[ID]#[capacidade]#31
-                </p>
+                <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(252, 61, 57, 0.1)', borderColor: '#FC3D39', borderWidth: '1px' }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: '#FFFFFF' }}>
+                    ⚠️ Importante:
+                  </p>
+                  <p className="text-xs mb-2" style={{ color: '#B0B0B0' }}>
+                    Este código <strong>NÃO é a localização física</strong> (latitude/longitude ou nome do local). É um <strong>código numérico de identificação da planta/instalação</strong> usado apenas no formato industrial do QR code.
+                  </p>
+                  <p className="text-xs font-semibold mt-3 mb-1" style={{ color: '#FFFFFF' }}>
+                    📋 Como funciona:
+                  </p>
+                  <p className="text-xs mb-2" style={{ color: '#B0B0B0' }}>
+                    <strong>Para Extintores encontrados:</strong> O código será usado no formato industrial:
+                  </p>
+                  <p className="text-xs font-mono mb-2" style={{ color: '#B0B0B0' }}>
+                    2#[código_planta]#[tipo]#[ID]#[capacidade]#31
+                  </p>
+                  <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                    <strong>Exemplo:</strong> 2#7036#CO2#021769#10#31
+                  </p>
+                  <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+                    • <strong>Código de Planta:</strong> Identificador numérico da instalação/planta (ex: 7036)
+                  </p>
+                  <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                    • <strong>Tipo:</strong> Primeiras 3 letras do agente extintor (CO2, ABC, PQS)
+                  </p>
+                  <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                    • <strong>ID:</strong> Número de identificação do extintor (6 dígitos)
+                  </p>
+                  <p className="text-xs" style={{ color: '#B0B0B0' }}>
+                    • <strong>Capacidade:</strong> Capacidade em litros
+                  </p>
+                  <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+                    <strong>Para outros equipamentos ou textos não encontrados:</strong> O QR code conterá apenas o ID/série ou texto digitado.
+                  </p>
+                </div>
               </div>
 
               <button

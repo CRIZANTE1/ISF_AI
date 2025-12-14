@@ -29,15 +29,23 @@ const EquipmentListPage = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getEquipmentByType, cache } = useEquipmentCache();
+  const { getEquipmentByType, cache, refreshCache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customTypeName, setCustomTypeName] = useState<string | null>(null);
 
   // Memoizar nome do tipo de equipamento
   const equipmentTypeName = useMemo(() => {
     if (!type) return t('equipment.title');
+    
+    // Para tipos customizados, busca o nome do tipo
+    if (type.startsWith('custom-')) {
+      // Será atualizado quando o tipo for carregado
+      return type.replace('custom-', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
     const typeMap: Record<string, string> = {
       extintor: t('equipment.extinguisher'),
       mangueira: t('equipment.hose'),
@@ -53,29 +61,107 @@ const EquipmentListPage = () => {
   }, [type, t]);
 
   // Memoizar equipamentos para evitar recálculos
+  // Depende diretamente dos arrays do cache para garantir reatividade
   const memoizedEquipment = useMemo(() => {
     if (!user || !type) return [];
+    // Para tipos customizados, retorna array vazio aqui (será carregado no useEffect)
+    if (type.startsWith('custom-')) {
+      return [];
+    }
     try {
-      return getEquipmentByType(type);
+      const equipment = getEquipmentByType(type);
+      // Verifica se é Promise (para tipos customizados) ou array (tipos padrão)
+      if (equipment instanceof Promise) {
+        return [];
+      }
+      // Força uma nova referência para garantir que o React detecte mudanças
+      return [...equipment];
     } catch (err: any) {
       handleError(err, 'equipment', 'Falha ao buscar equipamentos');
       return [];
     }
-  }, [user, type, getEquipmentByType, cache, handleError]);
+  }, [
+    user, 
+    type, 
+    getEquipmentByType, 
+    cache.extinguishers, 
+    cache.hoses, 
+    cache.scbas, 
+    cache.multigasDetectors, 
+    cache.foamChambers, 
+    cache.cannonMonitors, 
+    cache.eyewashStations, 
+    cache.alarmSystems, 
+    cache.shelters, 
+    handleError
+  ]);
 
   useEffect(() => {
-    if (!user || !type) {
-      setLoading(false);
-      return;
+    const loadEquipment = async () => {
+      if (!user || !type) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      
+      // Para tipos customizados, busca diretamente
+      if (type.startsWith('custom-')) {
+        try {
+          const slug = type.replace('custom-', '');
+          const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
+          const customTypes = await getAllCustomEquipmentTypes();
+          const foundType = customTypes.find(t => t.slug === slug);
+          if (foundType) {
+            setCustomTypeName(foundType.name);
+            const customEquipments = await getAllCustomEquipment(foundType.id);
+            setEquipment(customEquipments.map((eq: any) => ({
+              ...eq,
+              id_equipamento: eq.id_equipamento,
+              equipment_id: eq.id_equipamento,
+            })));
+          } else {
+            setEquipment([]);
+          }
+        } catch (err: any) {
+          handleError(err, 'equipment', 'Falha ao buscar equipamentos customizados');
+          setEquipment([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Para tipos padrão, usa o cache
+        setEquipment([...memoizedEquipment]);
+        setLoading(false);
+      }
+    };
+
+    loadEquipment();
+  }, [user, type, memoizedEquipment, handleError]);
+
+  // Força atualização quando a página é montada (útil após navegação)
+  useEffect(() => {
+    if (user && type) {
+      // Pequeno delay para garantir que a navegação foi concluída
+      const timer = setTimeout(() => {
+        refreshCache();
+      }, 200);
+      return () => clearTimeout(timer);
     }
-    setLoading(true);
-    setEquipment(memoizedEquipment);
-    setLoading(false);
-  }, [user, type, memoizedEquipment]);
+  }, [user, type]); // Não inclui refreshCache para evitar loops
+
+  // Atualiza a lista quando a página recebe foco (útil após exclusão)
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshCache();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refreshCache]);
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
-      <PageHeader title={equipmentTypeName} />
+      <PageHeader title={customTypeName || equipmentTypeName} />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
         {type && <InstructionsPanel equipmentType={type} />}
         <motion.div

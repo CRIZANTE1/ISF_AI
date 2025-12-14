@@ -1,9 +1,34 @@
-import { Flame, Waves, Droplet, Target, Bell, Gauge, Shield, Home } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Flame, Waves, Droplet, Target, Bell, Gauge, Shield, Home, Package } from 'lucide-react';
 import RadialOrbitalTimeline from '../components/ui/radial-orbital-timeline';
 import { useTranslation } from '../hooks/useTranslation';
+import { getAllCustomEquipmentTypes, type CustomEquipmentType } from '../utils/customEquipmentOperations';
+import * as LucideIcons from 'lucide-react';
 
 const Inspections = () => {
   const { t } = useTranslation();
+  const [customTypes, setCustomTypes] = useState<CustomEquipmentType[]>([]);
+  const [loadingCustom, setLoadingCustom] = useState(true);
+
+  useEffect(() => {
+    const loadCustomTypes = async () => {
+      try {
+        const types = await getAllCustomEquipmentTypes();
+        setCustomTypes(types);
+      } catch (error) {
+        // Erro silencioso - tipos customizados podem não existir ainda
+      } finally {
+        setLoadingCustom(false);
+      }
+    };
+    loadCustomTypes();
+  }, []);
+
+  // Função para obter ícone por nome
+  const getIconByName = (iconName: string) => {
+    const IconComponent = (LucideIcons as any)[iconName] || Package;
+    return IconComponent;
+  };
 
   const sciItems = [
     { name: t('inspection.extinguisher'), link: '/inspections/extintor', icon: Flame, color: '#FC3D39' },
@@ -20,8 +45,16 @@ const Inspections = () => {
     { name: t('inspection.shelter'), link: '/inspections/abrigo', icon: Home, color: '#53D769' },
   ];
 
+  // Adiciona tipos customizados
+  const customItems = customTypes.map(type => ({
+    name: type.name,
+    link: `/inspections/custom-${type.slug}`,
+    icon: getIconByName(type.icon_name || 'Package'),
+    color: '#9B59B6', // Cor padrão para tipos customizados
+  }));
+
   // Combinar todos os itens para o seletor orbital
-  const allItems = [...sciItems, ...safetyItems];
+  const allItems = [...sciItems, ...safetyItems, ...customItems];
   
   const timelineData = allItems.map((item, index) => ({
     id: index + 1,

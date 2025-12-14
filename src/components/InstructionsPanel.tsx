@@ -25,7 +25,7 @@ const markdownToHtml = (text: string): string => {
   if (!text) return '';
   
   // Primeiro, converter negrito **texto** para <strong>texto</strong>
-  let html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   
   // Dividir em linhas preservando espaços iniciais para detectar indentação
   const lines = html.split('\n');
@@ -154,7 +154,7 @@ const markdownToHtml = (text: string): string => {
 
 // Função helper para traduzir instruções
 const translateInstructions = (instructions: EquipmentInstructions, equipmentType: string, t: any): EquipmentInstructions => {
-  let translated: EquipmentInstructions = { ...instructions };
+  const translated: EquipmentInstructions = { ...instructions };
   
   // Usar o equipmentType diretamente como chave
   const guideKey = equipmentType;
@@ -174,7 +174,7 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
     if (translated.guide) {
       translated.guide = translated.guide.map((section, index) => {
         const sectionKey = section.title.toLowerCase();
-        let translatedSection = { ...section };
+        const translatedSection = { ...section };
         
         // Tentar traduzir baseado no título e conteúdo
         let titleKey: string | null = null;
@@ -221,7 +221,7 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
     if (translated.faq) {
       translated.faq = translated.faq.map(item => {
         const questionKey = item.question.toLowerCase();
-        let translatedItem = { ...item };
+        const translatedItem = { ...item };
         
         // Tentar traduzir FAQ baseado no conteúdo
         const faqKey = questionKey.includes('frequência') || questionKey.includes('frequency')

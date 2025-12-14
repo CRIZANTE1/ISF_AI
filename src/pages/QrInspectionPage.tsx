@@ -35,6 +35,34 @@ const QrInspectionPage = () => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerRef = useRef<HTMLDivElement>(null);
 
+  const [customEquipment, setCustomEquipment] = useState<Record<string, any[]>>({});
+
+  // Carrega equipamentos customizados
+  useEffect(() => {
+    const loadCustomEquipment = async () => {
+      try {
+        const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
+        const customTypes = await getAllCustomEquipmentTypes();
+        const customEquipmentsMap: Record<string, any[]> = {};
+        
+        for (const customType of customTypes) {
+          const equipments = await getAllCustomEquipment(customType.id);
+          customEquipmentsMap[`custom-${customType.slug}`] = equipments.map((eq: any) => ({
+            ...eq,
+            id_equipamento: eq.id_equipamento,
+            equipment_id: eq.id_equipamento,
+          }));
+        }
+        
+        setCustomEquipment(customEquipmentsMap);
+      } catch (error) {
+        logger.error('Erro ao carregar equipamentos customizados', 'equipment', error);
+      }
+    };
+
+    loadCustomEquipment();
+  }, []);
+
   // Todos os equipamentos disponíveis
   const allEquipment = useMemo(() => ({
     extinguishers: cache.extinguishers || [],
@@ -46,7 +74,8 @@ const QrInspectionPage = () => {
     eyewashStations: cache.eyewashStations || [],
     alarmSystems: cache.alarmSystems || [],
     shelters: cache.shelters || [],
-  }), [cache]);
+    ...customEquipment,
+  }), [cache, customEquipment]);
 
   const stopScanner = useCallback(() => {
     if (scannerRef.current) {
@@ -543,6 +572,34 @@ const QrInspectionPage = () => {
                 )}
                 {equipmentType === 'multigas' && (
                   <>
+                    {equipment.marca && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Marca:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.marca}</span>
+                      </div>
+                    )}
+                    {equipment.modelo && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Modelo:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.modelo}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {equipmentType === 'camara_espuma' && (
+                  <>
+                    {equipment.tipo_camara && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Tipo de Câmara:</span>
+                        <span style={{ color: '#FFFFFF' }}>{equipment.tipo_camara}</span>
+                      </div>
+                    )}
+                    {equipment.numero_mcs && (
+                      <div className="flex justify-between">
+                        <span style={{ color: '#B0B0B0' }}>Número MCS:</span>
+                        <span style={{ color: '#FFFFFF' }}>MCS {equipment.numero_mcs}</span>
+                      </div>
+                    )}
                     {equipment.marca && (
                       <div className="flex justify-between">
                         <span style={{ color: '#B0B0B0' }}>Marca:</span>

@@ -41,7 +41,7 @@ const EquipmentDetailPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getEquipmentByType } = useEquipmentCache();
+  const { getEquipmentByType, refreshCache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
@@ -388,6 +388,54 @@ const EquipmentDetailPage = () => {
           }
           break;
         }
+        default:
+          // Verifica se é tipo customizado
+          if (type.startsWith('custom-')) {
+            try {
+              const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
+              const slug = type.replace('custom-', '');
+              const customTypes = await getAllCustomEquipmentTypes();
+              const foundType = customTypes.find(t => t.slug === slug);
+              
+              if (foundType) {
+                const customEquipments = await getAllCustomEquipment(foundType.id);
+                const customEq = customEquipments.find((e: any) => e.id_equipamento === id);
+                
+                if (customEq) {
+                  equipmentData = {
+                    ...customEq,
+                    id: customEq.id_equipamento,
+                    name: customEq.id_equipamento,
+                    location: customEq.localizacao || undefined,
+                  };
+                  
+                  // Buscar inspeções customizadas
+                  if (user?.id) {
+                    const { data: inspections, error: inspError } = await supabase
+                      .from('custom_equipment_inspections' as any)
+                      .select('*')
+                      .eq('equipment_type_id', foundType.id)
+                      .eq('id_equipamento', id)
+                      .eq('user_id', user.id)
+                      .order('data_inspecao', { ascending: false });
+                    
+                    if (!inspError && inspections) {
+                      inspectionsData = inspections.map((insp: any) => ({
+                        id: insp.id || 0,
+                        data_inspecao: insp.data_inspecao || '',
+                        status_geral: insp.status_geral || undefined,
+                        plano_de_acao: insp.plano_de_acao || undefined,
+                        link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
+                      }));
+                    }
+                  }
+                }
+              }
+            } catch (error) {
+              logger.error('Erro ao buscar equipamento customizado', 'equipment', error);
+            }
+          }
+          break;
       }
 
       if (!equipmentData) {
@@ -463,11 +511,97 @@ const EquipmentDetailPage = () => {
         }
 
         if (tableName && idColumn) {
-          const { error } = await supabase
-            .from(tableName as any)
-            .delete()
-            .eq(idColumn, itemToDelete.id);
-          if (error) throw error;
+          // Deleta usando o campo correto (não é sempre 'id')
+          // Para suportar offline, primeiro tenta deletar online
+          try {
+            // Verifica se o registro existe antes de deletar (para debug)
+            const { data: existing, error: checkError } = await supabase
+              .from(tableName as any)
+              .select(idColumn)
+              .eq(idColumn, itemToDelete.id)
+              .eq('user_id', user?.id || '')
+              .limit(1)
+              .maybeSingle();
+            
+            if (checkError && checkError.code !== 'PGRST116') {
+              throw checkError;
+            }
+            
+            if (!existing) {
+              logger.warn('Registro não encontrado para exclusão', 'equipment', {
+                table: tableName,
+                idColumn,
+                id: itemToDelete.id
+              });
+              // Continua mesmo assim para atualizar o cache
+            } else {
+              // Deleta o registro
+              const { data: deleted, error: deleteError } = await supabase
+                .from(tableName as any)
+                .delete()
+                .eq(idColumn, itemToDelete.id)
+                .eq('user_id', user?.id || '')
+                .select();
+              
+              if (deleteError) throw deleteError;
+              
+              // Verifica se realmente deletou algo
+              if (!deleted || deleted.length === 0) {
+                logger.warn('Nenhum registro foi deletado', 'equipment', {
+                  table: tableName,
+                  idColumn,
+                  id: itemToDelete.id
+                });
+              } else {
+                logger.info('Registro deletado com sucesso', 'equipment', {
+                  table: tableName,
+                  idColumn,
+                  id: itemToDelete.id,
+                  deletedCount: deleted.length
+                });
+              }
+            }
+          } catch (error: any) {
+            // Se falhar por erro de rede, salva como operação offline
+            const isNetworkError = 
+              error?.message?.includes('fetch') ||
+              error?.message?.includes('network') ||
+              error?.message?.includes('timeout') ||
+              error?.message?.includes('Failed to fetch');
+            
+            if (isNetworkError) {
+              // Salva como operação pendente para sincronizar depois
+              const { savePendingOperation } = await import('../utils/offlineDB');
+              await savePendingOperation('delete', tableName, {
+                [idColumn]: itemToDelete.id,
+                user_id: user?.id
+              });
+              logger.info('Exclusão salva offline para sincronização posterior', 'equipment');
+            } else {
+              throw error;
+            }
+          }
+          
+          // SEMPRE atualiza o cache, mesmo se a exclusão falhou silenciosamente
+          // Isso garante que a lista seja atualizada
+          try {
+            logger.info('Atualizando cache após exclusão', 'equipment', { type, tableName, id: itemToDelete.id });
+            
+            // Aguarda um pouco mais para garantir que o banco processou a exclusão
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Força atualização do cache
+            await refreshCache();
+            
+            // Aguarda mais um pouco para garantir que o cache foi completamente atualizado
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            logger.info('Cache atualizado com sucesso após exclusão', 'equipment', { type, tableName });
+          } catch (error) {
+            logger.error('Erro ao atualizar cache após exclusão', 'equipment', error);
+            // Continua mesmo se o cache falhar
+          }
+          
           navigate(`/inspections/${type}`);
         }
       } else {
@@ -504,6 +638,14 @@ const EquipmentDetailPage = () => {
             .delete()
             .eq('id', itemToDelete.id);
           if (error) throw error;
+          
+          // Atualiza o cache imediatamente para que as alterações apareçam
+          try {
+            await refreshCache();
+          } catch (error) {
+            console.error('Erro ao atualizar cache:', error);
+          }
+          
           setInspections(inspections.filter(insp => insp.id !== itemToDelete.id));
         }
       }
@@ -992,6 +1134,18 @@ const EquipmentDetailPage = () => {
 
               {(type === 'chuveiro_lavaolhos' || type === 'camara_espuma' || type === 'alarme' || type === 'canhao_monitor' || type === 'abrigo') && (
                 <div className="space-y-2 pt-3 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  {type === 'camara_espuma' && equipment.tipo_camara && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Tipo de Câmara:</span>
+                      <span className="text-white text-right">{equipment.tipo_camara}</span>
+                    </div>
+                  )}
+                  {type === 'camara_espuma' && equipment.numero_mcs && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-400">Número MCS:</span>
+                      <span className="text-white text-right">MCS {equipment.numero_mcs}</span>
+                    </div>
+                  )}
                   {equipment.marca && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-semibold text-gray-400">Marca:</span>

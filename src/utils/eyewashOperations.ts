@@ -12,6 +12,8 @@ export interface EyewashStation {
   localizacao?: string;
   marca?: string;
   modelo?: string;
+  latitude?: number;
+  longitude?: number;
   data_cadastro?: string;
   created_at?: string;
   user_id?: string;

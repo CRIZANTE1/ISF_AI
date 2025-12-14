@@ -69,6 +69,7 @@ const ProgressiveImage = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Se não há blurDataURL fornecido, tenta criar um
     if (!blurDataURL && !blurSrc && (thumbnail || src)) {

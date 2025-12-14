@@ -348,13 +348,16 @@
     "errorCreatingCanvas": "Não foi possível criar contexto do canvas",
     "errorGeneratingImage": "Erro ao gerar imagem",
     "errorDownloadingQr": "Erro ao baixar QR Code. Tente novamente.",
+    "downloadSuccess": "QR Code baixado com sucesso!",
     "qrGeneratedFor": "QR Code gerado para",
     "shareQrCode": "Compartilhar QR Code"
   },
   "utilities": {
     "title": "Utilitários",
     "qrGenerator": "Gerador de QR Codes",
-    "qrGeneratorDescription": "Gerar QR Codes para equipamentos no formato industrial"
+    "qrGeneratorDescription": "Gerar QR Codes para equipamentos no formato industrial",
+    "customEquipment": "Equipamentos Customizados",
+    "customEquipmentDescription": "Criar novos tipos de equipamentos e checklists"
   },
   "history": {
     "title": "Histórico",

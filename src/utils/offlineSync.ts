@@ -165,7 +165,6 @@ function validateUserOwnership(data: any, authenticatedUserId: string): void {
  * Executa uma operação pendente
  */
 async function executeOperation(operation: any): Promise<boolean> {
-  try {
     // Valida estrutura da operação
     const operationValidation = safeValidateData(offlineOperationSchema, operation);
     if (!operationValidation.success) {
@@ -305,7 +304,7 @@ async function executeOperation(operation: any): Promise<boolean> {
         
         // Constrói query com filtros apropriados
         // Sempre adiciona filtro user_id para garantir que só atualiza dados do usuário autenticado
-        let query = supabase
+        const query = supabase
           .from(table)
           .update(updateData)
           .eq('id', id)
@@ -327,7 +326,7 @@ async function executeOperation(operation: any): Promise<boolean> {
         
         // Constrói query com filtros apropriados
         // Sempre adiciona filtro user_id para garantir que só deleta dados do usuário autenticado
-        let query = supabase
+        const query = supabase
           .from(table)
           .delete()
           .eq('id', id)
@@ -342,9 +341,6 @@ async function executeOperation(operation: any): Promise<boolean> {
       default:
         throw new Error(`Tipo de operação desconhecido: ${type}`);
     }
-  } catch (error: any) {
-    throw error;
-  }
 }
 
 /**

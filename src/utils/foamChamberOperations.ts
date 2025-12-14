@@ -13,6 +13,10 @@ export interface FoamChamber {
   marca?: string;
   modelo?: string;
   tamanho_especifico?: string;
+  tipo_camara?: string;
+  numero_mcs?: string;
+  latitude?: number;
+  longitude?: number;
   data_cadastro?: string;
   created_at?: string;
   user_id?: string;

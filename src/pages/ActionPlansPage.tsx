@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,9 +15,13 @@ import LoadingScreen from '../components/LoadingScreen';
 import { logger } from '../utils/logger';
 import { getActionPlanStatus, classifyActionPlanPriority, getActionPlanStatusMessage, type ActionPlanPriority } from '../utils/actionPlanUtils';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { useToast } from '../contexts/ToastContext';
 import FileUpload from '../components/FileUpload';
 import { uploadEvidencePhoto, uploadFile } from '../utils/storage';
+
+const ACTION_PLAN_MODAL_STATE = 'actionPlanResolutionState';
 
 interface ActionPlan {
   id: string | number;
@@ -39,6 +44,7 @@ type FilterType = 'all' | 'pending' | 'resolved';
 
 const ActionPlansPage = () => {
   const { user } = useAuth();
+  const { refreshCache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
@@ -54,6 +60,50 @@ const ActionPlansPage = () => {
   const [deletingPlanId, setDeletingPlanId] = useState<string | number | null>(null);
   const [planToDelete, setPlanToDelete] = useState<ActionPlan | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Efeito para salvar o estado do modal no sessionStorage quando o app for para o background
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      const listener = App.addListener('appStateChange', ({ isActive }) => {
+        if (!isActive && isResolveModalOpen && selectedPlan) {
+          const stateToSave = {
+            inspectionId: selectedPlan.inspectionId,
+            tableName: selectedPlan.tableName,
+          };
+          sessionStorage.setItem(ACTION_PLAN_MODAL_STATE, JSON.stringify(stateToSave));
+          logger.info('Estado do modal de plano de ação salvo.', 'action-plans', stateToSave);
+        }
+      });
+      return () => { listener.remove(); };
+    }
+  }, [isResolveModalOpen, selectedPlan]);
+
+  // Efeito para restaurar o estado do modal quando a página carregar (e os planos de ação estiverem disponíveis)
+  useEffect(() => {
+    if (actionPlans.length > 0) {
+      const savedStateJSON = sessionStorage.getItem(ACTION_PLAN_MODAL_STATE);
+      if (savedStateJSON) {
+        try {
+          const savedState = JSON.parse(savedStateJSON);
+          const planToRestore = actionPlans.find(
+            p => p.inspectionId === savedState.inspectionId && p.tableName === savedState.tableName
+          );
+
+          if (planToRestore) {
+            logger.info('Restaurando estado do modal de plano de ação.', 'action-plans', savedState);
+            setSelectedPlan(planToRestore);
+            setIsResolveModalOpen(true);
+          }
+        } catch (error) {
+          logger.error('Erro ao restaurar estado do modal', 'action-plans', error);
+        } finally {
+          // Limpa o estado depois de tentar restaurar, para não ficar em loop
+          sessionStorage.removeItem(ACTION_PLAN_MODAL_STATE);
+        }
+      }
+    }
+  }, [actionPlans]);
+
 
   useEffect(() => {
     const fetchActionPlans = async () => {
@@ -75,6 +125,18 @@ const ActionPlansPage = () => {
           { name: 'inspecoes_mangueiras', type: 'mangueira', idField: 'id_mangueira', dateField: 'data_inspecao', typeLabel: 'Mangueira' },
           { name: 'inspecoes_extintores', type: 'extintor', idField: 'numero_identificacao', dateField: 'data_servico', typeLabel: 'Extintor' },
         ];
+
+        // Buscar inspeções de equipamentos customizados
+        const { data: customInspections } = await supabase
+          .from('custom_equipment_inspections')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('data_inspecao', { ascending: false });
+
+        // Buscar nomes dos tipos customizados
+        const { getAllCustomEquipmentTypes } = await import('../utils/customEquipmentOperations');
+        const customTypes = await getAllCustomEquipmentTypes();
+        const customTypeMap = new Map(customTypes.map(t => [t.id, { name: t.name, slug: t.slug }]));
 
         const queries = inspectionTables.map(table => 
           supabase
@@ -131,6 +193,39 @@ const ActionPlansPage = () => {
             });
           }
         });
+
+        // Processar inspeções de equipamentos customizados
+        if (customInspections) {
+          customInspections.forEach((insp: any) => {
+            const plan = insp.plano_de_acao;
+            if (plan && !plan.toLowerCase().includes('manter em monitoramento') && plan.trim() !== 'N/A') {
+              const statusValue = insp.status_geral;
+              const statusLower = (statusValue || '').toLowerCase();
+              const isResolved = statusLower.includes('aprovado') || statusLower.includes('ok') || statusLower === 'sim';
+              const createdAt = insp.data_inspecao || insp.created_at;
+              const priority = classifyActionPlanPriority(plan);
+              const planStatus = createdAt ? getActionPlanStatus(plan, createdAt) : undefined;
+              const typeInfo = customTypeMap.get(insp.equipment_type_id);
+              
+              allPlans.push({
+                id: insp.id,
+                type: typeInfo?.name || 'Equipamento Customizado',
+                equipmentType: typeInfo ? `custom-${typeInfo.slug}` : 'custom',
+                equipmentId: insp.id_equipamento,
+                date: createdAt,
+                status: isResolved ? 'resolved' : 'pending',
+                actionPlan: plan,
+                inspector: insp.inspetor,
+                photoUrl: insp.link_foto_nao_conformidade,
+                inspectionId: insp.id,
+                tableName: 'custom_equipment_inspections',
+                statusGeral: statusValue,
+                priority,
+                planStatus,
+              });
+            }
+          });
+        }
 
         // Ordenar por data (mais recentes primeiro)
         allPlans.sort((a, b) => {
@@ -307,10 +402,18 @@ const ActionPlansPage = () => {
         )
       );
 
+      // Atualiza o cache imediatamente para que as alterações apareçam
+      try {
+        await refreshCache();
+      } catch (error) {
+        console.error('Erro ao atualizar cache:', error);
+      }
+
       showSuccess(t('actionPlans.resolveSuccess', { defaultValue: 'Plano de ação marcado como resolvido com sucesso' }));
       setIsResolveModalOpen(false);
       setSelectedPlan(null);
       setResolveEvidenceFile(null);
+      sessionStorage.removeItem(ACTION_PLAN_MODAL_STATE);
 
       // Disparar evento para atualizar notificações no DashboardHeader
       window.dispatchEvent(new CustomEvent('refresh-alerts'));
@@ -326,6 +429,7 @@ const ActionPlansPage = () => {
     setIsResolveModalOpen(false);
     setSelectedPlan(null);
     setResolveEvidenceFile(null);
+    sessionStorage.removeItem(ACTION_PLAN_MODAL_STATE);
   };
 
   const handleDeleteClick = (plan: ActionPlan) => {
@@ -351,6 +455,13 @@ const ActionPlansPage = () => {
       setActionPlans(prev => 
         prev.filter(p => !(p.id === planToDelete.id && p.tableName === planToDelete.tableName))
       );
+
+      // Atualiza o cache imediatamente para que as alterações apareçam
+      try {
+        await refreshCache();
+      } catch (error) {
+        console.error('Erro ao atualizar cache:', error);
+      }
 
       showSuccess(t('actionPlans.deleteSuccess', { defaultValue: 'Plano de ação excluído com sucesso' }));
       setIsDeleteModalOpen(false);

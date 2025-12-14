@@ -126,7 +126,7 @@ const SingularityShaders = forwardRef<HTMLDivElement, SingularityShadersProps>((
     onWindowResize();
     window.addEventListener("resize", onWindowResize, false);
 
-    let startTime = Date.now();
+    const startTime = Date.now();
 
     // Animation loop
     const animate = () => {

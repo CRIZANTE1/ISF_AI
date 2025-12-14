@@ -8,6 +8,11 @@ import { buildIndustrialQrString, ExtinguisherQrData } from './qrInspectionUtils
  * Obtém o ID ou número de série de um equipamento baseado no tipo
  */
 export function getEquipmentIdentifier(equipment: any, type: string): string | null {
+  // Para tipos customizados, sempre usa id_equipamento
+  if (type.startsWith('custom-')) {
+    return equipment.id_equipamento || equipment.equipment_id || null;
+  }
+
   switch (type) {
     case 'extintor':
       return equipment.numero_identificacao || null;
@@ -46,6 +51,7 @@ export function findEquipmentByIdentifier(
     eyewashStations: any[];
     alarmSystems: any[];
     shelters: any[];
+    [key: string]: any[]; // Para tipos customizados
   },
   identifier: string
 ): { equipment: any; type: string } | null {
@@ -59,7 +65,7 @@ export function findEquipmentByIdentifier(
     return null;
   };
 
-  // Busca em todos os tipos de equipamentos
+  // Busca em todos os tipos de equipamentos padrão
   const types = [
     { list: allEquipment.extinguishers, type: 'extintor' },
     { list: allEquipment.hoses, type: 'mangueira' },
@@ -75,6 +81,14 @@ export function findEquipmentByIdentifier(
   for (const { list, type } of types) {
     const result = searchInList(list, type);
     if (result) return result;
+  }
+
+  // Busca em tipos customizados (chaves que começam com 'custom-')
+  for (const [key, list] of Object.entries(allEquipment)) {
+    if (key.startsWith('custom-') && Array.isArray(list)) {
+      const result = searchInList(list, key);
+      if (result) return result;
+    }
   }
 
   return null;
@@ -134,7 +148,7 @@ export function getEquipmentTypeName(type: string, t: (key: string) => string): 
 /**
  * Obtém o nome do campo de identificação para um tipo de equipamento
  */
-export function getIdentifierFieldName(type: string, t: (key: string) => string): string {
+export function getIdentifierFieldName(type: string): string {
   const fieldMap: Record<string, string> = {
     extintor: 'Nº Identificação',
     mangueira: 'ID Mangueira',

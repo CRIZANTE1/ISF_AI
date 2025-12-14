@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import { logger } from '../utils/logger';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
@@ -14,6 +16,7 @@ import CannonMonitorForm from '../components/forms/CannonMonitorForm';
 import EyewashForm from '../components/forms/EyewashForm';
 import AlarmForm from '../components/forms/AlarmForm';
 import ShelterForm from '../components/forms/ShelterForm';
+import CustomEquipmentForm from '../components/forms/CustomEquipmentForm';
 import Skeleton from '../components/Skeleton';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getAllEyewashStations } from '../utils/eyewashOperations';
@@ -31,12 +34,44 @@ const EditEquipmentPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { handleError, executeWithFeedback } = useErrorHandler();
+  const { refreshCache } = useEquipmentCache();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null);
+  const [isCustomType, setIsCustomType] = useState(false);
+  const [customTypeId, setCustomTypeId] = useState<string | null>(null);
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<EquipmentData>();
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<EquipmentData>();
+
+  // Verifica se é tipo customizado
+  useEffect(() => {
+    const checkCustomType = async () => {
+      if (!type || !type.startsWith('custom-')) {
+        setIsCustomType(false);
+        return;
+      }
+
+      try {
+        const { getAllCustomEquipmentTypes } = await import('../utils/customEquipmentOperations');
+        const slug = type.replace('custom-', '');
+        const customTypes = await getAllCustomEquipmentTypes();
+        const foundType = customTypes.find(t => t.slug === slug);
+        
+        if (foundType) {
+          setIsCustomType(true);
+          setCustomTypeId(foundType.id);
+        } else {
+          setIsCustomType(false);
+        }
+      } catch (error) {
+        logger.error('Erro ao verificar tipo customizado', 'equipment', error);
+        setIsCustomType(false);
+      }
+    };
+
+    checkCustomType();
+  }, [type]);
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -118,6 +153,30 @@ const EditEquipmentPage = () => {
             }
             break;
           }
+          default:
+            // Verifica se é tipo customizado
+            if (type.startsWith('custom-')) {
+              try {
+                const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
+                const slug = type.replace('custom-', '');
+                const customTypes = await getAllCustomEquipmentTypes();
+                const foundType = customTypes.find(t => t.slug === slug);
+                
+                if (foundType) {
+                  const customEquipments = await getAllCustomEquipment(foundType.id);
+                  const customEq = customEquipments.find((e: any) => e.id_equipamento === id);
+                  if (customEq) {
+                    data = {
+                      ...customEq,
+                      custom_fields: customEq.custom_fields || {},
+                    };
+                  }
+                }
+              } catch (error) {
+                logger.error('Erro ao buscar equipamento customizado', 'equipment', error);
+              }
+            }
+            break;
         }
 
         if (!data) {
@@ -164,7 +223,7 @@ const EditEquipmentPage = () => {
         tableName = 'conjuntos_autonomos';
         idColumn = 'numero_serie_equipamento';
         break;
-      case 'multigas':
+      case 'multigas': {
         tableName = 'inventario_multigas';
         idColumn = 'id_equipamento';
         // Mapeia campos maiúsculos para minúsculos (schema do Supabase)
@@ -191,9 +250,15 @@ const EditEquipmentPage = () => {
         // Usa dataToUpdate mapeado para multigas
         Object.assign(dataToUpdate, multigasData);
         break;
+      }
       case 'camara_espuma':
         tableName = 'inventario_camaras_espuma';
         idColumn = 'id_camara';
+        // Se numero_mcs for "outro", usa o valor de numero_mcs_custom
+        if (dataToUpdate.numero_mcs === 'outro' && (dataToUpdate as any).numero_mcs_custom) {
+          dataToUpdate.numero_mcs = (dataToUpdate as any).numero_mcs_custom;
+          delete (dataToUpdate as any).numero_mcs_custom;
+        }
         break;
       case 'canhao_monitor':
         tableName = 'inventario_canhoes_monitores';
@@ -212,6 +277,45 @@ const EditEquipmentPage = () => {
         idColumn = 'id_abrigo';
         break;
       default:
+        // Verifica se é tipo customizado
+        if (type.startsWith('custom-')) {
+          try {
+            const { getAllCustomEquipmentTypes } = await import('../utils/customEquipmentOperations');
+            const slug = type.replace('custom-', '');
+            const customTypes = await getAllCustomEquipmentTypes();
+            const foundType = customTypes.find(t => t.slug === slug);
+            
+            if (foundType) {
+              // Atualiza equipamento customizado
+              const { supabase } = await import('../lib/supabase');
+              const { error } = await supabase
+                .from('custom_equipment' as any)
+                .update({
+                  ...dataToUpdate,
+                  custom_fields: formData.custom_fields || {},
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('equipment_type_id', foundType.id)
+                .eq('id_equipamento', id);
+              
+              if (error) throw error;
+              
+              // Atualiza cache e navega
+              try {
+                await refreshCache();
+              } catch (error) {
+                logger.error('Erro ao atualizar cache', 'equipment', error);
+              }
+              navigate(`/equipment/${type}/${id}`);
+              setLoading(false);
+              return;
+            }
+          } catch (error: any) {
+            handleError(error, 'equipment', 'Erro ao atualizar equipamento customizado');
+            setLoading(false);
+            return;
+          }
+        }
         setLoading(false);
         return;
     }
@@ -231,6 +335,13 @@ const EditEquipmentPage = () => {
     );
 
     if (success) {
+      // Atualiza o cache imediatamente para que as alterações apareçam na lista
+      try {
+        await refreshCache();
+      } catch (error) {
+        // Log do erro mas não impede a navegação
+        logger.error('Erro ao atualizar cache', 'equipment', error);
+      }
       navigate(`/equipment/${type}/${id}`);
     }
     
@@ -239,6 +350,10 @@ const EditEquipmentPage = () => {
 
   const renderSpecificForm = () => {
     if (!type) return null;
+    
+    if (isCustomType && customTypeId) {
+      return <CustomEquipmentForm equipmentTypeId={customTypeId} register={register} errors={errors} watch={watch} />;
+    }
     
     switch (type) {
       case 'extintor':
@@ -250,7 +365,7 @@ const EditEquipmentPage = () => {
       case 'multigas':
         return <MultigasForm register={register} />;
       case 'camara_espuma':
-        return <FoamChamberForm register={register} />;
+        return <FoamChamberForm register={register} errors={errors} watch={watch} />;
       case 'canhao_monitor':
         return <CannonMonitorForm register={register} />;
       case 'chuveiro_lavaolhos':

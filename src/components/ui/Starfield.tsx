@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 // Fast UUID generator, RFC4122 version 4 compliant
 const generateUUID = () => {
@@ -90,7 +90,7 @@ const Starfield: React.FC<StarfieldProps> = ({
   const compSpeed = hyperspace || state.hyperspace ? speed * warpFactor : speed;
   const ratio = quantity / 2;
 
-  const measureViewport = () => {
+  const measureViewport = useCallback(() => {
     // Use window dimensions for fixed position
     sd.current.w = window.innerWidth;
     sd.current.h = window.innerHeight;
@@ -107,9 +107,9 @@ const Starfield: React.FC<StarfieldProps> = ({
       mouse.current.x = cursor.current.x - sd.current.x;
       mouse.current.y = cursor.current.y - sd.current.y;
     }
-  };
+  }, []);
 
-  const setupCanvas = () => {
+  const setupCanvas = useCallback(() => {
     measureViewport();
     const canvas = canvasRef.current;
     if (canvas) {
@@ -122,9 +122,9 @@ const Starfield: React.FC<StarfieldProps> = ({
         sd.current.ctx.strokeStyle = starColor;
       }
     }
-  };
+  }, [colors.fill, starColor, measureViewport]);
 
-  const bigBang = () => {
+  const bigBang = useCallback(() => {
     if (sd.current.star.arr.length !== quantity) {
       sd.current.star.arr = new Array(quantity).fill(0).map(() => [
         Math.random() * sd.current.w * 2 - sd.current.x * 2,
@@ -137,9 +137,9 @@ const Starfield: React.FC<StarfieldProps> = ({
         true,
       ]);
     }
-  };
+  }, [quantity]);
 
-  const resize = () => {
+  const resize = useCallback(() => {
     const oldStar = { arr: [...sd.current.star.arr] };
     measureViewport();
     sd.current.cw = sd.current.ctx?.canvas.width || 0;
@@ -179,9 +179,9 @@ const Starfield: React.FC<StarfieldProps> = ({
         sd.current.ctx.strokeStyle = starColor;
       }
     }
-  };
+  }, [measureViewport, bigBang, ratio, colors.fill, starColor]);
 
-  const update = () => {
+  const update = useCallback(() => {
     // Se mouseAdjust estiver desabilitado, movimento fixo para leste (direita)
     if (mouseAdjust) {
       mouse.current.x = (cursor.current.x - sd.current.x) / easing;
@@ -245,9 +245,9 @@ const Starfield: React.FC<StarfieldProps> = ({
         return newStar;
       });
     }
-  };
+  }, [mouseAdjust, easing, compSpeed, ratio]);
 
-  const draw = () => {
+  const draw = useCallback(() => {
     const ctx = sd.current.ctx;
     if (!ctx) return;
 
@@ -273,9 +273,9 @@ const Starfield: React.FC<StarfieldProps> = ({
         ctx.closePath();
       }
     });
-  };
+  }, [colors.fill, starColor]);
 
-  const animate = () => {
+  const animate = useCallback(() => {
     if (sd.current.prevTime === 0) {
       sd.current.prevTime = Date.now();
     }
@@ -283,9 +283,9 @@ const Starfield: React.FC<StarfieldProps> = ({
     update();
     draw();
     animationFrameRef.current = requestAnimationFrame(animate);
-  };
+  }, [resize, update, draw]);
 
-  const init = () => {
+  const init = useCallback(() => {
     if (!canvasRef.current) return;
     measureViewport();
     setupCanvas();
@@ -294,23 +294,23 @@ const Starfield: React.FC<StarfieldProps> = ({
       animate();
       setState(prev => ({ ...prev, running: true }));
     }
-  };
+  }, [measureViewport, setupCanvas, bigBang, animate]);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
       setState(prev => ({ ...prev, running: false }));
     }
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     stop();
     sd.current.star.arr = [];
     init();
-  };
+  }, [stop, init]);
 
-  const destroy = () => {
+  const destroy = useCallback(() => {
     stop();
     sd.current = {
       w: 0,
@@ -324,7 +324,7 @@ const Starfield: React.FC<StarfieldProps> = ({
       star: { colorRatio: 0, arr: [] },
       prevTime: 0,
     };
-  };
+  }, [stop]);
 
   const mouseHandler = (event: MouseEvent) => {
     cursor.current.x = event.pageX || event.clientX;
@@ -390,7 +390,7 @@ const Starfield: React.FC<StarfieldProps> = ({
       }
       window.removeEventListener('resize', handleResize);
     };
-  }, [mouseAdjust, tiltAdjust, clickToWarp]);
+  }, [mouseAdjust, tiltAdjust, clickToWarp, init, destroy, measureViewport]);
 
   useEffect(() => {
     if (state.reset) {
@@ -405,7 +405,7 @@ const Starfield: React.FC<StarfieldProps> = ({
       init();
       setState(prev => ({ ...prev, start: false }));
     }
-  }, [state.reset, state.stop, state.start]);
+  }, [state.reset, state.stop, state.start, init, reset, stop]);
 
   return (
     <div 

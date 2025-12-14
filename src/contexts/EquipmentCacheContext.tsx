@@ -9,6 +9,7 @@ import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
 import { getAllEyewashStations } from '../utils/eyewashOperations';
 import { getAllAlarmSystems } from '../utils/alarmOperations';
 import { getAllShelters } from '../utils/shelterOperations';
+import { getAllCustomEquipmentTypes, getAllCustomEquipment } from '../utils/customEquipmentOperations';
 import { logger } from '../utils/logger';
 
 interface EquipmentCache {
@@ -56,8 +57,27 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
 
   const isFetchingRef = useRef(false);
 
-  const refreshCache = useCallback(async () => {
-    if (!user || isFetchingRef.current) return;
+  const refreshCache = useCallback(async (force: boolean = false) => {
+    if (!user) return;
+    
+    // Se já está buscando e não é forçado, aguarda a atualização atual terminar
+    if (isFetchingRef.current && !force) {
+      logger.info('Cache já está sendo atualizado, aguardando...', 'equipment');
+      // Aguarda a atualização atual terminar (máximo 5 segundos)
+      let attempts = 0;
+      while (isFetchingRef.current && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      // Se ainda está buscando após 5 segundos, força uma nova atualização
+      if (isFetchingRef.current) {
+        logger.warn('Timeout aguardando atualização do cache, forçando nova atualização', 'equipment');
+        isFetchingRef.current = false;
+      } else {
+        // A atualização anterior terminou, não precisa fazer nada
+        return;
+      }
+    }
 
     isFetchingRef.current = true;
     setCache(prev => ({ ...prev, isLoading: true }));

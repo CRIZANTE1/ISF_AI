@@ -2,8 +2,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { getCurrentLocation } from '../hooks/useGeolocation';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
@@ -18,6 +20,8 @@ import AlarmChecklist from '../components/checklists/AlarmChecklist';
 import CannonMonitorChecklist from '../components/checklists/CannonMonitorChecklist';
 import ScbaChecklist from '../components/checklists/ScbaChecklist';
 import HoseChecklist from '../components/checklists/HoseChecklist';
+import CustomChecklist from '../components/checklists/CustomChecklist';
+import { getCustomEquipmentTypeById, getAllCustomEquipmentTypes, getAllCustomEquipment, getCustomEquipmentByTypeAndId, saveCustomEquipmentInspection } from '../utils/customEquipmentOperations';
 import { logger } from '../utils/logger';
 import { 
   generateActionPlan, 
@@ -56,6 +60,29 @@ import {
   HOSE_CHECKLIST 
 } from '../constants/checklists';
 
+// Helper para converter File para Base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+// Helper para converter Base64 para File
+const base64ToFile = (base64: string, filename: string): File => {
+  const arr = base64.split(',');
+  const mime = arr[0].match(/:(.*?);/)![1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
+
 type AddInspectionFormData = {
   data_inspecao?: string;
   tipo_servico?: string;
@@ -83,7 +110,7 @@ const AddInspectionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
-  const { getEquipmentByType } = useEquipmentCache();
+  const { getEquipmentByType, refreshCache } = useEquipmentCache();
   const { t } = useTranslation();
   const { showSuccess } = useToast();
   const [loading, setLoading] = useState(false);
@@ -114,6 +141,16 @@ const AddInspectionPage = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Estado para tipos customizados
+  const [isCustomType, setIsCustomType] = useState(false);
+  const [customTypeId, setCustomTypeId] = useState<string | null>(null);
+  const [customEquipment, setCustomEquipment] = useState<any>(null);
+
+  const getStorageKey = useCallback(() => {
+    if (!type || !id) return null;
+    return `inspectionFormState_${type}_${id}`;
+  }, [type, id]);
   
   // Formata data e hora atual para datetime-local (YYYY-MM-DDTHH:mm)
   const getCurrentDateTimeLocal = () => {
@@ -126,7 +163,7 @@ const AddInspectionPage = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const { register, handleSubmit, formState: { errors }, watch, control, setValue } = useForm<AddInspectionFormData>({
+  const { register, handleSubmit, formState: { errors }, watch, control, setValue, getValues, reset } = useForm<AddInspectionFormData>({
     defaultValues: {
       data_inspecao: getCurrentDateTimeLocal(),
       tipo_servico: 'Inspeção',
@@ -135,17 +172,157 @@ const AddInspectionPage = () => {
     }
   });
 
+    // Lógica de persistência de estado
+    useEffect(() => {
+      const storageKey = getStorageKey();
+      if (!storageKey || !Capacitor.isNativePlatform()) return;
+  
+      const saveState = async () => {
+        try {
+          const formValues = getValues();
+          let photoBase64: string | null = null;
+          if (photoFile) {
+            photoBase64 = await fileToBase64(photoFile);
+          }
+  
+          const stateToSave = {
+            formValues,
+            planAction,
+            checklistResults,
+            checklistObservations,
+            photoFile: photoFile ? { name: photoFile.name, base64: photoBase64 } : null,
+            foamChamberInspectionType,
+            cannonMonitorInspectionType,
+            multigasTestType,
+            multigasReferenceLEL,
+            multigasReferenceO2,
+            multigasReferenceH2S,
+            multigasReferenceCO,
+            multigasFoundLEL,
+            multigasFoundO2,
+            multigasFoundH2S,
+            multigasFoundCO,
+            multigasTestTime,
+            multigasUpdateCylinder,
+            multigasCylinderTolerance,
+            latitude,
+            longitude,
+          };
+          sessionStorage.setItem(storageKey, JSON.stringify(stateToSave));
+          logger.info('Estado do formulário de inspeção salvo.', 'inspection-state');
+        } catch (error) {
+          logger.error('Erro ao salvar estado do formulário.', 'inspection-state', error);
+        }
+      };
+  
+      const listener = App.addListener('appStateChange', ({ isActive }) => {
+        if (!isActive) {
+          saveState();
+        }
+      });
+  
+      return () => {
+        listener.remove();
+      };
+    }, [
+      getStorageKey, getValues, photoFile, planAction, checklistResults, checklistObservations,
+      foamChamberInspectionType, cannonMonitorInspectionType, multigasTestType,
+      multigasReferenceLEL, multigasReferenceO2, multigasReferenceH2S, multigasReferenceCO,
+      multigasFoundLEL, multigasFoundO2, multigasFoundH2S, multigasFoundCO,
+      multigasTestTime, multigasUpdateCylinder, multigasCylinderTolerance, latitude, longitude
+    ]);
+
+    // Lógica para restaurar estado
+    useEffect(() => {
+      const storageKey = getStorageKey();
+      if (!storageKey) return;
+  
+      const savedStateJSON = sessionStorage.getItem(storageKey);
+      if (savedStateJSON) {
+        try {
+          const savedState = JSON.parse(savedStateJSON);
+          reset(savedState.formValues);
+          setPlanAction(savedState.planAction);
+          setChecklistResults(savedState.checklistResults);
+          setChecklistObservations(savedState.checklistObservations);
+          if (savedState.photoFile) {
+            const restoredFile = base64ToFile(savedState.photoFile.base64, savedState.photoFile.name);
+            setPhotoFile(restoredFile);
+          }
+          setFoamChamberInspectionType(savedState.foamChamberInspectionType);
+          setCannonMonitorInspectionType(savedState.cannonMonitorInspectionType);
+          setMultigasTestType(savedState.multigasTestType);
+          setMultigasReferenceLEL(savedState.multigasReferenceLEL);
+          setMultigasReferenceO2(savedState.multigasReferenceO2);
+          setMultigasReferenceH2S(savedState.multigasReferenceH2S);
+          setMultigasReferenceCO(savedState.multigasReferenceCO);
+          setMultigasFoundLEL(savedState.multigasFoundLEL);
+          setMultigasFoundO2(savedState.multigasFoundO2);
+          setMultigasFoundH2S(savedState.multigasFoundH2S);
+          setMultigasFoundCO(savedState.multigasFoundCO);
+          setMultigasTestTime(savedState.multigasTestTime);
+          setMultigasUpdateCylinder(savedState.multigasUpdateCylinder);
+          setMultigasCylinderTolerance(savedState.multigasCylinderTolerance);
+          setLatitude(savedState.latitude);
+          setLongitude(savedState.longitude);
+  
+          logger.info('Estado do formulário de inspeção restaurado.', 'inspection-state');
+        } catch (error) {
+          logger.error('Erro ao restaurar estado do formulário.', 'inspection-state', error);
+        }
+      }
+    }, [getStorageKey, reset]);
+
+    // Limpeza do estado ao sair da página
+    useEffect(() => {
+      const storageKey = getStorageKey();
+      return () => {
+        if (storageKey) {
+          sessionStorage.removeItem(storageKey);
+          logger.info('Estado do formulário de inspeção limpo ao sair da página.', 'inspection-state');
+        }
+      };
+    }, [getStorageKey]);
+
   const aprovado = watch('aprovado_inspecao');
   const observacoes = watch('observacoes_gerais');
   
   // Obtém palavras-chave únicas do ACTION_MAP
   const actionKeywords = getActionKeywords();
 
+  // Verifica se é tipo customizado e carrega dados
+  useEffect(() => {
+    const checkCustomType = async () => {
+      if (!type || !type.startsWith('custom-')) {
+        setIsCustomType(false);
+        return;
+      }
+
+      try {
+        const slug = type.replace('custom-', '');
+        const customTypes = await getAllCustomEquipmentTypes();
+        const foundType = customTypes.find(t => t.slug === slug);
+        
+        if (foundType) {
+          setIsCustomType(true);
+          setCustomTypeId(foundType.id);
+        } else {
+          setIsCustomType(false);
+        }
+      } catch (error) {
+        logger.error('Erro ao verificar tipo customizado', 'equipment', error);
+        setIsCustomType(false);
+      }
+    };
+
+    checkCustomType();
+  }, [type, setIsCustomType, setCustomTypeId]);
+
   // Captura geolocalização automaticamente quando a página carrega
   useEffect(() => {
     const captureLocation = async () => {
       // Tipos de equipamentos que precisam de geolocalização
-      const needsLocation = ['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '');
+      const needsLocation = ['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') || isCustomType;
       
       if (needsLocation) {
         try {
@@ -164,7 +341,7 @@ const AddInspectionPage = () => {
     };
 
     captureLocation();
-  }, [type]);
+  }, [type, isCustomType, t]);
 
   // Busca informações do equipamento baseado no tipo
   useEffect(() => {
@@ -179,7 +356,7 @@ const AddInspectionPage = () => {
         let equipmentData: EquipmentInfo | null = null;
 
         switch (type) {
-          case 'extintor':
+          case 'extintor': {
             const extData = await getExtinguisherById(id);
             if (extData) {
               equipmentData = {
@@ -189,7 +366,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'mangueira':
+          }
+          case 'mangueira': {
             const hoseData = await getHoseById(id);
             if (hoseData) {
               equipmentData = {
@@ -199,7 +377,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'chuveiro_lavaolhos':
+          }
+          case 'chuveiro_lavaolhos': {
             // Usar cache em vez de buscar todos
             const eyewashStations = getEquipmentByType('chuveiro_lavaolhos');
             const eyewashData = eyewashStations.find((e: any) => e.id_equipamento === id);
@@ -211,7 +390,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'camara_espuma':
+          }
+          case 'camara_espuma': {
             // Usar cache em vez de buscar todos
             const foamChambers = getEquipmentByType('camara_espuma');
             const foamData = foamChambers.find((e: any) => e.id_camara === id);
@@ -224,7 +404,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'alarme':
+          }
+          case 'alarme': {
             // Usar cache em vez de buscar todos
             const alarmSystems = getEquipmentByType('alarme');
             const alarmData = alarmSystems.find((e: any) => e.id_sistema === id);
@@ -236,7 +417,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'canhao_monitor':
+          }
+          case 'canhao_monitor': {
             // Usar cache em vez de buscar todos
             const cannonMonitors = getEquipmentByType('canhao_monitor');
             const cannonData = cannonMonitors.find((e: any) => e.id_equipamento === id);
@@ -248,7 +430,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'multigas':
+          }
+          case 'multigas': {
             const multigasData = await getMultigasDetectorById(id);
             if (multigasData) {
               equipmentData = {
@@ -273,7 +456,8 @@ const AddInspectionPage = () => {
               setMultigasCylinderTolerance(multigasData.margem_erro_cilindro?.toString() || '20.0');
             }
             break;
-          case 'scba':
+          }
+          case 'scba': {
             const scbaData = await getSCBABySerial(id);
             if (scbaData) {
               equipmentData = {
@@ -283,7 +467,8 @@ const AddInspectionPage = () => {
               };
             }
             break;
-          case 'abrigo':
+          }
+          case 'abrigo': {
             // Usar cache em vez de buscar todos
             const shelters = getEquipmentByType('abrigo');
             const shelterData = shelters.find((s: any) => s.id_abrigo === id);
@@ -295,6 +480,27 @@ const AddInspectionPage = () => {
               };
             }
             break;
+          }
+          default: {
+            // Verifica se é tipo customizado
+            if (isCustomType && customTypeId) {
+              try {
+                const customEquipments = await getAllCustomEquipment(customTypeId);
+                const customEq = customEquipments.find((e: any) => e.id_equipamento === id);
+                if (customEq) {
+                  setCustomEquipment(customEq);
+                  equipmentData = {
+                    id: customEq.id_equipamento,
+                    name: customEq.id_equipamento,
+                    location: customEq.localizacao || undefined,
+                  };
+                }
+              } catch (error) {
+                logger.error('Erro ao buscar equipamento customizado', 'equipment', error);
+              }
+            }
+            break;
+          }
         }
 
         if (!equipmentData) {
@@ -315,7 +521,7 @@ const AddInspectionPage = () => {
     };
 
     fetchEquipment();
-  }, [id, type]);
+  }, [id, type, isCustomType, customTypeId, getEquipmentByType, handleError]);
 
   // Inicializa checklist com todos os itens como "Conforme" por padrão
   useEffect(() => {
@@ -441,7 +647,7 @@ const AddInspectionPage = () => {
     if (type === 'extintor' && aprovado === 'Sim' && observacoes) {
       setValue('observacoes_gerais', '');
     }
-  }, [aprovado, type, setValue]);
+  }, [aprovado, type, setValue, observacoes]);
 
   // Gera plano de ação para extintores automaticamente baseado na seleção
   useEffect(() => {
@@ -989,7 +1195,35 @@ const AddInspectionPage = () => {
         }
 
         default:
-          throw new Error(`Tipo de equipamento '${type}' não suportado para inspeção`);
+          // Verifica se é tipo customizado
+          if (isCustomType && customTypeId) {
+            const inspectionRecord = {
+              equipment_type_id: customTypeId,
+              id_equipamento: id,
+              data_inspecao: inspectionDate,
+              tipo_inspecao: formData.tipo_inspecao || undefined,
+              status_geral: overallStatus,
+              plano_de_acao: planAction,
+              resultados_json: checklistResults,
+              link_foto_nao_conformidade: photoLink || undefined,
+              inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
+              // Inspeção mensal padrão - calcula 1 mês após a data de inspeção
+              data_proxima_inspecao: (() => {
+                const nextDate = new Date(inspectionDate);
+                nextDate.setMonth(nextDate.getMonth() + 1);
+                return nextDate.toISOString().split('T')[0];
+              })(),
+              latitude: latitude || undefined,
+              longitude: longitude || undefined,
+              user_id: user.id,
+            };
+
+            const success = await saveCustomEquipmentInspection(inspectionRecord);
+            if (!success) throw new Error('Falha ao salvar inspeção');
+          } else {
+            throw new Error(`Tipo de equipamento '${type}' não suportado para inspeção`);
+          }
+          break;
       }
 
       // Disparar evento para atualizar notificações quando uma inspeção é salva
@@ -1023,8 +1257,20 @@ const AddInspectionPage = () => {
 
       showSuccess(feedbackMessage, 6000);
 
+      // Atualiza o cache imediatamente para que as alterações apareçam na lista
+      try {
+        await refreshCache();
+      } catch (error) {
+        // Log do erro mas não impede a navegação
+        logger.error('Erro ao atualizar cache', 'equipment', error);
+      }
+
       // Aguarda um pouco antes de navegar para o usuário ver o feedback
       setTimeout(() => {
+        const storageKey = getStorageKey();
+        if (storageKey) {
+          sessionStorage.removeItem(storageKey);
+        }
         navigate(`/inspections/${type}`);
       }, 500);
     } catch (err: any) {
@@ -1047,7 +1293,7 @@ const AddInspectionPage = () => {
     );
   }
 
-  const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '');
+  const hasChecklist = ['chuveiro_lavaolhos', 'camara_espuma', 'alarme', 'canhao_monitor', 'scba', 'mangueira'].includes(type || '') || isCustomType;
   const nonConformities = Object.values(checklistResults).filter(status => status === 'Não Conforme' || status === 'Reprovado' || status === 'N/C');
   // Foto não é obrigatória para extintores, apenas opcional quando reprovado
   const requiresPhoto = nonConformities.length > 0 || (type === 'camara_espuma' && foamChamberInspectionType === 'Funcional Anual') || (type === 'abrigo' && aprovado === 'Reprovado');
@@ -1091,7 +1337,7 @@ const AddInspectionPage = () => {
 
 
         {/* Indicador de geolocalização */}
-        {['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') && (
+        {(['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') || isCustomType) && (
           <motion.div 
             className="mb-4 p-3 rounded-lg border" 
             style={{ 
@@ -1755,6 +2001,14 @@ const AddInspectionPage = () => {
 
               {type === 'mangueira' && (
                 <HoseChecklist
+                  results={checklistResults}
+                  onResultChange={handleChecklistChange}
+                />
+              )}
+
+              {isCustomType && customTypeId && (
+                <CustomChecklist
+                  equipmentTypeId={customTypeId}
                   results={checklistResults}
                   onResultChange={handleChecklistChange}
                 />

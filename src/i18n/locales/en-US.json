@@ -350,13 +350,16 @@
     "errorCreatingCanvas": "Could not create canvas context",
     "errorGeneratingImage": "Error generating image",
     "errorDownloadingQr": "Error downloading QR Code. Please try again.",
+    "downloadSuccess": "QR Code downloaded successfully!",
     "qrGeneratedFor": "QR Code generated for",
     "shareQrCode": "Share QR Code"
   },
   "utilities": {
     "title": "Utilities",
     "qrGenerator": "QR Code Generator",
-    "qrGeneratorDescription": "Generate QR Codes for equipment in industrial format"
+    "qrGeneratorDescription": "Generate QR Codes for equipment in industrial format",
+    "customEquipment": "Custom Equipment",
+    "customEquipmentDescription": "Create new equipment types and checklists"
   },
   "history": {
     "title": "History",

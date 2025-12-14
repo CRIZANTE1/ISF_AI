@@ -86,6 +86,13 @@ const History = () => {
           supabase.from('inspecoes_extintores' as any).select('*').eq('user_id', user.id).order('data_servico', { ascending: false }),
         ]);
 
+        // Buscar inspeções de equipamentos customizados
+        const { data: customInspections } = await supabase
+          .from('custom_equipment_inspections')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('data_inspecao', { ascending: false });
+
         // Processar inspeções SCBA
         if (scbaInspections.data) {
           scbaInspections.data.forEach((insp: any) => {

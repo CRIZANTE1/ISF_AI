@@ -5,7 +5,6 @@ import 'leaflet/dist/leaflet.css';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import LoadingScreen from '../components/LoadingScreen';
-import PageHeader from '../components/PageHeader';
 import { useTranslation } from '../hooks/useTranslation';
 import { 
   ExtinguisherIcon, 
@@ -21,12 +20,13 @@ import { logger } from '../utils/logger';
 
 // Fix para ícones padrão do Leaflet
 import L from 'leaflet';
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+// Usar caminhos diretos para os ícones do leaflet
+const iconUrl = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href;
+const iconShadowUrl = new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href;
 
 const DefaultIcon = new Icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
+  iconUrl: iconUrl,
+  shadowUrl: iconShadowUrl,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -139,16 +139,12 @@ const EquipmentMap = () => {
         const allEquipment = getAllEquipment();
         const equipmentMarkers: EquipmentMarker[] = [];
 
-        // Processar apenas extintores com localização (otimizado)
+        // Processar extintores com localização
         const extinguishers = allEquipment.filter((eq: any) => 
           eq.latitude && eq.longitude && eq.numero_identificacao
         );
         
-        // Limitar processamento para não travar
-        const maxItems = 1000; // Limite de segurança
-        const limitedExtinguishers = extinguishers.slice(0, maxItems);
-        
-        limitedExtinguishers.forEach((ext: any) => {
+        extinguishers.forEach((ext: any) => {
           equipmentMarkers.push({
             id: ext.numero_identificacao,
             type: 'extintor',
@@ -159,8 +155,41 @@ const EquipmentMap = () => {
             status: ext.aprovado_inspecao || 'N/A',
           });
         });
+
+        // Processar equipamentos customizados com localização
+        try {
+          const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
+          const customTypes = await getAllCustomEquipmentTypes();
+          
+          for (const customType of customTypes) {
+            if (customType.requires_gps) {
+              const customEquipments = await getAllCustomEquipment(customType.id);
+              const equipmentsWithLocation = customEquipments.filter((eq: any) => 
+                eq.latitude && eq.longitude && eq.id_equipamento
+              );
+              
+              equipmentsWithLocation.forEach((eq: any) => {
+                equipmentMarkers.push({
+                  id: eq.id_equipamento,
+                  type: `custom-${customType.slug}`,
+                  serial: eq.id_equipamento,
+                  latitude: Number(eq.latitude),
+                  longitude: Number(eq.longitude),
+                  name: `${customType.name} ${eq.id_equipamento}`,
+                  status: 'N/A',
+                });
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao carregar equipamentos customizados no mapa:', error);
+        }
         
-        setMarkers(equipmentMarkers);
+        // Limitar processamento para não travar
+        const maxItems = 1000; // Limite de segurança
+        const limitedMarkers = equipmentMarkers.slice(0, maxItems);
+        
+        setMarkers(limitedMarkers);
       } catch (error) {
         handleError(error, 'equipment', t('equipmentMap.errorLoadingEquipment'));
       } finally {

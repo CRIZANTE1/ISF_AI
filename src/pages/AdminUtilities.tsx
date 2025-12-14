@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Users, Settings, Shield, Lock, Key } from 'lucide-react';
+import { Users, Settings, Shield, Lock, Key, Package } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -148,6 +148,34 @@ const AdminUtilities = () => {
               <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Gerenciamento de Licenças</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 Gerenciar licenças do sistema
+              </p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate('/admin/utilities/custom-equipment')}
+            className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)', 
+              color: 'var(--foreground)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent)';
+              e.currentTarget.style.borderColor = 'var(--ring)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--card)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
+          >
+            <Package size={24} style={{ color: 'var(--primary)' }} />
+            <div>
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Equipamentos Customizados</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                Criar novos tipos de equipamentos e checklists
               </p>
             </div>
           </button>

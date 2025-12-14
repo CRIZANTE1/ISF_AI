@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutGrid, ClipboardCheck, History, Wrench, MapPin, Shield, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -103,6 +103,21 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  // Escuta eventos de abertura/fechamento da câmera
+  useEffect(() => {
+    const handleCameraOpened = () => setIsCameraOpen(true);
+    const handleCameraClosed = () => setIsCameraOpen(false);
+
+    window.addEventListener('camera-opened', handleCameraOpened);
+    window.addEventListener('camera-closed', handleCameraClosed);
+
+    return () => {
+      window.removeEventListener('camera-opened', handleCameraOpened);
+      window.removeEventListener('camera-closed', handleCameraClosed);
+    };
+  }, []);
 
   const allDockItems: DockItem[] = [
     { 
@@ -183,6 +198,11 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
     }
     return false;
   };
+
+  // Esconde o dock quando a câmera está aberta
+  if (isCameraOpen) {
+    return null;
+  }
 
   return (
     <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 ${className || ''}`}>

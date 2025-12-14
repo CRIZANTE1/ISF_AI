@@ -36,7 +36,7 @@ export function useBilling() {
     };
 
     checkAvailability();
-  }, []);
+  }, [initialize]);
 
   // Inicializar o billing
   const initialize = useCallback(async () => {
@@ -65,7 +65,7 @@ export function useBilling() {
     } finally {
       setIsInitializing(false);
     }
-  }, [isInitializing, isInitialized, showToast]);
+  }, [isInitializing, isInitialized, showToast, loadProducts]);
 
   // Carregar produtos
   const loadProducts = useCallback(async () => {

@@ -267,7 +267,7 @@ export async function offlineUpdate(
       const { user_id, ...updateData } = data;
       
       // Sempre adiciona filtro user_id para garantir que só atualiza dados do usuário autenticado
-      let query = supabase
+      const query = supabase
         .from(table)
         .update(updateData)
         .eq('id', id)
@@ -371,7 +371,7 @@ export async function offlineDelete(
     
     if (isOnline) {
       // Sempre adiciona filtro user_id para garantir que só deleta dados do usuário autenticado
-      let query = supabase
+      const query = supabase
         .from(table)
         .delete()
         .eq('id', id)
