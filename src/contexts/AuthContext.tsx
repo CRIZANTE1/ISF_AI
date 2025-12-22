@@ -18,6 +18,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  profileError: string | null;
   loading: boolean;
   signOut: () => void;
   refreshProfile: () => Promise<void>;
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const fetchProfile = async () => {
       if (user) {
         setLoading(true);
+        setProfileError(null); // Limpa erro anterior
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -103,10 +106,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 hint: error.hint,
                 code: error.code
               });
+              
+              // Define mensagem de erro amigável para o usuário
+              const errorMessage = error.message?.includes('fetch') || 
+                                   error.message?.includes('network') ||
+                                   error.message?.includes('Failed to fetch')
+                ? 'Erro de conexão ao carregar perfil. Verifique sua internet e tente novamente.'
+                : 'Erro ao carregar perfil. Por favor, tente novamente.';
+              
+              setProfileError(errorMessage);
             }
             setProfile(null);
           } else {
             setProfile(data as Profile);
+            setProfileError(null); // Limpa erro em caso de sucesso
           }
         } catch (err: any) {
           // Handle network errors or other unexpected errors
@@ -116,12 +129,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             hint: '',
             code: ''
           });
+          
+          // Define mensagem de erro para exceções inesperadas
+          setProfileError('Erro ao carregar perfil. Verifique sua conexão e tente novamente.');
           setProfile(null);
         } finally {
           setLoading(false);
         }
       } else {
         setProfile(null);
+        setProfileError(null);
         setLoading(false);
       }
     };
@@ -132,9 +149,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshProfile = async () => {
     if (!user) {
       setProfile(null);
+      setProfileError(null);
       return;
     }
 
+    setProfileError(null); // Limpa erro anterior ao tentar novamente
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -150,16 +169,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             hint: error.hint,
             code: error.code
           });
+          
+          // Define mensagem de erro amigável
+          const errorMessage = error.message?.includes('fetch') || 
+                               error.message?.includes('network') ||
+                               error.message?.includes('Failed to fetch')
+            ? 'Erro de conexão ao atualizar perfil. Verifique sua internet.'
+            : 'Erro ao atualizar perfil. Tente novamente.';
+          
+          setProfileError(errorMessage);
         }
         setProfile(null);
       } else {
         setProfile(data as Profile);
+        setProfileError(null); // Limpa erro em caso de sucesso
       }
     } catch (err: any) {
       logger.error('Error refreshing profile', 'auth', {
         message: err?.message || 'Unknown error',
         details: err?.toString() || '',
       });
+      
+      setProfileError('Erro ao atualizar perfil. Verifique sua conexão.');
       setProfile(null);
     }
   };
@@ -176,6 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     user,
     profile,
+    profileError,
     loading,
     signOut,
     refreshProfile,

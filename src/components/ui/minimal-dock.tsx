@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutGrid, ClipboardCheck, History, Wrench, MapPin, Shield, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useHaptics } from '../../hooks/useHaptics';
 
 interface DockItem {
   id: string;
@@ -100,6 +101,7 @@ interface MinimalistDockProps {
 const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
   const { profile } = useAuth();
   const { t } = useTranslation();
+  const haptics = useHaptics();
   const navigate = useNavigate();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -184,6 +186,8 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
   ];
 
   const handleItemClick = (item: DockItem) => {
+    haptics.light(); // Feedback tátil ao navegar
+    
     if (item.onClick) {
       item.onClick();
     } else if (item.to) {
@@ -205,7 +209,12 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
   }
 
   return (
-    <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 ${className || ''}`}>
+    <div 
+      className={`fixed left-1/2 transform -translate-x-1/2 z-50 ${className || ''}`}
+      style={{
+        bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,
+      }}
+    >
       <div className="relative">
         {/* Dock Container */}
         <div className={`

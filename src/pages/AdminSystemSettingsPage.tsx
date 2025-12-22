@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from '../hooks/useTranslation';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { supabase } from '../lib/supabase';
 import {
   getAllSystemSettings,
@@ -44,6 +46,7 @@ const AdminSystemSettingsPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { isOpen, confirmData, isLoading: confirmLoading, showConfirm, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SystemSettings>({
@@ -145,10 +148,15 @@ const AdminSystemSettingsPage = () => {
     }
   };
 
-  const handleReset = () => {
-    if (!confirm('Tem certeza que deseja redefinir todas as configurações para os valores padrão?')) {
-      return;
-    }
+  const handleReset = async () => {
+    const confirmed = await showConfirm({
+      title: 'Redefinir Configurações',
+      message: 'Tem certeza que deseja redefinir todas as configurações para os valores padrão?',
+      confirmText: 'Redefinir',
+      variant: 'warning'
+    });
+
+    if (!confirmed) return;
 
     setSettings({
       maintenance_mode: false,
@@ -457,6 +465,21 @@ const AdminSystemSettingsPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Modal de Confirmação */}
+      {confirmData && (
+        <ConfirmationModal
+          isOpen={isOpen}
+          onClose={handleCancel}
+          onConfirm={handleConfirm}
+          title={confirmData.title}
+          message={confirmData.message}
+          isLoading={confirmLoading}
+          confirmText={confirmData.confirmText}
+          cancelText={confirmData.cancelText}
+          variant={confirmData.variant}
+        />
+      )}
     </div>
   );
 };

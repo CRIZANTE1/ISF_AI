@@ -12,6 +12,7 @@ export interface CannonMonitor {
   localizacao?: string;
   marca?: string;
   modelo?: string;
+  numero_serie?: string;
   latitude?: number;
   longitude?: number;
   data_cadastro?: string;

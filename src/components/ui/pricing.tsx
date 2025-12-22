@@ -179,7 +179,7 @@ export function PricingCard({
               : `${currencySymbol} ${price.toFixed(2).replace('.', ',')}`}
           </span>
           <span className="text-white/60">
-            {!isPriceString && plan.name !== 'Trial'
+            {!isPriceString && plan.name !== 'Trial' && price !== 'a combinar'
               ? '/' + (frequency === 'monthly' ? t('pricing.month') : t('pricing.year'))
               : ''}
           </span>

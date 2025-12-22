@@ -19,7 +19,10 @@ export type Database = {
           id: number
           id_abrigo: string
           itens_json: Json | null
+          latitude: number | null
           local: string | null
+          longitude: number | null
+          numero_serie: string | null
           user_id: string | null
         }
         Insert: {
@@ -28,7 +31,10 @@ export type Database = {
           id?: number
           id_abrigo: string
           itens_json?: Json | null
+          latitude?: number | null
           local?: string | null
+          longitude?: number | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Update: {
@@ -37,7 +43,10 @@ export type Database = {
           id?: number
           id_abrigo?: string
           itens_json?: Json | null
+          latitude?: number | null
           local?: string | null
+          longitude?: number | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -605,6 +614,7 @@ export type Database = {
           localizacao: string
           marca: string | null
           modelo: string | null
+          numero_serie: string | null
           user_id: string | null
         }
         Insert: {
@@ -615,6 +625,7 @@ export type Database = {
           localizacao: string
           marca?: string | null
           modelo?: string | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Update: {
@@ -625,6 +636,7 @@ export type Database = {
           localizacao?: string
           marca?: string | null
           modelo?: string | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -635,10 +647,15 @@ export type Database = {
           data_cadastro: string | null
           id: number
           id_camara: string
+          latitude: number | null
           localizacao: string | null
+          longitude: number | null
           marca: string | null
           modelo: string | null
+          numero_mcs: string | null
+          numero_serie: string | null
           tamanho_especifico: string | null
+          tipo_camara: string | null
           user_id: string | null
         }
         Insert: {
@@ -646,10 +663,15 @@ export type Database = {
           data_cadastro?: string | null
           id?: number
           id_camara: string
+          latitude?: number | null
           localizacao?: string | null
+          longitude?: number | null
           marca?: string | null
           modelo?: string | null
+          numero_mcs?: string | null
+          numero_serie?: string | null
           tamanho_especifico?: string | null
+          tipo_camara?: string | null
           user_id?: string | null
         }
         Update: {
@@ -657,10 +679,15 @@ export type Database = {
           data_cadastro?: string | null
           id?: number
           id_camara?: string
+          latitude?: number | null
           localizacao?: string | null
+          longitude?: number | null
           marca?: string | null
           modelo?: string | null
+          numero_mcs?: string | null
+          numero_serie?: string | null
           tamanho_especifico?: string | null
+          tipo_camara?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -671,9 +698,12 @@ export type Database = {
           data_cadastro: string | null
           id: number
           id_equipamento: string
+          latitude: number | null
           localizacao: string | null
+          longitude: number | null
           marca: string | null
           modelo: string | null
+          numero_serie: string | null
           user_id: string | null
         }
         Insert: {
@@ -681,9 +711,12 @@ export type Database = {
           data_cadastro?: string | null
           id?: number
           id_equipamento: string
+          latitude?: number | null
           localizacao?: string | null
+          longitude?: number | null
           marca?: string | null
           modelo?: string | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Update: {
@@ -691,9 +724,12 @@ export type Database = {
           data_cadastro?: string | null
           id?: number
           id_equipamento?: string
+          latitude?: number | null
           localizacao?: string | null
+          longitude?: number | null
           marca?: string | null
           modelo?: string | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -704,9 +740,12 @@ export type Database = {
           data_cadastro: string | null
           id: number
           id_equipamento: string
+          latitude: number | null
           localizacao: string | null
+          longitude: number | null
           marca: string | null
           modelo: string | null
+          numero_serie: string | null
           user_id: string | null
         }
         Insert: {
@@ -714,9 +753,12 @@ export type Database = {
           data_cadastro?: string | null
           id?: number
           id_equipamento: string
+          latitude?: number | null
           localizacao?: string | null
+          longitude?: number | null
           marca?: string | null
           modelo?: string | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Update: {
@@ -724,9 +766,12 @@ export type Database = {
           data_cadastro?: string | null
           id?: number
           id_equipamento?: string
+          latitude?: number | null
           localizacao?: string | null
+          longitude?: number | null
           marca?: string | null
           modelo?: string | null
+          numero_serie?: string | null
           user_id?: string | null
         }
         Relationships: []

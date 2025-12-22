@@ -1,10 +1,13 @@
-import { Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import Skeleton from './components/Skeleton';
+import { setNotificationNavigationCallback, notificationService } from './services/notificationService';
+import { backgroundSyncService } from './services/backgroundSyncService';
+import { logger } from './utils/logger';
 
 // Lazy loading de rotas públicas (carregamento sob demanda)
 const AuthPage = lazy(() => import('./pages/Auth'));
@@ -38,6 +41,7 @@ const CustomEquipmentTypesPage = lazy(() => import('./pages/CustomEquipmentTypes
 const AdminSecurityPoliciesPage = lazy(() => import('./pages/AdminSecurityPoliciesPage'));
 const LicenseManagement = lazy(() => import('./pages/LicenseManagement'));
 const ActivateLicense = lazy(() => import('./pages/ActivateLicense'));
+const LogManagementPage = lazy(() => import('./pages/LogManagementPage'));
 
 /**
  * Componente de loading para Suspense
@@ -51,6 +55,30 @@ const PageSuspense = ({ children }: { children: React.ReactNode }) => (
 );
 
 function App() {
+  const navigate = useNavigate();
+
+  // Configurar callback de navegação para notificações
+  useEffect(() => {
+    setNotificationNavigationCallback((url: string) => {
+      // Extrai o path da URL se for uma URL completa
+      const path = url.startsWith('http') ? new URL(url).pathname : url;
+      navigate(path);
+    });
+
+    // Registrar tipos de ação para notificações locais
+    notificationService.registerActionTypes();
+
+    // Verifica se há operações pendentes e inicia o serviço se necessário
+    backgroundSyncService.checkAndStartIfNeeded().catch((error) => {
+      logger.error('Erro ao verificar sincronização em background', 'app', error);
+    });
+
+    // Limpar ao desmontar
+    return () => {
+      backgroundSyncService.stop();
+    };
+  }, [navigate]);
+
   return (
     <ErrorBoundary>
       <Routes>
@@ -268,6 +296,16 @@ function App() {
               <AdminRoute>
                 <PageSuspense>
                   <AdminSecurityPoliciesPage />
+                </PageSuspense>
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="admin/utilities/log-management" 
+            element={
+              <AdminRoute>
+                <PageSuspense>
+                  <LogManagementPage />
                 </PageSuspense>
               </AdminRoute>
             } 

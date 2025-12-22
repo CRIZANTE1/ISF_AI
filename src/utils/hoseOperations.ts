@@ -14,6 +14,7 @@ export interface Hose {
   tipo?: string | null;
   comprimento?: number | null;
   ano_fabricacao?: number | null;
+  numero_serie?: string | null;
   created_at?: string;
   user_id?: string | null;
 }

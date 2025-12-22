@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
-import { buildIndustrialQrString, type ExtinguisherQrData } from '../utils/qrInspectionUtils';
+import InstructionsPanel from '../components/InstructionsPanel';
 import { 
   getEquipmentIdentifier, 
   findEquipmentByIdentifier, 
@@ -83,7 +83,7 @@ const QrGeneratorPage = () => {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { cache, getAllEquipment } = useEquipmentCache();
+  const { cache } = useEquipmentCache();
   const [mode, setMode] = useState<GeneratorMode>('select');
   const [selectedEquipmentType, setSelectedEquipmentType] = useState<string>('extintor');
   const [selectedEquipment, setSelectedEquipment] = useState<SelectedEquipment[]>([]);
@@ -136,374 +136,340 @@ const QrGeneratorPage = () => {
     alarmSystems: cache.alarmSystems || [],
     shelters: cache.shelters || [],
     ...customEquipment,
-  }), [cache, customEquipment]);
+  } as Record<string, any[]>), [cache, customEquipment]);
 
-  // Buscar equipamentos por ID ou número de série
-  const handleSearch = () => {
+  // Função para buscar equipamentos por ID/série
+  const handleSearch = useCallback(() => {
     if (!searchText.trim()) {
       setSearchResults([]);
       return;
     }
 
-    const searchTerm = searchText.trim().toLowerCase();
     const results: SelectedEquipment[] = [];
+    const searchLower = searchText.toLowerCase().trim();
 
-    // Busca em todos os tipos de equipamentos
-    const types = [
-      { list: allEquipment.extinguishers, type: 'extintor' },
-      { list: allEquipment.hoses, type: 'mangueira' },
-      { list: allEquipment.scbas, type: 'scba' },
-      { list: allEquipment.multigasDetectors, type: 'multigas' },
-      { list: allEquipment.foamChambers, type: 'camara_espuma' },
-      { list: allEquipment.cannonMonitors, type: 'canhao_monitor' },
-      { list: allEquipment.eyewashStations, type: 'chuveiro_lavaolhos' },
-      { list: allEquipment.alarmSystems, type: 'alarme' },
-      { list: allEquipment.shelters, type: 'abrigo' },
-    ];
-
-    types.forEach(({ list, type }) => {
-      list.forEach((equipment: any) => {
-        const identifier = getEquipmentIdentifier(equipment, type);
-        if (identifier && identifier.toString().toLowerCase().includes(searchTerm)) {
+    // Busca em todos os tipos
+    const searchInList = (list: any[], type: string) => {
+      for (const item of list) {
+        const identifier = getEquipmentIdentifier(item, type);
+        if (identifier && (identifier.toLowerCase().includes(searchLower) || identifier === searchText)) {
           const typeName = getEquipmentTypeName(type, t);
           const fieldName = getIdentifierFieldName(type);
-          results.push({
-            id: `${type}_${identifier}`,
-            type,
-            identifier: identifier.toString(),
-            displayName: `${typeName} - ${fieldName}: ${identifier}`,
-          });
+          const equipmentId = `${type}_${identifier}`;
+          
+          if (!results.some(r => r.id === equipmentId)) {
+            results.push({
+              id: equipmentId,
+              type,
+              identifier: identifier,
+              displayName: `${typeName} - ${fieldName}: ${identifier}`,
+            });
+          }
         }
-      });
+      }
+    };
+
+    // Busca em todos os tipos padrão
+    Object.entries(allEquipment).forEach(([key, list]) => {
+      if (Array.isArray(list)) {
+        if (key === 'extinguishers') searchInList(list, 'extintor');
+        else if (key === 'hoses') searchInList(list, 'mangueira');
+        else if (key === 'scbas') searchInList(list, 'scba');
+        else if (key === 'multigasDetectors') searchInList(list, 'multigas');
+        else if (key === 'foamChambers') searchInList(list, 'camara_espuma');
+        else if (key === 'cannonMonitors') searchInList(list, 'canhao_monitor');
+        else if (key === 'eyewashStations') searchInList(list, 'chuveiro_lavaolhos');
+        else if (key === 'alarmSystems') searchInList(list, 'alarme');
+        else if (key === 'shelters') searchInList(list, 'abrigo');
+        else if (key.startsWith('custom-')) searchInList(list, key);
+      }
     });
 
     setSearchResults(results);
-  };
+  }, [searchText, allEquipment, t]);
 
-  useEffect(() => {
-    if (mode === 'search' && searchText) {
-      handleSearch();
-    } else if (mode === 'search' && !searchText) {
-      setSearchResults([]);
+  // Função para gerar QR codes dos equipamentos selecionados
+  const handleGenerateQrCodes = useCallback(() => {
+    if (selectedEquipment.length === 0) {
+      handleError(new Error('Nenhum equipamento selecionado'), 'validation', t('qr.noEquipmentSelected', { defaultValue: 'Selecione pelo menos um equipamento' }));
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchText, allEquipment, mode]);
 
-  // Gerar QR codes para equipamentos selecionados
-  useEffect(() => {
-    if (selectedEquipment.length > 0) {
-      generateQrCodes();
-    }
-  }, [selectedEquipment, locationCode]);
-
-  const generateQrCodes = () => {
     const newQrs: Record<string, { data: string; qrString: string; type: string; identifier: string }> = {};
-    
-    selectedEquipment.forEach(({ id, type, identifier }) => {
-      // Busca o equipamento completo
-      const found = findEquipmentByIdentifier(allEquipment, identifier);
-      
+
+    selectedEquipment.forEach((eq) => {
+      const found = findEquipmentByIdentifier(allEquipment as any, eq.identifier);
       if (found) {
-        // Formato industrial é sempre usado quando disponível (extintores)
-        // Para outros tipos, usa o ID/série diretamente
         const qrString = generateQrString(
           found.equipment,
-          type,
+          found.type,
           locationCode,
-          type === 'extintor' // Sempre usa formato industrial para extintores
+          found.type === 'extintor'
         );
-        
         if (qrString) {
-          newQrs[id] = {
-            data: qrString,
-            qrString: qrString,
-            type,
-            identifier,
+          newQrs[eq.id] = {
+            data: JSON.stringify(found.equipment),
+            qrString,
+            type: found.type,
+            identifier: eq.identifier,
           };
         }
       }
     });
-    
-    setGeneratedQrs(newQrs);
-  };
 
-  const handleGenerateManual = () => {
-    if (!manualText.trim()) return;
-    
-    const items = manualText.split('\n').filter(line => line.trim());
+    setGeneratedQrs(newQrs);
+  }, [selectedEquipment, allEquipment, locationCode, handleError, t]);
+
+  // Função para gerar QR codes do modo manual
+  const handleGenerateManual = useCallback(() => {
+    if (!manualText.trim()) {
+      handleError(new Error('Texto vazio'), 'validation', t('qr.emptyText', { defaultValue: 'Digite pelo menos um ID ou texto' }));
+      return;
+    }
+
+    const lines = manualText.trim().split('\n').filter(line => line.trim());
     const newQrs: Record<string, { data: string; qrString: string; type: string; identifier: string }> = {};
-    
-    items.forEach((item, index) => {
-      const trimmed = item.trim();
-      if (trimmed) {
-        // Tenta encontrar o equipamento pelo ID/série digitado
-        const found = findEquipmentByIdentifier(allEquipment, trimmed);
-        
-        if (found) {
-          // Se encontrou, gera QR code do equipamento
-          // Formato industrial é sempre usado para extintores
-          const qrString = generateQrString(
-            found.equipment,
-            found.type,
-            locationCode,
-            found.type === 'extintor' // Sempre usa formato industrial para extintores
-          );
-          newQrs[`manual_${index}`] = {
-            data: qrString || trimmed,
-            qrString: qrString || trimmed,
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+
+      // Tenta encontrar o equipamento
+      const found = findEquipmentByIdentifier(allEquipment as any, trimmed);
+      
+      if (found) {
+        // Equipamento encontrado - gera QR code apropriado
+        const qrString = generateQrString(
+          found.equipment,
+          found.type,
+          locationCode,
+          found.type === 'extintor'
+        );
+        if (qrString) {
+          newQrs[`manual_${trimmed}`] = {
+            data: JSON.stringify(found.equipment),
+            qrString,
             type: found.type,
-            identifier: getEquipmentIdentifier(found.equipment, found.type) || trimmed,
-          };
-        } else {
-          // Se não encontrou, usa o texto como está
-          newQrs[`manual_${index}`] = {
-            data: trimmed,
-            qrString: trimmed,
-            type: 'manual',
             identifier: trimmed,
           };
         }
+      } else {
+        // Equipamento não encontrado - usa o texto como está
+        newQrs[`manual_${trimmed}`] = {
+          data: trimmed,
+          qrString: trimmed,
+          type: 'manual',
+          identifier: trimmed,
+        };
       }
     });
-    
-    setGeneratedQrs(newQrs);
-  };
 
-  const downloadQrCode = async (id: string, qrString: string) => {
+    setGeneratedQrs(newQrs);
+  }, [manualText, allEquipment, locationCode, handleError, t]);
+
+  // Função para baixar um QR code individual
+  const downloadQrCode = useCallback(async (id: string, qrString: string) => {
     try {
-      // Cria um elemento temporário para renderizar o QR Code
+      setLoading(true);
+      const { Filesystem, Directory, Encoding, Share } = await loadCapacitorPlugins();
+      
+      // Cria um elemento SVG temporário para renderizar o QR code
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
       tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '500px';
-      tempDiv.style.height = '500px';
+      tempDiv.style.width = '512px';
+      tempDiv.style.height = '512px';
       document.body.appendChild(tempDiv);
-      
-      // Renderiza o QR Code no elemento temporário
+
+      // Renderiza o QRCodeSVG no elemento temporário
       const { createRoot } = await import('react-dom/client');
       const root = createRoot(tempDiv);
+      
       root.render(
         <QRCodeSVG
           value={qrString}
-          size={500}
+          size={512}
           level="H"
           includeMargin={true}
           bgColor="#FFFFFF"
           fgColor="#000000"
         />
       );
-      
-      // Aguarda um pouco para garantir que o SVG foi renderizado
+
+      // Aguarda um pouco para o SVG renderizar
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Obtém o SVG renderizado
       const svgElement = tempDiv.querySelector('svg');
       if (!svgElement) {
-        throw new Error(t('qr.errorGeneratingQr'));
+        throw new Error('SVG não foi renderizado');
       }
-      
-      // Converte SVG para PNG usando canvas
-      const canvas = document.createElement('canvas');
-      canvas.width = 500;
-      canvas.height = 500;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error(t('qr.errorCreatingCanvas'));
-      }
-      
-      // Preenche fundo branco
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, 500, 500);
-      
+
       // Converte SVG para imagem
       const svgData = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-      
       const img = new Image();
-      await new Promise((resolve, reject) => {
+      
+      await new Promise<void>((resolve, reject) => {
         img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-          resolve(null);
-        };
-        img.onerror = reject;
-        img.src = url;
-      });
-      
-      // Limpa elemento temporário
-      document.body.removeChild(tempDiv);
-      
-      // Converte canvas para blob
-        canvas.toBlob(async (blob) => {
-        if (!blob) {
-          throw new Error(t('qr.errorGeneratingImage'));
-        }
-        
-        const isNative = Capacitor.isNativePlatform();
-        const fileName = `qrcode_${id}.png`;
-        
-        if (isNative) {
-          // Tenta carregar plugins do Capacitor
-          try {
-            const { Filesystem, Directory, Encoding, Share } = await loadCapacitorPlugins();
-            
-            if (Filesystem && Share) {
-              // No Android/iOS, usa Filesystem do Capacitor (se disponível)
-              try {
-                // Converte blob para base64 de forma mais eficiente
-                const arrayBuffer = await blob.arrayBuffer();
-                const bytes = new Uint8Array(arrayBuffer);
-                let binary = '';
-                for (let i = 0; i < bytes.length; i++) {
-                  binary += String.fromCharCode(bytes[i]);
-                }
-                const base64 = btoa(binary);
-                
-                // Para dados binários base64 (imagens), não especificar encoding
-                // O Capacitor Filesystem trata base64 como dados binários quando não especificamos encoding
-                let result;
-                try {
-                  result = await Filesystem.writeFile({
-                    path: fileName,
-                    data: base64,
-                    directory: Directory.Documents,
-                    // Não especificar encoding para dados binários
-                  });
-                } catch (writeError: any) {
-                  // Se falhar, pode ser que a versão do Capacitor precise de encoding explícito
-                  logger.warn('Tentando salvar QR Code com encoding alternativo', 'qr_generator', writeError);
-                  result = await Filesystem.writeFile({
-                    path: fileName,
-                    data: base64,
-                    directory: Directory.Documents,
-                    encoding: Encoding.UTF8, // Fallback para versões antigas
-                  });
-                }
-                
-                // Tenta compartilhar o arquivo
-                try {
-                  await Share.share({
-                    title: `QR Code ${id}`,
-                    text: `${t('qr.qrGeneratedFor', { defaultValue: 'QR Code gerado para' })} ${id}`,
-                    url: result.uri,
-                    dialogTitle: t('qr.shareQrCode', { defaultValue: 'Compartilhar QR Code' }),
-                  });
-                  // Sucesso - mostra feedback
-                  const { showSuccess } = await import('../contexts/ToastContext');
-                  showSuccess(t('qr.downloadSuccess', { defaultValue: 'QR Code baixado e compartilhado com sucesso!' }));
-                  return;
-                } catch (shareError) {
-                  // Se não conseguir compartilhar, tenta abrir o arquivo ou usa fallback
-                  logger.warn('Não foi possível compartilhar, tentando fallback', 'qr_generator', shareError);
-                  // Continua para o fallback web
-                }
-              } catch (fsError: any) {
-                // Log do erro para debug
-                logger.warn('Erro ao salvar no Filesystem, usando fallback web', 'qr_generator', fsError);
-                // Continua para o fallback web
-              }
-            }
-          } catch (pluginError) {
-            // Plugins não disponíveis, usa fallback (comportamento esperado)
-            logger.info('Plugins do Capacitor não disponíveis, usando método web', 'qr_generator');
-          }
-        }
-        
-        // No navegador ou se plugins não estiverem instalados, usa método tradicional
-        downloadQrCodeWeb(blob, fileName);
-      }, 'image/png');
-    } catch (error) {
-      handleError(error, 'storage', t('qr.errorDownloadingQr'));
-    }
-  };
-
-  const downloadQrCodeWeb = async (blob: Blob, fileName: string) => {
-    try {
-      const isNative = Capacitor.isNativePlatform();
-      
-      // No Android, tenta usar Share do Capacitor como alternativa
-      if (isNative) {
-        try {
-          const { Share } = await loadCapacitorPlugins();
-          if (Share) {
-            // Converte blob para data URL para compartilhar
-            const reader = new FileReader();
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-            
-            // Tenta compartilhar a imagem
-            await Share.share({
-              title: `QR Code ${fileName}`,
-              text: t('qr.qrGeneratedFor', { defaultValue: 'QR Code gerado' }),
-              url: dataUrl,
-              dialogTitle: t('qr.shareQrCode', { defaultValue: 'Compartilhar QR Code' }),
-            });
-            
-            const { showSuccess } = await import('../contexts/ToastContext');
-            showSuccess(t('qr.downloadSuccess', { defaultValue: 'QR Code compartilhado com sucesso!' }));
+          // Cria canvas para converter para PNG
+          const canvas = document.createElement('canvas');
+          canvas.width = 512;
+          canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            reject(new Error('Não foi possível criar contexto do canvas'));
             return;
           }
-        } catch (shareError) {
-          // Se falhar, continua com método tradicional
-          logger.info('Share não disponível, usando download direto', 'qr_generator');
-        }
-      }
-      
-      // Método tradicional de download (funciona em navegadores e como fallback)
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      
-      // Limpa após um pequeno delay
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 100);
-      
-      // Feedback de sucesso
-      const { showSuccess } = await import('../contexts/ToastContext');
-      showSuccess(t('qr.downloadSuccess', { defaultValue: 'QR Code baixado com sucesso!' }));
-    } catch (error) {
-      logger.error('Erro ao baixar QR Code', 'qr_generator', error);
-      handleError(error, 'qr_generator', t('qr.errorDownloadingQr', { defaultValue: 'Erro ao baixar QR Code' }));
-    }
-  };
 
-  const downloadAllQrCodes = async () => {
-    if (Object.keys(generatedQrs).length === 0) return;
-    
-    setLoading(true);
-    try {
-      // Baixa cada QR Code individualmente
-      // Nota: Para download em ZIP, instale jszip: npm install jszip
-      for (const [id, { qrString }] of Object.entries(generatedQrs)) {
-        try {
-          await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay para evitar bloqueio
-          await downloadQrCode(id, qrString);
-        } catch (error) {
-          logger.error('Erro ao baixar QR Code', 'qr_generator', { id, error });
-        }
-      }
+          // Fundo branco
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, 512, 512);
+          
+          // Desenha a imagem do SVG
+          ctx.drawImage(img, 0, 0);
+          
+          canvas.toBlob(async (blob) => {
+            if (!blob) {
+              reject(new Error('Erro ao gerar imagem'));
+              return;
+            }
+            
+            try {
+              if (Capacitor.isNativePlatform() && Filesystem && Share) {
+                // Salva na pasta Documents (acessível pelo usuário)
+                const cleanId = id.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const filename = `QR_${cleanId}_${Date.now()}.png`;
+                
+                // Converte blob para base64
+                const base64 = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    const base64String = (reader.result as string).split(',')[1];
+                    resolve(base64String);
+                  };
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+
+                // Tenta salvar sem encoding primeiro (recomendado para imagens)
+                let fileUri;
+                try {
+                  fileUri = await Filesystem.writeFile({
+                    path: filename,
+                    data: base64,
+                    directory: Directory.Documents,
+                    // Não especificar encoding para dados binários (imagens)
+                  });
+                } catch (writeError: any) {
+                  // Se falhar, tenta com encoding (algumas versões podem precisar)
+                  logger.warn('Tentando salvar QR code com encoding alternativo', 'qr_generator', writeError);
+                  fileUri = await Filesystem.writeFile({
+                    path: filename,
+                    data: base64,
+                    directory: Directory.Documents,
+                    encoding: Encoding.UTF8,
+                  });
+                }
+
+                logger.info('QR code salvo com sucesso', 'qr_generator', { uri: fileUri.uri, filename });
+
+                // Compartilha o arquivo (permite salvar em Downloads, Fotos, etc.)
+                try {
+                  await Share.share({
+                    title: t('qr.shareQrCode', { defaultValue: 'Compartilhar QR Code' }),
+                    text: `${t('qr.qrGeneratedFor', { defaultValue: 'QR Code gerado para' })} ${cleanId}\n\n${qrString}`,
+                    url: fileUri.uri,
+                    dialogTitle: t('qr.shareQrCode', { defaultValue: 'Salvar ou Compartilhar QR Code' }),
+                  });
+                } catch (shareError: any) {
+                  // Se falhar, tenta obter o URI novamente
+                  try {
+                    const fileUriRetry = await Filesystem.getUri({
+                      path: filename,
+                      directory: Directory.Documents,
+                    });
+                    
+                    await Share.share({
+                      title: t('qr.shareQrCode', { defaultValue: 'Compartilhar QR Code' }),
+                      text: `${t('qr.qrGeneratedFor', { defaultValue: 'QR Code gerado para' })} ${cleanId}\n\n${qrString}`,
+                      url: fileUriRetry.uri,
+                      dialogTitle: t('qr.shareQrCode', { defaultValue: 'Salvar ou Compartilhar QR Code' }),
+                    });
+                  } catch (shareError2: any) {
+                    // Se ainda falhar, apenas loga (arquivo já foi salvo)
+                    logger.warn('QR code salvo mas não foi possível compartilhar', 'qr_generator', { 
+                      error: shareError2?.message || shareError?.message,
+                      uri: fileUri.uri 
+                    });
+                    logger.info('QR code salvo em Documents', 'qr_generator', { filename, uri: fileUri.uri });
+                  }
+                }
+              } else {
+                // Download no navegador
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `qr_${id}_${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }, 'image/png');
+        };
+        img.onerror = reject;
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        img.src = url;
+      });
+
+      // Limpa o elemento temporário
+      root.unmount();
+      document.body.removeChild(tempDiv);
     } catch (error) {
-      logger.error('Erro ao baixar QR Codes', 'qr_generator', error);
+      logger.error('Erro ao baixar QR code', 'qr_generator', error);
+      handleError(error as Error, 'equipment', t('qr.errorDownloadingQr', { defaultValue: 'Erro ao baixar QR Code. Tente novamente.' }));
     } finally {
       setLoading(false);
     }
-  };
+  }, [handleError, t]);
+
+  // Função para baixar todos os QR codes em ZIP
+  const downloadAllQrCodes = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Implementação simplificada - baixa cada QR code individualmente
+      // Para uma implementação completa de ZIP, seria necessário uma biblioteca como JSZip
+      for (const [id, { qrString }] of Object.entries(generatedQrs)) {
+        await downloadQrCode(id, qrString);
+        // Pequeno delay entre downloads
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    } catch (error) {
+      logger.error('Erro ao baixar todos os QR codes', 'qr_generator', error);
+      handleError(error as Error, 'equipment', t('qr.errorDownloadingQr', { defaultValue: 'Erro ao baixar QR Code. Tente novamente.' }));
+    } finally {
+      setLoading(false);
+    }
+  }, [generatedQrs, downloadQrCode, handleError, t]);
+
+  // Gera QR codes quando há equipamentos selecionados e o botão é clicado
+  useEffect(() => {
+    if (selectedEquipment.length > 0 && mode !== 'manual') {
+      // Auto-gera quando há seleção (pode ser removido se preferir botão manual)
+    }
+  }, [selectedEquipment, mode]);
 
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
       <PageHeader title={{ key: 'qr.generate', defaultValue: 'Gerador de QR Codes' }} />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
+        <InstructionsPanel equipmentType="qr_generator" className="mb-6" />
         <div className="space-y-6">
           {/* Tabs para escolher modo */}
           <div className="flex space-x-2 border-b overflow-x-auto" style={{ borderColor: '#2A2A2A' }}>
@@ -770,13 +736,22 @@ const QrGeneratorPage = () => {
                           <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
                             <strong>{selectedEquipment.length}</strong> equipamento(s) selecionado(s)
                           </p>
-                          <button
-                            onClick={() => setSelectedEquipment([])}
-                            className="text-xs underline"
-                            style={{ color: '#FC3D39' }}
-                          >
-                            Limpar seleção
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedEquipment([])}
+                              className="text-xs underline flex-1"
+                              style={{ color: '#FC3D39' }}
+                            >
+                              Limpar seleção
+                            </button>
+                            <button
+                              onClick={handleGenerateQrCodes}
+                              className="px-4 py-2 rounded-lg font-semibold"
+                              style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
+                            >
+                              {t('qr.generateQrCodes')}
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -920,13 +895,22 @@ const QrGeneratorPage = () => {
                     <p className="text-sm mb-2" style={{ color: '#FFFFFF' }}>
                       <strong>{selectedEquipment.length}</strong> equipamento(s) selecionado(s)
                     </p>
-                    <button
-                      onClick={() => setSelectedEquipment([])}
-                      className="text-xs underline"
-                      style={{ color: '#FC3D39' }}
-                    >
-                      Limpar seleção
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedEquipment([])}
+                        className="text-xs underline flex-1"
+                        style={{ color: '#FC3D39' }}
+                      >
+                        Limpar seleção
+                      </button>
+                      <button
+                        onClick={handleGenerateQrCodes}
+                        className="px-4 py-2 rounded-lg font-semibold"
+                        style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
+                      >
+                        {t('qr.generateQrCodes')}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

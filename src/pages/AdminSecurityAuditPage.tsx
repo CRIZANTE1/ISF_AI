@@ -58,7 +58,7 @@ interface SecurityEvent {
 const AdminSecurityAuditPage = () => {
   const { showInfo } = useErrorHandler();
   const { profile } = useAuth();
-  const { currentLanguage } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<LogType>('security');
   const [loading, setLoading] = useState(true);

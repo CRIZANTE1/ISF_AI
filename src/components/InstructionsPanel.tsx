@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Info, AlertCircle, HelpCircle, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Info, AlertCircle, HelpCircle, X } from 'lucide-react';
 import { EquipmentInstructions, getInstructions } from '../constants/instructions';
 import { useTranslation } from '../hooks/useTranslation';
 import DOMPurify from 'dompurify';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface InstructionsPanelProps {
   equipmentType: string;
@@ -153,7 +154,7 @@ const markdownToHtml = (text: string): string => {
 };
 
 // Função helper para traduzir instruções
-const translateInstructions = (instructions: EquipmentInstructions, equipmentType: string, t: any): EquipmentInstructions => {
+const translateInstructions = (instructions: EquipmentInstructions, equipmentType: string, t: (key: string) => string): EquipmentInstructions => {
   const translated: EquipmentInstructions = { ...instructions };
   
   // Usar o equipmentType diretamente como chave
@@ -172,7 +173,7 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
     
     // Traduzir guias
     if (translated.guide) {
-      translated.guide = translated.guide.map((section, index) => {
+      translated.guide = translated.guide.map((section) => {
         const sectionKey = section.title.toLowerCase();
         const translatedSection = { ...section };
         
@@ -180,14 +181,27 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
         let titleKey: string | null = null;
         let contentKey: string | null = null;
         
-        // Verificar diferentes padrões de título
-        if (sectionKey.includes('inspeção') || sectionKey.includes('inspection')) {
+        // Verificar diferentes padrões de título - ordem importa!
+        // Primeiro verificar padrões mais específicos
+        if (sectionKey.includes('você vê') || sectionKey.includes('you see') || sectionKey.includes('what you see') || sectionKey.includes('what do you see')) {
+          titleKey = `guides.${guideKey}.whatYouSee`;
+          contentKey = `guides.${guideKey}.whatYouSeeContent`;
+        } else if (sectionKey.includes('inspeção') || sectionKey.includes('inspection')) {
           titleKey = `guides.${guideKey}.howToRegisterInspection`;
           contentKey = `guides.${guideKey}.howToRegisterInspectionContent`;
         } else if (sectionKey.includes('teste') || sectionKey.includes('test')) {
           titleKey = `guides.${guideKey}.howToRegisterTest`;
           contentKey = `guides.${guideKey}.howToRegisterTestContent`;
-        } else if (sectionKey.includes('cadastrar') || sectionKey.includes('register') || sectionKey.includes('novo') || sectionKey.includes('new')) {
+        } else if (sectionKey.includes('usar') || sectionKey.includes('use') || sectionKey.includes('how to use')) {
+          titleKey = `guides.${guideKey}.howToUse`;
+          contentKey = `guides.${guideKey}.howToUseContent`;
+        } else if (sectionKey.includes('escanear') || sectionKey.includes('scan') || sectionKey.includes('how to scan')) {
+          titleKey = `guides.${guideKey}.howToRegister`;
+          contentKey = `guides.${guideKey}.howToRegisterContent`;
+        } else if (sectionKey.includes('configurar') || sectionKey.includes('configure') || sectionKey.includes('how to configure')) {
+          titleKey = `guides.${guideKey}.howToRegister`;
+          contentKey = `guides.${guideKey}.howToRegisterContent`;
+        } else if (sectionKey.includes('preencher') || sectionKey.includes('fill') || sectionKey.includes('how to fill')) {
           // Tentar howToRegister primeiro, depois howToRegisterEquipment
           if (t(`guides.${guideKey}.howToRegister`) && t(`guides.${guideKey}.howToRegister`) !== `guides.${guideKey}.howToRegister`) {
             titleKey = `guides.${guideKey}.howToRegister`;
@@ -196,12 +210,34 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
             titleKey = `guides.${guideKey}.howToRegisterEquipment`;
             contentKey = `guides.${guideKey}.howToRegisterEquipmentContent`;
           }
-        } else if (sectionKey.includes('você vê') || sectionKey.includes('you see') || sectionKey.includes('what you see')) {
-          titleKey = `guides.${guideKey}.whatYouSee`;
-          contentKey = `guides.${guideKey}.whatYouSeeContent`;
-        } else if (sectionKey.includes('usar') || sectionKey.includes('use') || sectionKey.includes('how to use')) {
-          titleKey = `guides.${guideKey}.howToUse`;
-          contentKey = `guides.${guideKey}.howToUseContent`;
+        } else if (sectionKey.includes('cadastrar') || sectionKey.includes('register')) {
+          // Se contém "novo" ou "new", usar howToRegisterEquipment (para guides de inspeção)
+          // Caso contrário, tentar howToRegister primeiro (para guides de add)
+          if (sectionKey.includes('novo') || sectionKey.includes('new')) {
+            // Para guides de inspeção que têm seção de cadastro
+            titleKey = `guides.${guideKey}.howToRegisterEquipment`;
+            contentKey = `guides.${guideKey}.howToRegisterEquipmentContent`;
+          } else {
+            // Para guides de add (add_extintor, etc)
+            if (t(`guides.${guideKey}.howToRegister`) && t(`guides.${guideKey}.howToRegister`) !== `guides.${guideKey}.howToRegister`) {
+              titleKey = `guides.${guideKey}.howToRegister`;
+              contentKey = `guides.${guideKey}.howToRegisterContent`;
+            } else {
+              titleKey = `guides.${guideKey}.howToRegisterEquipment`;
+              contentKey = `guides.${guideKey}.howToRegisterEquipmentContent`;
+            }
+          }
+        }
+        
+        // Se não encontrou padrão específico, tentar traduções genéricas como fallback
+        if (!titleKey) {
+          // Tentar howToRegister como fallback genérico
+          const fallbackTitleKey = `guides.${guideKey}.howToRegister`;
+          const fallbackContentKey = `guides.${guideKey}.howToRegisterContent`;
+          if (t(fallbackTitleKey) && t(fallbackTitleKey) !== fallbackTitleKey) {
+            titleKey = fallbackTitleKey;
+            contentKey = fallbackContentKey;
+          }
         }
         
         // Aplicar traduções se encontradas
@@ -255,7 +291,7 @@ const translateInstructions = (instructions: EquipmentInstructions, equipmentTyp
 
 const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelProps) => {
   const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const rawInstructions = getInstructions(equipmentType);
@@ -265,6 +301,24 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
   }
   
   const instructions = translateInstructions(rawInstructions, equipmentType, t);
+
+  const handleOpenModal = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch {
+      // Ignore
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch {
+      // Ignore
+    }
+    setIsModalOpen(false);
+  };
 
   const toggleSection = (sectionTitle: string) => {
     setExpandedSections((prev) => ({
@@ -313,48 +367,100 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
   };
 
   return (
-    <div className={`mb-ios-6 ${className} relative`} style={{ zIndex: 10, position: 'relative' }}>
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-ios-4 rounded-ios-lg transition-all relative"
-        style={{
-          zIndex: 10,
-          position: 'relative',
-          backgroundColor: isOpen ? 'rgba(28, 28, 30, 0.9)' : 'rgba(28, 28, 30, 0.8)',
-          borderRadius: '16px',
-        }}
-        whileHover={{ backgroundColor: 'rgba(28, 28, 30, 0.9)' }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <div className="flex items-center gap-ios-2">
-          <HelpCircle size={20} className="text-[#157EFB]" />
-          <span className="font-semibold text-white text-base">
-            {instructions.header.title}
-          </span>
-        </div>
-        {isOpen ? (
-          <ChevronUp size={20} className="text-[#8E8E93]" />
-        ) : (
-          <ChevronDown size={20} className="text-[#8E8E93]" />
-        )}
-      </motion.button>
+    <>
+      <div className={`mb-ios-6 ${className} relative`} style={{ zIndex: 1, position: 'relative' }}>
+        <motion.button
+          type="button"
+          onClick={handleOpenModal}
+          className="w-full flex items-center justify-between p-ios-4 rounded-ios-lg transition-all relative"
+          style={{
+            zIndex: 1,
+            position: 'relative',
+            backgroundColor: 'rgba(28, 28, 30, 0.8)',
+            borderRadius: '16px',
+          }}
+          whileHover={{ backgroundColor: 'rgba(28, 28, 30, 0.9)' }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <div className="flex items-center gap-ios-2">
+            <HelpCircle size={20} className="text-[#157EFB]" />
+            <span className="font-semibold text-white text-base">
+              {instructions.header.title}
+            </span>
+          </div>
+          <ChevronRight size={20} className="text-[#8E8E93]" />
+        </motion.button>
+      </div>
 
+      {/* Modal */}
       <AnimatePresence>
-        {isOpen && (
+        {isModalOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mt-ios-3 apple-card p-ios-4 relative"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={handleCloseModal}
+            onTouchEnd={(e) => {
+              if (e.target === e.currentTarget) {
+                handleCloseModal();
+              }
+            }}
             style={{
-              zIndex: 10,
-              position: 'relative',
-              backgroundColor: 'rgba(28, 28, 30, 0.95)',
-              borderRadius: '24px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              touchAction: 'manipulation',
+              overflow: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              zIndex: 99999,
+              position: 'fixed'
             }}
           >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+                duration: 0.3
+              }}
+              className="rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+              style={{
+                backgroundColor: '#1C1C1E',
+                border: '1px solid #38383A',
+                zIndex: 100000,
+                position: 'relative'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#38383A] flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-blue-500/10">
+                    <HelpCircle className="text-[#157EFB]" size={20} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {instructions.header.title}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content - Scrollable */}
+              <div className="overflow-y-auto flex-1 p-4">
+                <div className="apple-card p-ios-4 relative"
+                  style={{
+                    backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
             {/* Subtitle */}
             {instructions.header.subtitle && (
               <p className="text-[#8E8E93] text-sm mb-ios-4">
@@ -391,12 +497,12 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                   {instructions.methods.title}
                 </h3>
                 <div className="space-y-ios-3">
-                  {instructions.methods.items.map((method, index) => (
+                  {instructions.methods.items.map((method, methodIndex) => (
                     <motion.div
-                      key={index}
+                      key={methodIndex}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: methodIndex * 0.1 }}
                       className="p-ios-3 rounded-ios-lg"
                       style={{
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -417,8 +523,8 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                           <strong>{t('guides.idealFor')}</strong>
                         </p>
                         <ul className="list-disc list-inside space-y-ios-1 ml-ios-2">
-                          {method.idealFor.map((item, idx) => (
-                            <li key={idx} className="text-[#8E8E93] text-xs">
+                          {method.idealFor.map((item, itemIndex) => (
+                            <li key={itemIndex} className="text-[#8E8E93] text-xs">
                               {item}
                             </li>
                           ))}
@@ -429,8 +535,8 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                           <strong>{t('guides.howItWorks')}</strong>
                         </p>
                         <ol className="list-decimal list-inside space-y-ios-1 ml-ios-2">
-                          {method.howItWorks.map((step, idx) => (
-                            <li key={idx} className="text-[#8E8E93] text-xs">
+                          {method.howItWorks.map((step, stepIndex) => (
+                            <li key={stepIndex} className="text-[#8E8E93] text-xs">
                               {step}
                             </li>
                           ))}
@@ -442,8 +548,8 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                             <strong>{t('guides.advantages')}</strong>
                           </p>
                           <ul className="list-disc list-inside space-y-ios-1 ml-ios-2">
-                            {method.advantages.map((item, idx) => (
-                              <li key={idx} className="text-[#8E8E93] text-xs">
+                            {method.advantages.map((item, advantageIndex) => (
+                              <li key={advantageIndex} className="text-[#8E8E93] text-xs">
                                 {item}
                               </li>
                             ))}
@@ -475,8 +581,8 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                   }}
                 >
                   <ol className="list-decimal list-inside space-y-ios-2 ml-ios-2">
-                    {instructions.workflow.steps.map((step, index) => (
-                      <li key={index} className="text-white text-sm">
+                    {instructions.workflow.steps.map((step, stepIndex) => (
+                      <li key={stepIndex} className="text-white text-sm">
                         <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(step) }} />
                       </li>
                     ))}
@@ -493,6 +599,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                   return (
                     <div key={index} className="w-full">
                       <motion.button
+                        type="button"
                         onClick={() => toggleSection(section.title)}
                         className="w-full flex items-center justify-between p-ios-3 rounded-ios-lg transition-all"
                         style={{
@@ -613,6 +720,7 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
                     return (
                       <div key={index}>
                         <motion.button
+                          type="button"
                           onClick={() => toggleSection(`faq-${index}`)}
                           className="w-full flex items-center justify-between p-ios-3 rounded-ios-lg transition-all text-left"
                           style={{
@@ -660,25 +768,39 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
               </div>
             )}
 
-            {/* Footer */}
-            {instructions.footer && (
-              <motion.div
-                className="mt-ios-4 p-ios-3 rounded-ios-lg border-l-4"
-                style={{
-                  backgroundColor: 'rgba(83, 215, 105, 0.1)',
-                  borderLeftColor: '#53D769',
-                }}
-              >
-                <p
-                  className="text-white text-sm"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(instructions.footer) }}
-                />
-              </motion.div>
-            )}
+                  {/* Footer */}
+                  {instructions.footer && (
+                    <motion.div
+                      className="mt-ios-4 p-ios-3 rounded-ios-lg border-l-4"
+                      style={{
+                        backgroundColor: 'rgba(83, 215, 105, 0.1)',
+                        borderLeftColor: '#53D769',
+                      }}
+                    >
+                      <p
+                        className="text-white text-sm"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(instructions.footer) }}
+                      />
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer com botão de fechar */}
+              <div className="p-4 border-t border-[#38383A] bg-[#2C2C2E] flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="w-full py-3 px-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
+                >
+                  {t('common.close', { defaultValue: 'Fechar' })}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

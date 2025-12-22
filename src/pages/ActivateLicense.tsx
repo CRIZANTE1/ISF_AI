@@ -29,6 +29,17 @@ const ActivateLicense = () => {
         try {
           const licenseStatus = await licenseService.checkLicenseStatus(machineIdValue);
           setStatus(licenseStatus);
+          
+          // Se a licença já está válida e ativada (ex: foi estendida pelo admin),
+          // redirecionar automaticamente para a home
+          if (licenseStatus.valid && licenseStatus.isActivated) {
+            logger.info('Licença já está ativada, redirecionando para home', 'license');
+            showInfo('Licença já está ativada! Redirecionando...');
+            setTimeout(() => {
+              navigate('/');
+            }, 1500);
+            return;
+          }
         } catch (statusError) {
           logger.error('Erro ao verificar status da licença', 'license', statusError);
           // Em caso de erro, definir status padrão para não travar a página
@@ -58,7 +69,7 @@ const ActivateLicense = () => {
       }
     };
     checkStatus();
-  }, []);
+  }, [navigate]);
 
   const handleActivate = async () => {
     if (!token.trim()) {

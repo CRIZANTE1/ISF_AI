@@ -3,7 +3,7 @@
  * Validação rigorosa de dados antes de inserir no banco de dados
  */
 
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
 // Schema base para campos comuns
 const baseEquipmentSchema = z.object({
@@ -11,9 +11,20 @@ const baseEquipmentSchema = z.object({
   created_at: z.string().datetime().optional(),
 });
 
+// Função helper para validar formato de ID de equipamento
+const equipmentIdSchema = z.string()
+  .min(1, 'ID do equipamento é obrigatório')
+  .max(100, 'ID deve ter no máximo 100 caracteres')
+  .regex(/^[a-zA-Z0-9_-]+$/, 'O ID pode conter apenas letras, números, hífens (-) e underscores (_)')
+  .refine((val) => {
+    const trimmed = val.trim();
+    return !trimmed.startsWith('-') && !trimmed.startsWith('_') && !trimmed.endsWith('-') && !trimmed.endsWith('_');
+  }, 'O ID não pode começar ou terminar com hífen (-) ou underscore (_)')
+  .refine((val) => !val.includes(' '), 'O ID não pode conter espaços');
+
 // Schema para Extintor
 export const extinguisherSchema = baseEquipmentSchema.extend({
-  numero_identificacao: z.string().min(1, 'Número de identificação é obrigatório').max(100),
+  numero_identificacao: equipmentIdSchema,
   // numero_selo_inmetro removido - agora é registrado apenas nas inspeções de manutenção nível 2 ou 3
   tipo_agente: z.string().max(50).nullable().optional(),
   capacidade: z.number().positive().max(1000).nullable().optional(),
@@ -39,7 +50,7 @@ export const extinguisherSchema = baseEquipmentSchema.extend({
 
 // Schema para Multigas
 export const multigasSchema = baseEquipmentSchema.extend({
-  id_equipamento: z.string().min(1, 'ID do equipamento é obrigatório').max(100),
+  id_equipamento: equipmentIdSchema,
   marca: z.string().max(100).nullable().optional(),
   modelo: z.string().max(100).nullable().optional(),
   numero_serie: z.string().max(100).nullable().optional(),
@@ -53,7 +64,7 @@ export const multigasSchema = baseEquipmentSchema.extend({
 
 // Schema para SCBA
 export const scbaSchema = baseEquipmentSchema.extend({
-  numero_serie_equipamento: z.string().min(1, 'Número de série do equipamento é obrigatório').max(100),
+  numero_serie_equipamento: equipmentIdSchema,
   marca: z.string().max(100).nullable().optional(),
   modelo: z.string().max(100).nullable().optional(),
   numero_serie_mascara: z.string().max(100).nullable().optional(),
@@ -158,6 +169,8 @@ const knownTables = [
   'inventario_chuveiros_lava_olhos',
   'inventario_alarmes',
   'abrigos',
+  'custom_equipment',
+  'custom_equipment_inspections',
   'purchases',
   'log_acoes_extintores',
   'log_acoes_multigas',
@@ -175,9 +188,11 @@ export const tableNameSchema = z.enum(knownTables as unknown as [string, ...stri
 export function validateData<T>(schema: z.ZodSchema<T>, data: unknown): T {
   try {
     return schema.parse(data);
-  } catch (error: any) {
-    if (error && error.constructor && error.constructor.name === 'ZodError') {
-      const errors = (error.issues || []).map((e: any) => `${(e.path || []).join('.')}: ${e.message || 'Erro'}`).join(', ');
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      const errors = error.issues?.map((e) => 
+        `${(e.path || []).join('.')}: ${e.message || 'Erro'}`
+      ).join(', ') || 'Erro de validação desconhecido';
       throw new Error(`Validação falhou: ${errors}`);
     }
     throw error;
@@ -189,9 +204,11 @@ export function safeValidateData<T>(schema: z.ZodSchema<T>, data: unknown): { su
   try {
     const validated = schema.parse(data);
     return { success: true, data: validated };
-  } catch (error: any) {
-    if (error && error.constructor && error.constructor.name === 'ZodError') {
-      const errors = (error.issues || []).map((e: any) => `${(e.path || []).join('.')}: ${e.message || 'Erro'}`).join(', ');
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      const errors = error.issues?.map((e) => 
+        `${(e.path || []).join('.')}: ${e.message || 'Erro'}`
+      ).join(', ') || 'Erro de validação desconhecido';
       return { success: false, error: `Validação falhou: ${errors}` };
     }
     return { success: false, error: 'Erro desconhecido na validação' };
@@ -219,5 +236,21 @@ export function getSchemaForTable(table: string): z.ZodSchema<any> | null {
       // Para tabelas sem schema específico, valida apenas campos básicos
       return baseEquipmentSchema;
   }
+}
+
+/**
+ * Cria um schema parcial de forma segura
+ * Verifica se o schema é um ZodObject antes de chamar .partial()
+ * @param schema Schema Zod a ser convertido em parcial
+ * @returns Schema parcial ou o schema original se não for possível criar parcial
+ */
+export function createPartialSchema(schema: z.ZodSchema<any>): z.ZodSchema<any> {
+  // Verifica se o schema é um ZodObject usando type guard
+  if (schema instanceof z.ZodObject) {
+    return schema.partial();
+  }
+  // Se não for ZodObject, retorna o schema original
+  // Isso é seguro porque schemas não-Object geralmente já são opcionais ou não precisam de partial
+  return schema;
 }
 

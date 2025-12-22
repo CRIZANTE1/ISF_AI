@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useHaptics } from '../hooks/useHaptics';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -24,6 +25,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const haptics = useHaptics();
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -44,16 +46,19 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   }, [removeToast]);
 
   const showSuccess = useCallback((message: string, duration?: number) => {
+    haptics.light(); // Feedback tátil leve para sucesso
     showToast(message, 'success', duration);
-  }, [showToast]);
+  }, [showToast, haptics]);
 
   const showError = useCallback((message: string, duration?: number) => {
+    haptics.heavy(); // Feedback tátil pesado para erro
     showToast(message, 'error', duration || 7000); // Errors stay longer
-  }, [showToast]);
+  }, [showToast, haptics]);
 
   const showWarning = useCallback((message: string, duration?: number) => {
+    haptics.medium(); // Feedback tátil médio para aviso
     showToast(message, 'warning', duration);
-  }, [showToast]);
+  }, [showToast, haptics]);
 
   const showInfo = useCallback((message: string, duration?: number) => {
     showToast(message, 'info', duration);

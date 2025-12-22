@@ -22,55 +22,8 @@ export function useBilling() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Verificar disponibilidade ao montar
-  useEffect(() => {
-    const checkAvailability = async () => {
-      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
-        const available = await billingService.isAvailable();
-        setIsAvailable(available);
-        
-        if (available) {
-          await initialize();
-        }
-      }
-    };
-
-    checkAvailability();
-  }, [initialize]);
-
-  // Inicializar o billing
-  const initialize = useCallback(async () => {
-    if (isInitializing || isInitialized) return;
-
-    setIsInitializing(true);
-    setError(null);
-
-    try {
-      const success = await billingService.initialize();
-      setIsInitialized(success);
-      
-      if (success) {
-        // Sincronizar compras existentes
-        await billingService.syncExistingPurchases();
-        
-        // Carregar produtos
-        await loadProducts();
-      } else {
-        setError('Não foi possível inicializar o Google Play Billing');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao inicializar billing';
-      setError(errorMessage);
-      showToast(errorMessage, 'error');
-    } finally {
-      setIsInitializing(false);
-    }
-  }, [isInitializing, isInitialized, showToast, loadProducts]);
-
-  // Carregar produtos
-  const loadProducts = useCallback(async () => {
-    if (!isInitialized) return;
-
+  // Carregar produtos - removido isInitialized das dependências
+  const loadProducts = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
 
@@ -85,7 +38,67 @@ export function useBilling() {
     } finally {
       setLoading(false);
     }
-  }, [isInitialized]);
+  }, []); // Sem dependências - função estável
+
+  // Inicializar o billing - sem loadProducts nas dependências
+  const initialize = useCallback(async () => {
+    if (isInitializing || isInitialized) return;
+
+    setIsInitializing(true);
+    setError(null);
+
+    try {
+      const success = await billingService.initialize();
+      setIsInitialized(success);
+      
+      if (success) {
+        // Sincronizar compras existentes
+        await billingService.syncExistingPurchases();
+        
+        // Carregar produtos inline - sem chamar loadProducts
+        try {
+          const productIds = [PRODUCT_IDS.PREMIUM_MONTHLY, PRODUCT_IDS.PREMIUM_YEARLY];
+          const loadedProducts = await billingService.queryProducts(productIds);
+          setProducts(loadedProducts);
+        } catch (err) {
+          logger.error('Erro ao carregar produtos após inicialização', 'billing', err);
+        }
+      } else {
+        setError('Não foi possível inicializar o Google Play Billing');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao inicializar billing';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsInitializing(false);
+    }
+  }, [isInitializing, isInitialized, showToast]); // Removido loadProducts
+
+  // Verificar disponibilidade ao montar - sem initialize nas dependências
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+        const available = await billingService.isAvailable();
+        setIsAvailable(available);
+        
+        if (available) {
+          // Chama initialize diretamente - effect roda apenas uma vez
+          await initialize();
+        }
+      }
+    };
+
+    checkAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Array vazio - roda apenas na montagem
+
+  // Efeito separado para carregar produtos quando inicializado
+  useEffect(() => {
+    if (isInitialized && products.length === 0) {
+      loadProducts(false);
+    }
+  }, [isInitialized, products.length, loadProducts]);
 
   // Realizar compra
   const purchase = useCallback(async (productId: string) => {
@@ -119,20 +132,9 @@ export function useBilling() {
 
   // Buscar preço formatado de um produto
   const getProductPrice = useCallback((productId: string, frequency: 'monthly' | 'yearly') => {
-    const targetId = frequency === 'monthly' ? PRODUCT_IDS.PREMIUM_MONTHLY : PRODUCT_IDS.PREMIUM_YEARLY;
-    const product = products.find(p => p.productId === targetId);
-    
-    if (product) {
-      return product.price;
-    }
-    
-    // Fallback para preços padrão baseado no idioma se os produtos não foram carregados
-    if (isEnglish) {
-      return frequency === 'monthly' ? '$5.00' : '$50.00';
-    } else {
-      return frequency === 'monthly' ? 'R$ 24,90' : 'R$ 262,80';
-    }
-  }, [products, isEnglish]);
+    // Todos os preços devem ser "a combinar"
+    return 'a combinar';
+  }, []);
 
   return {
     isAvailable,

@@ -7,7 +7,18 @@ import { supabase } from '../lib/supabase';
 import { License, LicenseStatus, LicenseType } from '../types/license';
 import { logger } from '../utils/logger';
 
-const LICENSE_SECRET = 'ISF_IA_2025_SECRET';
+// Obter chave secreta de variável de ambiente
+// AVISO: Esta é uma solução temporária. A chave ainda estará no bundle do cliente.
+// A solução definitiva seria mover a geração de tokens para uma Edge Function do Supabase.
+const LICENSE_SECRET = import.meta.env.VITE_LICENSE_SECRET || 'ISF_IA_2025_SECRET';
+
+// Log de aviso se estiver usando valor padrão (apenas em desenvolvimento)
+if (!import.meta.env.VITE_LICENSE_SECRET && import.meta.env.DEV) {
+  logger.warn(
+    'VITE_LICENSE_SECRET não configurada no .env. Usando valor padrão (INSEGURO para produção).',
+    'license'
+  );
+}
 
 export class LicenseService {
   private machineId: string | null = null;
@@ -137,6 +148,99 @@ export class LicenseService {
       
       this.machineId = deviceId;
       return deviceId;
+    }
+  }
+
+  /**
+   * Associa um usuário à licença do machine_id atual
+   * Se a licença já tiver um user_id diferente, apenas atualiza se estiver vazio ou for o mesmo usuário
+   */
+  async associateUserToLicense(userId: string, machineId?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!machineId) {
+        machineId = await this.getMachineId();
+      }
+
+      // Primeiro, verificar se a licença existe e qual user_id atual
+      const { data: existingLicense, error: fetchError } = await supabase
+        .from('licenses')
+        .select('user_id')
+        .eq('machine_id', machineId)
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        logger.error('Erro ao buscar licença', 'license', fetchError);
+        return { success: false, error: 'Erro ao buscar licença' };
+      }
+
+      // Se a licença não existe, criar uma nova com o user_id
+      if (!existingLicense) {
+        const now = new Date().toISOString();
+        const { error: createError } = await supabase
+          .from('licenses')
+          .insert([
+            {
+              machine_id: machineId,
+              install_date: now,
+              activation_token: null,
+              last_activation_date: null,
+              is_active: true,
+              is_lifetime: false,
+              license_type: 'experimental',
+              user_id: userId, // Já associar o usuário na criação
+            },
+          ]);
+
+        if (createError) {
+          logger.error('Erro ao criar licença', 'license', createError);
+          return { success: false, error: 'Erro ao criar licença' };
+        }
+
+        logger.info('Nova licença criada e associada ao usuário', 'license', { machineId, userId });
+        return { success: true };
+      }
+
+      // Se a licença já existe
+      const currentUserId = existingLicense.user_id;
+
+      // Se já tem o mesmo user_id, não precisa atualizar
+      if (currentUserId === userId) {
+        logger.debug('Licença já está associada a este usuário', 'license', { machineId, userId });
+        return { success: true };
+      }
+
+      // Se tem um user_id diferente, apenas atualizar se estiver NULL
+      // (caso de licenças antigas que não tinham user_id)
+      if (currentUserId === null) {
+        const { error } = await supabase
+          .from('licenses')
+          .update({ user_id: userId })
+          .eq('machine_id', machineId);
+
+        if (error) {
+          logger.error('Erro ao associar usuário à licença', 'license', error);
+          return { success: false, error: 'Erro ao associar usuário à licença' };
+        }
+
+        logger.info('Licença associada ao usuário', 'license', { machineId, userId });
+        return { success: true };
+      }
+
+      // Se já tem um user_id diferente, logar aviso mas não sobrescrever
+      // (evita que um usuário "roube" a licença de outro)
+      logger.warn(
+        'Tentativa de associar licença a usuário diferente ignorada',
+        'license',
+        {
+          machineId,
+          currentUserId,
+          attemptedUserId: userId,
+        }
+      );
+      return { success: true }; // Retorna success mas não altera nada
+    } catch (error: any) {
+      logger.error('Erro ao associar usuário à licença', 'license', error);
+      return { success: false, error: error.message || 'Erro ao associar usuário à licença' };
     }
   }
 
@@ -396,6 +500,7 @@ export class LicenseService {
 
   /**
    * Lista todas as licenças (apenas admin)
+   * Inclui informações do usuário relacionado quando disponível através do client_email
    */
   async getAllLicenses(): Promise<License[]> {
     const { data, error } = await supabase

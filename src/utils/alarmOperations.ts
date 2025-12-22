@@ -12,6 +12,7 @@ export interface AlarmSystem {
   localizacao: string;
   marca?: string;
   modelo?: string;
+  numero_serie?: string;
   data_cadastro?: string;
   created_at?: string;
   user_id?: string;

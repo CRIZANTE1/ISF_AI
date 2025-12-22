@@ -4,7 +4,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, AlertTriangle, X, RefreshCw, WifiOff, CheckCircle } from 'lucide-react';
+import { Bell, AlertTriangle, X, RefreshCw, WifiOff, CheckCircle, Lightbulb } from 'lucide-react';
 import LazyImage from './LazyImage';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useTranslation } from '../hooks/useTranslation';
@@ -12,6 +12,11 @@ import { useSyncStatus } from '../hooks/useSyncStatus';
 import { supabase } from '../lib/supabase';
 import { isActionPlanOverdue, getActionPlanStatus, classifyActionPlanPriority } from '../utils/actionPlanUtils';
 import { logger } from '../utils/logger';
+import { 
+  notifyMultipleAlerts, 
+  notifyPendingIssues,
+  notifyMaintenanceRequired 
+} from '../utils/notificationUtils';
 
 interface Alert {
   id: string;
@@ -260,6 +265,39 @@ const DashboardHeader = () => {
       });
 
       setAlerts(allAlerts);
+
+      // Envia notificações de alertas
+      if (allAlerts.length > 0) {
+        // Notifica múltiplos alertas
+        if (allAlerts.length > 1) {
+          notifyMultipleAlerts(allAlerts.length).catch(err => {
+            logger.error('Erro ao enviar notificação de múltiplos alertas', 'notifications', err);
+          });
+        }
+
+        // Notifica pendências e manutenções individuais
+        allAlerts.forEach(alert => {
+          if (alert.status === 'pendente' || alert.status === 'nao_conforme') {
+            const equipmentType = t(`equipment.${alert.equipment_type}`, { defaultValue: alert.equipment_type });
+            notifyPendingIssues(alert.equipment_id, equipmentType).catch(err => {
+              logger.error('Erro ao enviar notificação de pendências', 'notifications', err);
+            });
+          }
+          
+          // Verifica se é manutenção (nível 2 ou 3)
+          if (alert.message.includes('manutenção nível 2')) {
+            const equipmentType = t(`equipment.${alert.equipment_type}`, { defaultValue: alert.equipment_type });
+            notifyMaintenanceRequired(alert.equipment_id, equipmentType, 2).catch(err => {
+              logger.error('Erro ao enviar notificação de manutenção', 'notifications', err);
+            });
+          } else if (alert.message.includes('manutenção nível 3')) {
+            const equipmentType = t(`equipment.${alert.equipment_type}`, { defaultValue: alert.equipment_type });
+            notifyMaintenanceRequired(alert.equipment_id, equipmentType, 3).catch(err => {
+              logger.error('Erro ao enviar notificação de manutenção', 'notifications', err);
+            });
+          }
+        });
+      }
     };
 
     fetchAlerts();
@@ -300,10 +338,11 @@ const DashboardHeader = () => {
       style={{ 
         paddingLeft: '16px',
         paddingRight: '16px',
-        paddingTop: '12px',
+        paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
         paddingBottom: '12px',
         zIndex: 20,
         position: 'sticky',
+        top: 'env(safe-area-inset-top, 0px)',
       }}
     >
       <div className="flex justify-between items-center">
@@ -461,6 +500,7 @@ const DashboardHeader = () => {
               )}
             </AnimatePresence>
           </div>
+
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

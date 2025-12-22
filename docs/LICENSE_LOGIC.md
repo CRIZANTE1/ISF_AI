@@ -17,6 +17,7 @@ O sistema de licenças do ISFIA Android controla o acesso ao aplicativo através
 
 3. **Tipos** (`src/types/license.ts`)
    - Interfaces TypeScript para `License` e `LicenseStatus`
+   - Interface `License` inclui `user_id` e objeto `user` com informações do usuário relacionado
 
 ## Machine ID
 
@@ -107,6 +108,36 @@ O Machine ID é persistido no `localStorage` para manter consistência entre ses
 }
 ```
 
+## Associação de Usuários às Licenças
+
+### Associação Automática
+
+O sistema associa automaticamente usuários às licenças quando fazem login:
+
+```typescript
+async associateUserToLicense(userId: string, machineId?: string)
+```
+
+**Fluxo de Associação:**
+1. Quando um usuário faz login, o `ProtectedRoute` chama automaticamente `associateUserToLicense()`
+2. A função verifica se a licença existe para o `machine_id` atual
+3. **Se a licença não existe**: Cria nova licença experimental com `user_id` já associado
+4. **Se a licença existe sem `user_id`**: Associa o usuário atual (licenças antigas)
+5. **Se a licença já tem o mesmo `user_id`**: Não faz nada (otimização)
+6. **Se a licença tem `user_id` diferente**: **NÃO sobrescreve** (proteção contra conflitos)
+
+**Proteção contra Conflitos:**
+- Evita que um usuário "roube" a licença de outro
+- Loga aviso quando há tentativa de associação inválida
+- Mantém a integridade das associações existentes
+
+### Visualização do Usuário Relacionado
+
+Na página de gerenciamento de licenças (`LicenseManagement.tsx`), o sistema:
+- Busca automaticamente informações do usuário quando `user_id` está presente
+- Exibe nome, email e ID do usuário relacionado à licença
+- Separa visualmente "Usuário do Sistema" de "Informações do Cliente"
+
 ## Fluxo de Verificação de Licença
 
 ### 1. Obtenção ou Criação de Licença
@@ -123,6 +154,7 @@ async getOrCreateLicense(machineId?: string): Promise<License | null>
    - `license_type`: 'experimental'
    - `is_lifetime`: false
    - `is_active`: true
+   - `user_id`: null (será associado automaticamente no login)
 
 ### 2. Verificação de Status
 
@@ -159,6 +191,12 @@ O componente `ProtectedRoute` verifica a licença antes de permitir acesso:
 
 Usuários com `profile.dev === true` têm acesso completo sem verificação de licença.
 
+### Associação Automática no Login
+
+Antes de verificar o status da licença, o sistema:
+1. Associa automaticamente o usuário logado à licença do dispositivo atual
+2. Chama `associateUserToLicense(user.id)` para garantir que a licença está vinculada ao usuário
+
 ### Lógica de Acesso
 
 ```typescript
@@ -168,15 +206,23 @@ if (!user) return <Navigate to="/auth" />;
 // 2. Desenvolvedor → acesso total
 if (profile?.dev === true) return children;
 
-// 3. Sem status de licença → permite acesso (fail-open)
+// 3. Associar usuário à licença (automático)
+if (user.id) {
+  await licenseService.associateUserToLicense(user.id);
+}
+
+// 4. Verificar status da licença
+const status = await licenseService.checkLicenseStatus();
+
+// 5. Sem status de licença → permite acesso (fail-open)
 if (!licenseStatus) return children;
 
-// 4. Licença inválida e não trial → redireciona para ativação
+// 6. Licença inválida e não trial → redireciona para ativação
 if (!licenseStatus.valid && !licenseStatus.isTrial && licenseStatus.expired) {
   return <Navigate to="/activate-license" />;
 }
 
-// 5. Licença válida ou trial → permite acesso
+// 7. Licença válida ou trial → permite acesso
 return children;
 ```
 
@@ -253,6 +299,15 @@ async extendLicenseTo365Days(machineId: string)
 - Gera novo token
 - Atualiza `last_activation_date` para hoje
 - Define como premium
+- **Importante**: Quando uma licença é estendida pelo admin, o token de ativação não é mais solicitado ao usuário. A página de ativação redireciona automaticamente se a licença já estiver válida e ativada.
+
+### Associar Usuário à Licença
+```typescript
+async associateUserToLicense(userId: string, machineId?: string)
+```
+- Associa um usuário à licença do `machine_id` atual
+- Chamado automaticamente no login pelo `ProtectedRoute`
+- Protege contra sobrescrita de associações existentes
 
 ### Resetar Período de Trial
 ```typescript
@@ -279,10 +334,22 @@ CREATE TABLE licenses (
   client_name TEXT,
   client_email TEXT,
   notes TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Índice para melhorar performance nas consultas
+CREATE INDEX idx_licenses_user_id ON licenses(user_id);
 ```
+
+### Campos Adicionados
+
+- **`user_id`**: UUID opcional que referencia `auth.users(id)`
+  - Permite relacionar licenças aos usuários do sistema
+  - Atualizado automaticamente quando o usuário faz login
+  - `ON DELETE SET NULL` garante que se um usuário for deletado, a licença não é perdida
+  - Nullable para compatibilidade com licenças antigas
 
 ## Segurança
 
@@ -295,6 +362,11 @@ CREATE TABLE licenses (
 - Tokens são gerados usando hash SHA-256
 - Incluem machine_id, datas e secret
 - Formato padronizado facilita validação
+
+### Proteção de Associações
+- Sistema previne sobrescrita de `user_id` quando já existe associação diferente
+- Logs registram tentativas de associação inválida
+- Mantém integridade das relações usuário-licença
 
 ## Logs e Monitoramento
 
@@ -323,28 +395,90 @@ Contexto: `'license'`
 
 ## Casos de Uso
 
-### Novo Usuário
-1. Instala app
-2. Sistema gera Machine ID
-3. Cria licença experimental
-4. 14 dias de trial começam
+### Novo Usuário em Dispositivo Novo
+1. Usuário instala app
+2. Sistema gera Machine ID único
+3. Usuário faz login
+4. Sistema cria licença experimental com `user_id` já associado
+5. 14 dias de trial começam
+6. Licença aparece na página de gerenciamento vinculada ao usuário
+
+### Novo Usuário em Dispositivo com Licença Existente (sem user_id)
+1. Dispositivo já tem licença criada anteriormente (sem `user_id`)
+2. Novo usuário faz login no mesmo dispositivo
+3. Sistema associa automaticamente o `user_id` à licença existente
+4. Licença mantém seu status (trial/premium/lifetime)
+5. Agora aparece vinculada ao novo usuário
+
+### Novo Usuário Tentando Usar Licença de Outro Usuário
+1. Dispositivo tem licença já associada a outro usuário
+2. Novo usuário faz login no mesmo dispositivo
+3. Sistema detecta que a licença já tem `user_id` diferente
+4. **NÃO sobrescreve** a associação (proteção)
+5. Loga aviso mas permite que o usuário use a licença (comportamento atual)
+6. Admin pode ver na página de gerenciamento qual usuário está relacionado
 
 ### Ativação Premium
 1. Admin gera token
 2. Token é inserido no app
 3. Licença atualizada para premium
 4. 365 dias começam a partir da ativação
+5. Se admin estender licença de trial para 365 dias, usuário não precisa mais inserir token
+
+### Extensão de Licença pelo Admin
+1. Admin estende licença de trial para 365 dias
+2. Sistema gera token automaticamente
+3. Atualiza `last_activation_date` para hoje
+4. Define como premium
+5. **Usuário não precisa mais inserir token**: página de ativação redireciona automaticamente
 
 ### Renovação Premium
 1. Admin estende licença
 2. `last_activation_date` atualizado
 3. Novo período de 365 dias inicia
+4. `user_id` mantido (não é alterado)
 
 ### Revogação
 1. Admin revoga licença
 2. `revoked_at` definido
 3. App redireciona para ativação
 4. Usuário não pode mais acessar
+5. `user_id` mantido para histórico
+
+## Funções SQL Disponíveis
+
+### Associar Licenças Existentes aos Usuários
+
+```sql
+-- Tenta associar licenças sem user_id baseado em critérios
+SELECT * FROM associate_licenses_to_users();
+```
+
+**Métodos de Associação:**
+1. Por `client_email`: Se a licença tem `client_email`, tenta encontrar usuário com mesmo email
+2. Por usuário mais ativo: Se não há `client_email`, associa ao usuário mais ativo recentemente (apenas uma licença)
+
+### Associar Todas as Licenças ao Usuário Mais Ativo
+
+```sql
+-- Associa todas as licenças sem user_id ao usuário mais ativo
+-- ⚠️ Use com cuidado: apenas quando há um único usuário principal
+SELECT * FROM associate_all_licenses_to_most_active_user();
+```
+
+### Associar Licença Específica a Usuário Específico
+
+```sql
+-- Associação manual de uma licença a um usuário
+SELECT associate_license_to_user('machine_id_aqui', 'user_id_aqui');
+```
+
+### Listar Licenças Não Associadas
+
+```sql
+-- Lista todas as licenças que não têm usuário associado
+SELECT * FROM list_unassociated_licenses();
+```
 
 ## Considerações de Desenvolvimento
 
@@ -352,9 +486,17 @@ Contexto: `'license'`
 - Usuários com `dev: true` no perfil têm bypass total
 - Útil para desenvolvimento e testes
 - Não requer licença válida
+- Não associa `user_id` (não necessário)
 
 ### Ambiente de Teste
 - Sistema fail-open permite desenvolvimento mesmo sem licença
 - Logs ajudam a identificar problemas
 - Machine ID pode ser resetado via localStorage
+- Associação automática funciona normalmente em testes
+
+### Compatibilidade com Licenças Antigas
+- Licenças criadas antes da adição do campo `user_id` têm `user_id = NULL`
+- São associadas automaticamente quando o usuário faz login
+- Não há necessidade de migração manual
+- Sistema funciona normalmente com ou sem `user_id`
 

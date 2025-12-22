@@ -5,6 +5,8 @@ import PageHeader from '../components/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { exportUserData, downloadUserDataAsJSON, downloadUserDataAsCSV } from '../utils/dataExport';
 import { importUserData } from '../utils/dataImport';
 import { deleteUserAccount } from '../utils/accountDeletion';
@@ -29,6 +31,7 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const { handleError, showInfo, showWarning } = useErrorHandler();
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { isOpen, confirmData, isLoading: confirmLoading, showConfirm, handleConfirm, handleCancel } = useConfirm();
   const { 
     permissionStatus, 
     isSupported, 
@@ -56,6 +59,11 @@ const SettingsPage = () => {
   // Estado de notificações baseado na permissão
   const notifications = permissionStatus.granted;
 
+  // Sincroniza o estado das notificações quando o componente monta
+  useEffect(() => {
+    checkPermission();
+  }, []);
+
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
@@ -64,30 +72,43 @@ const SettingsPage = () => {
   };
 
   const toggleNotifications = async () => {
+    // Se já tem permissão, informa que precisa desativar nas configurações
     if (permissionStatus.granted) {
-      // Se já tem permissão, apenas atualiza o estado local
-      // (não podemos desabilitar permissões programaticamente)
-      showInfo('Para desativar notificações, acesse as configurações do navegador/dispositivo.');
+      showInfo(t('settings.notificationsDisableInfo', { 
+        defaultValue: 'Para desativar notificações, acesse as configurações do navegador/dispositivo.' 
+      }));
+      // Atualiza o estado para garantir sincronização
+      await checkPermission();
       return;
     }
 
+    // Se foi negada, informa como ativar
     if (permissionStatus.denied) {
-      showWarning('As notificações foram bloqueadas. Para ativá-las, acesse as configurações do navegador/dispositivo e permita notificações para este site/app.');
+      showWarning(t('settings.notificationsBlockedInfo', { 
+        defaultValue: 'As notificações foram bloqueadas. Para ativá-las, acesse as configurações do navegador/dispositivo e permita notificações para este site/app.' 
+      }));
+      // Atualiza o estado para garantir sincronização
+      await checkPermission();
       return;
     }
 
-    // Solicita permissão
+    // Solicita permissão (só chega aqui se estiver em estado 'prompt')
     const granted = await requestPermission();
+    
+    // Atualiza o estado após solicitar permissão
+    await checkPermission();
+    
     if (granted) {
       // Salva preferência no localStorage
       localStorage.setItem('notifications_enabled', 'true');
-      showInfo('Notificações ativadas com sucesso!');
+      showInfo(t('settings.notificationsEnabledSuccess', { 
+        defaultValue: 'Notificações ativadas com sucesso!' 
+      }));
     } else {
-      showWarning('Permissão de notificações negada. Você pode ativá-las nas configurações do navegador/dispositivo.');
+      showWarning(t('settings.notificationsDeniedInfo', { 
+        defaultValue: 'Permissão de notificações negada. Você pode ativá-las nas configurações do navegador/dispositivo.' 
+      }));
     }
-    
-    // Atualiza o status da permissão
-    await checkPermission();
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -104,10 +125,16 @@ const SettingsPage = () => {
     try {
       const data = await exportUserData(user);
       
-      // Perguntar formato
-      const format = confirm('Deseja exportar em JSON (completo) ou CSV (apenas equipamentos)?\n\nOK = JSON\nCancelar = CSV');
+      // Perguntar formato usando modal customizado
+      const jsonFormat = await showConfirm({
+        title: 'Escolher Formato de Exportação',
+        message: 'Deseja exportar em JSON (completo) ou CSV (apenas equipamentos)?',
+        confirmText: 'JSON (Completo)',
+        cancelText: 'CSV (Equipamentos)',
+        variant: 'info'
+      });
       
-      if (format) {
+      if (jsonFormat) {
         downloadUserDataAsJSON(data);
         showInfo('Dados exportados em JSON com sucesso!');
       } else {
@@ -170,23 +197,36 @@ const SettingsPage = () => {
       return;
     }
 
-    if (!confirm('⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nTodos os seus dados serão permanentemente excluídos:\n- Equipamentos\n- Inspeções\n- Histórico\n- Configurações\n\nTem certeza que deseja continuar?')) {
-      return;
-    }
+    // Primeira confirmação
+    const firstConfirm = await showConfirm({
+      title: '⚠️ ATENÇÃO: Ação IRREVERSÍVEL!',
+      message: 'Todos os seus dados serão permanentemente excluídos:\n- Equipamentos\n- Inspeções\n- Histórico\n- Configurações\n\nTem certeza que deseja continuar?',
+      confirmText: 'Sim, Deletar',
+      cancelText: 'Cancelar',
+      variant: 'danger'
+    });
+
+    if (!firstConfirm) return;
 
     // Confirmação final
-    if (!confirm('Esta é sua última chance de cancelar. Todos os seus dados serão PERMANENTEMENTE excluídos. Deseja realmente continuar?')) {
-      return;
-    }
+    const finalConfirm = await showConfirm({
+      title: 'Última Chance de Cancelar',
+      message: 'Esta é sua última chance de cancelar. Todos os seus dados serão PERMANENTEMENTE excluídos. Deseja realmente continuar?',
+      confirmText: 'Deletar Permanentemente',
+      cancelText: 'Cancelar',
+      variant: 'danger'
+    });
+
+    if (!finalConfirm) return;
 
     try {
       const result = await deleteUserAccount(user, deleteConfirmation);
       
       if (result.success) {
         showInfo(result.message);
-        // Redirecionar para login após 3 segundos
+        // Redirecionar para login após 3 segundos usando navigate
         setTimeout(() => {
-          window.location.href = '/#/auth';
+          navigate('/auth', { replace: true });
         }, 3000);
       } else {
         showWarning(result.message);
@@ -410,6 +450,21 @@ const SettingsPage = () => {
           </button>
         </div>
       </main>
+
+      {/* Modal de Confirmação */}
+      {confirmData && (
+        <ConfirmationModal
+          isOpen={isOpen}
+          onClose={handleCancel}
+          onConfirm={handleConfirm}
+          title={confirmData.title}
+          message={confirmData.message}
+          isLoading={confirmLoading}
+          confirmText={confirmData.confirmText}
+          cancelText={confirmData.cancelText}
+          variant={confirmData.variant}
+        />
+      )}
     </div>
   );
 };

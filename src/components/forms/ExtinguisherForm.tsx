@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import { useTranslation } from '../../hooks/useTranslation';
+import HelpTip from '../HelpTip';
 
 interface ExtinguisherFormProps {
   register: UseFormRegister<any>;
@@ -43,6 +45,7 @@ const EXTINGUISHER_CAPACITIES = [
 ];
 
 const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
+  const { t } = useTranslation();
   const [showManualCapacity, setShowManualCapacity] = useState(false);
 
   const handleCapacityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -58,9 +61,15 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
     <>
       {/* Nº Selo INMETRO removido - agora é registrado apenas nas inspeções de manutenção nível 2 ou 3 */}
       <div className="mb-4">
-        <label htmlFor="tipo_agente" className="block text-sm font-medium mb-2 text-gray-300">
-          Tipo de Agente <span className="text-gray-500 text-xs">(obrigatório)</span>
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <label htmlFor="tipo_agente" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+            Tipo de Agente <span className="text-gray-500 text-xs">(obrigatório)</span>
+          </label>
+          <HelpTip 
+            titleKey="help.agentType.title"
+            contentKey="help.agentType.content"
+          />
+        </div>
         <select
           id="tipo_agente"
           {...register('tipo_agente', { required: 'Tipo de agente é obrigatório' })}
@@ -83,9 +92,15 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
       </div>
       
       <div className="mb-4">
-        <label htmlFor="capacidade" className="block text-sm font-medium mb-2 text-gray-300">
-          Capacidade <span className="text-gray-500 text-xs">(em kg ou litros)</span>
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <label htmlFor="capacidade" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+            Capacidade <span className="text-gray-500 text-xs">(em kg ou litros)</span>
+          </label>
+          <HelpTip 
+            titleKey="help.capacity.title"
+            contentKey="help.capacity.content"
+          />
+        </div>
         {!showManualCapacity ? (
           <select
             id="capacidade"
@@ -151,8 +166,8 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
       </div>
 
       <div className="mb-4">
-        <label htmlFor="marca_fabricante" className="block text-sm font-medium mb-2 text-gray-300">
-          Marca do Fabricante
+        <label htmlFor="marca_fabricante" className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+          {t('equipment.manufacturerBrand', { defaultValue: 'Marca do Fabricante' })}
         </label>
         <input
           id="marca_fabricante"
@@ -165,8 +180,22 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
       </div>
 
       <div className="mb-4">
-        <label htmlFor="ano_fabricacao" className="block text-sm font-medium mb-2 text-gray-300">
-          Ano de Fabricação
+        <label htmlFor="numero_serie" className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+          {t('equipment.serialNumber', { defaultValue: 'Nº de Série' })} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
+        </label>
+        <input
+          id="numero_serie"
+          type="text"
+          placeholder="Ex: SN123456"
+          {...register('numero_serie')}
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white placeholder-gray-500"
+          style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+        />
+      </div>
+
+      <div className="mb-4">
+        <label htmlFor="ano_fabricacao" className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+          {t('equipment.manufacturingYear', { defaultValue: 'Ano de Fabricação' })}
         </label>
         <input
           id="ano_fabricacao"
@@ -189,11 +218,11 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
 
       <div className="mb-4">
         <label className="block text-sm font-medium mb-2 text-gray-300">
-          Coordenadas GPS <span className="text-gray-500 text-xs">(opcional)</span>
+          {t('equipment.formHints.gpsCoordinates')} <span className="text-gray-500 text-xs">{t('equipment.formHints.optional')}</span>
         </label>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">Latitude</label>
+            <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.latitude')}</label>
             <input
               id="latitude"
               type="number"
@@ -201,8 +230,8 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
               placeholder="Ex: -23.5505"
               {...register('latitude', { 
                 valueAsNumber: true,
-                min: { value: -90, message: 'Latitude deve estar entre -90 e 90' },
-                max: { value: 90, message: 'Latitude deve estar entre -90 e 90' }
+                min: { value: -90, message: t('equipment.formHints.latitudeRange') },
+                max: { value: 90, message: t('equipment.formHints.latitudeRange') }
               })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white placeholder-gray-500"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
@@ -212,7 +241,7 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
             )}
           </div>
           <div>
-            <label htmlFor="longitude" className="block text-xs text-gray-400 mb-1">Longitude</label>
+            <label htmlFor="longitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.longitude')}</label>
             <input
               id="longitude"
               type="number"
@@ -220,8 +249,8 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
               placeholder="Ex: -46.6333"
               {...register('longitude', { 
                 valueAsNumber: true,
-                min: { value: -180, message: 'Longitude deve estar entre -180 e 180' },
-                max: { value: 180, message: 'Longitude deve estar entre -180 e 180' }
+                min: { value: -180, message: t('equipment.formHints.longitudeRange') },
+                max: { value: 180, message: t('equipment.formHints.longitudeRange') }
               })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white placeholder-gray-500"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
@@ -232,7 +261,7 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
           </div>
         </div>
         <p className="text-xs mt-1.5 text-gray-400">
-          💡 As coordenadas GPS são opcionais no cadastro. A captura automática por GPS ocorre apenas durante as inspeções.
+          💡 {t('equipment.formHints.gpsCoordinatesHint')}
         </p>
       </div>
     </>

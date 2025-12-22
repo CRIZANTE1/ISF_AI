@@ -161,9 +161,15 @@ const EquipmentListPage = () => {
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
-      <PageHeader title={customTypeName || equipmentTypeName} />
+      <PageHeader 
+        title={customTypeName || equipmentTypeName} 
+        help={{
+          titleKey: 'help.equipmentList.title',
+          contentKey: 'help.equipmentList.content'
+        }}
+      />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
-        {type && <InstructionsPanel equipmentType={type} />}
+        {type && <InstructionsPanel equipmentType={type.startsWith('custom-') ? 'custom' : type} />}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}

@@ -71,7 +71,8 @@ async function initDB(): Promise<IDBDatabase> {
  * Gera ID único para operação
  */
 function generateOperationId(): string {
-  return `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Usa substring ao invés de substr (deprecated)
+  return `op_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
@@ -98,7 +99,17 @@ export async function savePendingOperation(
       const store = transaction.objectStore(STORE_OPERATIONS);
       const request = store.add(operation);
 
-      request.onsuccess = () => resolve(operation.id);
+      request.onsuccess = async () => {
+        // Inicia o serviço de sincronização se não estiver rodando
+        try {
+          const { backgroundSyncService } = await import('../services/backgroundSyncService');
+          await backgroundSyncService.checkAndStartIfNeeded();
+        } catch (error) {
+          // Ignora erros ao iniciar serviço (pode não estar disponível ainda)
+          logger.debug('Não foi possível iniciar serviço de sincronização', 'storage');
+        }
+        resolve(operation.id);
+      };
       request.onerror = () => reject(request.error);
     });
   } catch (error) {

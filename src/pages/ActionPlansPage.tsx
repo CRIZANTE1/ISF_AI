@@ -9,6 +9,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { CheckCircle, XCircle, Clock, AlertCircle, Filter, Check, X, Eye, FileText, Trash2 } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useHaptics } from '../hooks/useHaptics';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../components/ui/spinner';
 import LoadingScreen from '../components/LoadingScreen';
@@ -47,6 +48,7 @@ const ActionPlansPage = () => {
   const { refreshCache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
+  const haptics = useHaptics();
   const navigate = useNavigate();
   const { showSuccess } = useToast();
   const [actionPlans, setActionPlans] = useState<ActionPlan[]>([]);
@@ -526,7 +528,13 @@ const ActionPlansPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-      <PageHeader title={{ key: 'actionPlans.title', defaultValue: 'Planos de Ação' }} />
+      <PageHeader 
+        title={{ key: 'actionPlans.title', defaultValue: 'Planos de Ação' }} 
+        help={{
+          titleKey: 'help.actionPlans.title',
+          contentKey: 'help.actionPlans.content'
+        }}
+      />
       <main className="p-4 pb-32">
         {/* Filtros */}
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
@@ -785,7 +793,10 @@ const ActionPlansPage = () => {
                 <button
                   type="button"
                   className="w-full justify-center rounded-md bg-[#53D769] px-4 py-3 text-sm font-semibold text-black hover:bg-[#63E779] active:bg-[#43C759] sm:w-auto disabled:bg-[#53D769]/50 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
-                  onClick={handleMarkAsResolved}
+                  onClick={() => {
+                    haptics.medium(); // Feedback para ação importante
+                    handleMarkAsResolved();
+                  }}
                   disabled={isUpdating}
                   style={{
                     WebkitTapHighlightColor: 'transparent',

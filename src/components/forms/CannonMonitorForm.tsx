@@ -1,14 +1,18 @@
 import { UseFormRegister } from 'react-hook-form';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface CannonMonitorFormProps {
   register: UseFormRegister<any>;
 }
 
 const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
+  const { t } = useTranslation();
   return (
     <>
       <div className="mb-4">
-        <label htmlFor="localizacao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Localização</label>
+        <label htmlFor="localizacao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.location', { defaultValue: 'Localização' })}
+        </label>
         <input
           id="localizacao"
           {...register('localizacao')}
@@ -17,7 +21,9 @@ const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="marca" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Marca</label>
+        <label htmlFor="marca" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.brand', { defaultValue: 'Marca' })}
+        </label>
         <input
           id="marca"
           {...register('marca')}
@@ -26,7 +32,9 @@ const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="modelo" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Modelo</label>
+        <label htmlFor="modelo" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.model', { defaultValue: 'Modelo' })}
+        </label>
         <input
           id="modelo"
           {...register('modelo')}
@@ -36,12 +44,26 @@ const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
       </div>
 
       <div className="mb-4">
+        <label htmlFor="numero_serie" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.serialNumber', { defaultValue: 'Nº de Série' })} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
+        </label>
+        <input
+          id="numero_serie"
+          type="text"
+          placeholder="Ex: SN123456"
+          {...register('numero_serie')}
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none placeholder-gray-500" 
+          style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+        />
+      </div>
+
+      <div className="mb-4">
         <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-          Coordenadas GPS <span className="text-gray-400 text-xs">(opcional)</span>
+          {t('equipment.formHints.gpsCoordinates')} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
         </label>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">Latitude</label>
+            <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.latitude')}</label>
             <input
               id="latitude"
               type="number"
@@ -49,15 +71,15 @@ const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
               placeholder="Ex: -23.5505"
               {...register('latitude', { 
                 valueAsNumber: true,
-                min: { value: -90, message: 'Latitude deve estar entre -90 e 90' },
-                max: { value: 90, message: 'Latitude deve estar entre -90 e 90' }
+                min: { value: -90, message: t('equipment.formHints.latitudeRange') },
+                max: { value: 90, message: t('equipment.formHints.latitudeRange') }
               })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
             />
           </div>
           <div>
-            <label htmlFor="longitude" className="block text-xs text-gray-400 mb-1">Longitude</label>
+            <label htmlFor="longitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.longitude')}</label>
             <input
               id="longitude"
               type="number"
@@ -65,8 +87,8 @@ const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
               placeholder="Ex: -46.6333"
               {...register('longitude', { 
                 valueAsNumber: true,
-                min: { value: -180, message: 'Longitude deve estar entre -180 e 180' },
-                max: { value: 180, message: 'Longitude deve estar entre -180 e 180' }
+                min: { value: -180, message: t('equipment.formHints.longitudeRange') },
+                max: { value: 180, message: t('equipment.formHints.longitudeRange') }
               })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
@@ -74,7 +96,7 @@ const CannonMonitorForm = ({ register }: CannonMonitorFormProps) => {
           </div>
         </div>
         <p className="text-xs mt-1.5" style={{ color: '#B0B0B0' }}>
-          💡 As coordenadas GPS são opcionais no cadastro. A captura automática por GPS ocorre apenas durante as inspeções.
+          💡 {t('equipment.formHints.gpsCoordinatesHint')}
         </p>
       </div>
     </>

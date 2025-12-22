@@ -1,4 +1,6 @@
 import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
+import { useTranslation } from '../../hooks/useTranslation';
+import HelpTip from '../HelpTip';
 
 interface FoamChamberFormProps {
   register: UseFormRegister<any>;
@@ -22,6 +24,7 @@ const MCS_NUMBERS = [
 ];
 
 const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
+  const { t } = useTranslation();
   const tipoCamara = watch?.('tipo_camara');
   const numeroMCS = watch?.('numero_mcs');
   const isMCS = tipoCamara === 'MCS';
@@ -29,16 +32,22 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
   return (
     <>
       <div className="mb-4">
-        <label htmlFor="tipo_camara" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-          Tipo de Câmara <span className="text-gray-400 text-xs">(obrigatório)</span>
-        </label>
+        <div className="flex items-center gap-2 mb-1">
+          <label htmlFor="tipo_camara" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+            {t('equipment.formHints.chamberType')} <span className="text-gray-400 text-xs">{t('equipment.formHints.required')}</span>
+          </label>
+          <HelpTip 
+            titleKey="help.chamberType.title"
+            contentKey="help.chamberType.content"
+          />
+        </div>
         <select
           id="tipo_camara"
-          {...register('tipo_camara', { required: 'Tipo de câmara é obrigatório' })}
+          {...register('tipo_camara', { required: t('equipment.formHints.selectChamberType') + ' ' + t('equipment.formHints.required') })}
           className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
           style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
         >
-          <option value="">Selecione o tipo de câmara</option>
+          <option value="">{t('equipment.formHints.selectChamberType')}</option>
           {FOAM_CHAMBER_TYPES.map((type) => (
             <option key={type.value} value={type.value} style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
               {type.label}
@@ -46,7 +55,7 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
           ))}
         </select>
         <p className="text-xs mt-1.5" style={{ color: '#B0B0B0' }}>
-          💡 Selecione o tipo de câmara conforme a aplicação (NFPA 11)
+          💡 {t('equipment.formHints.selectChamberTypeHint')}
         </p>
         {errors?.tipo_camara && (
           <p className="text-sm text-status-error mt-1">
@@ -57,16 +66,22 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
       
       {isMCS && (
         <div className="mb-4">
-          <label htmlFor="numero_mcs" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-            Número MCS <span className="text-gray-400 text-xs">(opcional)</span>
-          </label>
+          <div className="flex items-center gap-2 mb-1">
+            <label htmlFor="numero_mcs" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+              {t('equipment.formHints.mcsNumber')} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
+            </label>
+            <HelpTip 
+              titleKey="help.mcsNumber.title"
+              contentKey="help.mcsNumber.content"
+            />
+          </div>
           <select
             id="numero_mcs"
             {...register('numero_mcs')}
             className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
             style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
           >
-            <option value="">Selecione o número MCS</option>
+            <option value="">{t('equipment.formHints.selectMCSNumber')}</option>
             {MCS_NUMBERS.map((num) => (
               <option key={num.value} value={num.value} style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
                 {num.label}
@@ -74,12 +89,12 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
             ))}
           </select>
           <p className="text-xs mt-1.5" style={{ color: '#B0B0B0' }}>
-            💡 O número indica a capacidade do equipamento (vazão em litros/minuto)
+            💡 {t('equipment.formHints.mcsNumberHint')}
           </p>
           {isOutro && (
             <div className="mt-2">
               <label htmlFor="numero_mcs_custom" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                Especificar número MCS
+                {t('equipment.formHints.specifyMCSNumber')}
               </label>
               <input
                 id="numero_mcs_custom"
@@ -94,7 +109,9 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
       )}
       
       <div className="mb-4">
-        <label htmlFor="localizacao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Localização</label>
+        <label htmlFor="localizacao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.location', { defaultValue: 'Localização' })}
+        </label>
         <input
           id="localizacao"
           {...register('localizacao')}
@@ -103,7 +120,9 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="marca" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Marca</label>
+        <label htmlFor="marca" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.brand', { defaultValue: 'Marca' })}
+        </label>
         <input
           id="marca"
           {...register('marca')}
@@ -112,7 +131,9 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="modelo" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Modelo</label>
+        <label htmlFor="modelo" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.model', { defaultValue: 'Modelo' })}
+        </label>
         <input
           id="modelo"
           {...register('modelo')}
@@ -121,7 +142,9 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="tamanho_especifico" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>Tamanho Específico</label>
+        <label htmlFor="tamanho_especifico" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.specificSize', { defaultValue: 'Tamanho Específico' })}
+        </label>
         <input
           id="tamanho_especifico"
           {...register('tamanho_especifico')}
@@ -131,12 +154,26 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
       </div>
 
       <div className="mb-4">
+        <label htmlFor="numero_serie" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+          {t('equipment.serialNumber', { defaultValue: 'Nº de Série' })} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
+        </label>
+        <input
+          id="numero_serie"
+          type="text"
+          placeholder="Ex: SN123456"
+          {...register('numero_serie')}
+          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none placeholder-gray-500" 
+          style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+        />
+      </div>
+
+      <div className="mb-4">
         <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-          Coordenadas GPS <span className="text-gray-400 text-xs">(opcional)</span>
+          {t('equipment.formHints.gpsCoordinates')} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
         </label>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">Latitude</label>
+            <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.latitude')}</label>
             <input
               id="latitude"
               type="number"
@@ -144,15 +181,15 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
               placeholder="Ex: -23.5505"
               {...register('latitude', { 
                 valueAsNumber: true,
-                min: { value: -90, message: 'Latitude deve estar entre -90 e 90' },
-                max: { value: 90, message: 'Latitude deve estar entre -90 e 90' }
+                min: { value: -90, message: t('equipment.formHints.latitudeRange') },
+                max: { value: 90, message: t('equipment.formHints.latitudeRange') }
               })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
             />
           </div>
           <div>
-            <label htmlFor="longitude" className="block text-xs text-gray-400 mb-1">Longitude</label>
+            <label htmlFor="longitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.longitude')}</label>
             <input
               id="longitude"
               type="number"
@@ -160,8 +197,8 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
               placeholder="Ex: -46.6333"
               {...register('longitude', { 
                 valueAsNumber: true,
-                min: { value: -180, message: 'Longitude deve estar entre -180 e 180' },
-                max: { value: 180, message: 'Longitude deve estar entre -180 e 180' }
+                min: { value: -180, message: t('equipment.formHints.longitudeRange') },
+                max: { value: 180, message: t('equipment.formHints.longitudeRange') }
               })}
               className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
@@ -169,7 +206,7 @@ const FoamChamberForm = ({ register, errors, watch }: FoamChamberFormProps) => {
           </div>
         </div>
         <p className="text-xs mt-1.5" style={{ color: '#B0B0B0' }}>
-          💡 As coordenadas GPS são opcionais no cadastro. A captura automática por GPS ocorre apenas durante as inspeções.
+          💡 {t('equipment.formHints.gpsCoordinatesHint')}
         </p>
       </div>
     </>

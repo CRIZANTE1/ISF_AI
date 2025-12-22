@@ -47,6 +47,7 @@ export interface Extinguisher {
   id?: number;
   numero_identificacao: string;
   numero_selo_inmetro?: string;
+  numero_serie?: string;
   tipo_agente?: string;
   capacidade?: number;
   marca_fabricante?: string;

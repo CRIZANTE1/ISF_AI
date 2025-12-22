@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from '../hooks/useTranslation';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmationModal from '../components/ConfirmationModal';
 import {
   getAllSecurityPolicies,
   updateSecurityPolicy,
@@ -34,6 +36,7 @@ const AdminSecurityPoliciesPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t, currentLanguage } = useTranslation();
+  const { isOpen, confirmData, isLoading: confirmLoading, showConfirm, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [policies, setPolicies] = useState<SecurityPolicy[]>([]);
@@ -118,9 +121,14 @@ const AdminSecurityPoliciesPage = () => {
   };
 
   const handleUnblockIP = async (id: string) => {
-    if (!confirm('Tem certeza que deseja desbloquear este IP?')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Desbloquear IP',
+      message: 'Tem certeza que deseja desbloquear este IP?',
+      confirmText: 'Desbloquear',
+      variant: 'warning'
+    });
+
+    if (!confirmed) return;
 
     try {
       await unblockIP(id);
@@ -354,6 +362,21 @@ const AdminSecurityPoliciesPage = () => {
           )}
         </div>
       </main>
+
+      {/* Modal de Confirmação */}
+      {confirmData && (
+        <ConfirmationModal
+          isOpen={isOpen}
+          onClose={handleCancel}
+          onConfirm={handleConfirm}
+          title={confirmData.title}
+          message={confirmData.message}
+          isLoading={confirmLoading}
+          confirmText={confirmData.confirmText}
+          cancelText={confirmData.cancelText}
+          variant={confirmData.variant}
+        />
+      )}
     </div>
   );
 };

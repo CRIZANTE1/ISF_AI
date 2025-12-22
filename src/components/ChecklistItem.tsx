@@ -4,6 +4,7 @@
 
 import { useTranslation } from '../hooks/useTranslation';
 import { motion } from 'framer-motion';
+import { useHaptics } from '../hooks/useHaptics';
 
 interface ChecklistItemProps {
   question: string;
@@ -28,6 +29,7 @@ const getQuestionKey = (question: string): string => {
 
 const ChecklistItem = ({ question, value, onChange }: ChecklistItemProps) => {
   const { t } = useTranslation();
+  const haptics = useHaptics();
   
   // Tentar traduzir a pergunta, se não encontrar, usar o texto original
   const questionKey = `checklist.questions.${getQuestionKey(question)}`;
@@ -130,7 +132,10 @@ const ChecklistItem = ({ question, value, onChange }: ChecklistItemProps) => {
             name={`checklist_${question}`}
             value="Conforme"
             checked={value === 'Conforme'}
-            onChange={() => onChange('Conforme')}
+            onChange={() => {
+              haptics.light(); // Feedback leve para conforme
+              onChange('Conforme');
+            }}
             className="w-4 h-4"
             style={{ accentColor: '#53D769' }}
           />
@@ -151,7 +156,10 @@ const ChecklistItem = ({ question, value, onChange }: ChecklistItemProps) => {
             name={`checklist_${question}`}
             value="Não Conforme"
             checked={value === 'Não Conforme'}
-            onChange={() => onChange('Não Conforme')}
+            onChange={() => {
+              haptics.medium(); // Feedback médio para não conforme (alerta)
+              onChange('Não Conforme');
+            }}
             className="w-4 h-4"
             style={{ accentColor: '#FC3D39' }}
           />

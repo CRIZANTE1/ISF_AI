@@ -7,8 +7,28 @@ const Layout = () => {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen font-sans text-white transition-colors duration-300 relative" style={{ position: 'relative', width: '100%', minHeight: '100vh', backgroundColor: '#000000' }}>
-      <div className="pb-40 relative" style={{ zIndex: 10, position: 'relative', minHeight: '100vh', backgroundColor: '#000000' }}>
+    <div 
+      className="min-h-screen font-sans text-white transition-colors duration-300 relative" 
+      style={{ 
+        position: 'relative', 
+        width: '100%', 
+        minHeight: '100vh', 
+        backgroundColor: '#000000',
+        // Safe area insets - garante espaço para StatusBar e NavigationBar
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+    >
+      <div 
+        className="relative" 
+        style={{ 
+          zIndex: 10, 
+          position: 'relative', 
+          minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+          backgroundColor: '#000000',
+          paddingBottom: '160px', // Espaço para o BottomNav
+        }}
+      >
         <AnimatePresence mode="wait">
           <PageTransition key={location.pathname}>
             <Outlet />

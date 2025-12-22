@@ -74,6 +74,7 @@ export interface CustomEquipment {
   latitude?: number;
   longitude?: number;
   localizacao?: string;
+  numero_serie?: string;
   custom_fields: Record<string, any>;
   user_id: string;
   created_at: string;

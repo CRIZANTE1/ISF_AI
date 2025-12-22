@@ -1,17 +1,35 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" style="background-color: #000000;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>ISF IA - Gestão de Inspeções</title>
     <meta name="description" content="ISF IA - Sistema de Gestão de Inspeções de Incêndio com design minimalista inspirado no Supabase." />
     <meta property="og:title" content="ISF IA - Gestão de Inspeções" />
     <meta property="og:description" content="Sistema de Gestão de Inspeções de Incêndio com design minimalista inspirado no Supabase." />
     <meta name="twitter:title" content="ISF IA - Gestão de Inspeções" />
     <meta name="twitter:description" content="Sistema de Gestão de Inspeções de Incêndio com design minimalista inspirado no Supabase." />
+    <style>
+      /* Garantir fundo preto durante o carregamento e safe-area */
+      html, body {
+        background-color: #000000 !important;
+        margin: 0;
+        padding: 0;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      #root {
+        background-color: #000000;
+        min-height: 100vh;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+    </style>
   </head>
-  <body>
+  <body style="background-color: #000000; margin: 0; padding: 0;">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

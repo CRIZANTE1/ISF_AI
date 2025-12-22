@@ -125,6 +125,36 @@ const AdminUtilities = () => {
           </button>
 
           <button
+            onClick={() => navigate('/admin/utilities/log-management')}
+            className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)', 
+              color: 'var(--foreground)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent)';
+              e.currentTarget.style.borderColor = 'var(--ring)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--card)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+            }}
+          >
+            <Settings size={24} style={{ color: 'var(--primary)' }} />
+            <div>
+              <p className="font-semibold" style={{ color: 'var(--foreground)' }}>
+                Gerenciamento de Logs
+              </p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                Configurar retenção e limpeza de logs
+              </p>
+            </div>
+          </button>
+
+          <button
             onClick={() => navigate('/admin/utilities/licenses')}
             className="w-full text-left p-4 rounded-lg border transition-all hover:shadow-md flex items-center gap-3 group"
             style={{ 

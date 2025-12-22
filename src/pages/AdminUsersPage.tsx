@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmationModal from '../components/ConfirmationModal';
 import {
   getAllUsers,
   getUserStats,
@@ -15,10 +17,12 @@ import {
   deleteUser,
   getActionLogs,
   getAccessLogs,
+  getUserFeedbacks,
   UserWithProfile,
   UserStats,
   ActionLog,
   AccessLog,
+  UserFeedback,
 } from '../utils/adminOperations';
 import {
   Users,
@@ -40,30 +44,35 @@ import {
   Clock,
   Activity,
   FileText,
+  MessageSquare,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 
-type TabType = 'users' | 'action-logs' | 'access-logs';
+type TabType = 'users' | 'action-logs' | 'access-logs' | 'feedbacks';
 
 const AdminUsersPage = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { handleError, executeWithFeedback, showSuccess } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
+  const { isOpen, confirmData, isLoading: confirmLoading, showConfirm, handleConfirm, handleCancel } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
+  const [feedbacks, setFeedbacks] = useState<UserFeedback[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [actionLogsPage, setActionLogsPage] = useState(0);
   const [accessLogsPage, setAccessLogsPage] = useState(0);
+  const [feedbacksPage, setFeedbacksPage] = useState(0);
   const [actionLogsTotal, setActionLogsTotal] = useState(0);
   const [accessLogsTotal, setAccessLogsTotal] = useState(0);
+  const [feedbacksTotal, setFeedbacksTotal] = useState(0);
 
   const loadUsers = async () => {
     try {
@@ -107,6 +116,19 @@ const AdminUsersPage = () => {
     }
   };
 
+  const loadFeedbacks = async (page: number = 0) => {
+    try {
+      setLoading(true);
+      const { feedbacks, total } = await getUserFeedbacks(50, page * 50);
+      setFeedbacks(feedbacks);
+      setFeedbacksTotal(total);
+    } catch (error) {
+      handleError(error, 'equipment', 'Erro ao carregar feedbacks');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -116,13 +138,20 @@ const AdminUsersPage = () => {
       loadActionLogs(actionLogsPage);
     } else if (activeTab === 'access-logs') {
       loadAccessLogs(accessLogsPage);
+    } else if (activeTab === 'feedbacks') {
+      loadFeedbacks(feedbacksPage);
     }
-  }, [activeTab, actionLogsPage, accessLogsPage]);
+  }, [activeTab, actionLogsPage, accessLogsPage, feedbacksPage]);
 
   const handleUpdatePlan = async (userId: string, plan: 'trial' | 'premium') => {
-    if (!confirm(t('admin.changePlanConfirm', { plan: plan === 'premium' ? t('profile.premium') : t('profile.trial'), defaultValue: `Tem certeza que deseja alterar o plano do usuário para ${plan === 'premium' ? 'Premium' : 'Trial'}?` }))) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Alterar Plano',
+      message: t('admin.changePlanConfirm', { plan: plan === 'premium' ? t('profile.premium') : t('profile.trial'), defaultValue: `Tem certeza que deseja alterar o plano do usuário para ${plan === 'premium' ? 'Premium' : 'Trial'}?` }),
+      confirmText: 'Alterar Plano',
+      variant: 'info'
+    });
+
+    if (!confirmed) return;
 
     try {
       await updateUserPlan(userId, plan);
@@ -155,9 +184,14 @@ const AdminUsersPage = () => {
   };
 
   const handleUpdateRole = async (userId: string, role: 'admin' | 'user') => {
-    if (!confirm(`Tem certeza que deseja alterar a role do usuário para ${role === 'admin' ? 'Administrador' : 'Usuário'}?`)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Alterar Role',
+      message: `Tem certeza que deseja alterar a role do usuário para ${role === 'admin' ? 'Administrador' : 'Usuário'}?`,
+      confirmText: 'Alterar Role',
+      variant: 'warning'
+    });
+
+    if (!confirmed) return;
 
     try {
       await executeWithFeedback(
@@ -177,9 +211,14 @@ const AdminUsersPage = () => {
   };
 
   const handleDisableUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja desabilitar este usuário? Ele não poderá mais fazer login.')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Desabilitar Usuário',
+      message: 'Tem certeza que deseja desabilitar este usuário? Ele não poderá mais fazer login.',
+      confirmText: 'Desabilitar',
+      variant: 'warning'
+    });
+
+    if (!confirmed) return;
 
     try {
       await executeWithFeedback(
@@ -217,13 +256,25 @@ const AdminUsersPage = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação é irreversível e todos os dados do usuário serão perdidos.')) {
-      return;
-    }
+    // Primeira confirmação
+    const firstConfirm = await showConfirm({
+      title: 'Excluir Usuário',
+      message: 'Tem certeza que deseja excluir este usuário? Esta ação é irreversível e todos os dados do usuário serão perdidos.',
+      confirmText: 'Sim, Excluir',
+      variant: 'danger'
+    });
 
-    if (!confirm('Esta é sua confirmação final. Todos os dados do usuário serão permanentemente excluídos.')) {
-      return;
-    }
+    if (!firstConfirm) return;
+
+    // Confirmação final
+    const finalConfirm = await showConfirm({
+      title: 'Confirmação Final',
+      message: 'Esta é sua confirmação final. Todos os dados do usuário serão permanentemente excluídos.',
+      confirmText: 'Excluir Permanentemente',
+      variant: 'danger'
+    });
+
+    if (!finalConfirm) return;
 
     try {
       await executeWithFeedback(
@@ -328,6 +379,17 @@ const AdminUsersPage = () => {
               >
                 <Activity size={18} className="inline mr-2" />
                 {t('admin.accessLogs')}
+              </button>
+              <button
+                onClick={() => setActiveTab('feedbacks')}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  activeTab === 'feedbacks'
+                    ? 'text-white border-b border-white/30'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary'
+                }`}
+              >
+                <MessageSquare size={18} className="inline mr-2" />
+                {t('admin.feedbacks', { defaultValue: 'Feedbacks' })}
               </button>
             </div>
           </div>
@@ -537,6 +599,87 @@ const AdminUsersPage = () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'feedbacks' && (
+            <div>
+              <div className="mb-4 flex justify-between items-center">
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  {t('common.total')}: {feedbacksTotal} {t('admin.feedbacks', { defaultValue: 'feedbacks' })}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => loadFeedbacks(feedbacksPage)}
+                    className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  >
+                    <RefreshCw size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {feedbacks.map((feedback) => (
+                  <div
+                    key={feedback.id}
+                    className="p-4 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            feedback.type === 'feedback' 
+                              ? 'bg-blue-500/20 text-blue-400' 
+                              : 'bg-purple-500/20 text-purple-400'
+                          }`}>
+                            {feedback.type === 'feedback' 
+                              ? t('feedback.feedbackType', { defaultValue: 'Feedback' })
+                              : t('feedback.suggestionType', { defaultValue: 'Sugestão' })
+                            }
+                          </div>
+                          <p className="font-medium text-white">
+                            {feedback.user?.full_name || feedback.user?.email || 'Usuário Desconhecido'}
+                          </p>
+                        </div>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                          {feedback.user?.email || feedback.user_id}
+                        </p>
+                        <p className="text-white whitespace-pre-wrap">{feedback.message}</p>
+                      </div>
+                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary ml-4">
+                        {format(new Date(feedback.created_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {feedbacks.length === 0 && (
+                  <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
+                    <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>{t('admin.noFeedbacks', { defaultValue: 'Nenhum feedback encontrado' })}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Paginação */}
+              <div className="mt-4 flex justify-between items-center">
+                <button
+                  onClick={() => setFeedbacksPage(Math.max(0, feedbacksPage - 1))}
+                  disabled={feedbacksPage === 0}
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                >
+                  {t('common.previous')}
+                </button>
+                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  {t('common.page', { defaultValue: 'Página' })} {feedbacksPage + 1}
+                </span>
+                <button
+                  onClick={() => setFeedbacksPage(feedbacksPage + 1)}
+                  disabled={(feedbacksPage + 1) * 50 >= feedbacksTotal}
+                  className="px-4 py-2 bg-light-surface dark:bg-dark-surface border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-light-background dark:hover:bg-dark-background transition-colors" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+                >
+                  {t('common.next')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal de Detalhes do Usuário */}
@@ -682,6 +825,21 @@ const AdminUsersPage = () => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Modal de Confirmação */}
+      {confirmData && (
+        <ConfirmationModal
+          isOpen={isOpen}
+          onClose={handleCancel}
+          onConfirm={handleConfirm}
+          title={confirmData.title}
+          message={confirmData.message}
+          isLoading={confirmLoading}
+          confirmText={confirmData.confirmText}
+          cancelText={confirmData.cancelText}
+          variant={confirmData.variant}
+        />
+      )}
     </div>
   );
 };

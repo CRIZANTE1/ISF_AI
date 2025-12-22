@@ -19,31 +19,137 @@ const BATCH_SIZE = 10; // Processa até 10 operações em paralelo por tabela
 const MAX_OPERATION_AGE_DAYS = 30; // Remove operações com mais de 30 dias
 
 /**
- * Extrai campos únicos de uma tabela baseado nos dados
- * Isso ajuda a verificar se um registro duplicado realmente existe
+ * ⚠️ RISCO CRÍTICO: Mapeamento Manual de Constraints Únicas
+ * 
+ * Esta função mapeia manualmente as restrições de unicidade (UNIQUE constraints)
+ * do banco de dados Supabase. Se o esquema do banco mudar e este arquivo não for
+ * atualizado, a sincronização offline pode:
+ * - Falhar silenciosamente ao detectar duplicatas
+ * - Gerar registros duplicados no banco
+ * - Perder dados durante a sincronização
+ * 
+ * 📚 DOCUMENTAÇÃO COMPLETA:
+ * Veja docs/UNIQUE_CONSTRAINTS_MAINTENANCE.md para instruções detalhadas sobre
+ * como verificar e atualizar este mapeamento.
+ * 
+ * 🔍 QUERY RÁPIDA PARA VERIFICAR CONSTRAINTS:
+ * Execute no Supabase SQL Editor:
+ * ```sql
+ * SELECT 
+ *   tc.table_name, 
+ *   kcu.column_name,
+ *   tc.constraint_name
+ * FROM information_schema.table_constraints tc
+ * JOIN information_schema.key_column_usage kcu 
+ *   ON tc.constraint_name = kcu.constraint_name
+ * WHERE tc.constraint_type = 'UNIQUE'
+ *   AND tc.table_schema = 'public'
+ * ORDER BY tc.table_name, kcu.ordinal_position;
+ * ```
+ * 
+ * 📋 STATUS DAS TABELAS (verificado em 2025-12-20):
+ * ✅ Mapeadas: abrigos, conjuntos_autonomos, extintores, inventario_*, mangueiras, 
+ *    custom_equipment, inspecoes_extintores, locais
+ * ✅ Verificadas (sem constraint UNIQUE): inspecoes_scba, inspecoes_multigas, 
+ *    inspecoes_camaras_espuma, inspecoes_canhoes_monitores, inspecoes_chuveiros_lava_olhos,
+ *    inspecoes_alarmes, inspecoes_abrigos
+ * ❓ Não verificadas: inspecoes_mangueiras, equipment (tabela genérica)
+ * 
+ * Última atualização: 2025-12-20 (verificação completa via MCP Supabase)
+ * @see docs/UNIQUE_CONSTRAINTS_MAINTENANCE.md
  */
 function extractUniqueFields(table: string, data: any): Array<{ field: string; value: any }> {
   const fields: Array<{ field: string; value: any }> = [];
   
-  // Campos comuns que são únicos em várias tabelas
-  // NOTA: numero_identificacao NÃO é único para extintores, pois permite múltiplas inspeções (histórico)
-  const commonUniqueFields = ['id', 'id_equipamento', 'id_sistema', 
-    'id_camara', 'id_abrigo', 'id_mangueira', 'numero_serie_equipamento'];
+  // ⚠️ MAPEAMENTO MANUAL - DEVE SER ATUALIZADO QUANDO O SCHEMA MUDAR
+  // Mapeamento de constraints únicas REAIS do banco (verificado via SQL em 2025-12-20)
+  const uniqueConstraints: Record<string, string[]> = {
+    // Tabelas de equipamentos - constraints simples (campo único)
+    'abrigos': ['id_abrigo'],
+    'conjuntos_autonomos': ['numero_serie_equipamento'],
+    'inventario_alarmes': ['id_sistema'],
+    'inventario_camaras_espuma': ['id_camara'],
+    'inventario_canhoes_monitores': ['id_equipamento'],
+    'inventario_chuveiros_lava_olhos': ['id_equipamento'],
+    'inventario_multigas': ['id_equipamento'],
+    'mangueiras': ['id_mangueira'],
+    'locais': ['local_id'], // Verificado em 2025-12-20
+    
+    // Constraints compostas (múltiplos campos)
+    'extintores': ['numero_identificacao', 'user_id'], // Composta
+    'custom_equipment': ['equipment_type_id', 'id_equipamento', 'user_id'], // Composta
+    'inspecoes_extintores': ['numero_identificacao', 'data_servico', 'user_id'], // Composta
+    
+    // ✅ VERIFICADO EM 2025-12-20: As seguintes tabelas de inspeção NÃO têm constraints UNIQUE no banco:
+    // - inspecoes_scba (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_multigas (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_camaras_espuma (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_canhoes_monitores (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_chuveiros_lava_olhos (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_alarmes (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_abrigos (permite múltiplas inspeções para o mesmo equipamento/data)
+    // - inspecoes_mangueiras (não verificada, mas provavelmente sem constraint)
+    // Se constraints forem adicionadas no futuro, atualize este mapeamento.
+  };
   
-  // Verifica campos únicos comuns
-  for (const field of commonUniqueFields) {
+  // Busca constraints para a tabela
+  const constraints = uniqueConstraints[table];
+  
+  if (!constraints || constraints.length === 0) {
+    // ⚠️ TABELA NÃO MAPEADA - Usa heurística de campos comuns
+    // Isso pode não detectar duplicatas corretamente se a constraint for diferente!
+    logger.warn(
+      `⚠️ TABELA NÃO MAPEADA em extractUniqueFields: ${table}. ` +
+      `Usando heurística de campos comuns. ` +
+      `Verifique se há constraints UNIQUE no banco e adicione ao mapeamento. ` +
+      `Veja docs/UNIQUE_CONSTRAINTS_MAINTENANCE.md para instruções.`,
+      'sync',
+      {
+        table,
+        availableFields: Object.keys(data),
+        hint: 'Execute a query SQL em docs/UNIQUE_CONSTRAINTS_MAINTENANCE.md para verificar constraints reais',
+        risk: 'Sincronização pode falhar ao detectar duplicatas se a constraint real for diferente',
+      }
+    );
+    
+    // Tabela não mapeada - tenta campos comuns
+    const commonUniqueFields = [
+      'id', 
+      'id_equipamento', 
+      'id_sistema', 
+      'id_camara', 
+      'id_abrigo', 
+      'id_mangueira', 
+      'numero_serie_equipamento',
+      'numero_serie',
+    ];
+    
+    for (const field of commonUniqueFields) {
+      if (data[field] !== undefined && data[field] !== null) {
+        fields.push({ field, value: data[field] });
+      }
+    }
+    
+    return fields;
+  }
+  
+  // Adiciona todos os campos da constraint (simples ou composta)
+  let allFieldsPresent = true;
+  for (const field of constraints) {
     if (data[field] !== undefined && data[field] !== null) {
       fields.push({ field, value: data[field] });
+    } else if (field !== 'user_id') {
+      // user_id é adicionado automaticamente, então não conta como ausente
+      allFieldsPresent = false;
     }
   }
   
-  // Para tabelas específicas, adiciona campos únicos conhecidos
-  // Extintores permitem múltiplas inspeções com o mesmo numero_identificacao
-  // A unicidade deve ser baseada em (numero_identificacao + data_servico + user_id) se necessário
-  // Por enquanto, não adicionamos campos únicos para extintores para permitir histórico de inspeções
-  if (table.includes('extintor')) {
-    // Não adiciona numero_identificacao como único, pois permite múltiplas inspeções
-    // Se houver constraint única na tabela, ela deve ser composta (ex: numero_identificacao + data_servico)
+  // Se for constraint composta e algum campo está ausente, não pode verificar duplicata
+  if (!allFieldsPresent && constraints.length > 1) {
+    logger.warn(`Constraint composta para ${table} está incompleta`, 'sync', {
+      requiredFields: constraints,
+      presentFields: fields.map(f => f.field),
+    });
   }
   
   return fields;
@@ -148,7 +254,7 @@ async function getAuthenticatedUserId(): Promise<string> {
  * @param authenticatedUserId ID do usuário autenticado
  * @throws {Error} Se o user_id não corresponder ao usuário autenticado
  */
-function validateUserOwnership(data: any, authenticatedUserId: string): void {
+function validateUserOwnership(data: Record<string, unknown>, authenticatedUserId: string): void {
   // Se os dados contêm user_id, deve corresponder ao usuário autenticado
   if (data.user_id !== undefined && data.user_id !== null) {
     if (data.user_id !== authenticatedUserId) {
@@ -209,8 +315,9 @@ async function executeOperation(operation: any): Promise<boolean> {
           user_id: authenticatedUserId,
         };
         
+        // Type assertion seguro pois table foi validado com tableNameSchema
         const { data: result, error } = await supabase
-          .from(table)
+          .from(table as any)
           .insert(dataWithUserId)
           .select();
         
@@ -227,8 +334,9 @@ async function executeOperation(operation: any): Promise<boolean> {
                 // Verifica se já existe registro com mesmo numero_identificacao + data_servico + user_id
                 if (data.numero_identificacao && data.data_servico) {
                   try {
+                    // Type assertion seguro pois table foi validado com tableNameSchema
                     const { data: existing, error: checkError } = await supabase
-                      .from(table)
+                      .from(table as any)
                       .select('id')
                       .eq('numero_identificacao', data.numero_identificacao)
                       .eq('data_servico', data.data_servico)
@@ -260,7 +368,8 @@ async function executeOperation(operation: any): Promise<boolean> {
             const uniqueFields = extractUniqueFields(table, data);
             if (uniqueFields.length > 0) {
               try {
-                let checkQuery = supabase.from(table).select('id').limit(1);
+                // Type assertion seguro pois table foi validado com tableNameSchema
+                let checkQuery = supabase.from(table as any).select('id').limit(1);
                 uniqueFields.forEach(({ field, value }) => {
                   checkQuery = checkQuery.eq(field, value);
                 });
@@ -277,17 +386,37 @@ async function executeOperation(operation: any): Promise<boolean> {
                   });
                   return true; // Considera sucesso pois o registro já existe
                 }
-              } catch (checkErr) {
+                
+                // Se conseguiu verificar mas NÃO encontrou duplicata, o erro 23505 é suspeito
+                if (!checkError) {
+                  logger.error(`⚠️ ALERTA: Erro 23505 mas registro não encontrado na verificação!`, 'sync', {
+                    table,
+                    fields: uniqueFields,
+                    originalError: error.message,
+                    hint: 'Pode ser constraint composta ou campo não verificado. PROPAGAR ERRO.'
+                  });
+                  throw error; // PROPAGAR para que usuário veja o erro real
+                }
+              } catch (checkErr: any) {
+                // Se checkErr for o error original (throw acima), propagar
+                if (checkErr === error || checkErr.code === '23505') {
+                  throw checkErr;
+                }
+                
                 logger.warn('Erro ao verificar registro duplicado', 'sync', checkErr);
-                // Continua e trata como erro de duplicata
+                // Continua apenas se for erro de verificação, não o erro original
               }
             }
-            // Se não conseguiu verificar ou não encontrou, trata como erro
-            // Mas ainda remove da fila para evitar loops infinitos
-            logger.warn(`Registro duplicado na tabela ${table}, mas não foi possível verificar existência`, 'sync', {
-              error: error.message
+            
+            // Se não há campos únicos identificáveis, NÃO descarta silenciosamente
+            // Isso evita perda de dados por erros de constraint não mapeadas
+            logger.error(`⚠️ ERRO 23505 em ${table} sem campos únicos identificáveis. PROPAGAR.`, 'sync', {
+              error: error.message,
+              detail: error.details,
+              hint: error.hint,
+              data: Object.keys(data), // Apenas chaves para não logar dados sensíveis
             });
-            return true; // Remove da fila mesmo assim para evitar loops
+            throw error; // PROPAGAR para que usuário veja erro e possa reportar
           }
           throw error;
         }
@@ -304,8 +433,9 @@ async function executeOperation(operation: any): Promise<boolean> {
         
         // Constrói query com filtros apropriados
         // Sempre adiciona filtro user_id para garantir que só atualiza dados do usuário autenticado
+        // Type assertion seguro pois table foi validado com tableNameSchema
         const query = supabase
-          .from(table)
+          .from(table as any)
           .update(updateData)
           .eq('id', id)
           .eq('user_id', authenticatedUserId);
@@ -326,8 +456,9 @@ async function executeOperation(operation: any): Promise<boolean> {
         
         // Constrói query com filtros apropriados
         // Sempre adiciona filtro user_id para garantir que só deleta dados do usuário autenticado
+        // Type assertion seguro pois table foi validado com tableNameSchema
         const query = supabase
-          .from(table)
+          .from(table as any)
           .delete()
           .eq('id', id)
           .eq('user_id', authenticatedUserId);
@@ -368,55 +499,87 @@ function calculateRetryDelay(retryCount: number, error: any): number {
 function isRecoverableError(error: any): boolean {
   if (!error) return false;
   
-  const errorMessage = error.message || '';
-  const errorCode = error.code || '';
+  const errorMessage = (error.message || '').toLowerCase();
+  const errorCode = (error.code || '').toString();
   
-  // Erros recuperáveis: rede, timeout, conexão
-  const recoverablePatterns = [
-    'fetch',
-    'network',
-    'timeout',
-    'Failed to fetch',
-    'connection',
-    'ECONNREFUSED',
-    'ETIMEDOUT',
-    'PGRST301', // PostgREST connection error
-  ];
+  // 1. Erros FATAIS (Hard Errors) - Nunca tentar novamente
+  // 23505: Unique violation (se o tratamento especial falhou, não adianta retentar)
+  // 23503: Foreign key violation (referência não existe)
+  // 23502: Not null violation (dado obrigatório faltando)
+  // 22P02: Invalid input syntax (tipo de dado errado)
+  // 42501: RLS violation (permissão negada permanentemente para este usuário)
+  // 42P01: Undefined table (tabela não existe)
+  const hardErrors = ['23505', '23503', '23502', '22P02', '42501', '42P01'];
   
-  // Erros não recuperáveis: validação, permissão, constraint (exceto duplicatas)
-  const nonRecoverablePatterns = [
-    'permission denied',
-    'unauthorized',
-    'invalid',
-    'validation',
-  ];
-  
-  // Se for erro de duplicata, pode ser recuperável (registro pode ter sido criado)
-  if (errorCode === '23505') {
-    return true;
-  }
-  
-  // Se contém padrão não recuperável, não é recuperável
-  if (nonRecoverablePatterns.some(pattern => 
-    errorMessage.toLowerCase().includes(pattern)
-  )) {
+  if (hardErrors.includes(errorCode)) {
     return false;
   }
   
-  // Se contém padrão recuperável, é recuperável
+  // Padrões de texto para erros não recuperáveis
+  const nonRecoverablePatterns = [
+    'permission denied',
+    'violates row-level security',
+    'invalid input syntax',
+    'violates foreign key',
+    'violates not-null',
+    'column does not exist',
+    'relation does not exist',
+    'value too long',
+    'check constraint',
+  ];
+  
+  if (nonRecoverablePatterns.some(pattern => errorMessage.includes(pattern))) {
+    return false;
+  }
+  
+  // 2. Erros RECUPERÁVEIS - Tentar novamente
+  const recoverablePatterns = [
+    // Erros de rede/fetch
+    'fetch',
+    'network',
+    'timeout',
+    'failed to fetch',
+    'connection',
+    'econnrefused',
+    'etimedout',
+    'socket',
+    'offline',
+    
+    // Códigos/Status HTTP recuperáveis
+    '408', // Request Timeout
+    '429', // Too Many Requests
+    '500', // Internal Server Error
+    '502', // Bad Gateway
+    '503', // Service Unavailable
+    '504', // Gateway Timeout
+    'pgrst301', // PostgREST connection issues
+  ];
+  
+  // Verifica status HTTP se disponível no objeto de erro
+  if (error.status) {
+    const status = parseInt(error.status);
+    if (status === 429 || status === 408 || status >= 500) {
+      return true;
+    }
+  }
+  
+  // Verifica padrões na mensagem ou código
   return recoverablePatterns.some(pattern => 
-    errorMessage.includes(pattern) || errorCode.includes(pattern)
+    errorMessage.includes(pattern) || errorCode.toLowerCase().includes(pattern)
   );
 }
 
 /**
- * Agrupa operações por tabela e tipo para processamento em lote
+ * Agrupa operações por tabela para processamento ordenado
+ * Removemos a separação por tipo para garantir que create/update/delete
+ * sejam processados na ordem correta (temporal)
  */
 function groupOperationsByTable(operations: any[]): Map<string, any[]> {
   const grouped = new Map<string, any[]>();
   
   for (const op of operations) {
-    const key = `${op.table}_${op.type}`;
+    // Agrupa apenas por tabela, mantendo a ordem temporal entre tipos de operação
+    const key = op.table;
     if (!grouped.has(key)) {
       grouped.set(key, []);
     }
@@ -427,7 +590,11 @@ function groupOperationsByTable(operations: any[]): Map<string, any[]> {
 }
 
 /**
- * Processa um lote de operações em paralelo
+ * Processa um lote de operações sequencialmente
+ * 
+ * ALTERADO: Execução sequencial para garantir integridade
+ * Antes usava Promise.allSettled (paralelo), o que podia causar
+ * race conditions (ex: update executando antes do create).
  */
 async function processBatch(
   batch: any[],
@@ -439,61 +606,37 @@ async function processBatch(
   let failed = 0;
   const errors: Array<{ id: string; error: string }> = [];
   
-  // Processa operações em paralelo (até BATCH_SIZE por vez)
-  for (let i = 0; i < batch.length; i += BATCH_SIZE) {
-    const chunk = batch.slice(i, i + BATCH_SIZE);
+  // Executa sequencialmente para garantir consistência
+  for (let i = 0; i < batch.length; i++) {
+    const operation = batch[i];
     
-    // Executa chunk em paralelo
-    const results = await Promise.allSettled(
-      chunk.map(async (operation, chunkIndex) => {
-        if (onProgress) {
-          onProgress(offset + i + chunkIndex + 1, totalOperations, operation);
-        }
-        
-        try {
-          await executeOperation(operation);
-          await removePendingOperation(operation.id);
-          return { success: true, id: operation.id };
-        } catch (error: any) {
-          const errorMessage = error.message || error.code || 'Erro desconhecido';
-          const newRetries = operation.retries + 1;
-          
-          // Verifica se é erro recuperável
-          if (isRecoverableError(error) && newRetries < MAX_RETRIES) {
-            await updateOperationRetry(operation.id, newRetries, errorMessage);
-            return { success: false, id: operation.id, error: errorMessage, retry: true };
-          } else {
-            // Erro não recuperável ou excedeu tentativas
-            if (newRetries >= MAX_RETRIES) {
-              await removePendingOperation(operation.id); // Remove após muitas tentativas
-            } else {
-              await updateOperationRetry(operation.id, newRetries, errorMessage);
-            }
-            return { success: false, id: operation.id, error: errorMessage, retry: false };
-          }
-        }
-      })
-    );
+    if (onProgress) {
+      onProgress(offset + i + 1, totalOperations, operation);
+    }
     
-    // Processa resultados
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        if (result.value.success) {
-          success++;
-        } else {
-          if (!result.value.retry) {
-            failed++;
-            errors.push({
-              id: result.value.id,
-              error: result.value.error,
-            });
-          }
-        }
+    try {
+      await executeOperation(operation);
+      await removePendingOperation(operation.id);
+      success++;
+    } catch (error: any) {
+      const errorMessage = error.message || error.code || 'Erro desconhecido';
+      const newRetries = operation.retries + 1;
+      
+      // Verifica se é erro recuperável
+      if (isRecoverableError(error) && newRetries < MAX_RETRIES) {
+        await updateOperationRetry(operation.id, newRetries, errorMessage);
+        failed++; // Conta como falha temporária
       } else {
+        // Erro não recuperável ou excedeu tentativas
+        if (newRetries >= MAX_RETRIES) {
+          await removePendingOperation(operation.id); // Remove após muitas tentativas
+        } else {
+          await updateOperationRetry(operation.id, newRetries, errorMessage);
+        }
         failed++;
         errors.push({
-          id: 'unknown',
-          error: result.reason?.message || 'Erro desconhecido',
+          id: operation.id,
+          error: errorMessage,
         });
       }
     }
@@ -533,7 +676,7 @@ export async function syncPendingOperations(
     return { success: 0, failed: 0, errors: [] };
   }
 
-  logger.info(`Iniciando sincronização otimizada de ${operations.length} operação(ões)`, 'sync');
+  logger.info(`Iniciando sincronização sequencial de ${operations.length} operação(ões)`, 'sync');
 
   // Remove operações muito antigas antes de sincronizar
   const maxAge = Date.now() - (MAX_OPERATION_AGE_DAYS * 24 * 60 * 60 * 1000);
@@ -566,34 +709,30 @@ export async function syncPendingOperations(
     return { success: totalSuccess, failed: totalFailed, errors: allErrors };
   }
 
-  // Agrupa operações por tabela e tipo para processamento otimizado
+  // Agrupa operações por tabela para processamento organizado
+  // Mas processa CADA GRUPO ordenado por timestamp
   const grouped = groupOperationsByTable(operationsToSync);
   const totalToSync = operationsToSync.length;
   let processedCount = 0;
   
-  // Processa cada grupo (tabela+tipo) em sequência, mas operações dentro do grupo em paralelo
-  for (const [key, groupOps] of grouped) {
-    const [table, type] = key.split('_');
-    logger.info(`Sincronizando ${groupOps.length} operação(ões) de ${type} na tabela ${table}`, 'sync');
+  // Processa cada tabela em sequência
+  for (const [table, groupOps] of grouped) {
+    logger.info(`Sincronizando ${groupOps.length} operação(ões) na tabela ${table}`, 'sync');
     
-    // Ordena por timestamp (mais antigas primeiro) e prioridade
-    groupOps.sort((a, b) => {
-      // Prioriza operações de inspeção (mais críticas)
-      const aPriority = a.table.includes('inspecao') ? 0 : 1;
-      const bPriority = b.table.includes('inspecao') ? 0 : 1;
-      if (aPriority !== bPriority) return aPriority - bPriority;
-      return a.timestamp - b.timestamp;
-    });
+    // ORDENAÇÃO CRÍTICA: Garante ordem temporal correta (antigo -> novo)
+    // Create (t1) -> Update (t2) deve ser respeitado
+    groupOps.sort((a, b) => a.timestamp - b.timestamp);
     
+    // Processa todas as operações da tabela sequencialmente
     const batchResult = await processBatch(groupOps, totalToSync, processedCount, onProgress);
     processedCount += groupOps.length;
     totalSuccess += batchResult.success;
     totalFailed += batchResult.failed;
     allErrors.push(...batchResult.errors);
     
-    // Pequeno delay entre grupos para não sobrecarregar o servidor
+    // Pequeno delay entre tabelas para não sobrecarregar
     if (grouped.size > 1) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
 

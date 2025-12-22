@@ -20,6 +20,12 @@ export interface License {
   client_name?: string | null;
   client_email?: string | null;
   notes?: string | null;
+  user_id?: string | null; // ID do usuário relacionado à licença
+  user?: {
+    id: string;
+    email?: string;
+    full_name: string | null;
+  } | null; // Informações do usuário (populado via join)
 }
 
 export interface LicenseStatus {

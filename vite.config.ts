@@ -26,7 +26,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: (id) => {
-        // Não externaliza, mas permite que falhe silenciosamente
+        // Externaliza plugins do Capacitor que só existem em runtime
+        if (id === '@capacitor/push-notifications' || 
+            id === '@capacitor/local-notifications' ||
+            id.startsWith('@capacitor/push-notifications/') ||
+            id.startsWith('@capacitor/local-notifications/')) {
+          return true;
+        }
         return false;
       },
     },

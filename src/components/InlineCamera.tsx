@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, SwitchCamera } from 'lucide-react';
 import { Spinner } from './ui/spinner';
 import { logger } from '../utils/logger';
+import { useHaptics } from '../hooks/useHaptics';
 
 interface InlineCameraProps {
   onCapture: (file: File) => void;
@@ -20,6 +21,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const haptics = useHaptics();
 
   // Esconde o BottomNav quando a câmera está aberta e bloqueia scroll
   useEffect(() => {
@@ -101,6 +103,8 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
     if (!videoRef.current || !canvasRef.current) return;
 
     try {
+      haptics.light(); // Feedback tátil ao capturar foto
+      
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
@@ -143,12 +147,14 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
           <p className="text-white mb-6">{error}</p>
           <div className="flex gap-3 justify-center">
             <button
+              type="button"
               onClick={onCancel}
               className="px-6 py-2 bg-zinc-700 text-white rounded-lg font-medium"
             >
               Fechar
             </button>
             <button
+              type="button"
               onClick={() => setFacingMode('environment')}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium"
             >
@@ -204,6 +210,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
         <div className="flex items-center justify-between max-w-md mx-auto mb-2">
           {/* Botão Cancelar */}
           <button
+            type="button"
             onClick={onCancel}
             className="p-4 rounded-full bg-zinc-800 text-white hover:bg-zinc-700 transition active:scale-95"
           >
@@ -212,6 +219,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
 
           {/* Botão Capturar */}
           <button
+            type="button"
             onClick={capturePhoto}
             disabled={isLoading}
             className={`
@@ -226,6 +234,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
 
           {/* Botão Alternar Câmera */}
           <button
+            type="button"
             onClick={switchCamera}
             disabled={isLoading}
             className="p-4 rounded-full bg-zinc-800 text-white hover:bg-zinc-700 transition active:scale-95"

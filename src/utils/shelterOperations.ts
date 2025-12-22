@@ -11,6 +11,7 @@ export interface Shelter {
   id_abrigo: string;
   cliente?: string;
   local?: string;
+  numero_serie?: string;
   latitude?: number;
   longitude?: number;
   itens_json?: Record<string, any>;

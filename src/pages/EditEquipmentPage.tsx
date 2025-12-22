@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useHaptics } from '../hooks/useHaptics';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { logger } from '../utils/logger';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
@@ -30,12 +31,15 @@ import { getAllHoses } from '../utils/hoseOperations';
 
 type EquipmentData = Record<string, any>;
 
+import InstructionsPanel from '../components/InstructionsPanel';
+
 const EditEquipmentPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { handleError, executeWithFeedback } = useErrorHandler();
   const { refreshCache } = useEquipmentCache();
   const { t } = useTranslation();
+  const haptics = useHaptics();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [equipmentData, setEquipmentData] = useState<EquipmentData | null>(null);
@@ -72,6 +76,8 @@ const EditEquipmentPage = () => {
 
     checkCustomType();
   }, [type]);
+
+  const instructionType = isCustomType ? 'add_custom' : `add_${type}`;
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -383,6 +389,7 @@ const EditEquipmentPage = () => {
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title={{ key: 'equipment.edit', defaultValue: 'Editar Equipamento' }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
+        <InstructionsPanel equipmentType={instructionType} className="mb-6" />
         {loadingData ? (
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />
@@ -392,11 +399,28 @@ const EditEquipmentPage = () => {
           </div>
         ) : equipmentData ? (
           <form onSubmit={handleSubmit(onSubmit)}>
+            {/* Campo de número de série para tipos customizados */}
+            {isCustomType && (
+              <div className="mb-4">
+                <label htmlFor="numero_serie" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+                  {t('equipment.serialNumber', { defaultValue: 'Nº de Série' })} <span className="text-gray-400 text-xs">{t('equipment.formHints.optional')}</span>
+                </label>
+                <input
+                  id="numero_serie"
+                  type="text"
+                  placeholder="Ex: SN123456"
+                  {...register('numero_serie')}
+                  className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none" 
+                  style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                />
+              </div>
+            )}
             {renderSpecificForm()}
 
             <button
               type="submit"
               disabled={loading}
+              onClick={() => haptics.medium()}
               className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? t('common.loading') : t('common.save')}

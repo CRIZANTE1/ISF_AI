@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Edit2, User, Mail, Calendar, Settings, CreditCard, BarChart3, Save, X, Camera } from 'lucide-react';
+import { LogOut, Edit2, User, Mail, Calendar, Settings, CreditCard, BarChart3, Save, X, Camera, Key, CheckCircle, XCircle, Clock, Infinity, MessageSquare } from 'lucide-react';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
 import PageHeader from '../components/PageHeader';
@@ -14,6 +14,11 @@ import LazyImage from '../components/LazyImage';
 import { Spinner } from '../components/ui/spinner';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
+import { licenseService } from '../services/licenseService';
+import { License, LicenseStatus } from '../types/license';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import FeedbackModal from '../components/FeedbackModal';
 
 interface ProfileFormData {
   full_name: string;
@@ -26,7 +31,7 @@ interface UserStats {
 }
 
 const Profile = () => {
-  const { profile, user, signOut, loading, refreshProfile } = useAuth();
+  const { profile, user, signOut, loading, refreshProfile, profileError } = useAuth();
   const { getAllEquipment } = useEquipmentCache();
   const navigate = useNavigate();
   const { t, currentLanguage } = useTranslation();
@@ -35,6 +40,11 @@ const Profile = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [license, setLicense] = useState<License | null>(null);
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
+  const [loadingLicense, setLoadingLicense] = useState(true);
+  const [machineId, setMachineId] = useState<string>('');
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormData>({
     defaultValues: {
       full_name: profile?.full_name || '',
@@ -141,6 +151,68 @@ const Profile = () => {
 
     fetchStats();
   }, [user, filteredEquipment.length, activeAlertsCount]);
+
+  // Buscar licença do usuário
+  useEffect(() => {
+    const fetchLicense = async () => {
+      if (!user) {
+        setLoadingLicense(false);
+        return;
+      }
+
+      setLoadingLicense(true);
+      try {
+        // Obter machine_id atual
+        const currentMachineId = await licenseService.getMachineId();
+        setMachineId(currentMachineId);
+
+        // Tentar buscar licença pelo user_id primeiro
+        let foundLicense: License | null = null;
+
+        if (user.id) {
+          const { data: licenseByUserId } = await supabase
+            .from('licenses')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (licenseByUserId) {
+            foundLicense = licenseByUserId as License;
+          }
+        }
+
+        // Se não encontrou pelo user_id, buscar pelo machine_id atual
+        if (!foundLicense && currentMachineId) {
+          const { data: licenseByMachineId } = await supabase
+            .from('licenses')
+            .select('*')
+            .eq('machine_id', currentMachineId)
+            .maybeSingle();
+
+          if (licenseByMachineId) {
+            foundLicense = licenseByMachineId as License;
+          }
+        }
+
+        if (foundLicense) {
+          setLicense(foundLicense);
+          // Verificar status da licença
+          const status = await licenseService.checkLicenseStatus(foundLicense.machine_id);
+          setLicenseStatus(status);
+        } else {
+          // Se não encontrou licença, verificar status mesmo assim (pode criar uma nova)
+          const status = await licenseService.checkLicenseStatus(currentMachineId);
+          setLicenseStatus(status);
+        }
+      } catch (err) {
+        logger.error('Erro ao buscar licença do usuário', 'profile', err);
+      } finally {
+        setLoadingLicense(false);
+      }
+    };
+
+    fetchLicense();
+  }, [user]);
 
   const getPlanBadge = (plan: 'trial' | 'premium' | undefined) => {
     switch (plan) {
@@ -270,6 +342,55 @@ const Profile = () => {
     );
   }
 
+  // Se há erro ao carregar perfil, mostra mensagem de erro
+  if (profileError && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#000000' }}>
+        <div 
+          className="max-w-md w-full p-6 rounded-lg border text-center"
+          style={{ backgroundColor: '#1A1A1A', borderColor: '#DC2626' }}
+        >
+          <div className="mb-4">
+            <svg 
+              className="mx-auto h-12 w-12" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="#DC2626"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: '#FFFFFF' }}>
+            Erro ao Carregar Perfil
+          </h2>
+          <p className="text-sm mb-6" style={{ color: '#9CA3AF' }}>
+            {profileError}
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => refreshProfile()}
+              className="w-full px-4 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Tentar Novamente
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="w-full px-4 py-3 rounded-lg font-semibold transition-colors"
+              style={{ backgroundColor: '#374151', color: '#FFFFFF' }}
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
       <PageHeader title={{ key: 'profile.myProfile' }} />
@@ -387,6 +508,110 @@ const Profile = () => {
         <TrialStatusBar profile={profile} />
       </div>
 
+      {/* Informações da Licença */}
+      <div className="mt-6 w-full max-w-sm">
+        <h3 className="text-lg font-semibold mb-3 text-left flex items-center gap-2">
+          <Key size={20} />
+          Minha Licença
+        </h3>
+        {loadingLicense ? (
+          <div className="p-4 apple-card rounded-lg border" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+            <Skeleton className="h-4 w-32 mb-2" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ) : license || licenseStatus ? (
+          <div className="p-4 apple-card rounded-lg border space-y-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+            {/* Machine ID */}
+            {machineId && (
+              <div>
+                <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wide">
+                  Machine ID
+                </div>
+                <div className="font-mono text-sm font-semibold text-white">
+                  {machineId}
+                </div>
+              </div>
+            )}
+
+            {/* Status da Licença */}
+            {licenseStatus && (
+              <div className="flex items-center gap-2">
+                {licenseStatus.valid ? (
+                  <CheckCircle size={16} className="text-green-400" />
+                ) : (
+                  <XCircle size={16} className="text-red-400" />
+                )}
+                <span className={`text-sm font-semibold ${licenseStatus.valid ? 'text-green-400' : 'text-red-400'}`}>
+                  {licenseStatus.valid ? 'Licença Válida' : 'Licença Expirada'}
+                </span>
+              </div>
+            )}
+
+            {/* Tipo de Licença */}
+            {license && (
+              <div>
+                <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                  Tipo
+                </div>
+                <div className="text-sm font-semibold text-white">
+                  {license.license_type === 'premium' && 'Premium'}
+                  {license.license_type === 'lifetime' && 'Vitalícia'}
+                  {license.license_type === 'experimental' && 'Avaliação (Trial)'}
+                </div>
+              </div>
+            )}
+
+            {/* Dias Restantes */}
+            {licenseStatus && (
+              <div className="flex items-center gap-2">
+                <Clock size={14} className="text-light-text-secondary dark:text-dark-text-secondary" />
+                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  {licenseStatus.daysRemaining === Infinity ? (
+                    <span className="flex items-center gap-1">
+                      <Infinity size={14} />
+                      Vitalícia
+                    </span>
+                  ) : licenseStatus.isTrial ? (
+                    `${licenseStatus.trialDaysRemaining || 0} dias restantes (trial)`
+                  ) : (
+                    `${licenseStatus.daysRemaining} dias restantes`
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* Datas */}
+            {license && (
+              <div className="space-y-1 pt-2 border-t" style={{ borderColor: 'var(--border-current)' }}>
+                <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                  <Calendar size={12} />
+                  Instalado: {format(new Date(license.install_date), 'dd/MM/yyyy', { locale: ptBR })}
+                </div>
+                {license.last_activation_date && (
+                  <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    <Clock size={12} />
+                    Ativado: {format(new Date(license.last_activation_date), 'dd/MM/yyyy', { locale: ptBR })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mensagem se não tem licença associada */}
+            {!license && licenseStatus && (
+              <div className="text-xs text-yellow-400 pt-2 border-t" style={{ borderColor: 'var(--border-current)' }}>
+                ⚠️ Licença será associada automaticamente ao fazer login
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 apple-card rounded-lg border text-center" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}>
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              Nenhuma licença encontrada
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Estatísticas */}
       <div className="mt-6 w-full max-w-sm">
         <h3 className="text-lg font-semibold mb-3 text-left flex items-center gap-2">
@@ -455,6 +680,13 @@ const Profile = () => {
           <Settings size={18} color="#72DEFF" />
           <span>{t('settings.title')}</span>
         </button>
+        <button 
+          onClick={() => setIsFeedbackModalOpen(true)}
+          className="w-full text-left p-3 apple-card rounded-lg border hover:border-rally-blue/30 transition-colors flex items-center gap-3" style={{ backgroundColor: 'var(--surface-current)', borderColor: 'var(--border-current)' }}
+        >
+          <MessageSquare size={18} color="#72DEFF" />
+          <span>{t('feedback.title')}</span>
+        </button>
       </div>
 
       {/* Botão Sair */}
@@ -466,6 +698,12 @@ const Profile = () => {
         <LogOut size={16} />
         {t('profile.signOut')}
       </button>
+
+      {/* Modal de Feedback */}
+      <FeedbackModal 
+        isOpen={isFeedbackModalOpen} 
+        onClose={() => setIsFeedbackModalOpen(false)} 
+      />
       </main>
     </div>
   );

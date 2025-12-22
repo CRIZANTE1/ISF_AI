@@ -5,8 +5,11 @@ import { License } from '../types/license';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '../lib/supabase';
 import {
   Key,
   Search,
@@ -33,6 +36,7 @@ const LicenseManagement = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { handleError, showInfo } = useErrorHandler();
   const { t } = useTranslation();
+  const { isOpen, confirmData, isLoading: confirmLoading, showConfirm, handleConfirm, handleCancel } = useConfirm();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [filteredLicenses, setFilteredLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(false);
@@ -70,8 +74,67 @@ const LicenseManagement = () => {
     setLoading(true);
     try {
       const data = await licenseService.getAllLicenses();
-      setLicenses(data);
-      calculateStats(data);
+      
+      // Buscar informações do usuário para cada licença
+      const licensesWithUsers = await Promise.all(
+        data.map(async (license) => {
+          // Se já tem user_id, buscar informações do usuário
+          if (license.user_id) {
+            try {
+              const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('id', license.user_id)
+                .maybeSingle();
+
+              if (profileError) {
+                logger.warn('Erro ao buscar perfil do usuário', 'license', {
+                  userId: license.user_id,
+                  error: profileError,
+                });
+              }
+
+              if (profile) {
+                return {
+                  ...license,
+                  user: {
+                    id: profile.id,
+                    email: license.client_email || undefined,
+                    full_name: profile.full_name,
+                  },
+                };
+              } else {
+                // Se não encontrou o perfil, ainda retorna com user_id para mostrar
+                return {
+                  ...license,
+                  user: {
+                    id: license.user_id,
+                    email: license.client_email || undefined,
+                    full_name: null,
+                  },
+                };
+              }
+            } catch (err) {
+              logger.warn('Erro ao buscar usuário para licença', 'license', err);
+              // Retorna a licença mesmo com erro, mas mantém o user_id
+              return {
+                ...license,
+                user: license.user_id ? {
+                  id: license.user_id,
+                  email: license.client_email || undefined,
+                  full_name: null,
+                } : undefined,
+              };
+            }
+          }
+          
+          // Se não tem user_id, retorna sem informações de usuário
+          return license;
+        })
+      );
+      
+      setLicenses(licensesWithUsers);
+      calculateStats(licensesWithUsers);
     } catch (error) {
       logger.error('Erro ao carregar licenças', 'license', error);
       handleError(error, 'license', 'Erro ao carregar licenças');
@@ -290,9 +353,14 @@ const LicenseManagement = () => {
   };
 
   const handleExtendLicense = async (machineId: string) => {
-    if (!confirm('Deseja estender esta licença para 365 dias a partir de hoje?')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Estender Licença',
+      message: 'Deseja estender esta licença para 365 dias a partir de hoje?',
+      confirmText: 'Estender',
+      variant: 'info'
+    });
+
+    if (!confirmed) return;
 
     setLoading(true);
     try {
@@ -311,9 +379,14 @@ const LicenseManagement = () => {
   };
 
   const handleResetTrial = async (machineId: string) => {
-    if (!confirm('Deseja resetar o período de avaliação para 14 dias a partir de hoje?')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Resetar Período de Avaliação',
+      message: 'Deseja resetar o período de avaliação para 14 dias a partir de hoje?',
+      confirmText: 'Resetar',
+      variant: 'warning'
+    });
+
+    if (!confirmed) return;
 
     setLoading(true);
     try {
@@ -333,9 +406,14 @@ const LicenseManagement = () => {
 
   const handleSetLifetime = async (machineId: string, isLifetime: boolean) => {
     const action = isLifetime ? 'tornar vitalícia' : 'remover vitalícia';
-    if (!confirm(`Deseja ${action} esta licença?`)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: isLifetime ? 'Tornar Licença Vitalícia' : 'Remover Licença Vitalícia',
+      message: `Deseja ${action} esta licença?`,
+      confirmText: isLifetime ? 'Tornar Vitalícia' : 'Remover Vitalícia',
+      variant: 'info'
+    });
+
+    if (!confirmed) return;
 
     setLoading(true);
     try {
@@ -354,9 +432,14 @@ const LicenseManagement = () => {
   };
 
   const handleRevokeLicense = async (machineId: string) => {
-    if (!confirm('Deseja revogar esta licença? Ela será desativada imediatamente.')) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Revogar Licença',
+      message: 'Deseja revogar esta licença? Ela será desativada imediatamente.',
+      confirmText: 'Revogar',
+      variant: 'danger'
+    });
+
+    if (!confirmed) return;
 
     if (!user?.email) {
       handleError(new Error('Email do administrador não encontrado'), 'license', 'Erro ao revogar licença');
@@ -543,15 +626,56 @@ const LicenseManagement = () => {
                   {/* Header do Card */}
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                     <div className="flex-1">
+                      {/* Machine ID - Destaque */}
+                      <div className="mb-3 p-3 bg-light-background dark:bg-dark-background rounded-lg border" style={{ backgroundColor: '#121212', borderColor: '#2A2A2A' }}>
+                        <div className="text-xs text-gray-400 mb-1 uppercase tracking-wide">Machine ID</div>
+                        <div className="flex items-center gap-2">
+                          <Key size={16} className="text-white" />
+                          <span className="font-mono text-base text-white font-bold">
+                            {license.machine_id}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status e Informações */}
                       <div className="flex items-center gap-3 mb-2">
-                        <Key size={20} className="text-white" />
-                        <span className="font-mono text-sm text-white font-semibold">
-                          {license.machine_id}
-                        </span>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${status.color}`}>
                           {status.label}
                         </span>
                       </div>
+                      
+                      {/* Usuário Relacionado - Sempre visível */}
+                      {license.user ? (
+                        <div className="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                          <div className="text-xs text-blue-400 mb-1 uppercase tracking-wide">Usuário do Sistema</div>
+                          <div className="text-sm font-semibold text-white">
+                            {license.user.full_name || 'Nome não informado'}
+                          </div>
+                          {license.user.email && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              {license.user.email}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500 mt-1 font-mono">
+                            ID: {license.user.id.substring(0, 8)}...
+                          </div>
+                        </div>
+                      ) : license.user_id ? (
+                        <div className="mb-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                          <div className="text-xs text-yellow-400 mb-1 uppercase tracking-wide">Usuário Associado</div>
+                          <div className="text-sm text-gray-300 font-mono">
+                            ID: {license.user_id.substring(0, 8)}... (carregando informações...)
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-3 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+                          <div className="text-xs text-gray-400 mb-1 uppercase tracking-wide">Usuário</div>
+                          <div className="text-sm text-gray-500">
+                            Não associado - será associado automaticamente no próximo login
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
@@ -580,6 +704,7 @@ const LicenseManagement = () => {
                   {/* Metadados */}
                   {(license.client_name || license.client_email || license.notes) && (
                     <div className="mb-4 p-4 bg-light-background dark:bg-dark-background rounded-lg" style={{ backgroundColor: '#121212' }}>
+                      <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Informações do Cliente</div>
                       {license.client_name && (
                         <div className="text-sm text-white mb-1">
                           <strong>Cliente:</strong> {license.client_name}
@@ -804,6 +929,21 @@ const LicenseManagement = () => {
           )}
         </div>
       </main>
+
+      {/* Modal de Confirmação */}
+      {confirmData && (
+        <ConfirmationModal
+          isOpen={isOpen}
+          onClose={handleCancel}
+          onConfirm={handleConfirm}
+          title={confirmData.title}
+          message={confirmData.message}
+          isLoading={confirmLoading}
+          confirmText={confirmData.confirmText}
+          cancelText={confirmData.cancelText}
+          variant={confirmData.variant}
+        />
+      )}
     </div>
   );
 };

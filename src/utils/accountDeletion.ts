@@ -11,7 +11,17 @@ import { handleErrorWithoutToast } from './errorHandler';
 import { logger } from './logger';
 
 /**
- * Exclui todos os dados do usuário do banco de dados
+ * Exclui todos os dados do usuário do banco de dados.
+ * 
+ * NOTA DE SEGURANÇA:
+ * O ideal é configurar o banco de dados com `ON DELETE CASCADE` nas chaves estrangeiras
+ * para garantir que a exclusão do usuário (auth.users) limpe automaticamente todos os dados.
+ * 
+ * Execute o arquivo `supabase/migrations/20251220_security_fixes.sql` no seu banco de dados
+ * para aplicar as regras de CASCADE corretas.
+ * 
+ * Esta função mantêm a exclusão manual como um fallback de robustez caso a migration
+ * não tenha sido aplicada ou para bancos legados.
  */
 export async function deleteAllUserData(userId: string): Promise<void> {
   // Lista de todas as tabelas que contêm dados do usuário
@@ -26,6 +36,7 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     'inventario_chuveiros_lava_olhos',
     'inventario_alarmes',
     'abrigos',
+    'equipment', // Genérico
     // Inspeções
     'inspecoes_scba',
     'inspecoes_multigas',
@@ -34,6 +45,7 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     'inspecoes_chuveiros_lava_olhos',
     'inspecoes_alarmes',
     'inspecoes_abrigos',
+    'inspections', // Genérico
     // Logs de ações
     'log_acoes_extintores',
     'log_acoes_scba',
@@ -43,21 +55,33 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     'log_acoes_chuveiros_lava_olhos',
     'log_acoes_alarmes',
     'log_acoes_abrigos',
+    'log_baixa_extintores',
+    // Logs de Acesso/Audit (Opcional, mas requerido para "esquecimento" total)
+    'user_action_logs',
+    'user_access_logs',
     // Outros
     'locais',
+    'purchases', // Dados de compra (atenção a regras fiscais aqui, mas para LGPD total remove-se)
   ];
+
+  logger.info('Iniciando exclusão manual de dados (fallback)...', 'accountDeletion');
 
   // Deletar dados de todas as tabelas
   const deletePromises = tables.map(async (table) => {
-    const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq('user_id', userId);
+    try {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('user_id', userId);
 
-    if (error) {
-      // Log do erro mas continua com outras tabelas
-      logger.error(`Erro ao deletar dados da tabela ${table}`, 'accountDeletion', error);
-      // Não lança erro para não interromper o processo
+      if (error) {
+        // Ignorar erro se tabela não existir ou coluna user_id não existir (possível em algumas configs)
+        if (error.code !== '42P01' && error.code !== '42703') {
+           logger.error(`Erro ao deletar dados da tabela ${table}`, 'accountDeletion', error);
+        }
+      }
+    } catch (err) {
+      // Ignorar erros de execução
     }
   });
 
@@ -71,7 +95,6 @@ export async function deleteAllUserData(userId: string): Promise<void> {
 
   if (profileError) {
     logger.error('Erro ao deletar perfil', 'accountDeletion', profileError);
-    // Continua mesmo com erro
   }
 }
 
@@ -162,7 +185,7 @@ export async function deleteUserAccount(
   }
 
   try {
-    // 1. Deletar todos os dados do usuário
+    // 1. Deletar todos os dados do usuário (Fallback manual + Cascade DB)
     await deleteAllUserData(user.id);
 
     // 2. Fazer logout (a exclusão da conta de auth requer Edge Function)
@@ -193,12 +216,10 @@ export async function deleteUserAccount(
  * 3. Chamar essa função após deletar os dados do banco
  * 
  * Por enquanto, esta implementação:
- * - ✅ Deleta todos os dados do banco de dados
+ * - ✅ Tenta deletar via cascade (se migration aplicada)
+ * - ✅ Deleta dados via fallback manual
  * - ✅ Deleta o perfil
  * - ✅ Faz logout do usuário
- * - ⚠️ A conta de autenticação permanece (requer Edge Function)
- * 
- * Para implementar completamente, adicione uma chamada à Edge Function
- * após deleteAllUserData().
+ * - ⚠️ A conta de autenticação permanece se Edge Function falhar
  */
 

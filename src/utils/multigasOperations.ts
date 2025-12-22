@@ -13,10 +13,15 @@ export interface MultigasDetector {
   modelo?: string | null;
   numero_serie?: string | null;
   data_cadastro?: string | null;
+  // Aceita campos em maiúsculas (legacy) e minúsculas (novo padrão)
   LEL_cilindro?: number | null;
   O2_cilindro?: number | null;
   H2S_cilindro?: number | null;
   CO_cilindro?: number | null;
+  lel_cilindro?: number | null;
+  o2_cilindro?: number | null;
+  h2s_cilindro?: number | null;
+  co_cilindro?: number | null;
   margem_erro_cilindro?: number | null; // Margem de erro em percentual (padrão: 20%)
   created_at?: string;
   user_id?: string | null;
@@ -101,17 +106,18 @@ export async function saveNewMultigasDetector(
       throw new Error(`Detector com ID '${detector.id_equipamento}' já existe.`);
     }
 
-    // Mapeia campos da interface (maiúsculas) para o schema do Supabase (minúsculas)
+    // Mapeia campos da interface (maiúsculas OU minúsculas) para o schema do Supabase (minúsculas)
     const detectorData: any = {
       id_equipamento: detector.id_equipamento,
       marca: detector.marca || null,
       modelo: detector.modelo || null,
       numero_serie: detector.numero_serie || null,
       data_cadastro: detector.data_cadastro || null,
-      lel_cilindro: detector.LEL_cilindro ?? null,
-      o2_cilindro: detector.O2_cilindro ?? null,
-      h2s_cilindro: detector.H2S_cilindro ?? null,
-      co_cilindro: detector.CO_cilindro ?? null,
+      // Aceita campos em maiúsculas (legacy) ou minúsculas (novo padrão)
+      lel_cilindro: detector.lel_cilindro ?? detector.LEL_cilindro ?? null,
+      o2_cilindro: detector.o2_cilindro ?? detector.O2_cilindro ?? null,
+      h2s_cilindro: detector.h2s_cilindro ?? detector.H2S_cilindro ?? null,
+      co_cilindro: detector.co_cilindro ?? detector.CO_cilindro ?? null,
       margem_erro_cilindro: detector.margem_erro_cilindro ?? 20.00, // Valor padrão: 20%
       user_id: user.id,
     };

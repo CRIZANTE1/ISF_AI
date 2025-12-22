@@ -27,6 +27,8 @@ import Skeleton from '../components/Skeleton';
 
 type ViewMode = 'list' | 'create-type' | 'edit-type' | 'create-checklist' | 'edit-checklist';
 
+import InstructionsPanel from '../components/InstructionsPanel';
+
 const CustomEquipmentTypesPage = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
@@ -61,11 +63,19 @@ const CustomEquipmentTypesPage = () => {
       const types = await getAllCustomEquipmentTypes();
       setEquipmentTypes(types);
     } catch (error) {
-      handleError(error, 'equipment', 'Erro ao carregar tipos de equipamentos');
+      handleError(error, 'equipment', t('utilities.customEquipmentTypes.loadingTypes'));
     } finally {
       setLoading(false);
     }
   };
+
+  const getInstructionType = () => {
+    if (viewMode === 'create-type' || viewMode === 'edit-type') return 'custom_type';
+    if (viewMode === 'create-checklist' || viewMode === 'edit-checklist') return 'custom_checklist';
+    return null;
+  };
+
+  const instructionType = getInstructionType();
 
   // Cria novo tipo de equipamento
   const onCreateType = async (data: any) => {
@@ -90,10 +100,10 @@ const CustomEquipmentTypesPage = () => {
 
       if (selectedType) {
         await updateCustomEquipmentType(selectedType.id, typeData);
-        showSuccess('Tipo de equipamento atualizado com sucesso!');
+        showSuccess(t('utilities.customEquipmentTypes.typeUpdated'));
       } else {
         await createCustomEquipmentType(typeData);
-        showSuccess('Tipo de equipamento criado com sucesso!');
+        showSuccess(t('utilities.customEquipmentTypes.typeCreated'));
       }
 
       await loadEquipmentTypes();
@@ -101,7 +111,7 @@ const CustomEquipmentTypesPage = () => {
       setSelectedType(null);
       resetType();
     } catch (error: any) {
-      showError(error.message || 'Erro ao salvar tipo de equipamento');
+      showError(error.message || t('utilities.customEquipmentTypes.typeError'));
     }
   };
 
@@ -168,7 +178,7 @@ const CustomEquipmentTypesPage = () => {
   // Salva checklist
   const onSaveChecklist = async () => {
     if (!selectedType || !checklistName.trim()) {
-      showError('Nome do checklist é obrigatório');
+      showError(t('utilities.customEquipmentTypes.checklistNameRequired'));
       return;
     }
 
@@ -189,7 +199,7 @@ const CustomEquipmentTypesPage = () => {
       .filter(section => section.items.length > 0);
 
     if (validSections.length === 0) {
-      showError('Adicione pelo menos uma seção com perguntas');
+      showError(t('utilities.customEquipmentTypes.addSectionError'));
       return;
     }
 
@@ -207,7 +217,7 @@ const CustomEquipmentTypesPage = () => {
         validSections
       );
 
-      showSuccess('Checklist criado com sucesso!');
+      showSuccess(t('utilities.customEquipmentTypes.checklistCreated'));
       setViewMode('list');
       setSelectedType(null);
       setChecklistSections([{ section_name: '', section_order: 0, items: [{ question_text: '', item_order: 0 }] }]);
@@ -215,7 +225,7 @@ const CustomEquipmentTypesPage = () => {
       setChecklistDescription('');
       setChecklistInspectionType('');
     } catch (error: any) {
-      showError(error.message || 'Erro ao criar checklist');
+      showError(error.message || t('utilities.customEquipmentTypes.checklistError'));
     }
   };
 
@@ -245,27 +255,27 @@ const CustomEquipmentTypesPage = () => {
             <ChevronRight size={20} className="rotate-180" />
           </button>
           <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>
-            Criar Checklist para {selectedType.name}
+            {t('utilities.customEquipmentTypes.createChecklistFor')} {selectedType.name}
           </h2>
         </div>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              Nome do Checklist <span className="text-red-500">*</span>
+              {t('utilities.customEquipmentTypes.checklistName')} <span className="text-red-500">*</span>
             </label>
             <input
               value={checklistName}
               onChange={(e) => setChecklistName(e.target.value)}
               className="w-full p-3 rounded-lg border"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-              placeholder="Ex: Checklist Visual Semestral"
+              placeholder={t('utilities.customEquipmentTypes.checklistNamePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              Descrição
+              {t('utilities.customEquipmentTypes.checklistDescription')}
             </label>
             <textarea
               value={checklistDescription}
@@ -273,33 +283,33 @@ const CustomEquipmentTypesPage = () => {
               rows={2}
               className="w-full p-3 rounded-lg border"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-              placeholder="Descreva o checklist..."
+              placeholder={t('utilities.customEquipmentTypes.checklistDescriptionPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              Tipo de Inspeção
+              {t('utilities.customEquipmentTypes.inspectionType')}
             </label>
             <input
               value={checklistInspectionType}
               onChange={(e) => setChecklistInspectionType(e.target.value)}
               className="w-full p-3 rounded-lg border"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-              placeholder="Ex: Visual, Funcional, Semestral"
+              placeholder={t('utilities.customEquipmentTypes.inspectionTypePlaceholder')}
             />
           </div>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>Seções do Checklist</h3>
+              <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>{t('utilities.customEquipmentTypes.sections')}</h3>
               <button
                 type="button"
                 onClick={addChecklistSection}
                 className="flex items-center gap-2 px-3 py-2 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-colors text-sm"
               >
                 <Plus size={16} />
-                Nova Seção
+                {t('utilities.customEquipmentTypes.newSection')}
               </button>
             </div>
 
@@ -315,7 +325,7 @@ const CustomEquipmentTypesPage = () => {
                     onChange={(e) => updateSectionName(sectionIndex, e.target.value)}
                     className="flex-1 p-2 rounded-lg border"
                     style={{ backgroundColor: '#0A0A0A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-                    placeholder="Nome da Seção (ex: Condições Gerais)"
+                    placeholder={t('utilities.customEquipmentTypes.sectionNamePlaceholder')}
                   />
                   {checklistSections.length > 1 && (
                     <button
@@ -337,7 +347,7 @@ const CustomEquipmentTypesPage = () => {
                         onChange={(e) => updateItemQuestion(sectionIndex, itemIndex, e.target.value)}
                         className="flex-1 p-2 rounded-lg border text-sm"
                         style={{ backgroundColor: '#0A0A0A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-                        placeholder="Digite a pergunta do checklist..."
+                        placeholder={t('utilities.customEquipmentTypes.questionPlaceholder')}
                       />
                       {section.items.length > 1 && (
                         <button
@@ -358,7 +368,7 @@ const CustomEquipmentTypesPage = () => {
                     style={{ borderColor: '#2A2A2A', color: '#FFFFFF' }}
                   >
                     <Plus size={14} />
-                    Adicionar Pergunta
+                    {t('utilities.customEquipmentTypes.addQuestion')}
                   </button>
                 </div>
               </div>
@@ -367,11 +377,12 @@ const CustomEquipmentTypesPage = () => {
 
           <div className="flex gap-3 pt-4">
             <button
+              type="button"
               onClick={onSaveChecklist}
               className="flex-1 px-4 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
             >
               <Save size={18} />
-              Salvar Checklist
+              {t('utilities.customEquipmentTypes.saveChecklist')}
             </button>
             <button
               type="button"
@@ -386,7 +397,7 @@ const CustomEquipmentTypesPage = () => {
               className="px-4 py-3 rounded-lg border font-semibold hover:bg-gray-800 transition-colors"
               style={{ borderColor: '#2A2A2A', color: '#FFFFFF' }}
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -398,7 +409,7 @@ const CustomEquipmentTypesPage = () => {
   const renderTypeList = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>Tipos de Equipamentos Customizados</h2>
+        <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>{t('utilities.customEquipmentTypes.title')}</h2>
         <button
           onClick={() => {
             setSelectedType(null);
@@ -408,7 +419,7 @@ const CustomEquipmentTypesPage = () => {
           className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-colors"
         >
           <Plus size={20} />
-          Novo Tipo
+          {t('utilities.customEquipmentTypes.newType')}
         </button>
       </div>
 
@@ -419,8 +430,8 @@ const CustomEquipmentTypesPage = () => {
         </div>
       ) : equipmentTypes.length === 0 ? (
         <div className="text-center py-8" style={{ color: '#B0B0B0' }}>
-          <p>Nenhum tipo de equipamento customizado criado ainda.</p>
-          <p className="text-sm mt-2">Clique em "Novo Tipo" para começar.</p>
+          <p>{t('utilities.customEquipmentTypes.noTypes')}</p>
+          <p className="text-sm mt-2">{t('utilities.customEquipmentTypes.noTypesHint')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -458,7 +469,7 @@ const CustomEquipmentTypesPage = () => {
                     }}
                     className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
                     style={{ color: '#FFFFFF' }}
-                    title="Criar Checklist"
+                    title={t('utilities.customEquipmentTypes.createChecklist')}
                   >
                     <FileText size={18} />
                   </button>
@@ -491,20 +502,20 @@ const CustomEquipmentTypesPage = () => {
           <ChevronRight size={20} className="rotate-180" />
         </button>
         <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>
-          {selectedType ? 'Editar Tipo de Equipamento' : 'Novo Tipo de Equipamento'}
+          {selectedType ? t('utilities.customEquipmentTypes.editType') : t('utilities.customEquipmentTypes.newTypeTitle')}
         </h2>
       </div>
 
       <form onSubmit={handleSubmitType(onCreateType)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-            Nome do Tipo <span className="text-red-500">*</span>
+            {t('utilities.customEquipmentTypes.typeName')} <span className="text-red-500">*</span>
           </label>
           <input
-            {...registerType('name', { required: 'Nome é obrigatório' })}
+            {...registerType('name', { required: t('utilities.customEquipmentTypes.typeNameRequired') })}
             className="w-full p-3 rounded-lg border"
             style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-            placeholder="Ex: Bomba de Incêndio"
+            placeholder={t('utilities.customEquipmentTypes.typeNamePlaceholder')}
           />
           {errorsType.name && (
             <p className="text-sm text-red-500 mt-1">{String(errorsType.name.message)}</p>
@@ -513,38 +524,38 @@ const CustomEquipmentTypesPage = () => {
 
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-            Descrição
+            {t('utilities.customEquipmentTypes.description')}
           </label>
           <textarea
             {...registerType('description')}
             rows={3}
             className="w-full p-3 rounded-lg border"
             style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-            placeholder="Descreva o tipo de equipamento..."
+            placeholder={t('utilities.customEquipmentTypes.descriptionPlaceholder')}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              Nome do Campo ID
+              {t('utilities.customEquipmentTypes.idFieldName')}
             </label>
             <input
               {...registerType('id_field_name')}
               className="w-full p-3 rounded-lg border"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-              placeholder="id_equipamento"
+              placeholder={t('utilities.customEquipmentTypes.idFieldNamePlaceholder')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-              Rótulo do Campo ID
+              {t('utilities.customEquipmentTypes.idFieldLabel')}
             </label>
             <input
               {...registerType('id_field_label')}
               className="w-full p-3 rounded-lg border"
               style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
-              placeholder="ID do Equipamento"
+              placeholder={t('utilities.customEquipmentTypes.idFieldLabelPlaceholder')}
             />
           </div>
         </div>
@@ -556,7 +567,7 @@ const CustomEquipmentTypesPage = () => {
               {...registerType('requires_location')}
               className="w-4 h-4 rounded"
             />
-            <span style={{ color: '#FFFFFF' }}>Requer campo de localização (texto)</span>
+            <span style={{ color: '#FFFFFF' }}>{t('utilities.customEquipmentTypes.requiresLocation')}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -564,7 +575,7 @@ const CustomEquipmentTypesPage = () => {
               {...registerType('requires_gps')}
               className="w-4 h-4 rounded"
             />
-            <span style={{ color: '#FFFFFF' }}>Requer coordenadas GPS</span>
+            <span style={{ color: '#FFFFFF' }}>{t('utilities.customEquipmentTypes.requiresGps')}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -573,7 +584,7 @@ const CustomEquipmentTypesPage = () => {
               defaultChecked
               className="w-4 h-4 rounded"
             />
-            <span style={{ color: '#FFFFFF' }}>Tem data de cadastro</span>
+            <span style={{ color: '#FFFFFF' }}>{t('utilities.customEquipmentTypes.hasDataCadastro')}</span>
           </label>
         </div>
 
@@ -583,7 +594,7 @@ const CustomEquipmentTypesPage = () => {
             className="flex-1 px-4 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
           >
             <Save size={18} />
-            {selectedType ? 'Atualizar' : 'Criar'}
+            {selectedType ? t('utilities.customEquipmentTypes.update') : t('utilities.customEquipmentTypes.create')}
           </button>
           <button
             type="button"
@@ -595,7 +606,7 @@ const CustomEquipmentTypesPage = () => {
             className="px-4 py-3 rounded-lg border font-semibold hover:bg-gray-800 transition-colors"
             style={{ borderColor: '#2A2A2A', color: '#FFFFFF' }}
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
         </div>
       </form>
@@ -607,6 +618,7 @@ const CustomEquipmentTypesPage = () => {
       <PageHeader title={{ key: 'utilities.customEquipment', defaultValue: 'Equipamentos Customizados' }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-4xl mx-auto">
+          {instructionType && <InstructionsPanel equipmentType={instructionType} className="mb-6" />}
           <AnimatePresence mode="wait">
             {viewMode === 'list' && (
               <motion.div

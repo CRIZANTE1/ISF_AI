@@ -15,6 +15,7 @@ export interface FoamChamber {
   tamanho_especifico?: string;
   tipo_camara?: string;
   numero_mcs?: string;
+  numero_serie?: string;
   latitude?: number;
   longitude?: number;
   data_cadastro?: string;

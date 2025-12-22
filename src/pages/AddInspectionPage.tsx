@@ -11,9 +11,11 @@ import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useToast } from '../contexts/ToastContext';
+import { useHaptics } from '../hooks/useHaptics';
 import AnimatedFormField from '../components/AnimatedFormField';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
+import HelpTip from '../components/HelpTip';
 import EyewashChecklist from '../components/checklists/EyewashChecklist';
 import FoamChamberChecklist from '../components/checklists/FoamChamberChecklist';
 import AlarmChecklist from '../components/checklists/AlarmChecklist';
@@ -23,6 +25,11 @@ import HoseChecklist from '../components/checklists/HoseChecklist';
 import CustomChecklist from '../components/checklists/CustomChecklist';
 import { getCustomEquipmentTypeById, getAllCustomEquipmentTypes, getAllCustomEquipment, getCustomEquipmentByTypeAndId, saveCustomEquipmentInspection } from '../utils/customEquipmentOperations';
 import { logger } from '../utils/logger';
+import { 
+  notifyInspectionCreated,
+  notifyInspectionUpdated,
+  notifyEquipmentNonCompliant
+} from '../utils/notificationUtils';
 import { 
   generateActionPlan, 
   calculateNextDates,
@@ -113,6 +120,7 @@ const AddInspectionPage = () => {
   const { getEquipmentByType, refreshCache } = useEquipmentCache();
   const { t } = useTranslation();
   const { showSuccess } = useToast();
+  const haptics = useHaptics();
   const [loading, setLoading] = useState(false);
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [loadingEquipment, setLoadingEquipment] = useState(true);
@@ -1257,6 +1265,29 @@ const AddInspectionPage = () => {
 
       showSuccess(feedbackMessage, 6000);
 
+      // Envia notificações
+      const equipmentId = id;
+      const equipmentType = equipment?.name || type || '';
+      const inspectionType = formData.tipo_servico || formData.tipo_inspecao || 
+        (type === 'camara_espuma' ? foamChamberInspectionType : 
+         type === 'canhao_monitor' ? cannonMonitorInspectionType :
+         type === 'multigas' ? multigasTestType : 'Inspeção');
+      
+      // Notifica criação de inspeção (sempre cria nova, não atualiza)
+      if (equipmentId && equipmentType) {
+        await notifyInspectionCreated(inspectionType, equipmentId, equipmentType);
+      }
+
+      // Notifica se equipamento não está conforme
+      if (finalStatusConformidade === 'Reprovado' || 
+          finalStatusConformidade === 'Reprovado com Pendências' ||
+          finalStatusConformidade.toLowerCase().includes('reprovado') ||
+          finalStatusConformidade.toLowerCase().includes('não conforme')) {
+        if (equipmentId && equipmentType) {
+          await notifyEquipmentNonCompliant(equipmentId, equipmentType);
+        }
+      }
+
       // Atualiza o cache imediatamente para que as alterações apareçam na lista
       try {
         await refreshCache();
@@ -1304,7 +1335,13 @@ const AddInspectionPage = () => {
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
-      <PageHeader title={t('inspection.register')} />
+      <PageHeader 
+        title={t('inspection.register')} 
+        help={{
+          titleKey: 'help.inspection.title',
+          contentKey: 'help.inspection.content'
+        }}
+      />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
         {type && (
           <motion.div
@@ -1312,7 +1349,7 @@ const AddInspectionPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
-            <InstructionsPanel equipmentType={type} />
+            <InstructionsPanel equipmentType={isCustomType ? 'custom' : type} />
           </motion.div>
         )}
         {equipment && (
@@ -1394,9 +1431,15 @@ const AddInspectionPage = () => {
           {type === 'extintor' && (
             <>
               <AnimatedFormField delay={0.3} className="mb-4">
-                <label htmlFor="tipo_servico" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  {t('inspection.serviceType')}
-                </label>
+                <div className="flex items-center gap-2 mb-1">
+                  <label htmlFor="tipo_servico" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+                    {t('inspection.serviceType')}
+                  </label>
+                  <HelpTip 
+                    titleKey="help.serviceType.title"
+                    contentKey="help.serviceType.content"
+                  />
+                </div>
                 <Controller
                   name="tipo_servico"
                   control={control}
@@ -1440,9 +1483,15 @@ const AddInspectionPage = () => {
               ) : null}
 
               <AnimatedFormField delay={0.35} className="mb-4">
-                <label htmlFor="aprovado_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  {t('inspection.approvedInspection')}
-                </label>
+                <div className="flex items-center gap-2 mb-1">
+                  <label htmlFor="aprovado_inspecao" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+                    {t('inspection.approvedInspection')}
+                  </label>
+                  <HelpTip 
+                    titleKey="help.approvalStatus.title"
+                    contentKey="help.approvalStatus.content"
+                  />
+                </div>
                 <Controller
                   name="aprovado_inspecao"
                   control={control}
@@ -1473,9 +1522,15 @@ const AddInspectionPage = () => {
               </AnimatedFormField>
 
               <AnimatedFormField delay={0.4} className="mb-4">
-                <label htmlFor="observacoes_gerais" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
-                  {t('inspection.generalObservations')}
-                </label>
+                <div className="flex items-center gap-2 mb-1">
+                  <label htmlFor="observacoes_gerais" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+                    {t('inspection.generalObservations')}
+                  </label>
+                  <HelpTip 
+                    titleKey="help.observations.title"
+                    contentKey="help.observations.content"
+                  />
+                </div>
                 <Controller
                   name="observacoes_gerais"
                   control={control}
@@ -1529,12 +1584,18 @@ const AddInspectionPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.45 }}
                 >
-                  <PhotoUpload
-                    value={photoFile}
-                    onChange={setPhotoFile}
-                    label={t('inspection.nonConformityPhoto')}
-                    required={false}
-                  />
+                  <div className="flex items-center gap-2 mb-2">
+                    <PhotoUpload
+                      value={photoFile}
+                      onChange={setPhotoFile}
+                      label={t('inspection.nonConformityPhoto')}
+                      required={false}
+                    />
+                    <HelpTip 
+                      titleKey="help.photoRequired.title"
+                      contentKey="help.photoRequired.content"
+                    />
+                  </div>
                 </motion.div>
               )}
             </>
@@ -1646,9 +1707,15 @@ const AddInspectionPage = () => {
                 transition={{ duration: 0.3, delay: 0.4 }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium" style={{ color: '#B0B0B0' }}>
-                    {t('inspection.referenceValuesTitle')}
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium" style={{ color: '#B0B0B0' }}>
+                      {t('inspection.referenceValuesTitle')}
+                    </label>
+                    <HelpTip 
+                      titleKey="help.multigasReference.title"
+                      contentKey="help.multigasReference.content"
+                    />
+                  </div>
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -1899,9 +1966,15 @@ const AddInspectionPage = () => {
                   transition={{ duration: 0.3 }}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
-                      {t('inspection.checklistTitle')}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>
+                        {t('inspection.checklistTitle')}
+                      </h3>
+                      <HelpTip 
+                        titleKey="help.checklist.title"
+                        contentKey="help.checklist.content"
+                      />
+                    </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium" style={{ color: '#B0B0B0' }}>
                         {answered}/{total}
@@ -2063,12 +2136,26 @@ const AddInspectionPage = () => {
                   </p>
                 </motion.div>
               ) : null}
-              <PhotoUpload
-                value={photoFile}
-                onChange={setPhotoFile}
-                label={t('inspection.evidencePhoto')}
-                required={requiresPhoto}
-              />
+              <div className="mb-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
+                    {t('inspection.evidencePhoto')}
+                    {requiresPhoto && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  {requiresPhoto && (
+                    <HelpTip 
+                      titleKey="help.photoRequired.title"
+                      contentKey="help.photoRequired.content"
+                    />
+                  )}
+                </div>
+                <PhotoUpload
+                  value={photoFile}
+                  onChange={setPhotoFile}
+                  label=""
+                  required={requiresPhoto}
+                />
+              </div>
             </motion.div>
           )}
 
@@ -2082,6 +2169,7 @@ const AddInspectionPage = () => {
             transition={{ duration: 0.3, delay: 0.5 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onTap={() => haptics.medium()}
           >
             {loading ? (
               <div className="flex items-center gap-2">

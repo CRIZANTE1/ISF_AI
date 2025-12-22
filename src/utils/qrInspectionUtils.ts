@@ -9,12 +9,14 @@
 /**
  * Analisa o conteúdo de um QR Code para extrair o ID principal do equipamento.
  * 
- * - Lida com o formato industrial: '2#7036#EXT#008851#47#31' -> '8851'
+ * - Lida com o formato industrial: '2#7036#EXT#008851#47#31' -> '8851' (legado numérico)
+ * - Lida com formato industrial novo: '2#7036#EXT#EXT-1766266331577-786989#47#31' -> 'EXT-1766266331577-786989'
  * - Lida com apenas o número: '8851' ou '008851' -> '8851' (remove zeros à esquerda)
  * - Lida com o formato simples: 'ID-EXT-007' -> 'ID-EXT-007'
+ * - Lida com novo formato direto: 'EXT-1766266331577-786989' -> 'EXT-1766266331577-786989'
  * 
  * @param qrString - String lida do QR Code
- * @returns O ID extraído (sem zeros à esquerda) ou a string original em caso de falha
+ * @returns O ID extraído (sem zeros à esquerda para numéricos) ou a string original
  */
 export function parseQrCodeData(qrString: string): string {
   if (!qrString || !qrString.trim()) {
@@ -30,25 +32,30 @@ export function parseQrCodeData(qrString: string): string {
       
       // O ID do cilindro é o quarto elemento (índice 3)
       if (parts.length >= 4) {
-        const cylinderIdWithZeros = parts[3];
+        const cylinderIdRaw = parts[3];
         
-        // Converte para inteiro para remover os zeros à esquerda
-        const parsedNumber = parseInt(cylinderIdWithZeros, 10);
-        
-        // Verifica se a conversão foi válida (não é NaN)
-        if (isNaN(parsedNumber)) {
-          // Se não conseguiu converter para número, retorna o dado bruto
-          return trimmed;
+        // Verifica se é numérico puro (legado) - remove zeros à esquerda
+        if (/^\d+$/.test(cylinderIdRaw)) {
+          const parsedNumber = parseInt(cylinderIdRaw, 10);
+          
+          // Verifica se a conversão foi válida (não é NaN)
+          if (isNaN(parsedNumber)) {
+            // Se não conseguiu converter para número, retorna o dado bruto
+            return trimmed;
+          }
+          
+          // Retorna como string sem zeros à esquerda
+          return String(parsedNumber);
+        } else {
+          // Novo formato (com hífens) - retorna como está
+          return cylinderIdRaw;
         }
-        
-        // Retorna como string sem zeros à esquerda
-        return String(parsedNumber);
       } else {
         // Formato inválido, retorna o dado bruto para depuração
         return trimmed;
       }
     } catch (error) {
-      // Se a conversão para int falhar ou não houver 4 partes, retorna o dado bruto
+      // Se a conversão falhar, retorna o dado bruto
       logger.warn('Erro ao fazer parsing do QR code', 'qrInspection', error);
       return trimmed;
     }
@@ -66,7 +73,8 @@ export function parseQrCodeData(qrString: string): string {
       }
     }
     
-    // Se não é apenas números, retorna como está (formato simples como 'ID-EXT-007')
+    // Se não é apenas números, retorna como está
+    // Formatos suportados: 'ID-EXT-007', 'EXT-1766266331577-786989', etc.
     return trimmed;
   }
 }
@@ -93,7 +101,8 @@ export interface ExtinguisherQrData {
 
 /**
  * Constrói a string no formato industrial a partir dos dados de um equipamento.
- * Exemplo de saída: '2#7036#EXT#008851#47#31'
+ * Exemplo de saída: '2#7036#EXT#008851#47#31' (formato antigo com IDs numéricos)
+ * Exemplo de saída: '2#7036#EXT#EXT-1766266331577-786989#47#31' (novo formato)
  * 
  * @param equipmentData - Dados do extintor
  * @param locationCode - Código de local/planta (padrão: "7036")
@@ -115,8 +124,12 @@ export function buildIndustrialQrString(
     ? equipmentData.tipo_agente.substring(0, 3).toUpperCase().padEnd(3, 'X')
     : "EXT";
 
-  // Campo 4: ID do Cilindro, com zeros à esquerda para ter 6 dígitos
-  const cylinderId = String(equipmentData.numero_identificacao || '0').padStart(6, '0');
+  // Campo 4: ID do Cilindro
+  // Se for numérico puro (legado), adiciona zeros à esquerda para 6 dígitos
+  // Se for novo formato (com hífens), mantém como está
+  const rawId = String(equipmentData.numero_identificacao || '0');
+  const isNumericOnly = /^\d+$/.test(rawId);
+  const cylinderId = isNumericOnly ? rawId.padStart(6, '0') : rawId;
 
   // Campo 5: Capacidade (como inteiro)
   const capacity = String(Math.floor(equipmentData.capacidade || 0));

@@ -26,6 +26,8 @@ import Skeleton from '../components/Skeleton';
 
 type ViewMode = 'list' | 'create-type' | 'edit-type' | 'create-checklist' | 'edit-checklist';
 
+import InstructionsPanel from '../components/InstructionsPanel';
+
 const AdminCustomEquipmentPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -60,6 +62,14 @@ const AdminCustomEquipmentPage = () => {
       setLoading(false);
     }
   }, [handleError]);
+
+  const getInstructionType = () => {
+    if (viewMode === 'create-type' || viewMode === 'edit-type') return 'custom_type';
+    if (viewMode === 'create-checklist' || viewMode === 'edit-checklist') return 'custom_checklist';
+    return null;
+  };
+
+  const instructionType = getInstructionType();
 
   // Carrega tipos de equipamentos
   useEffect(() => {
@@ -230,6 +240,7 @@ const AdminCustomEquipmentPage = () => {
       >
         <div className="flex items-center gap-2 mb-4">
           <button
+            type="button"
             onClick={() => {
               setViewMode('list');
               setSelectedType(null);
@@ -606,6 +617,7 @@ const AdminCustomEquipmentPage = () => {
       <PageHeader title={{ key: 'admin.customEquipment', defaultValue: 'Equipamentos Customizados' }} />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
         <div className="max-w-4xl mx-auto">
+          {instructionType && <InstructionsPanel equipmentType={instructionType} className="mb-6" />}
           <AnimatePresence mode="wait">
             {viewMode === 'list' && (
               <motion.div

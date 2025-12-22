@@ -13,6 +13,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { Trash2, Edit, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
+import { useHaptics } from '../hooks/useHaptics';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
@@ -27,7 +28,7 @@ type EquipmentInfo = {
 };
 
 type InspectionInfo = {
-  id: number;
+  id: number | string;
   data_inspecao: string;
   status_geral?: string | null;
   status?: string;
@@ -42,8 +43,9 @@ const EquipmentDetailPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { getEquipmentByType, refreshCache } = useEquipmentCache();
-  const { handleError } = useErrorHandler();
+  const { handleError, showSuccess } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
+  const haptics = useHaptics();
   const [equipment, setEquipment] = useState<EquipmentInfo | null>(null);
   const [inspections, setInspections] = useState<InspectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -421,7 +423,7 @@ const EquipmentDetailPage = () => {
                     
                     if (!inspError && inspections) {
                       inspectionsData = inspections.map((insp: any) => ({
-                        id: insp.id || 0,
+                        id: insp.id || (typeof insp.id === 'string' ? '' : 0),
                         data_inspecao: insp.data_inspecao || '',
                         status_geral: insp.status_geral || undefined,
                         plano_de_acao: insp.plano_de_acao || undefined,
@@ -457,12 +459,15 @@ const EquipmentDetailPage = () => {
   }, [id, type]);
 
   const handleDeleteClick = (deleteType: 'equipment' | 'inspection', deleteId: number | string) => {
+    haptics.medium(); // Feedback para ação importante (deletar)
     setItemToDelete({ type: deleteType, id: deleteId });
     setIsModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete || !type) return;
+    
+    haptics.heavy(); // Feedback pesado para confirmação de ação crítica
     setIsDeleting(true);
 
     try {
@@ -608,45 +613,63 @@ const EquipmentDetailPage = () => {
         // Deletar inspeção baseado no tipo
         let tableName = '';
         
-        switch (type) {
-          case 'chuveiro_lavaolhos':
-            tableName = 'inspecoes_chuveiros_lava_olhos';
-            break;
-          case 'camara_espuma':
-            tableName = 'inspecoes_camaras_espuma';
-            break;
-          case 'alarme':
-            tableName = 'inspecoes_alarmes';
-            break;
-          case 'canhao_monitor':
-            tableName = 'inspecoes_canhoes_monitores';
-            break;
-          case 'scba':
-            tableName = 'inspecoes_scba';
-            break;
-          case 'multigas':
-            tableName = 'inspecoes_multigas';
-            break;
-          case 'abrigo':
-            tableName = 'inspecoes_abrigos';
-            break;
+        // Verifica se é equipamento customizado
+        if (type.startsWith('custom-')) {
+          tableName = 'custom_equipment_inspections';
+        } else {
+          switch (type) {
+            case 'extintor':
+              tableName = 'inspecoes_extintores';
+              break;
+            case 'chuveiro_lavaolhos':
+              tableName = 'inspecoes_chuveiros_lava_olhos';
+              break;
+            case 'camara_espuma':
+              tableName = 'inspecoes_camaras_espuma';
+              break;
+            case 'alarme':
+              tableName = 'inspecoes_alarmes';
+              break;
+            case 'canhao_monitor':
+              tableName = 'inspecoes_canhoes_monitores';
+              break;
+            case 'scba':
+              tableName = 'inspecoes_scba';
+              break;
+            case 'multigas':
+              tableName = 'inspecoes_multigas';
+              break;
+            case 'abrigo':
+              tableName = 'inspecoes_abrigos';
+              break;
+            case 'mangueira':
+              tableName = 'inspecoes_mangueiras';
+              break;
+          }
         }
 
         if (tableName) {
-          const { error } = await supabase
-            .from(tableName as any)
-            .delete()
-            .eq('id', itemToDelete.id);
-          if (error) throw error;
+          // Usa wrapper offline para suportar modo offline
+          const { offlineDelete } = await import('../utils/offlineOperations');
+          const result = await offlineDelete(tableName, itemToDelete.id, user?.id);
+          
+          if (!result.success) {
+            throw new Error('Falha ao excluir inspeção');
+          }
           
           // Atualiza o cache imediatamente para que as alterações apareçam
           try {
             await refreshCache();
           } catch (error) {
-            console.error('Erro ao atualizar cache:', error);
+            logger.error('Erro ao atualizar cache após exclusão de inspeção', 'equipment', error);
           }
           
+          // Remove do estado local
           setInspections(inspections.filter(insp => insp.id !== itemToDelete.id));
+          
+          showSuccess(t('inspection.deleteSuccess', { defaultValue: 'Inspeção excluída com sucesso' }));
+        } else {
+          throw new Error(`Tipo de equipamento não suportado para exclusão de inspeção: ${type}`);
         }
       }
     } catch (err) {

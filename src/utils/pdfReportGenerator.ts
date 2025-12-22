@@ -244,6 +244,10 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
       doc.text(`Capacidade: ${equipment.capacidade} kg`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
+    if (equipment.numero_serie) {
+      doc.text(`Nº de Série: ${equipment.numero_serie}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
     if (equipment.numero_selo_inmetro) {
       doc.text(`Selo Inmetro: ${equipment.numero_selo_inmetro}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
@@ -261,8 +265,16 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
       doc.text(`Modelo: ${equipment.modelo}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
+    if (equipment.numero_serie_equipamento) {
+      doc.text(`Nº de Série do Equipamento: ${equipment.numero_serie_equipamento}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
     if (equipment.numero_serie_mascara) {
       doc.text(`Nº de Série da Máscara: ${equipment.numero_serie_mascara}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_serie_segundo_estagio) {
+      doc.text(`Nº de Série do Segundo Estágio: ${equipment.numero_serie_segundo_estagio}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
   } else if (equipment.type === 'mangueira') {
@@ -276,6 +288,10 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
     }
     if (equipment.comprimento) {
       doc.text(`Comprimento: ${equipment.comprimento} m`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_serie) {
+      doc.text(`Nº de Série: ${equipment.numero_serie}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
     if (equipment.ano_fabricacao) {

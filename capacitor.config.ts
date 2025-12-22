@@ -7,9 +7,14 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
+  android: {
+    backgroundColor: '#000000',
+    // allowMixedContent removido por segurança
+    // Permite apenas conteúdo HTTPS, prevenindo ataques Man-in-the-Middle
+    // Necessário para aprovação no Google Play Store
+  },
   // Removido buildOptions para evitar conflito com build.gradle
   // A assinatura será gerenciada diretamente no android/app/build.gradle
 };
 
 export default config;
-

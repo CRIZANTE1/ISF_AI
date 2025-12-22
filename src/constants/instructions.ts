@@ -15,11 +15,28 @@ export interface EquipmentInstructions {
     type: 'info' | 'success' | 'warning';
     message: string;
   };
+  methods?: {
+    title: string;
+    items: Array<{
+      name: string;
+      description: string;
+      time: string;
+      idealFor: string[];
+      howItWorks: string[];
+      advantages?: string[];
+      requires?: string;
+    }>;
+  };
+  workflow?: {
+    title: string;
+    steps: string[];
+  };
   guide?: InstructionSection[];
   faq?: Array<{
     question: string;
     answer: string;
   }>;
+  footer?: string;
 }
 
 export const instructions: Record<string, EquipmentInstructions> = {
@@ -278,6 +295,294 @@ export const instructions: Record<string, EquipmentInstructions> = {
       {
         question: 'Frequência de inspeção?',
         answer: 'Inspeção mensal obrigatória conforme NBR 13714.',
+      },
+    ],
+  },
+
+  // Inspeção Customizada
+  custom: {
+    header: {
+      title: 'Guia - Inspeção Personalizada',
+    },
+    guide: [
+      {
+        title: 'Como registrar inspeção',
+        content: `
+1. Vá em **"Inspeções"** → Selecione o tipo de equipamento
+2. Toque no equipamento desejado
+3. Toque em **"Registrar Nova Inspeção"**
+4. Responda ao checklist personalizado
+5. Se houver não conformidade, anexe foto
+6. Toque em **"Salvar Inspeção"**
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // --- INSTRUÇÕES DE CADASTRO (ADD) ---
+
+  // Cadastro Extintor
+  add_extintor: {
+    header: {
+      title: 'Guia - Cadastrar Extintor',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **Nº Identificação:** Opcional. Se deixar vazio, o sistema gera um código único automaticamente.
+2. **Especificações:** Selecione o tipo de agente (Água, Pó, CO2) e capacidade.
+3. **Localização:** Descreva onde o equipamento está instalado.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Mangueira
+  add_mangueira: {
+    header: {
+      title: 'Guia - Cadastrar Mangueira',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Mangueira:** Opcional. Gerado automaticamente se vazio.
+2. **Tipo:** I, II, III, IV ou V.
+3. **Comprimento:** Em metros (ex: 15, 20, 30).
+4. **Diâmetro:** Em milímetros (ex: 40, 65).
+5. **Ano Fabricação:** Ano gravado na mangueira.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Câmara de Espuma
+  add_camara_espuma: {
+    header: {
+      title: 'Guia - Cadastrar Câmara de Espuma',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Câmara:** Opcional. Gerado automaticamente se vazio.
+2. **Localização:** Tanque ou área protegida.
+3. **Modelo:** Modelo da câmara.
+4. **Número MCS:** Se aplicável.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Canhão Monitor
+  add_canhao_monitor: {
+    header: {
+      title: 'Guia - Cadastrar Canhão Monitor',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Equipamento:** Opcional. Gerado automaticamente se vazio.
+2. **Localização:** Área de instalação.
+3. **Modelo:** Modelo do canhão.
+4. **Tipo:** Fixo ou Portátil.
+5. **Vazão:** Vazão nominal (ex: 1000 gpm).
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Chuveiro/Lava-olhos
+  add_chuveiro_lavaolhos: {
+    header: {
+      title: 'Guia - Cadastrar Chuveiro/Lava-olhos',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Equipamento:** Opcional. Gerado automaticamente se vazio.
+2. **Localização:** Próximo a qual risco químico/físico.
+3. **Modelo:** Modelo do equipamento.
+4. **Tipo:** Chuveiro, Lava-olhos ou Combinado.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Alarme
+  add_alarme: {
+    header: {
+      title: 'Guia - Cadastrar Sistema de Alarme',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Sistema:** Opcional. Gerado automaticamente se vazio.
+2. **Localização:** Área de cobertura.
+3. **Marca/Modelo:** Fabricante e modelo da central/dispositivo.
+4. **Tipo:** Central, Botoeira, Sirene, Detector.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Multigás
+  add_multigas: {
+    header: {
+      title: 'Guia - Cadastrar Detector Multigás',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Equipamento:** Opcional. Gerado automaticamente se vazio.
+2. **Marca/Modelo:** Fabricante e modelo.
+3. **Nº Série:** Número de série do fabricante.
+4. **Data Calibração:** Data da última calibração.
+5. **Validade Sensores:** Data de validade dos sensores.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro SCBA
+  add_scba: {
+    header: {
+      title: 'Guia - Cadastrar SCBA',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **Nº Série:** Opcional. Gerado automaticamente se vazio.
+2. **Fabricante/Modelo:** Marca e modelo do equipamento.
+3. **Capacidade:** Volume do cilindro (ex: 6.8L).
+4. **Pressão Máxima:** Pressão de trabalho (ex: 300 bar).
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Abrigo
+  add_abrigo: {
+    header: {
+      title: 'Guia - Cadastrar Abrigo',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID Abrigo:** Opcional. Gerado automaticamente se vazio.
+2. **Localização:** Onde o abrigo está instalado.
+3. **Tipo:** Hidrante ou Extintor.
+4. **Itens:** Liste os itens contidos (mangueiras, esguichos, chaves).
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Cadastro Customizado
+  add_custom: {
+    header: {
+      title: 'Guia - Cadastrar Equipamento Personalizado',
+    },
+    guide: [
+      {
+        title: 'Como preencher',
+        content: `
+1. **ID:** Opcional. Gerado automaticamente se vazio.
+2. **Campos Personalizados:** Preencha os campos específicos definidos para este tipo de equipamento.
+3. **Localização:** Se solicitado, informe a localização.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Gerenciamento de Tipos Customizados
+  custom_type: {
+    header: {
+      title: 'Guia - Criar Tipo de Equipamento',
+    },
+    guide: [
+      {
+        title: 'Como configurar',
+        content: `
+1. **Nome do Tipo:** Nome que aparecerá nos menus (ex: Bomba, Gerador).
+2. **Slug:** Identificador único gerado a partir do nome.
+3. **Campo ID:** Defina como o ID do equipamento será chamado (ex: TAG, Patrimônio).
+4. **Localização/GPS:** Marque se deseja rastrear o local ou coordenadas.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Gerenciamento de Checklists Customizados
+  custom_checklist: {
+    header: {
+      title: 'Guia - Criar Checklist',
+    },
+    guide: [
+      {
+        title: 'Como configurar',
+        content: `
+1. **Seções:** Agrupe perguntas por categoria (ex: Elétrica, Mecânica).
+2. **Perguntas:** Digite o item a ser verificado.
+3. **Ordem:** Os itens aparecerão na ordem em que foram criados.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Gerador de QR Codes
+  qr_generator: {
+    header: {
+      title: 'Guia - Gerador de QR Codes',
+    },
+    guide: [
+      {
+        title: 'Como usar',
+        content: `
+1. **Selecionar:** Escolha equipamentos existentes para gerar códigos automáticos.
+2. **Buscar:** Encontre equipamentos específicos por ID ou Série.
+3. **Manual:** Digite uma lista de IDs para gerar vários códigos de uma vez.
+4. **Download:** Baixe em PNG ou compartilhe o código gerado.
+        `,
+        expanded: true,
+      },
+    ],
+  },
+
+  // Escaneamento de QR Code
+  qr_scan: {
+    header: {
+      title: 'Guia - Escanear Equipamento',
+    },
+    guide: [
+      {
+        title: 'Como escanear',
+        content: `
+1. **Câmera:** Aponte para o QR code do equipamento.
+2. **Foco:** Mantenha o código centralizado e aguarde a leitura.
+3. **Manual:** Se o código estiver danificado, use a opção de busca manual.
+        `,
+        expanded: true,
       },
     ],
   },

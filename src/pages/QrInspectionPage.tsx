@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import { useHaptics } from '../hooks/useHaptics';
 import PageHeader from '../components/PageHeader';
 import { parseQrCodeData } from '../utils/qrInspectionUtils';
 import { findEquipmentByIdentifier, getEquipmentTypeName } from '../utils/qrGeneratorUtils';
@@ -15,6 +16,8 @@ import { useTranslation } from '../hooks/useTranslation';
 
 type QrStep = 'start' | 'scan' | 'manual' | 'found' | 'not_found';
 
+import InstructionsPanel from '../components/InstructionsPanel';
+
 const QrInspectionPage = () => {
   const { type } = useParams<{ type?: string }>();
   const navigate = useNavigate();
@@ -22,6 +25,7 @@ const QrInspectionPage = () => {
   const { handleError } = useErrorHandler();
   const { cache } = useEquipmentCache();
   const { t } = useTranslation();
+  const haptics = useHaptics();
   
   const [step, setStep] = useState<QrStep>('start');
   const [manualInput, setManualInput] = useState('');
@@ -97,6 +101,9 @@ const QrInspectionPage = () => {
   const handleQrCodeDetected = useCallback(async (decodedText: string) => {
     // Para o scanner imediatamente para evitar múltiplas leituras
     stopScanner();
+    
+    // Feedback tátil duplo para QR detectado
+    haptics.double();
     
     setLoading(true);
     setScanStatus(t('qr.qrDetected', { defaultValue: 'QR Code detectado! Processando...' }));
@@ -265,6 +272,7 @@ const QrInspectionPage = () => {
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
         <PageHeader title={{ key: 'qr.scan', defaultValue: 'Inspeção por QR Code' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
+          <InstructionsPanel equipmentType="qr_scan" className="mb-6" />
           <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -342,6 +350,7 @@ const QrInspectionPage = () => {
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
         <PageHeader title={{ key: 'qr.scan', defaultValue: 'Escanear QR Code' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
+          <InstructionsPanel equipmentType="qr_scan" className="mb-6" />
           <div className="space-y-4">
             <p className="text-center text-light-text-secondary dark:text-dark-text-secondary mb-4" style={{ color: '#B0B0B0' }}>
               Aponte a câmera para o QR Code do equipamento
@@ -459,6 +468,7 @@ const QrInspectionPage = () => {
       <div className="min-h-screen relative" style={{ backgroundColor: '#000000', zIndex: 10 }}>
         <PageHeader title={{ key: 'qr.manual', defaultValue: 'Digitar ID' }} />
         <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10 }}>
+          <InstructionsPanel equipmentType="qr_scan" className="mb-6" />
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>

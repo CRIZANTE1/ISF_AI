@@ -1,10 +1,13 @@
 /**
  * Hook para detectar status online/offline
  * Verifica tanto o status do navegador quanto a conexão real com Supabase
+ * Usa @capacitor/network quando disponível no Android/iOS
  */
 
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../lib/supabase';
+import { logger } from '../utils/logger';
 
 export interface OnlineStatus {
   isOnline: boolean;
@@ -12,10 +15,34 @@ export interface OnlineStatus {
 }
 
 /**
+ * Verifica se o plugin de rede está disponível
+ */
+async function getNetworkStatus(): Promise<boolean> {
+  // No Android/iOS, tenta usar o plugin do Capacitor
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const Capacitor = (window as any).Capacitor;
+      if (Capacitor && Capacitor.Plugins && Capacitor.Plugins.Network) {
+        const Network = Capacitor.Plugins.Network;
+        const status = await Network.getStatus();
+        return status.connected;
+      }
+    } catch (error) {
+      logger.debug('Plugin de rede não disponível, usando fallback', 'online_status');
+    }
+  }
+
+  // Fallback para web ou quando plugin não disponível
+  return typeof navigator !== 'undefined' ? navigator.onLine : false;
+}
+
+/**
  * Verifica conexão real com Supabase
  */
-async function checkSupabaseConnection(): Promise<boolean> {
-  if (!navigator.onLine) return false;
+export async function checkSupabaseConnection(): Promise<boolean> {
+  // Verifica primeiro o status básico de rede
+  const networkOnline = await getNetworkStatus();
+  if (!networkOnline) return false;
   
   try {
     // Tenta fazer uma query simples para verificar conexão real
@@ -28,16 +55,17 @@ async function checkSupabaseConnection(): Promise<boolean> {
 }
 
 export function useOnlineStatus(): OnlineStatus {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : false);
   const [wasOffline, setWasOffline] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let networkListener: any = null;
 
     const checkConnection = async () => {
-      const navigatorOnline = navigator.onLine;
+      const networkOnline = await getNetworkStatus();
       const supabaseOnline = await checkSupabaseConnection();
-      const actuallyOnline = navigatorOnline && supabaseOnline;
+      const actuallyOnline = networkOnline && supabaseOnline;
       
       if (mounted) {
         if (!isOnline && actuallyOnline) {
@@ -67,8 +95,31 @@ export function useOnlineStatus(): OnlineStatus {
     // Verificação inicial
     checkConnection();
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    // Configura listener de rede (nativo ou web)
+    if (Capacitor.isNativePlatform()) {
+      // Tenta usar plugin do Capacitor no Android/iOS
+      try {
+        const Capacitor = (window as any).Capacitor;
+        if (Capacitor && Capacitor.Plugins && Capacitor.Plugins.Network) {
+          const Network = Capacitor.Plugins.Network;
+          networkListener = Network.addListener('networkStatusChange', async (status: any) => {
+            if (status.connected) {
+              await handleOnline();
+            } else {
+              handleOffline();
+            }
+          });
+        }
+      } catch (error) {
+        logger.debug('Erro ao configurar listener de rede nativo', 'online_status');
+      }
+    }
+
+    // Fallback para web usando eventos nativos
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+    }
 
     // Verifica periodicamente (útil para conexões instáveis)
     const checkInterval = setInterval(() => {
@@ -77,8 +128,13 @@ export function useOnlineStatus(): OnlineStatus {
 
     return () => {
       mounted = false;
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      if (networkListener) {
+        networkListener.remove();
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
       clearInterval(checkInterval);
     };
   }, [isOnline]);

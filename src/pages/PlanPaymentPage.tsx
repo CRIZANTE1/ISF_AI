@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import PageHeader from '../components/PageHeader';
 import { PricingSection } from '../components/ui/pricing';
-import { useBilling, PRODUCT_IDS } from '../hooks/useBilling';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { logger } from '../utils/logger';
@@ -46,9 +45,11 @@ const openMailto = (email: string, subject?: string, body?: string) => {
         document.body.removeChild(link);
       }, 100);
     } else {
-      // No navegador, usar window.location.href
-      // window.location.href é mais confiável para mailto
-      window.location.href = mailtoLink;
+      // No navegador, criar elemento <a> em vez de window.location.href
+      // Isso evita problemas de navegação indesejada
+      const link = document.createElement('a');
+      link.href = mailtoLink;
+      link.click();
     }
   } catch (error) {
     logger.error('Erro ao abrir mailto', 'pricing', error);
@@ -67,38 +68,6 @@ const PlanPaymentPage = () => {
   const { showInfo } = useErrorHandler();
   const { t, isEnglish } = useTranslation();
   const [error, setError] = useState<string | null>(null);
-  
-  const {
-    getProductPrice,
-  } = useBilling();
-
-
-  // Função auxiliar para extrair preço numérico do formato "R$ 24,90" ou "$5.00"
-  const parsePrice = (priceString: string): number => {
-    if (!priceString) return 0;
-    // Remove "R$", "$", espaços e substitui vírgula por ponto
-    const cleaned = priceString.replace(/R\$\s?|\$\s?/g, '').replace(',', '.').trim();
-    return parseFloat(cleaned) || 0;
-  };
-
-  // Obter preços dos produtos do Google Play ou usar fallback baseado no idioma
-  const getPremiumPrice = useCallback((freq: 'monthly' | 'yearly'): number => {
-    const priceString = getProductPrice(PRODUCT_IDS.PREMIUM_MONTHLY, freq);
-    const parsed = parsePrice(priceString);
-    
-    if (parsed > 0) {
-      return parsed;
-    }
-    
-    // Fallback para preços padrão baseado no idioma
-    if (isEnglish) {
-      // Preços em dólares para inglês
-      return freq === 'monthly' ? 5.00 : 12.00;
-    } else {
-      // Preços em reais para português
-    return freq === 'monthly' ? 24.90 : Math.round(24.90 * 12 * (1 - 0.12));
-    }
-  }, [getProductPrice, isEnglish]);
 
   const plans = useMemo(() => [
     {
@@ -125,8 +94,8 @@ const PlanPaymentPage = () => {
       name: t('pricing.plans.premium.name'),
       info: t('pricing.plans.premium.info'),
       price: {
-        monthly: getPremiumPrice('monthly'),
-        yearly: getPremiumPrice('yearly'),
+        monthly: 'a combinar',
+        yearly: 'a combinar',
       },
       features: [
         { text: t('pricing.plans.premium.features.unlimitedEquipment') },
@@ -219,7 +188,6 @@ const PlanPaymentPage = () => {
     isEnglish,
     profile?.plan,
     navigate,
-    getPremiumPrice,
     showInfo,
   ]);
 
