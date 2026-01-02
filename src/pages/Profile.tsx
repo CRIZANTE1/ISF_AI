@@ -212,7 +212,7 @@ const Profile = () => {
     };
 
     fetchLicense();
-  }, [user]);
+  }, [user, profile?.plan]); // Recarregar quando o plan do profile mudar
 
   const getPlanBadge = (plan: 'trial' | 'premium' | undefined) => {
     switch (plan) {

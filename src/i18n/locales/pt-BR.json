@@ -65,7 +65,11 @@
     "forgotPasswordButton": "Esqueci minha senha",
     "hidePassword": "Ocultar senha",
     "showPassword": "Mostrar senha",
-    "loggingIn": "Entrando..."
+    "loggingIn": "Entrando...",
+    "signInWithGoogle": "Entrar com Google",
+    "signingInWithGoogle": "Entrando com Google...",
+    "googleSignInError": "Erro ao fazer login com Google. Tente novamente.",
+    "orContinueWith": "ou continue com"
   },
   "dashboard": {
     "title": "Dashboard",

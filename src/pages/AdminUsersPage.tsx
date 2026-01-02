@@ -7,6 +7,8 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useConfirm } from '../hooks/useConfirm';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { supabase } from '../lib/supabase';
+import { logger } from '../utils/logger';
 import {
   getAllUsers,
   getUserStats,
@@ -156,11 +158,32 @@ const AdminUsersPage = () => {
     try {
       await updateUserPlan(userId, plan);
       
+      // Aguardar um pouco para garantir que o banco processou
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Verificar novamente se foi atualizado (dupla verificação)
+      const { data: verifiedProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('plan, updated_at')
+        .eq('id', userId)
+        .single();
+      
+      if (verifyError) {
+        logger.error('Erro ao verificar atualização do plano', 'admin', { userId, error: verifyError });
+        throw new Error('Erro ao verificar atualização do plano');
+      }
+      
+      if (verifiedProfile?.plan !== plan) {
+        const errorMsg = `Plano não foi atualizado corretamente. Esperado: ${plan}, Recebido: ${verifiedProfile?.plan}`;
+        logger.error(errorMsg, 'admin', { userId, expected: plan, actual: verifiedProfile?.plan });
+        throw new Error(errorMsg);
+      }
+      
       // Atualizar o usuário na lista local
       setUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === userId 
-            ? { ...user, profile: { ...user.profile, plan } as any }
+            ? { ...user, profile: { ...user.profile, plan, updated_at: verifiedProfile.updated_at } as any }
             : user
         )
       );
@@ -169,7 +192,7 @@ const AdminUsersPage = () => {
       if (selectedUser && selectedUser.id === userId) {
         setSelectedUser({
           ...selectedUser,
-          profile: { ...selectedUser.profile, plan } as any
+          profile: { ...selectedUser.profile, plan, updated_at: verifiedProfile.updated_at } as any
         });
       }
       
@@ -177,7 +200,7 @@ const AdminUsersPage = () => {
       const statsData = await getUserStats();
       setStats(statsData);
       
-      showSuccess('Plano atualizado com sucesso!');
+      showSuccess(`Plano atualizado com sucesso! (Verificado: ${verifiedProfile.plan})`);
     } catch (error: any) {
       handleError(error, 'equipment', 'Erro ao atualizar plano do usuário');
     }

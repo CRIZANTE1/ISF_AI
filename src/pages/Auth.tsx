@@ -8,6 +8,8 @@ import { DottedSurface } from '../components/ui/DottedSurface';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
+import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
@@ -26,11 +28,223 @@ const AuthPage = () => {
   const { handleError, showSuccess } = useErrorHandler();
   const { t } = useTranslation();
 
+  // Listener para detectar quando a sessão é estabelecida após OAuth
   useEffect(() => {
-    if (session) {
-      navigate('/');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      logger.info(`[Auth] Auth state changed: ${event}`, 'auth', { hasSession: !!session });
+      
+      if (event === 'SIGNED_IN' && session) {
+        // Sessão estabelecida - redirecionar
+        logger.info('[Auth] Sessão estabelecida após OAuth, redirecionando...', 'auth');
+        // Limpar URL antes de redirecionar
+        window.history.replaceState({}, '', '/auth');
+        navigate('/');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  // Listener do Capacitor App para detectar quando o app volta do navegador (Android/iOS)
+  useEffect(() => {
+    const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
+    
+    if (!isCapacitor) {
+      return; // Só funciona no Capacitor
     }
 
+    const handleAppUrl = async (data: { url: string }) => {
+      logger.info('[Auth] App recebeu URL após retornar do navegador', 'auth', { url: data.url });
+      
+      // Verificar se é um callback OAuth (deep link com tokens ou code)
+      // Suporta tanto fluxo implícito (access_token) quanto PKCE (code)
+      const isOAuthCallback = data.url.includes('access_token') || 
+                               data.url.includes('refresh_token') ||
+                               data.url.includes('code=') ||
+                               data.url.includes('google-auth');
+      
+      if (isOAuthCallback) {
+        logger.info('[Auth] Callback OAuth detectado via deep link', 'auth', { 
+          url: data.url.substring(0, 100)
+        });
+
+        // Tentar extrair o código PKCE se existir
+        let code: string | null = null;
+        
+        try {
+          // O deep link pode ser: com.isfia.app://google-auth?code=... ou com.isfia.app://google-auth#code=...
+          // Tentar criar URL substituindo o custom scheme por https temporariamente
+          const urlForParsing = data.url.replace('com.isfia.app://', 'https://com.isfia.app/');
+          const urlObj = new URL(urlForParsing);
+          code = urlObj.searchParams.get('code') || urlObj.hash.split('code=')[1]?.split('&')[0];
+        } catch (urlError) {
+          // Se falhar, tentar parsing manual com regex
+          const codeMatch = data.url.match(/[?&#]code=([^&]+)/);
+          if (codeMatch) {
+            code = decodeURIComponent(codeMatch[1]);
+          }
+        }
+        
+        logger.info('[Auth] Código PKCE extraído', 'auth', { 
+          hasCode: !!code,
+          codeLength: code?.length || 0
+        });
+
+        if (code) {
+          logger.info('[Auth] Código PKCE detectado, trocando por sessão...', 'auth');
+          try {
+            const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (sessionData.session && !error) {
+              logger.info('[Auth] ✅ Sessão estabelecida via troca de código PKCE!', 'auth', {
+                userId: sessionData.session.user.id
+              });
+              window.history.replaceState({}, '', '/auth');
+              navigate('/');
+              setLoading(false);
+              return;
+            } else {
+              logger.error('[Auth] Falha na troca de código PKCE', 'auth', error);
+            }
+          } catch (err) {
+            logger.error('[Auth] Erro ao trocar código PKCE', 'auth', err);
+          }
+        }
+        
+        // Se falhar a troca de código ou não houver código, tentar o polling (fallback)
+        // O Supabase pode ter detectado via detectSessionInUrl se houver tokens hash
+        const maxAttempts = 10;
+        let attempts = 0;
+        
+        const checkSession = async (): Promise<boolean> => {
+          attempts++;
+          logger.info(`[Auth] Tentativa ${attempts}/${maxAttempts} de verificar sessão após deep link...`, 'auth');
+          
+          try {
+            const { data: { session: newSession }, error } = await supabase.auth.getSession();
+            
+            if (newSession && !error) {
+              logger.info('[Auth] ✅ Sessão encontrada após deep link!', 'auth', {
+                userId: newSession.user?.id,
+                email: newSession.user?.email
+              });
+              // Limpar a URL
+              window.history.replaceState({}, '', '/auth');
+              return true;
+            } else {
+              logger.warn(`[Auth] Sessão não encontrada (tentativa ${attempts})`, 'auth', {
+                error: error?.message
+              });
+              return false;
+            }
+          } catch (err) {
+            logger.error(`[Auth] Erro ao verificar sessão (tentativa ${attempts})`, 'auth', err);
+            return false;
+          }
+        };
+        
+        // Primeira tentativa imediatamente
+        if (await checkSession()) {
+          navigate('/');
+          setLoading(false);
+          return;
+        }
+        
+        // Tentativas adicionais a cada 500ms
+        for (let i = 0; i < maxAttempts - 1; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (await checkSession()) {
+            navigate('/');
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Se chegou aqui, não conseguiu estabelecer sessão
+        logger.error('[Auth] ❌ Timeout: sessão não foi estabelecida após deep link', 'auth');
+        setError('Erro ao processar login com Google. Tente novamente.');
+        setLoading(false);
+      }
+    };
+
+    // Registrar listener para quando o app recebe uma URL (deep link)
+    App.addListener('appUrlOpen', handleAppUrl);
+
+    return () => {
+      App.removeAllListeners();
+    };
+  }, [navigate]);
+
+  // Listener para quando o Browser fecha (usuário retorna ao app após OAuth)
+  useEffect(() => {
+    const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
+    
+    if (!isCapacitor) {
+      return;
+    }
+
+    // Listener para quando o Browser fecha (usuário retorna ao app)
+    const handleBrowserClose = async () => {
+      logger.info('[Auth] Browser fechado, verificando sessão...', 'auth');
+      
+      // Aguardar um momento para o Supabase processar
+      setTimeout(async () => {
+        try {
+          const { data: { session: newSession }, error } = await supabase.auth.getSession();
+          if (newSession && !error) {
+            logger.info('[Auth] Sessão encontrada após Browser fechar, redirecionando...', 'auth', {
+              userId: newSession.user?.id,
+              email: newSession.user?.email
+            });
+            navigate('/');
+            setLoading(false);
+          } else {
+            logger.warn('[Auth] Sessão não encontrada após Browser fechar', 'auth', { error: error?.message });
+            setLoading(false);
+          }
+        } catch (err) {
+          logger.error('[Auth] Erro ao verificar sessão após Browser fechar', 'auth', err);
+          setLoading(false);
+        }
+      }, 1500);
+    };
+
+    Browser.addListener('browserFinished', handleBrowserClose);
+
+    return () => {
+      Browser.removeAllListeners();
+    };
+  }, [navigate]);
+
+  useEffect(() => {
+    // Se já tem sessão, redirecionar imediatamente
+    if (session) {
+      logger.info('[Auth] Sessão encontrada, redirecionando...', 'auth');
+      navigate('/');
+      return;
+    }
+
+    // Polling para verificar sessão a cada 500ms (útil para OAuth callbacks que podem ter delay)
+    // Isso garante que detectamos a sessão mesmo se o onAuthStateChange não disparar imediatamente
+    const interval = setInterval(async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+          logger.info('[Auth] Sessão detectada via polling, redirecionando...', 'auth');
+          clearInterval(interval);
+          window.history.replaceState({}, '', '/auth');
+          navigate('/');
+        }
+      } catch (err) {
+        // Ignorar erros no polling
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [session, navigate]);
+
+  useEffect(() => {
     // Verificar se há um hash de recuperação de senha na URL
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
@@ -38,6 +252,78 @@ const AuthPage = () => {
 
     if (type === 'recovery' && accessToken) {
       setMode('reset-password');
+      return;
+    }
+
+    // Verificar se há um callback OAuth (Google login)
+    if (accessToken && type !== 'recovery') {
+      // OAuth callback - aguardar o Supabase processar a sessão
+      setLoading(true);
+      logger.info('[Auth] Callback OAuth detectado, aguardando processamento...', 'auth', { 
+        accessToken: accessToken.substring(0, 20) + '...',
+        type 
+      });
+      
+      // Limpar a URL imediatamente para evitar problemas
+      window.history.replaceState({}, '', '/auth');
+      
+      // Forçar verificação da sessão após callback com múltiplas tentativas
+      const checkSessionAfterOAuth = async () => {
+        const maxAttempts = 5;
+        let attempts = 0;
+        
+        const checkSession = async (): Promise<boolean> => {
+          attempts++;
+          logger.info(`[Auth] Tentativa ${attempts}/${maxAttempts} de verificar sessão...`, 'auth');
+          
+          try {
+            const { data: { session: newSession }, error } = await supabase.auth.getSession();
+            
+            if (newSession && !error) {
+              logger.info('[Auth] ✅ Sessão encontrada!', 'auth', { 
+                userId: newSession.user?.id,
+                email: newSession.user?.email 
+              });
+              return true;
+            } else {
+              logger.warn(`[Auth] Sessão não encontrada (tentativa ${attempts})`, 'auth', { 
+                error: error?.message 
+              });
+              return false;
+            }
+          } catch (err) {
+            logger.error(`[Auth] Erro ao verificar sessão (tentativa ${attempts})`, 'auth', err);
+            return false;
+          }
+        };
+        
+        // Primeira tentativa após 1 segundo
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (await checkSession()) {
+          logger.info('[Auth] Redirecionando após primeira verificação...', 'auth');
+          navigate('/');
+          setLoading(false);
+          return;
+        }
+        
+        // Tentativas adicionais a cada 1 segundo
+        for (let i = 0; i < maxAttempts - 1; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (await checkSession()) {
+            logger.info(`[Auth] Redirecionando após tentativa ${attempts}...`, 'auth');
+            navigate('/');
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Se chegou aqui, não conseguiu estabelecer sessão
+        logger.error('[Auth] ❌ Timeout: sessão não foi estabelecida após todas as tentativas', 'auth');
+        setError('Erro ao processar login com Google. Tente novamente.');
+        setLoading(false);
+      };
+
+      checkSessionAfterOAuth();
     }
   }, [session, navigate]);
 
@@ -199,6 +485,76 @@ const AuthPage = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      // Detectar se está rodando no Capacitor (Android/iOS)
+      const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
+      
+      // Definir o Deep Link para mobile (deve corresponder ao AndroidManifest)
+      // Usando custom scheme que é mais simples e não requer verificação de servidor
+      const mobileRedirectUrl = 'com.isfia.app://google-auth';
+      
+      let redirectUrl: string;
+      
+      if (isCapacitor) {
+        // Para Capacitor, usar o custom scheme deep link
+        redirectUrl = mobileRedirectUrl;
+        logger.info('[Auth] Usando Browser plugin para OAuth no Capacitor com deep link', 'auth', { redirectUrl });
+      } else {
+        // No navegador, usar a origem normal
+        redirectUrl = `${window.location.origin}/auth`;
+        logger.info('[Auth] Usando URL do navegador para OAuth', 'auth', { redirectUrl });
+      }
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          // Sempre enviar redirectTo, mesmo no Capacitor (usa deep link)
+          redirectTo: redirectUrl,
+          // Para Capacitor, não redirecionar automaticamente - vamos usar o Browser plugin
+          ...(isCapacitor && {
+            skipBrowserRedirect: true, // Não redirecionar automaticamente
+          }),
+        },
+      });
+
+      logger.info('[Auth] OAuth iniciado', 'auth', { 
+        hasUrl: !!data?.url, 
+        redirectUrl,
+        isCapacitor 
+      });
+
+      if (error) {
+        logger.error('Erro ao iniciar login com Google', 'auth', error);
+        throw error;
+      }
+
+      // Se estiver no Capacitor e tiver URL, abrir no Browser plugin
+      if (isCapacitor && data?.url) {
+        logger.info('[Auth] Abrindo URL OAuth no Browser plugin', 'auth', { url: data.url });
+        
+        // Abrir no Browser plugin
+        await Browser.open({ 
+          url: data.url,
+          windowName: '_self',
+        });
+
+        // O Browser plugin vai fechar automaticamente quando o usuário retornar
+        // O listener browserFinished vai capturar o callback
+      }
+    } catch (err: any) {
+      logger.error('Erro ao fazer login com Google', 'auth', err);
+      
+      const appError = handleError(err, 'auth', 'Erro ao fazer login com Google');
+      setError(appError.userMessage || t('auth.googleSignInError'));
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center px-4 py-12 overflow-hidden">
       <DottedSurface />
@@ -228,6 +584,7 @@ const AuthPage = () => {
           onConfirmPasswordChange={setConfirmPassword}
           onResetPassword={handleResetPassword}
           onForgotPasswordSubmit={handleForgotPassword}
+          onGoogleSignIn={handleGoogleSignIn}
         />
       </div>
 

@@ -132,15 +132,115 @@ export async function getUserStats(): Promise<UserStats> {
 
 // Update user plan
 export async function updateUserPlan(userId: string, plan: 'trial' | 'premium'): Promise<void> {
-  const { error } = await supabase
+  // Primeiro, verificar o plano atual
+  const { data: currentProfile, error: fetchError } = await supabase
     .from('profiles')
-    .update({ plan })
-    .eq('id', userId);
-
-  if (error) throw error;
-
+    .select('plan')
+    .eq('id', userId)
+    .single();
+  
+  if (fetchError) {
+    logger.error('Erro ao buscar perfil para atualização de plano', 'admin', { userId, error: fetchError });
+    throw new Error(`Erro ao buscar perfil: ${fetchError.message}`);
+  }
+  
+  if (!currentProfile) {
+    logger.error('Perfil não encontrado para atualização de plano', 'admin', { userId });
+    throw new Error('Perfil não encontrado');
+  }
+  
+  // Se já está no plano desejado, não precisa atualizar
+  if (currentProfile.plan === plan) {
+    logger.info('Plano já está no valor desejado', 'admin', { userId, plan });
+    return;
+  }
+  
+  // Fazer o update
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ 
+      plan,
+      updated_at: new Date().toISOString() // Garantir que updated_at é atualizado
+    })
+    .eq('id', userId)
+    .select()
+    .single();
+  
+  if (error) {
+    logger.error('Erro ao atualizar plano', 'admin', { userId, plan, error });
+    throw error;
+  }
+  
+  // Verificar se realmente foi atualizado
+  if (!data || data.plan !== plan) {
+    const errorMsg = `Falha ao atualizar plano. Esperado: ${plan}, Recebido: ${data?.plan || 'null'}`;
+    logger.error(errorMsg, 'admin', { userId, expected: plan, actual: data?.plan });
+    throw new Error(errorMsg);
+  }
+  
+  logger.info('Plano atualizado com sucesso', 'admin', { userId, plan, previousPlan: currentProfile.plan });
+  
+  // Sincronizar licença com o novo plano
+  try {
+    // Buscar licença associada ao usuário
+    const { data: userLicense, error: licenseError } = await supabase
+      .from('licenses')
+      .select('id, machine_id, license_type')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (!licenseError && userLicense) {
+      // Atualizar license_type baseado no plan
+      const newLicenseType = plan === 'premium' ? 'premium' : 'experimental';
+      
+      // Só atualizar se for diferente
+      if (userLicense.license_type !== newLicenseType) {
+        const { error: updateLicenseError } = await supabase
+          .from('licenses')
+          .update({
+            license_type: newLicenseType,
+            last_activation_date: plan === 'premium' ? new Date().toISOString() : null,
+            activation_token: plan === 'premium' ? userLicense.activation_token || 'admin_upgrade' : null
+          })
+          .eq('id', userLicense.id);
+        
+        if (updateLicenseError) {
+          logger.warn('Erro ao sincronizar licença com plano', 'admin', { 
+            userId, 
+            plan, 
+            licenseId: userLicense.id,
+            error: updateLicenseError 
+          });
+        } else {
+          logger.info('Licença sincronizada com plano', 'admin', { 
+            userId, 
+            plan, 
+            licenseId: userLicense.id,
+            newLicenseType 
+          });
+        }
+      }
+    } else if (licenseError && licenseError.code !== 'PGRST116') {
+      // PGRST116 = nenhum registro encontrado (não é erro)
+      logger.warn('Erro ao buscar licença para sincronização', 'admin', { 
+        userId, 
+        error: licenseError 
+      });
+    }
+  } catch (syncError) {
+    // Não falhar a atualização do plano se a sincronização da licença falhar
+    logger.warn('Erro ao sincronizar licença (não crítico)', 'admin', { 
+      userId, 
+      plan, 
+      error: syncError 
+    });
+  }
+  
   // Log the action
-  await logUserAction('update', 'profile', userId, { plan });
+  await logUserAction('update', 'profile', userId, { 
+    plan,
+    previous_plan: currentProfile.plan 
+  });
 }
 
 // Update user role
