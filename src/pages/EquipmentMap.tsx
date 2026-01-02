@@ -114,7 +114,7 @@ function MapBounds({ bounds }: { bounds: LatLngBounds | null }) {
 
 const EquipmentMap = () => {
   const { t } = useTranslation();
-  const { getAllEquipment } = useEquipmentCache();
+  const { getAllEquipment, cache } = useEquipmentCache();
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
   const [markers, setMarkers] = useState<EquipmentMarker[]>([]);
@@ -139,9 +139,11 @@ const EquipmentMap = () => {
         const allEquipment = getAllEquipment();
         const equipmentMarkers: EquipmentMarker[] = [];
 
-        // Processar extintores com localização
-        const extinguishers = allEquipment.filter((eq: any) => 
-          eq.latitude && eq.longitude && eq.numero_identificacao
+        // Processar extintores com localização (vem da última inspeção)
+        const extinguishers = cache.extinguishers.filter((eq: any) => 
+          eq.numero_identificacao && 
+          eq.latitude != null && eq.longitude != null &&
+          !isNaN(Number(eq.latitude)) && !isNaN(Number(eq.longitude))
         );
         
         extinguishers.forEach((ext: any) => {
@@ -156,6 +158,82 @@ const EquipmentMap = () => {
           });
         });
 
+        // Processar chuveiros/lava-olhos com localização
+        const eyewashStations = cache.eyewashStations.filter((eq: any) => 
+          eq.id_equipamento && 
+          eq.latitude != null && eq.longitude != null &&
+          !isNaN(Number(eq.latitude)) && !isNaN(Number(eq.longitude))
+        );
+        
+        eyewashStations.forEach((eq: any) => {
+          equipmentMarkers.push({
+            id: eq.id_equipamento,
+            type: 'chuveiro_lavaolhos',
+            serial: eq.id_equipamento,
+            latitude: Number(eq.latitude),
+            longitude: Number(eq.longitude),
+            name: `Chuveiro/Lava-olhos ${eq.id_equipamento}`,
+            status: 'N/A',
+          });
+        });
+
+        // Processar câmaras de espuma com localização
+        const foamChambers = cache.foamChambers.filter((eq: any) => 
+          eq.id_camara && 
+          eq.latitude != null && eq.longitude != null &&
+          !isNaN(Number(eq.latitude)) && !isNaN(Number(eq.longitude))
+        );
+        
+        foamChambers.forEach((eq: any) => {
+          equipmentMarkers.push({
+            id: eq.id_camara,
+            type: 'camara_espuma',
+            serial: eq.id_camara,
+            latitude: Number(eq.latitude),
+            longitude: Number(eq.longitude),
+            name: `Câmara de Espuma ${eq.id_camara}`,
+            status: 'N/A',
+          });
+        });
+
+        // Processar canhões monitores com localização
+        const cannonMonitors = cache.cannonMonitors.filter((eq: any) => 
+          eq.id_equipamento && 
+          eq.latitude != null && eq.longitude != null &&
+          !isNaN(Number(eq.latitude)) && !isNaN(Number(eq.longitude))
+        );
+        
+        cannonMonitors.forEach((eq: any) => {
+          equipmentMarkers.push({
+            id: eq.id_equipamento,
+            type: 'canhao_monitor',
+            serial: eq.id_equipamento,
+            latitude: Number(eq.latitude),
+            longitude: Number(eq.longitude),
+            name: `Canhão Monitor ${eq.id_equipamento}`,
+            status: 'N/A',
+          });
+        });
+
+        // Processar abrigos com localização
+        const shelters = cache.shelters.filter((eq: any) => 
+          eq.id_abrigo && 
+          eq.latitude != null && eq.longitude != null &&
+          !isNaN(Number(eq.latitude)) && !isNaN(Number(eq.longitude))
+        );
+        
+        shelters.forEach((eq: any) => {
+          equipmentMarkers.push({
+            id: eq.id_abrigo,
+            type: 'abrigo',
+            serial: eq.id_abrigo,
+            latitude: Number(eq.latitude),
+            longitude: Number(eq.longitude),
+            name: `Abrigo ${eq.id_abrigo}`,
+            status: 'N/A',
+          });
+        });
+
         // Processar equipamentos customizados com localização
         try {
           const { getAllCustomEquipmentTypes, getAllCustomEquipment } = await import('../utils/customEquipmentOperations');
@@ -165,7 +243,9 @@ const EquipmentMap = () => {
             if (customType.requires_gps) {
               const customEquipments = await getAllCustomEquipment(customType.id);
               const equipmentsWithLocation = customEquipments.filter((eq: any) => 
-                eq.latitude && eq.longitude && eq.id_equipamento
+                eq.id_equipamento && 
+                eq.latitude != null && eq.longitude != null &&
+                !isNaN(Number(eq.latitude)) && !isNaN(Number(eq.longitude))
               );
               
               equipmentsWithLocation.forEach((eq: any) => {
@@ -198,7 +278,7 @@ const EquipmentMap = () => {
     };
 
     loadEquipment();
-  }, [getAllEquipment]);
+  }, [getAllEquipment, cache]);
 
   // Calcular bounds para ajustar o zoom (incluindo localização do usuário)
   const bounds = useMemo(() => {

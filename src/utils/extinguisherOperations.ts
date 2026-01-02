@@ -329,7 +329,7 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
       // Como o Supabase não suporta DISTINCT ON diretamente, vamos buscar todas e agrupar
       const { data: allInspections, error: inspError } = await supabase
         .from('inspecoes_extintores' as any)
-        .select('numero_identificacao, data_proxima_inspecao, data_proxima_manutencao_2_nivel, data_proxima_manutencao_3_nivel, data_ultimo_ensaio_hidrostatico, aprovado_inspecao, status_geral, data_servico, created_at')
+        .select('numero_identificacao, data_proxima_inspecao, data_proxima_manutencao_2_nivel, data_proxima_manutencao_3_nivel, data_ultimo_ensaio_hidrostatico, aprovado_inspecao, status_geral, data_servico, latitude, longitude, created_at')
         .eq('user_id', user.id)
         .order('data_servico', { ascending: false })
         .order('created_at', { ascending: false });
@@ -379,6 +379,9 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
             // IMPORTANTE: aprovado_inspecao e status_geral vêm sempre da última inspeção (não do cadastro)
             aprovado_inspecao: lastInspection.aprovado_inspecao || null,
             status_geral: lastInspection.status_geral || null,
+            // Geolocalização vem da última inspeção
+            latitude: lastInspection.latitude || ext.latitude || null,
+            longitude: lastInspection.longitude || ext.longitude || null,
           };
         }
         // Se não tem inspeção, mantém dados do cadastro mas sem aprovado_inspecao e status_geral (pois não foi inspecionado ainda)
@@ -704,6 +707,63 @@ export async function registerExtinguisherDisposal(
     if (checkError && checkError.code !== 'PGRST116') throw checkError;
     if (!extinguisher) {
       throw new Error('Extintor não encontrado ou não pertence ao usuário autenticado');
+    }
+
+    // Busca a última inspeção para obter as coordenadas GPS
+    const { data: lastInspection } = await supabase
+      .from('inspecoes_extintores' as any)
+      .select('latitude, longitude')
+      .eq('numero_identificacao', numeroIdentificacao)
+      .eq('user_id', user.id)
+      .order('data_servico', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const latitude = lastInspection?.latitude;
+    const longitude = lastInspection?.longitude;
+
+    // Se houver substituto e coordenadas, transfere as coordenadas para o substituto
+    if (numeroSubstituto && latitude != null && longitude != null) {
+      try {
+        // Busca a última inspeção do substituto para preservar suas coordenadas se já tiver
+        const { data: substituteInspection } = await supabase
+          .from('inspecoes_extintores' as any)
+          .select('latitude, longitude')
+          .eq('numero_identificacao', numeroSubstituto)
+          .eq('user_id', user.id)
+          .order('data_servico', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Só transfere se o substituto não tiver coordenadas próprias
+        if (substituteInspection?.latitude == null || substituteInspection?.longitude == null) {
+          // Cria uma nova inspeção para o substituto com as coordenadas transferidas
+          const { error: transferError } = await supabase
+            .from('inspecoes_extintores' as any)
+            .insert({
+              numero_identificacao: numeroSubstituto,
+              data_servico: new Date().toISOString().split('T')[0],
+              tipo_servico: 'Transferência de Localização',
+              observacoes_gerais: `Coordenadas GPS transferidas do extintor ${numeroIdentificacao} (baixado)`,
+              latitude: latitude,
+              longitude: longitude,
+              user_id: user.id,
+            });
+
+          if (transferError) {
+            logger.warn('Erro ao transferir coordenadas para o substituto', 'equipment', transferError);
+          } else {
+            logger.info('Coordenadas GPS transferidas para o extintor substituto', 'equipment', {
+              de: numeroIdentificacao,
+              para: numeroSubstituto,
+            });
+          }
+        }
+      } catch (transferError) {
+        logger.warn('Erro ao transferir coordenadas para o substituto', 'equipment', transferError);
+      }
     }
 
     // Salva no log de baixa

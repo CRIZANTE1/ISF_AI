@@ -164,7 +164,11 @@
       "mcsNumber": "Número MCS",
       "latitude": "Latitude",
       "longitude": "Longitude"
-    }
+    },
+    "selectModel": "Selecione o modelo",
+    "enterModel": "Digite o modelo",
+    "other": "Outro",
+    "backToSelect": "← Voltar para seleção"
   },
   "inspection": {
     "title": "Inspeções",

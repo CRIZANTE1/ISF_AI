@@ -161,8 +161,15 @@
       "required": "(required)",
       "optional": "(optional)",
       "latitudeRange": "Latitude must be between -90 and 90",
-      "longitudeRange": "Longitude must be between -180 and 180"
-    }
+      "longitudeRange": "Longitude must be between -180 and 180",
+      "gpsCoordinates": "GPS Coordinates",
+      "latitude": "Latitude",
+      "longitude": "Longitude"
+    },
+    "selectModel": "Select model",
+    "enterModel": "Enter model",
+    "other": "Other",
+    "backToSelect": "← Back to selection"
   },
   "inspection": {
     "title": "Inspections",

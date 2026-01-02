@@ -192,15 +192,47 @@ export async function enableUser(userId: string): Promise<void> {
   await logUserAction('enable', 'user', userId);
 }
 
-// Delete user - Warning: This requires admin API
+// Delete user - Uses Edge Function with admin permissions
 export async function deleteUser(userId: string): Promise<void> {
   // Log the action before deletion
   await logUserAction('delete', 'user', userId);
 
-  // Note: Actual user deletion requires Supabase Admin API
-  // This is a placeholder - in production, you'd need to call an Edge Function
-  // or use the Supabase Dashboard
-  throw new Error('Exclusão de usuário requer acesso Admin API. Use o painel do Supabase ou uma Edge Function.');
+  try {
+    // Obter sessão atual (admin deve estar autenticado)
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('Admin não autenticado. Faça login novamente.');
+    }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const functionUrl = `${supabaseUrl}/functions/v1/delete-user`;
+
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      if (response.status === 404) {
+        throw new Error('Edge Function delete-user não encontrada. Verifique se está deployada.');
+      }
+      
+      throw new Error(errorData.error || errorData.details || 'Erro ao deletar usuário');
+    }
+
+    const result = await response.json();
+    logger.info(`Usuário ${userId} deletado com sucesso`, 'adminOperations');
+  } catch (error) {
+    logger.error('Erro ao deletar usuário via Edge Function', 'adminOperations', error);
+    throw error;
+  }
 }
 
 // Get action logs

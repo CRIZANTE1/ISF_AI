@@ -44,7 +44,7 @@ import {
 import { saveEyewashInspection, generateEyewashActionPlan } from '../utils/eyewashOperations';
 import { saveFoamChamberInspection } from '../utils/foamChamberOperations';
 import { saveAlarmInspection } from '../utils/alarmOperations';
-import { saveCannonMonitorInspection } from '../utils/cannonMonitorOperations';
+import { saveCannonMonitorInspection, generateCannonMonitorActionPlan } from '../utils/cannonMonitorOperations';
 import { saveMultigasInspection, getMultigasDetectorById, updateCylinderValues, verifyBumpTest, generateMultigasActionPlan } from '../utils/multigasOperations';
 import type { CylinderValues } from '../utils/multigasOperations';
 import { saveSCBAVisualInspection, getSCBABySerial } from '../utils/scbaOperations';
@@ -705,6 +705,12 @@ const AddInspectionPage = () => {
       } else {
         setPlanAction('Mangueira aprovada. Manter monitoramento periódico.');
       }
+    } else if (type === 'canhao_monitor') {
+      const nonConformities = Object.entries(checklistResults)
+        .filter(([_, status]) => status === 'Não Conforme')
+        .map(([question, _]) => question);
+      const plan = generateCannonMonitorActionPlan(nonConformities);
+      setPlanAction(plan);
     }
   }, [checklistResults, type]);
 

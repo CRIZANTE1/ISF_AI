@@ -6,6 +6,18 @@ import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
 
+// Mapeamento de ações para plano de ação baseado em não conformidades
+const ACTION_PLAN_MAP: Record<string, string> = {
+  "Base e suporte íntegros": "Verificar e reparar ou substituir a base e suporte danificados.",
+  "Sem corrosão ou amassados": "Programar serviço de tratamento de corrosão, reparo e repintura.",
+  "Fixação adequada": "Verificar e corrigir a fixação do equipamento, garantindo estabilidade e segurança.",
+  "Canhão monitor íntegro": "Avaliar a integridade estrutural do canhão monitor. Se comprometida, programar a substituição.",
+  "Válvulas funcionando": "Realizar a limpeza, lubrificação ou substituição da válvula defeituosa.",
+  "Mangueiras sem vazamentos": "Identificar ponto de vazamento e substituir mangueira ou reparar conexão.",
+  "Fluxo de água adequado": "Verificar pressão e vazão do sistema. Desobstruir linhas ou substituir componentes se necessário.",
+  "Controle de direção funcionando": "Verificar e reparar mecanismo de controle de direção. Lubrificar ou substituir componentes danificados.",
+};
+
 export interface CannonMonitor {
   id?: number;
   id_equipamento: string;
@@ -90,6 +102,38 @@ export async function saveNewCannonMonitor(
 }
 
 /**
+ * Gera plano de ação para canhões monitores
+ */
+export function generateCannonMonitorActionPlan(nonConformities: string[]): string {
+  if (nonConformities.length === 0) {
+    return "Manter em monitoramento periódico.";
+  }
+  
+  // Tenta encontrar correspondência exata primeiro
+  const firstIssue = nonConformities[0];
+  if (ACTION_PLAN_MAP[firstIssue]) {
+    return ACTION_PLAN_MAP[firstIssue];
+  }
+  
+  // Se não encontrar correspondência exata, tenta busca por substring
+  // Ordena as palavras-chave por tamanho (mais longas primeiro) para melhor matching
+  const sortedKeywords = Object.keys(ACTION_PLAN_MAP).sort((a, b) => b.length - a.length);
+  
+  for (const nonConformity of nonConformities) {
+    for (const keyword of sortedKeywords) {
+      if (nonConformity.trim() === keyword.trim() || 
+          nonConformity.includes(keyword) || 
+          keyword.includes(nonConformity)) {
+        return ACTION_PLAN_MAP[keyword];
+      }
+    }
+  }
+  
+  // Se nenhuma correspondência for encontrada, retorna mensagem genérica
+  return "Corrigir a não conformidade reportada.";
+}
+
+/**
  * Salva uma inspeção de canhão monitor
  */
 export async function saveCannonMonitorInspection(
@@ -106,9 +150,7 @@ export async function saveCannonMonitorInspection(
       }
     }
 
-    const planoDeAcao = nonConformities.length > 0
-      ? "Corrigir itens não conformes."
-      : "Manter monitoramento periódico.";
+    const planoDeAcao = generateCannonMonitorActionPlan(nonConformities);
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
@@ -119,6 +161,31 @@ export async function saveCannonMonitorInspection(
     
     if (!result.success) {
       throw new Error('Falha ao salvar inspeção');
+    }
+    
+    // Atualiza latitude/longitude no cadastro do equipamento se fornecidas na inspeção
+    // NOTA: Isso sobrescreve coordenadas editadas manualmente no cadastro, pois a última inspeção tem prioridade
+    // Se a inspeção não tiver GPS (null/undefined), as coordenadas do cadastro permanecem inalteradas
+    if (inspection.latitude != null && inspection.longitude != null) {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (!userError && user?.id) {
+          const { error: updateError } = await supabase
+            .from('inventario_canhoes_monitores')
+            .update({
+              latitude: inspection.latitude,
+              longitude: inspection.longitude,
+            })
+            .eq('id_equipamento', inspection.id_equipamento)
+            .eq('user_id', user.id);
+          
+          if (updateError) {
+            logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento', 'equipment', updateError);
+          }
+        }
+      } catch (updateError) {
+        logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento', 'equipment', updateError);
+      }
     }
     
     // Log action

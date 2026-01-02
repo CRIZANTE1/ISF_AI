@@ -553,6 +553,30 @@ export async function saveCustomEquipmentInspection(
       });
 
     if (error) throw error;
+
+    // Atualiza latitude/longitude no cadastro do equipamento se fornecidas na inspeção
+    // NOTA: Isso sobrescreve coordenadas editadas manualmente no cadastro, pois a última inspeção tem prioridade
+    // Se a inspeção não tiver GPS (null/undefined), as coordenadas do cadastro permanecem inalteradas
+    if (inspection.latitude != null && inspection.longitude != null) {
+      try {
+        const { error: updateError } = await supabase
+          .from('custom_equipment')
+          .update({
+            latitude: inspection.latitude,
+            longitude: inspection.longitude,
+          })
+          .eq('equipment_type_id', inspection.equipment_type_id)
+          .eq('id_equipamento', inspection.id_equipamento)
+          .eq('user_id', user.id);
+        
+        if (updateError) {
+          logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento customizado', 'equipment', updateError);
+        }
+      } catch (updateError) {
+        logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento customizado', 'equipment', updateError);
+      }
+    }
+
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção customizada', 'equipment', error);

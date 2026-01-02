@@ -373,7 +373,7 @@ const EditEquipmentPage = () => {
       case 'camara_espuma':
         return <FoamChamberForm register={register} errors={errors} watch={watch} />;
       case 'canhao_monitor':
-        return <CannonMonitorForm register={register} />;
+        return <CannonMonitorForm register={register} watch={watch} />;
       case 'chuveiro_lavaolhos':
         return <EyewashForm register={register} />;
       case 'alarme':
