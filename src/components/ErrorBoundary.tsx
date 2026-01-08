@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '../utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -41,10 +42,10 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log do erro para debugging
-    if (import.meta.env.DEV) {
-      console.error('🚨 Erro capturado pelo Error Boundary:', error);
-      console.error('Stack trace:', errorInfo.componentStack);
-    }
+    logger.error('🚨 Erro capturado pelo Error Boundary', 'react', { 
+      error, 
+      componentStack: errorInfo.componentStack 
+    });
 
     // Em produção, pode integrar com serviço de monitoramento externo
     // TODO: Se necessário, integrar com serviço de monitoramento (ex: Sentry, LogRocket, etc.)

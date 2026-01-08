@@ -1,5 +1,8 @@
 # Documentação: Lógica de Licenças
 
+**Versão do Sistema:** 1.7.1  
+**Última Atualização:** 2025
+
 ## Visão Geral
 
 O sistema de licenças do ISFIA Android controla o acesso ao aplicativo através de três tipos de licenças: **Experimental** (trial), **Premium** e **Lifetime** (vitalícia). Cada dispositivo possui um Machine ID único que identifica a licença.
@@ -437,6 +440,17 @@ Contexto: `'license'`
 2. `last_activation_date` atualizado
 3. Novo período de 365 dias inicia
 4. `user_id` mantido (não é alterado)
+
+### Usuário Premium Reinstala o App
+1. Usuário tem licença premium com 360 dias restantes vinculada ao machine_id A
+2. Usuário desinstala o app (localStorage limpo)
+3. Usuário reinstala o app (gera machine_id B)
+4. Usuário faz login
+5. Sistema detecta que `user_id` já tem licença premium/lifetime
+6. Sistema atualiza `machine_id` da licença de A para B
+7. Usuário mantém status premium e dias restantes
+8. Log registra migração de machine_id
+9. **Não cria nova licença experimental** - preserva licença original
 
 ### Revogação
 1. Admin revoga licença

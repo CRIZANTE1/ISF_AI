@@ -279,12 +279,18 @@ export async function offlineInsert(
           const inspectionData = dataWithUserId as Record<string, unknown>;
           if (inspectionData.numero_identificacao && inspectionData.data_servico) {
             try {
+              // Extrai apenas a data (YYYY-MM-DD) para comparação, funciona com date e timestamp
+              const dateOnly = String(inspectionData.data_servico).split('T')[0];
+              const startOfDay = `${dateOnly}T00:00:00`;
+              const endOfDay = `${dateOnly}T23:59:59`;
+              
               // Type assertion seguro pois table foi validado com tableNameSchema
               const { data: existing, error: checkError } = await supabase
                 .from(table as any)
                 .select('id')
                 .eq('numero_identificacao', inspectionData.numero_identificacao)
-                .eq('data_servico', inspectionData.data_servico)
+                .gte('data_servico', startOfDay)
+                .lte('data_servico', endOfDay)
                 .eq('user_id', authenticatedUserId)
                 .limit(1);
               

@@ -601,11 +601,17 @@ export async function saveExtinguisherInspection(
 
     // Verifica se já existe uma inspeção para esta data
     if (inspection.numero_identificacao && inspection.data_servico && inspection.user_id) {
+      // Extrai apenas a data (YYYY-MM-DD) para comparação, funciona com date e timestamp
+      const dateOnly = String(inspection.data_servico).split('T')[0];
+      const startOfDay = `${dateOnly}T00:00:00`;
+      const endOfDay = `${dateOnly}T23:59:59`;
+      
       const { data: existing } = await supabase
         .from('inspecoes_extintores' as any)
         .select('id')
         .eq('numero_identificacao', inspection.numero_identificacao)
-        .eq('data_servico', inspection.data_servico)
+        .gte('data_servico', startOfDay)
+        .lte('data_servico', endOfDay)
         .eq('user_id', inspection.user_id)
         .limit(1)
         .maybeSingle();

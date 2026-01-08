@@ -7,6 +7,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseInspectionDate } from './dateUtils';
+import { logger } from './logger';
 
 // Extensão do autoTable para jsPDF
 declare module 'jspdf' {
@@ -91,7 +93,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
 
     // Verifica o tamanho da imagem para evitar problemas de memória no Android
     if (blob.size > 5 * 1024 * 1024) { // 5MB
-      console.warn('Imagem muito grande, pode causar problemas de memória no Android:', url, blob.size);
+      logger.warn('Imagem muito grande, pode causar problemas de memória no Android', 'pdf', { url, size: blob.size });
     }
 
     return new Promise((resolve, reject) => {
@@ -104,7 +106,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error('Erro ao converter imagem para base64:', error);
+    logger.error('Erro ao converter imagem para base64', 'pdf', { error });
     return '';
   }
 }
@@ -114,7 +116,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
  */
 function formatDate(dateString: string): string {
   try {
-    const date = new Date(dateString);
+    const date = parseInspectionDate(dateString);
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   } catch {
     return dateString;
@@ -126,7 +128,7 @@ function formatDate(dateString: string): string {
  */
 function formatDateShort(dateString: string): string {
   try {
-    const date = new Date(dateString);
+    const date = parseInspectionDate(dateString);
     return format(date, 'dd/MM/yyyy', { locale: ptBR });
   } catch {
     return dateString;
@@ -384,14 +386,16 @@ function addChecklistResults(doc: jsPDF, yPos: number, resultados: Record<string
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.BLACK);
-  doc.text('3. RESULTADOS DA INSPEÇÃO', PAGE_MARGINS.LEFT, yPos);
+  doc.text('4. RESULTADOS DA INSPEÇÃO', PAGE_MARGINS.LEFT, yPos);
   yPos += 8;
 
-  // Prepara dados para tabela
+  // Prepara dados para tabela com ícones visuais
   const tableData: string[][] = [];
   for (const [key, value] of Object.entries(resultados)) {
-    const status = value === true || value === 'sim' || value === 'Sim' ? 'Conforme' : 
-                   value === false || value === 'não' || value === 'Não' ? 'Não Conforme' : 
+    const isConforme = value === true || value === 'sim' || value === 'Sim';
+    const isNaoConforme = value === false || value === 'não' || value === 'Não';
+    const status = isConforme ? '✓ Conforme' : 
+                   isNaoConforme ? '✗ Não Conforme' : 
                    String(value);
     tableData.push([key, status]);
   }
@@ -426,6 +430,198 @@ function addChecklistResults(doc: jsPDF, yPos: number, resultados: Record<string
 }
 
 /**
+ * Adiciona valores de medição multigas (apenas para equipamentos multigas)
+ */
+function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData, equipment: EquipmentData): number {
+  // Verifica se é multigas e se há dados de medição
+  if (equipment.type !== 'multigas') {
+    return yPos;
+  }
+
+  // Acessa campos de multigas do objeto inspection (que pode ter campos extras)
+  const inspectionAny = inspection as any;
+  const lelRef = inspectionAny.lel_referencia ?? inspectionAny.LEL_referencia;
+  const o2Ref = inspectionAny.o2_referencia ?? inspectionAny.O2_referencia;
+  const h2sRef = inspectionAny.h2s_referencia ?? inspectionAny.H2S_referencia;
+  const coRef = inspectionAny.co_referencia ?? inspectionAny.CO_referencia;
+  const lelEncontrado = inspectionAny.lel_encontrado ?? inspectionAny.LEL_encontrado;
+  const o2Encontrado = inspectionAny.o2_encontrado ?? inspectionAny.O2_encontrado;
+  const h2sEncontrado = inspectionAny.h2s_encontrado ?? inspectionAny.H2S_encontrado;
+  const coEncontrado = inspectionAny.co_encontrado ?? inspectionAny.CO_encontrado;
+
+  // Verifica se há pelo menos um valor de referência
+  if (lelRef === undefined && o2Ref === undefined && h2sRef === undefined && coRef === undefined) {
+    return yPos;
+  }
+
+  // Obtém margem de erro do equipamento (padrão 20%)
+  const margemErro = equipment.margem_erro_cilindro ?? 20.0;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('3. VALORES DE MEDIÇÃO MULTIGAS', PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
+
+  // Prepara dados para tabela
+  const tableData: string[][] = [];
+  
+  // Função auxiliar para calcular diferença percentual
+  const calcularDiferenca = (ref: number | undefined, encontrado: number | undefined): string => {
+    if (ref === undefined || encontrado === undefined) return '-';
+    const diff = ((encontrado - ref) / ref) * 100;
+    return diff >= 0 ? `+${diff.toFixed(2)}%` : `${diff.toFixed(2)}%`;
+  };
+
+  // Função auxiliar para verificar se está dentro da margem
+  const estaDentroMargem = (ref: number | undefined, encontrado: number | undefined): boolean => {
+    if (ref === undefined || encontrado === undefined) return false;
+    const diffPercent = Math.abs(((encontrado - ref) / ref) * 100);
+    return diffPercent <= margemErro;
+  };
+
+  // LEL
+  if (lelRef !== undefined) {
+    const status = estaDentroMargem(lelRef, lelEncontrado) ? 'Dentro da margem' : 'Fora da margem';
+    tableData.push([
+      'LEL',
+      lelRef.toFixed(2),
+      lelEncontrado !== undefined ? lelEncontrado.toFixed(2) : '-',
+      calcularDiferenca(lelRef, lelEncontrado),
+      status
+    ]);
+  }
+
+  // O2
+  if (o2Ref !== undefined) {
+    const status = estaDentroMargem(o2Ref, o2Encontrado) ? 'Dentro da margem' : 'Fora da margem';
+    tableData.push([
+      'O2',
+      o2Ref.toFixed(2),
+      o2Encontrado !== undefined ? o2Encontrado.toFixed(2) : '-',
+      calcularDiferenca(o2Ref, o2Encontrado),
+      status
+    ]);
+  }
+
+  // H2S
+  if (h2sRef !== undefined) {
+    const status = estaDentroMargem(h2sRef, h2sEncontrado) ? 'Dentro da margem' : 'Fora da margem';
+    tableData.push([
+      'H2S',
+      h2sRef.toString(),
+      h2sEncontrado !== undefined ? h2sEncontrado.toString() : '-',
+      calcularDiferenca(h2sRef, h2sEncontrado),
+      status
+    ]);
+  }
+
+  // CO
+  if (coRef !== undefined) {
+    const status = estaDentroMargem(coRef, coEncontrado) ? 'Dentro da margem' : 'Fora da margem';
+    tableData.push([
+      'CO',
+      coRef.toString(),
+      coEncontrado !== undefined ? coEncontrado.toString() : '-',
+      calcularDiferenca(coRef, coEncontrado),
+      status
+    ]);
+  }
+
+  if (tableData.length > 0) {
+    doc.autoTable({
+      startY: yPos,
+      head: [['Gás', 'Referência', 'Medido', 'Diferença (%)', 'Status']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [0, 0, 0], // Preto
+        textColor: [255, 255, 255], // Branco
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        textColor: [0, 0, 0], // Preto
+      },
+      alternateRowStyles: {
+        fillColor: [224, 224, 224], // Cinza claro
+      },
+      margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+      },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 12; // Melhor espaçamento
+  }
+
+  return yPos;
+}
+
+/**
+ * Adiciona seção de não conformidades identificadas
+ */
+function addNonConformities(doc: jsPDF, yPos: number, inspection: InspectionData): number {
+  if (!inspection.resultados_json || Object.keys(inspection.resultados_json).length === 0) {
+    return yPos;
+  }
+
+  // Extrai não conformidades do resultados_json
+  const nonConformities: string[] = [];
+  for (const [key, value] of Object.entries(inspection.resultados_json)) {
+    const isNaoConforme = value === false || value === 'não' || value === 'Não' || value === 'Não Conforme';
+    if (isNaoConforme) {
+      nonConformities.push(key);
+    }
+  }
+
+  // Se não houver não conformidades, não adiciona a seção
+  if (nonConformities.length === 0) {
+    return yPos;
+  }
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('5. NÃO CONFORMIDADES IDENTIFICADAS', PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
+
+  // Contador
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${nonConformities.length} não conformidade(s) encontrada(s):`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
+
+  // Lista de não conformidades com fundo destacado
+  const startY = yPos;
+  let currentY = yPos;
+  
+  for (let i = 0; i < nonConformities.length; i++) {
+    const item = nonConformities[i];
+    
+    // Verifica se precisa de nova página
+    if (currentY > PAGE_HEIGHT - 40) {
+      doc.addPage();
+      currentY = PAGE_MARGINS.TOP;
+    }
+
+    // Desenha fundo cinza claro para destacar
+    doc.setFillColor(240, 240, 240);
+    doc.rect(PAGE_MARGINS.LEFT, currentY - 3, CONTENT_WIDTH, 7, 'F');
+    
+    // Texto da não conformidade
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(COLORS.BLACK);
+    doc.text(`• ${item}`, PAGE_MARGINS.LEFT + 2, currentY);
+    currentY += 8;
+  }
+
+  yPos = currentY + 8; // Espaço extra após a lista
+
+  return yPos;
+}
+
+/**
  * Adiciona observações e plano de ação
  */
 function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): number {
@@ -435,8 +631,8 @@ function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.BLACK);
-    doc.text('4. OBSERVAÇÕES E PLANO DE AÇÃO', PAGE_MARGINS.LEFT, yPos);
-    yPos += 10;
+    doc.text('6. OBSERVAÇÕES E PLANO DE AÇÃO', PAGE_MARGINS.LEFT, yPos);
+    yPos += 12; // Melhor espaçamento
     hasContent = true;
   }
 
@@ -446,10 +642,19 @@ function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): 
     doc.text('Observações Gerais:', PAGE_MARGINS.LEFT, yPos);
     yPos += 7;
 
+    // Adiciona borda sutil em torno das observações
+    const startY = yPos - 2;
     doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(inspection.observacoes_gerais, CONTENT_WIDTH);
-    doc.text(lines, PAGE_MARGINS.LEFT, yPos);
-    yPos += lines.length * 6 + 8;
+    const lines = doc.splitTextToSize(inspection.observacoes_gerais, CONTENT_WIDTH - 4);
+    const textHeight = lines.length * 6;
+    
+    // Desenha retângulo sutil
+    doc.setDrawColor(COLORS.LIGHT_GRAY);
+    doc.setLineWidth(0.3);
+    doc.rect(PAGE_MARGINS.LEFT, startY, CONTENT_WIDTH, textHeight + 4);
+    
+    doc.text(lines, PAGE_MARGINS.LEFT + 2, yPos);
+    yPos += textHeight + 8;
   }
 
   if (inspection.plano_de_acao) {
@@ -458,10 +663,19 @@ function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): 
     doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
     yPos += 7;
 
+    // Adiciona borda sutil em torno do plano de ação
+    const startY = yPos - 2;
     doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(inspection.plano_de_acao, CONTENT_WIDTH);
-    doc.text(lines, PAGE_MARGINS.LEFT, yPos);
-    yPos += lines.length * 6 + 8;
+    const lines = doc.splitTextToSize(inspection.plano_de_acao, CONTENT_WIDTH - 4);
+    const textHeight = lines.length * 6;
+    
+    // Desenha retângulo sutil
+    doc.setDrawColor(COLORS.LIGHT_GRAY);
+    doc.setLineWidth(0.3);
+    doc.rect(PAGE_MARGINS.LEFT, startY, CONTENT_WIDTH, textHeight + 4);
+    
+    doc.text(lines, PAGE_MARGINS.LEFT + 2, yPos);
+    yPos += textHeight + 8;
   }
 
   return hasContent ? yPos : yPos - 10;
@@ -475,7 +689,7 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.BLACK);
-    doc.text('5. EVIDÊNCIAS FOTOGRÁFICAS', PAGE_MARGINS.LEFT, yPos);
+    doc.text('6. EVIDÊNCIAS FOTOGRÁFICAS', PAGE_MARGINS.LEFT, yPos);
     yPos += 8;
 
     // Verifica se há espaço na página
@@ -502,7 +716,7 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
     try {
       doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
     } catch (imgError) {
-      console.error('Erro ao adicionar imagem ao PDF:', imgError);
+      logger.error('Erro ao adicionar imagem ao PDF', 'pdf', { error: imgError });
       // Se não conseguir adicionar a imagem, apenas mostra mensagem
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
@@ -523,7 +737,7 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
 
     return yPos;
   } catch (error) {
-    console.error('Erro ao adicionar foto:', error);
+    logger.error('Erro ao adicionar foto', 'pdf', { error });
     return yPos;
   }
 }
@@ -541,7 +755,7 @@ function addSignature(doc: jsPDF, yPos: number, responsibleName?: string): numbe
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.BLACK);
-  doc.text('6. ASSINATURA DO RESPONSÁVEL', PAGE_MARGINS.LEFT, yPos);
+  doc.text('7. ASSINATURA DO RESPONSÁVEL', PAGE_MARGINS.LEFT, yPos);
   yPos += 10;
 
   // Linha para assinatura
@@ -613,10 +827,30 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
     yPos = PAGE_MARGINS.TOP;
   }
 
+  // Valores de medição multigas (apenas para multigas)
+  if (data.equipment.type === 'multigas') {
+    yPos = addMultigasValues(doc, yPos, data.inspection, data.equipment);
+    
+    // Verifica se precisa de nova página
+    if (yPos > PAGE_HEIGHT - 100) {
+      doc.addPage();
+      yPos = PAGE_MARGINS.TOP;
+    }
+  }
+
   // Resultados do checklist (se houver)
   if (data.inspection.resultados_json) {
     yPos = addChecklistResults(doc, yPos, data.inspection.resultados_json);
   }
+
+  // Verifica se precisa de nova página
+  if (yPos > PAGE_HEIGHT - 100) {
+    doc.addPage();
+    yPos = PAGE_MARGINS.TOP;
+  }
+
+  // Não conformidades identificadas
+  yPos = addNonConformities(doc, yPos, data.inspection);
 
   // Verifica se precisa de nova página
   if (yPos > PAGE_HEIGHT - 100) {
@@ -874,7 +1108,8 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  */
 export async function savePdfToDevice(pdfBlob: Blob, filename: string): Promise<void> {
   try {
-    const { Filesystem, Directory, Share } = await import('@capacitor/filesystem');
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+    const { Share } = await import('@capacitor/share');
     const { Capacitor } = await import('@capacitor/core');
     const { logger } = await import('./logger');
 
@@ -888,7 +1123,7 @@ export async function savePdfToDevice(pdfBlob: Blob, filename: string): Promise<
         const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
 
         // Salva o arquivo
-        // IMPORTANTE: Para dados binários base64 (PDFs), NÃO usar encoding
+        // IMPORTANTE: Para dados binários base64 (PDFs), NÃO usar encoding UTF8
         // O Capacitor Filesystem trata base64 como dados binários quando não especificamos encoding
         let result;
         try {
@@ -900,16 +1135,10 @@ export async function savePdfToDevice(pdfBlob: Blob, filename: string): Promise<
             // Não especificar encoding para dados binários
           });
         } catch (writeError: any) {
-          // Se falhar, pode ser que a versão do Capacitor precise de encoding explícito
-          // Tenta novamente com encoding (algumas versões antigas podem precisar)
-          logger.warn('Tentando salvar PDF com encoding alternativo', 'pdf', writeError);
-          const { Encoding } = await import('@capacitor/filesystem');
-          result = await Filesystem.writeFile({
-            path: cleanFilename,
-            data: base64,
-            directory: Directory.Documents,
-            encoding: Encoding.UTF8,
-          });
+          // Se falhar, pode ser problema de permissão ou caminho
+          // NÃO usar Encoding.UTF8 pois isso corrompe arquivos binários (PDFs)
+          logger.error('Erro ao salvar PDF - não usar encoding UTF8 para binários', 'pdf', writeError);
+          throw writeError; // Propaga o erro para tratamento no nível superior
         }
 
         logger.info('PDF salvo com sucesso', 'pdf', { uri: result.uri, filename: cleanFilename });

@@ -66,6 +66,7 @@ import {
   CANNON_MONITOR_CHECKLIST_FUNCIONAL,
   HOSE_CHECKLIST 
 } from '../constants/checklists';
+import { convertDateTimeLocalToISOWithTimezone } from '../utils/dateUtils';
 
 // Helper para converter File para Base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -249,6 +250,13 @@ const AddInspectionPage = () => {
       if (savedStateJSON) {
         try {
           const savedState = JSON.parse(savedStateJSON);
+          // Se não há data_inspecao salva ou está vazia, usa horário atual do sistema
+          if (!savedState.formValues?.data_inspecao) {
+            savedState.formValues = {
+              ...savedState.formValues,
+              data_inspecao: getCurrentDateTimeLocal(),
+            };
+          }
           reset(savedState.formValues);
           setPlanAction(savedState.planAction);
           setChecklistResults(savedState.checklistResults);
@@ -726,27 +734,27 @@ const AddInspectionPage = () => {
     setLoading(true);
 
     try {
-      // Processa data e hora: se for datetime-local, extrai apenas a data para compatibilidade
+      // Processa data e hora: converte datetime-local para ISO string preservando timezone local do dispositivo
       // Formato datetime-local: YYYY-MM-DDTHH:mm
-      let inspectionDate: string;
+      // O horário selecionado pelo usuário (ou capturado do sistema) é preservado com o timezone do dispositivo
+      let inspectionDate: string; // Data apenas (para compatibilidade com cálculos)
+      let inspectionDateTime: string; // DateTime completo com timezone local
+      
       if (formData.data_inspecao) {
-        // Se contém 'T', é datetime-local, extrai apenas a data
         if (formData.data_inspecao.includes('T')) {
-          inspectionDate = formData.data_inspecao.split('T')[0];
+          // É datetime-local, converter preservando timezone local do dispositivo
+          inspectionDateTime = convertDateTimeLocalToISOWithTimezone(formData.data_inspecao);
+          inspectionDate = inspectionDateTime.split('T')[0]; // Extrai data
         } else {
-          // Se não contém 'T', já é apenas data
+          // Apenas data, adiciona horário 00:00 no timezone local
+          inspectionDateTime = convertDateTimeLocalToISOWithTimezone(formData.data_inspecao + 'T00:00');
           inspectionDate = formData.data_inspecao;
         }
       } else {
-        inspectionDate = new Date().toISOString().split('T')[0];
-      }
-      
-      // Para multigas, também extrai a hora se disponível
-      let inspectionDateTime: string | undefined;
-      if (formData.data_inspecao && formData.data_inspecao.includes('T')) {
-        // Formata para ISO string completa (YYYY-MM-DDTHH:mm:ss)
-        const [datePart, timePart] = formData.data_inspecao.split('T');
-        inspectionDateTime = `${datePart}T${timePart}:00`;
+        // Usar data/hora atual no timezone local
+        const now = new Date();
+        inspectionDateTime = now.toISOString(); // Já está em ISO
+        inspectionDate = inspectionDateTime.split('T')[0];
       }
       let photoLink: string | null = null;
 
@@ -800,7 +808,7 @@ const AddInspectionPage = () => {
           const inspectionRecord = {
             numero_identificacao: id,
             tipo_servico: formData.tipo_servico || 'Inspeção',
-            data_servico: inspectionDate,
+            data_servico: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             numero_selo_inmetro: formData.numero_selo_inmetro || undefined, // Salva o selo do Inmetro (atualizado em manutenções nível 2 ou 3)
             inspetor_responsavel: user.user_metadata?.full_name || user.email || 'Usuário',
             aprovado_inspecao: aprovado || 'Sim',
@@ -839,7 +847,7 @@ const AddInspectionPage = () => {
         case 'chuveiro_lavaolhos': {
           const inspectionRecord = {
             id_equipamento: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             status_geral: overallStatus,
             plano_de_acao: planAction,
             resultados_json: checklistResults,
@@ -864,7 +872,7 @@ const AddInspectionPage = () => {
         case 'camara_espuma': {
           const inspectionRecord = {
             id_camara: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             tipo_inspecao: foamChamberInspectionType,
             status_geral: overallStatus,
             plano_de_acao: planAction,
@@ -887,7 +895,7 @@ const AddInspectionPage = () => {
         case 'alarme': {
           const inspectionRecord = {
             id_sistema: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             status_geral: overallStatus,
             plano_de_acao: planAction,
             resultados_json: checklistResults,
@@ -912,7 +920,7 @@ const AddInspectionPage = () => {
         case 'canhao_monitor': {
           const inspectionRecord = {
             id_equipamento: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             tipo_inspecao: cannonMonitorInspectionType,
             status_geral: overallStatus,
             plano_de_acao: planAction,
@@ -1009,25 +1017,16 @@ const AddInspectionPage = () => {
 
           // Para multigas, usa data e hora se disponível, senão usa apenas data
           // Se tiver datetime completo, usa ele; senão combina data com hora separada se houver
-          let multigasTestDateTime: string | null = inspectionDate;
-          if (inspectionDateTime) {
-            // Formata para ISO string completa (YYYY-MM-DDTHH:mm:ss)
-            multigasTestDateTime = inspectionDateTime;
-          } else if (multigasTestTime) {
-            // Fallback: combina data com hora separada
-            multigasTestDateTime = `${inspectionDate}T${multigasTestTime}:00`;
+          let multigasTestDateTime: string = inspectionDateTime;
+          if (multigasTestTime) {
+            // Se há hora separada, combina com a data e converte preservando timezone local
+            const combinedDateTime = `${inspectionDate}T${multigasTestTime}`;
+            multigasTestDateTime = convertDateTimeLocalToISOWithTimezone(combinedDateTime);
           }
           
-          // Garante que a data está no formato correto (ISO string ou apenas data)
-          if (!multigasTestDateTime) {
-            multigasTestDateTime = new Date().toISOString();
-          }
-          
-          // Extrai apenas a data (YYYY-MM-DD) para o campo data_teste (sem hora)
-          // O schema espera apenas a data no formato YYYY-MM-DD
-          const dataTesteFormatada = multigasTestDateTime.includes('T') 
-            ? multigasTestDateTime.split('T')[0] 
-            : multigasTestDateTime;
+          // Agora salvamos o datetime completo (com hora e timezone)
+          // O campo data_teste foi alterado para timestamp with time zone no banco
+          const dataTesteCompleta = multigasTestDateTime; // Já está em formato ISO com timezone
           
           // Gera plano de ação automaticamente baseado no resultado
           const resultadoTeste = isApproved ? 'Aprovado' : 'Reprovado';
@@ -1038,7 +1037,7 @@ const AddInspectionPage = () => {
           
           const inspectionRecord = {
             id_equipamento: id,
-            data_teste: dataTesteFormatada,
+            data_teste: dataTesteCompleta, // DateTime completo com timezone
             tipo_teste: multigasTestType,
             resultado_teste: resultadoTeste,
             LEL_referencia: referenceValues.LEL || undefined,
@@ -1111,7 +1110,7 @@ const AddInspectionPage = () => {
 
           const inspectionRecord = {
             numero_serie_equipamento: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             status_geral: overallStatus,
             resultados_json: resultsDict,
             plano_de_acao: planAction || undefined,
@@ -1159,7 +1158,7 @@ const AddInspectionPage = () => {
 
           const inspectionRecord = {
             id_mangueira: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             resultado: resultado,
             status_geral: statusGeral,
             plano_de_acao: planAction || undefined,
@@ -1186,7 +1185,7 @@ const AddInspectionPage = () => {
         case 'abrigo': {
           const inspectionRecord = {
             id_abrigo: id,
-            data_inspecao: inspectionDate,
+            data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
             status_geral: overallStatus,
             resultados_json: checklistResults,
             plano_de_acao: planAction,
@@ -1214,7 +1213,7 @@ const AddInspectionPage = () => {
             const inspectionRecord = {
               equipment_type_id: customTypeId,
               id_equipamento: id,
-              data_inspecao: inspectionDate,
+              data_inspecao: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
               tipo_inspecao: formData.tipo_inspecao || undefined,
               status_geral: overallStatus,
               plano_de_acao: planAction,
@@ -1427,8 +1426,13 @@ const AddInspectionPage = () => {
               type="datetime-local"
               id="data_inspecao"
               {...register('data_inspecao', { required: t('inspection.dateRequiredError') })}
-              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none relative" 
+              style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+              step="60"
             />
+            <p className="text-xs text-[#8E8E93] mt-1">
+              {t('inspection.dateTimeHint', { defaultValue: 'Horário capturado automaticamente. Você pode editar se necessário.' })}
+            </p>
             {errors.data_inspecao && (
               <p className="text-sm text-status-error mt-1">{errors.data_inspecao.message}</p>
             )}

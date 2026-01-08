@@ -185,9 +185,26 @@ export const logError = (error: AppError, additionalInfo?: Record<string, any>) 
   // No Android, console.error aparece no Logcat
   if (import.meta.env.DEV || isAndroidNative) {
     try {
-      console.error('🚨 Erro capturado:', logData);
-      if (error.originalError) {
-        console.error('Erro original:', error.originalError);
+      // No Android nativo, precisamos serializar manualmente para evitar [object Object]
+      if (isAndroidNative) {
+        console.error('🚨 Erro capturado:', JSON.stringify(logData, null, 2));
+        if (error.originalError) {
+          // Tenta serializar o erro original de forma segura
+          const originalErrorInfo = error.originalError instanceof Error 
+            ? {
+                message: error.originalError.message,
+                name: error.originalError.name,
+                stack: error.originalError.stack,
+              }
+            : error.originalError;
+          console.error('Erro original:', JSON.stringify(originalErrorInfo, null, 2));
+        }
+      } else {
+        // No ambiente web, pode usar o console normal
+        console.error('🚨 Erro capturado:', logData);
+        if (error.originalError) {
+          console.error('Erro original:', error.originalError);
+        }
       }
     } catch (e) {
       // Fallback absoluto

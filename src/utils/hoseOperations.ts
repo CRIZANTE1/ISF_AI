@@ -5,6 +5,7 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import { parseInspectionDate } from './dateUtils';
 
 export interface Hose {
   id?: number;
@@ -238,7 +239,7 @@ export interface HoseInspection {
 export async function saveHoseInspection(inspection: Omit<HoseInspection, 'id' | 'created_at'>): Promise<boolean> {
   try {
     // Calcula próxima data de teste (anual - 1 ano após a inspeção atual)
-    const inspectionDate = new Date(inspection.data_inspecao);
+    const inspectionDate = parseInspectionDate(inspection.data_inspecao);
     const nextTestDate = new Date(inspectionDate);
     nextTestDate.setFullYear(nextTestDate.getFullYear() + 1);
 

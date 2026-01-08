@@ -9,6 +9,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { CheckCircle, XCircle, Clock, AlertCircle, Filter, Check, X, Eye, FileText, Trash2 } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { parseInspectionDate } from '../utils/dateUtils';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../components/ui/spinner';
@@ -231,8 +232,8 @@ const ActionPlansPage = () => {
 
         // Ordenar por data (mais recentes primeiro)
         allPlans.sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
+          const dateA = parseInspectionDate(a.date).getTime();
+          const dateB = parseInspectionDate(b.date).getTime();
           return dateB - dateA;
         });
 
@@ -655,7 +656,7 @@ const ActionPlansPage = () => {
                         {t('actionPlans.equipment', { defaultValue: 'Equipamento' })}: {plan.equipmentId}
                       </p>
                       <p className="text-xs text-[#8E8E93]">
-                        {format(new Date(plan.date), 'dd/MM/yyyy', { 
+                        {format(parseInspectionDate(plan.date), 'dd/MM/yyyy', { 
                           locale: currentLanguage === 'pt-BR' ? ptBR : enUS 
                         })}
                         {plan.inspector && ` • ${t('actionPlans.inspector', { defaultValue: 'Inspetor' })}: ${plan.inspector}`}

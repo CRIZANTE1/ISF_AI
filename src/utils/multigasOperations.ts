@@ -280,11 +280,14 @@ export async function getMultigasDetectorById(idEquipamento: string): Promise<Mu
     return mapSupabaseToDetector(data);
   } catch (error: any) {
     logger.error('Erro ao buscar detector multigás', 'equipment', error);
-    // Se já for um Error customizado, relançá-lo
-    if (error instanceof Error && (error.message.includes('permissão') || error.message.includes('autenticado'))) {
+    
+    // Sempre relançar erros - não retornar null silenciosamente
+    // Isso permite que o código chamador trate o erro adequadamente
+    if (error instanceof Error) {
       throw error;
     }
-    return null;
+    // Se não for Error, converter para Error
+    throw new Error(error?.message || String(error) || 'Erro desconhecido ao buscar detector multigás');
   }
 }
 

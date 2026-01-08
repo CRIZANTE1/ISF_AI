@@ -6,9 +6,11 @@ import Skeleton from '../components/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
-import { CheckCircle, XCircle, Clock, Calendar, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Calendar, Filter, X } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
+import { parseInspectionDate } from '../utils/dateUtils';
+import { useHaptics } from '../hooks/useHaptics';
 
 interface InspectionHistory {
   id: string | number;
@@ -25,9 +27,11 @@ const History = () => {
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
+  const haptics = useHaptics();
   const [inspections, setInspections] = useState<InspectionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
+  const [selectedInspection, setSelectedInspection] = useState<InspectionHistory | null>(null);
 
   // Função auxiliar para normalizar status (remover "Sim"/"Não" e converter para status apropriado)
   const normalizeStatus = (status: string | null | undefined): string => {
@@ -313,7 +317,7 @@ const History = () => {
   });
 
   const groupedByDate = filteredInspections.reduce((acc, insp) => {
-    const date = new Date(insp.date);
+    const date = parseInspectionDate(insp.date);
     const dateKey = format(date, 'dd/MM/yyyy', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS });
     if (!acc[dateKey]) {
       acc[dateKey] = [];
@@ -393,7 +397,7 @@ const History = () => {
                 transition={{ duration: 0.3 }}
               >
                 <h3 className="text-sm font-semibold mb-ios-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
-                  {format(new Date(dateInspections[0].date), currentLanguage === 'pt-BR' ? "EEEE, d 'de' MMMM 'de' yyyy" : "EEEE, MMMM d, yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                  {format(parseInspectionDate(dateInspections[0].date), currentLanguage === 'pt-BR' ? "EEEE, d 'de' MMMM 'de' yyyy" : "EEEE, MMMM d, yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                 </h3>
                 <div className="space-y-ios-3">
                   <AnimatePresence>
@@ -405,12 +409,17 @@ const History = () => {
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: index * 0.05 }}
                         whileHover={{ scale: 1.01, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
                         className="p-ios-4 cursor-pointer group rounded-lg border transition-all"
                         style={{
                           backgroundColor: 'var(--card)',
                           borderColor: 'var(--border)',
                           borderRadius: 'var(--radius)',
                           boxShadow: 'var(--shadow-sm)',
+                        }}
+                        onClick={() => {
+                          haptics.light();
+                          setSelectedInspection(insp);
                         }}
                       >
                         <div className="flex items-start justify-between mb-ios-2">
@@ -430,7 +439,7 @@ const History = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-xs mb-ios-1" style={{ color: 'var(--muted-foreground)' }}>
-                              {format(new Date(insp.date), 'HH:mm', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                              {format(parseInspectionDate(insp.date), 'HH:mm', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
                             </p>
                             <span
                               className="text-xs font-medium px-ios-2 py-ios-1 rounded-full"
@@ -461,6 +470,204 @@ const History = () => {
           </div>
         )}
       </main>
+
+      {/* Modal de Detalhes da Inspeção */}
+      <AnimatePresence>
+        {selectedInspection && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              haptics.light();
+              setSelectedInspection(null);
+            }}
+            onTouchEnd={(e) => {
+              if (e.target === e.currentTarget) {
+                haptics.light();
+                setSelectedInspection(null);
+              }
+            }}
+            style={{ 
+              touchAction: 'manipulation',
+              overflow: 'hidden',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ 
+                type: 'spring', 
+                stiffness: 300,
+                damping: 30,
+                duration: 0.3 
+              }}
+              className="rounded-lg shadow-xl w-full max-w-md m-4 max-h-[90vh] overflow-y-auto"
+              style={{ 
+                backgroundColor: '#1A1A1A', 
+                borderWidth: '1px', 
+                borderColor: '#2A2A2A',
+                willChange: 'transform',
+                transform: 'translateZ(0)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 flex items-center justify-between p-4 border-b backdrop-blur-sm"
+                style={{ 
+                  backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                  borderColor: '#2A2A2A'
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(selectedInspection.status)}
+                  <h2 className="text-xl font-semibold" style={{ color: '#FFFFFF' }}>
+                    {t('history.inspectionDetails', { defaultValue: 'Detalhes da Inspeção' })}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => {
+                    haptics.light();
+                    setSelectedInspection(null);
+                  }}
+                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  style={{ color: '#9CA3AF' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-4">
+                {/* Tipo e Equipamento */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+                      {t('history.type', { defaultValue: 'Tipo' })}:
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>
+                      {selectedInspection.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+                      {t('history.equipment', { defaultValue: 'Equipamento' })}:
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>
+                      {selectedInspection.equipmentId}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Data e Hora */}
+                <div className="pt-2 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+                      {t('history.date', { defaultValue: 'Data' })}:
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>
+                      {format(parseInspectionDate(selectedInspection.date), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+                      {t('history.time', { defaultValue: 'Hora' })}:
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>
+                      {format(parseInspectionDate(selectedInspection.date), "HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="pt-2 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+                      {t('history.status', { defaultValue: 'Status' })}:
+                    </span>
+                    <span
+                      className="text-xs font-semibold px-3 py-1 rounded-full"
+                      style={{
+                        backgroundColor: getStatusColor(selectedInspection.status),
+                        color: '#000000',
+                      }}
+                    >
+                      {formatStatus(selectedInspection.status)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Inspetor */}
+                {selectedInspection.inspector && (
+                  <div className="pt-2 border-t" style={{ borderColor: '#2A2A2A' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+                        {t('history.inspector', { defaultValue: 'Inspetor' })}:
+                      </span>
+                      <span className="text-sm" style={{ color: '#FFFFFF' }}>
+                        {selectedInspection.inspector}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Observações */}
+                {selectedInspection.observations && (
+                  <div className="pt-2 border-t" style={{ borderColor: '#2A2A2A' }}>
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium block" style={{ color: '#9CA3AF' }}>
+                        {t('history.observations', { defaultValue: 'Observações' })}:
+                      </span>
+                      <div className="p-3 rounded-lg" style={{ backgroundColor: '#0A0A0A', borderWidth: '1px', borderColor: '#2A2A2A' }}>
+                        <p className="text-sm whitespace-pre-wrap" style={{ color: '#FFFFFF' }}>
+                          {typeof selectedInspection.observations === 'string' 
+                            ? selectedInspection.observations 
+                            : JSON.stringify(selectedInspection.observations, null, 2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Data de Criação */}
+                <div className="pt-2 border-t" style={{ borderColor: '#2A2A2A' }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: '#6B7280' }}>
+                      {t('history.createdAt', { defaultValue: 'Criado em' })}:
+                    </span>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>
+                      {format(parseInspectionDate(selectedInspection.created_at), "dd/MM/yyyy HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 p-4 border-t" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>
+                <button
+                  onClick={() => {
+                    haptics.medium();
+                    setSelectedInspection(null);
+                  }}
+                  className="w-full px-4 py-3 rounded-lg transition-colors active:scale-95"
+                  style={{ 
+                    backgroundColor: '#FFFFFF',
+                    color: '#000000',
+                    fontWeight: '600',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  {t('common.close', { defaultValue: 'Fechar' })}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

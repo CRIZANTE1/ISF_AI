@@ -334,12 +334,18 @@ async function executeOperation(operation: any): Promise<boolean> {
                 // Verifica se já existe registro com mesmo numero_identificacao + data_servico + user_id
                 if (data.numero_identificacao && data.data_servico) {
                   try {
+                    // Extrai apenas a data (YYYY-MM-DD) para comparação, funciona com date e timestamp
+                    const dateOnly = String(data.data_servico).split('T')[0];
+                    const startOfDay = `${dateOnly}T00:00:00`;
+                    const endOfDay = `${dateOnly}T23:59:59`;
+                    
                     // Type assertion seguro pois table foi validado com tableNameSchema
                     const { data: existing, error: checkError } = await supabase
                       .from(table as any)
                       .select('id')
                       .eq('numero_identificacao', data.numero_identificacao)
-                      .eq('data_servico', data.data_servico)
+                      .gte('data_servico', startOfDay)
+                      .lte('data_servico', endOfDay)
                       .eq('user_id', authenticatedUserId)
                       .limit(1);
                     

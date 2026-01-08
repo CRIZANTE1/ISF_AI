@@ -13,6 +13,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { Trash2, Edit, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
+import { parseInspectionDate } from '../utils/dateUtils';
 import { useHaptics } from '../hooks/useHaptics';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
@@ -288,56 +289,72 @@ const EquipmentDetailPage = () => {
           try {
             const detector = await getMultigasDetectorById(id);
             if (detector) {
-              
               equipmentData = {
                 ...detector,
                 id: String(detector.id_equipamento),
                 name: String(detector.id_equipamento),
                 location: undefined, // inventario_multigas não tem coluna localizacao
               };
-              const { data: inspData, error: inspError } = await supabase
-                .from('inspecoes_multigas')
-                .select('*')
-                .eq('id_equipamento', id)
-                .order('data_teste', { ascending: false });
-              if (!inspError && inspData) {
-                inspectionsData = inspData.map(insp => ({
-                  id: insp.id || 0,
-                  data_inspecao: insp.data_teste || '',
-                  status_geral: insp.resultado_teste || undefined,
-                  plano_de_acao: insp.plano_de_acao || undefined,
-                  link_foto_nao_conformidade: (insp as any).link_foto_nao_conformidade || undefined,
-                }));
+              
+              // Buscar inspeções com tratamento de erro
+              try {
+                const { data: inspData, error: inspError } = await supabase
+                  .from('inspecoes_multigas')
+                  .select('*')
+                  .eq('id_equipamento', id)
+                  .order('data_teste', { ascending: false });
+                  
+                if (inspError) {
+                  logger.warn('Erro ao buscar inspeções de multigas', 'equipment', { error: inspError, id });
+                } else if (inspData) {
+                  inspectionsData = inspData.map(insp => ({
+                    id: insp.id || 0,
+                    data_inspecao: insp.data_teste || '',
+                    status_geral: insp.resultado_teste || undefined,
+                    plano_de_acao: insp.plano_de_acao || undefined,
+                    link_foto_nao_conformidade: (insp as any).link_foto_nao_conformidade || undefined,
+                  }));
+                }
+              } catch (inspError) {
+                logger.error('Erro ao processar inspeções de multigas', 'equipment', { error: inspError, id });
+                // Não bloqueia o carregamento do equipamento se houver erro nas inspeções
               }
             } else {
               logger.warn('Multigas não encontrado', 'equipment', { id });
             }
           } catch (permError: any) {
-            // Capturar erros de permissão
-            const permMsg = permError?.message || `Erro ao acessar ${id}: ${permError}`;
-            logger.error('Erro ao acessar multigas', 'equipment', { error: permError, id });
-            if (!equipmentData) {
-              handleError(new Error(permMsg), 'permission');
-            }
+            // Capturar erros de permissão ou outros erros
+            const permMsg = permError?.message || String(permError) || `Erro ao acessar equipamento ${id}`;
+            logger.error('Erro ao acessar multigas', 'equipment', { error: permError, message: permMsg, id });
+            
+            // Não chama handleError aqui - deixa o catch principal tratar
+            // Apenas loga e continua para tentar busca direta
+            logger.warn('Tentando buscar multigas diretamente após erro', 'equipment', { id, error: permMsg });
           }
           
+          // Se não encontrou o equipamento, tenta buscar diretamente
           if (!equipmentData) {
-            logger.warn('Multigas não encontrado após tentativas', 'equipment', { id });
+            logger.warn('Multigas não encontrado após tentativa com getMultigasDetectorById, tentando busca direta', 'equipment', { id });
             
-            // Tentar buscar diretamente via Supabase sem usar a função wrapper
-            const { data: directData } = await supabase
-              .from('inventario_multigas')
-              .select('*')
-              .eq('id_equipamento', id)
-              .maybeSingle();
-            
-            if (directData) {
-              equipmentData = {
-                ...directData,
-                id: directData.id_equipamento,
-                name: directData.id_equipamento,
-                location: undefined,
-              };
+            try {
+              const { data: directData, error: directError } = await supabase
+                .from('inventario_multigas')
+                .select('*')
+                .eq('id_equipamento', id)
+                .maybeSingle();
+              
+              if (directError) {
+                logger.error('Erro ao buscar multigas diretamente', 'equipment', { error: directError, id });
+              } else if (directData) {
+                equipmentData = {
+                  ...directData,
+                  id: directData.id_equipamento,
+                  name: directData.id_equipamento,
+                  location: undefined,
+                };
+              }
+            } catch (directError) {
+              logger.error('Erro ao tentar busca direta de multigas', 'equipment', { error: directError, id });
             }
           }
           break;
@@ -447,7 +464,38 @@ const EquipmentDetailPage = () => {
         setInspections(inspectionsData);
       }
     } catch (err: any) {
-      handleError(err, 'equipment', 'Falha ao buscar detalhes do equipamento');
+      // Preservar mensagem original do erro ou criar uma descritiva
+      let errorMessage = 'Falha ao buscar detalhes do equipamento';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message || errorMessage;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.error_description) {
+        errorMessage = err.error_description;
+      } else if (err?.code) {
+        // Erro do Supabase com código
+        if (err.code === 'PGRST116') {
+          errorMessage = `Equipamento não encontrado. Verifique se o ID '${id}' está correto.`;
+        } else if (err.code === 'PGRST301') {
+          errorMessage = `Você não tem permissão para acessar este equipamento.`;
+        } else {
+          errorMessage = `Erro ao buscar equipamento (código: ${err.code})`;
+        }
+      }
+      
+      logger.error('Erro ao buscar detalhes do equipamento', 'equipment', { 
+        error: err, 
+        errorMessage, 
+        type, 
+        id,
+        errorString: String(err),
+        errorType: typeof err
+      });
+      
+      handleError(new Error(errorMessage), 'equipment', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -737,12 +785,15 @@ const EquipmentDetailPage = () => {
     setGeneratingPdf(inspectionId);
     
     try {
+      // Buscar dados da inspeção
+      logger.debug('Buscando dados da inspeção para PDF', 'equipment', { inspectionId, type });
       const inspectionData = await fetchInspectionData(inspectionId);
       if (!inspectionData) {
         throw new Error('Inspeção não encontrada');
       }
 
       // Buscar perfil do usuário para nome do responsável
+      logger.debug('Buscando perfil do usuário', 'equipment', { userId: user.id });
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
@@ -750,6 +801,7 @@ const EquipmentDetailPage = () => {
         .single();
 
       // Preparar dados para o relatório
+      logger.debug('Preparando dados do relatório', 'equipment', { equipmentId: equipment.id, inspectionId });
       const reportData = {
         equipment: {
           ...equipment,
@@ -761,35 +813,54 @@ const EquipmentDetailPage = () => {
         inspection: {
           id: inspectionData.id,
           data_inspecao: inspectionData.data_inspecao || inspectionData.data_servico || inspectionData.data_teste || '',
-          status_geral: inspectionData.status_geral,
-          tipo_servico: inspectionData.tipo_servico,
-          tipo_inspecao: inspectionData.tipo_inspecao,
+          status_geral: inspectionData.status_geral || inspectionData.resultado_teste,
+          tipo_servico: inspectionData.tipo_servico || inspectionData.tipo_inspecao || inspectionData.tipo_teste,
+          tipo_inspecao: inspectionData.tipo_inspecao || inspectionData.tipo_teste,
           inspetor: inspectionData.inspetor || inspectionData.inspetor_responsavel,
-          observacoes_gerais: inspectionData.observacoes_gerais,
+          observacoes_gerais: inspectionData.observacoes_gerais || inspectionData.observacoes,
           plano_de_acao: inspectionData.plano_de_acao,
           link_foto_nao_conformidade: inspectionData.link_foto_nao_conformidade,
           resultados_json: inspectionData.resultados_json,
           latitude: inspectionData.latitude,
           longitude: inspectionData.longitude,
-          data_proxima_inspecao: inspectionData.data_proxima_inspecao,
+          data_proxima_inspecao: inspectionData.data_proxima_inspecao || inspectionData.data_proximo_teste,
         } as InspectionData,
-        companyName: undefined, // Pode ser adicionado depois
+        companyName: undefined,
         responsibleName: profile?.full_name || inspectionData.inspetor || inspectionData.inspetor_responsavel,
       };
 
       // Gerar PDF
+      logger.debug('Gerando PDF', 'equipment', { equipmentId: equipment.id, inspectionId });
       const pdfBlob = await generateInspectionReport(reportData);
+      logger.debug('PDF gerado com sucesso', 'equipment', { blobSize: pdfBlob.size });
 
       // Salvar/compartilhar PDF
-      const dateStr = format(new Date(inspectionData.data_inspecao || inspectionData.data_servico || new Date()), 'yyyy-MM-dd');
+      let dateStr: string;
+      try {
+        const inspectionDate = inspectionData.data_inspecao || inspectionData.data_servico || inspectionData.data_teste || new Date().toISOString();
+        dateStr = format(parseInspectionDate(inspectionDate), 'yyyy-MM-dd');
+      } catch (dateError) {
+        logger.warn('Erro ao formatar data para nome do arquivo, usando data atual', 'equipment', { dateError });
+        dateStr = format(new Date(), 'yyyy-MM-dd');
+      }
+      
       const filename = `Relatorio_Inspecao_${equipment.name}_${dateStr}.pdf`;
+      logger.debug('Salvando PDF no dispositivo', 'equipment', { filename, blobSize: pdfBlob.size });
       await savePdfToDevice(pdfBlob, filename);
+      logger.info('PDF salvo com sucesso', 'equipment', { filename });
 
       // Mostrar mensagem de sucesso
-      handleError(null, 'equipment', 'Relatório gerado com sucesso!');
-    } catch (error) {
-      logger.error('Erro ao gerar relatório PDF', 'equipment', { error, inspectionId });
-      handleError(error, 'equipment', 'Erro ao gerar relatório. Tente novamente.');
+      showSuccess('Relatório gerado com sucesso!');
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error) || 'Erro desconhecido ao gerar relatório';
+      logger.error('Erro ao gerar relatório PDF', 'equipment', { 
+        error: errorMessage, 
+        errorDetails: error,
+        inspectionId,
+        equipmentType: type,
+        equipmentId: equipment?.id 
+      });
+      handleError(new Error(errorMessage), 'equipment', `Erro ao gerar relatório: ${errorMessage}`);
     } finally {
       setGeneratingPdf(null);
     }
@@ -849,8 +920,8 @@ const EquipmentDetailPage = () => {
 
       // Ordenar por data
       inspectionDataList.sort((a, b) => {
-        const dateA = new Date(a.data_inspecao).getTime();
-        const dateB = new Date(b.data_inspecao).getTime();
+        const dateA = parseInspectionDate(a.data_inspecao).getTime();
+        const dateB = parseInspectionDate(b.data_inspecao).getTime();
         return dateA - dateB;
       });
 
@@ -893,8 +964,9 @@ const EquipmentDetailPage = () => {
       setDateRange({ start: '', end: '' });
 
       // Mostrar mensagem de sucesso
-      handleError(null, 'equipment', 'Relatório de múltiplas inspeções gerado com sucesso!');
+      showSuccess('Relatório de múltiplas inspeções gerado com sucesso!');
     } catch (error) {
+
       logger.error('Erro ao gerar relatório de múltiplas inspeções', 'equipment', { error });
       handleError(error, 'equipment', 'Erro ao gerar relatório. Tente novamente.');
     } finally {
@@ -986,7 +1058,7 @@ const EquipmentDetailPage = () => {
                   {equipment.data_servico && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-semibold text-gray-400">Data do Serviço:</span>
-                      <span className="text-white text-right">{format(new Date(equipment.data_servico), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                      <span className="text-white text-right">{format(parseInspectionDate(equipment.data_servico), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
                     </div>
                   )}
                   {equipment.data_proxima_inspecao && (
@@ -1041,7 +1113,7 @@ const EquipmentDetailPage = () => {
                   {equipment.data_teste && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-semibold text-gray-400">Data do Teste:</span>
-                      <span className="text-white text-right">{format(new Date(equipment.data_teste), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
+                      <span className="text-white text-right">{format(parseInspectionDate(equipment.data_teste), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</span>
                     </div>
                   )}
                   {equipment.data_validade && (
@@ -1231,7 +1303,12 @@ const EquipmentDetailPage = () => {
                     <li key={insp.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border flex justify-between items-start gap-4" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
                       <div className="flex-grow">
                         <div className="flex justify-between items-start">
-                          <p className="font-semibold">{format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</p>
+                          <div>
+                            <p className="font-semibold">{format(parseInspectionDate(insp.data_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}</p>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                              {format(parseInspectionDate(insp.data_inspecao), "HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                            </p>
+                          </div>
                           {insp.status_geral && (
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.status_geral)}`}>
                               {insp.status_geral}
@@ -1362,9 +1439,14 @@ const EquipmentDetailPage = () => {
                       />
                       <div className="flex-1">
                         <div className="flex justify-between items-center">
-                          <span className="text-white text-sm font-medium">
-                            {format(new Date(insp.data_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
-                          </span>
+                          <div>
+                            <span className="text-white text-sm font-medium">
+                              {format(parseInspectionDate(insp.data_inspecao), "dd/MM/yyyy", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                            </span>
+                            <span className="text-xs text-gray-400 block mt-0.5">
+                              {format(parseInspectionDate(insp.data_inspecao), "HH:mm", { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                            </span>
+                          </div>
                           {insp.status_geral && (
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.status_geral)}`}>
                               {insp.status_geral}

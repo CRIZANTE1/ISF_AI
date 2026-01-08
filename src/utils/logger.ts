@@ -33,42 +33,46 @@ class Logger {
     if (this.isDev || this.isAndroidNative()) {
       const prefix = context ? `[${context}]` : '';
       const logMessage = `${prefix} ${message}`;
+      
+      // No Android nativo, precisamos serializar objetos para evitar [object Object]
+      const isAndroid = this.isAndroidNative();
+      const formattedData = data && isAndroid ? this.serializeData(data) : (data || '');
 
       // Usar console.log como fallback se métodos específicos não estiverem disponíveis
       try {
         switch (level) {
           case 'debug':
             if (typeof console.debug === 'function') {
-              console.debug(logMessage, data || '');
+              console.debug(logMessage, formattedData);
             } else {
-              console.log(`[DEBUG] ${logMessage}`, data || '');
+              console.log(`[DEBUG] ${logMessage}`, formattedData);
             }
             break;
           case 'info':
             if (typeof console.info === 'function') {
-              console.info(logMessage, data || '');
+              console.info(logMessage, formattedData);
             } else {
-              console.log(`[INFO] ${logMessage}`, data || '');
+              console.log(`[INFO] ${logMessage}`, formattedData);
             }
             break;
           case 'warn':
             if (typeof console.warn === 'function') {
-              console.warn(logMessage, data || '');
+              console.warn(logMessage, formattedData);
             } else {
-              console.log(`[WARN] ${logMessage}`, data || '');
+              console.log(`[WARN] ${logMessage}`, formattedData);
             }
             break;
           case 'error':
             if (typeof console.error === 'function') {
-              console.error(logMessage, data || '');
+              console.error(logMessage, formattedData);
             } else {
-              console.log(`[ERROR] ${logMessage}`, data || '');
+              console.log(`[ERROR] ${logMessage}`, formattedData);
             }
             break;
         }
       } catch (e) {
         // Fallback absoluto - sempre funciona
-        console.log(`[${level.toUpperCase()}] ${logMessage}`, data || '');
+        console.log(`[${level.toUpperCase()}] ${logMessage}`, formattedData);
       }
     }
 
@@ -92,6 +96,54 @@ class Logger {
       // Ignorar erros
     }
     return false;
+  }
+
+  /**
+   * Serializa dados para exibição no Android
+   * Evita [object Object] no Logcat
+   */
+  private serializeData(data: any): string {
+    if (!data) return '';
+    
+    try {
+      // Se já é string, retorna
+      if (typeof data === 'string') return data;
+      
+      // Se é um Error, extrai informações relevantes
+      if (data instanceof Error) {
+        return JSON.stringify({
+          message: data.message,
+          name: data.name,
+          stack: data.stack,
+        }, null, 2);
+      }
+      
+      // Se é um objeto, tenta serializar com tratamento especial para erros
+      if (typeof data === 'object') {
+        // Cria uma versão serializada do objeto, tratando Errors aninhados
+        const serialized = JSON.stringify(data, (key, value) => {
+          if (value instanceof Error) {
+            return {
+              message: value.message,
+              name: value.name,
+              stack: value.stack,
+            };
+          }
+          return value;
+        }, 2);
+        return serialized;
+      }
+      
+      // Para tipos primitivos, converte para string
+      return String(data);
+    } catch (error) {
+      // Se falhar a serialização, tenta uma abordagem mais simples
+      try {
+        return JSON.stringify(data);
+      } catch {
+        return String(data);
+      }
+    }
   }
 
   /**

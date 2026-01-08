@@ -31,7 +31,11 @@ export const extinguisherSchema = baseEquipmentSchema.extend({
   marca_fabricante: z.string().max(100).nullable().optional(),
   ano_fabricacao: z.number().int().min(1900).max(new Date().getFullYear() + 1).nullable().optional(),
   tipo_servico: z.string().max(50).nullable().optional(),
-  data_servico: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  // Aceita tanto data (YYYY-MM-DD) quanto ISO string com timezone (YYYY-MM-DDTHH:mm:ss.sssZ)
+  data_servico: z.string().refine(
+    (val) => !val || /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?)?$/.test(val),
+    { message: "Data deve estar no formato YYYY-MM-DD ou ISO string com timezone" }
+  ).nullable().optional(),
   inspetor_responsavel: z.string().max(200).nullable().optional(),
   empresa_executante: z.string().max(200).nullable().optional(),
   data_proxima_inspecao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
@@ -69,7 +73,11 @@ export const scbaSchema = baseEquipmentSchema.extend({
   modelo: z.string().max(100).nullable().optional(),
   numero_serie_mascara: z.string().max(100).nullable().optional(),
   numero_serie_segundo_estagio: z.string().max(100).nullable().optional(),
-  data_teste: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  // Aceita tanto data (YYYY-MM-DD) quanto ISO string com timezone (YYYY-MM-DDTHH:mm:ss.sssZ)
+  data_teste: z.string().refine(
+    (val) => !val || /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?)?$/.test(val),
+    { message: "Data deve estar no formato YYYY-MM-DD ou ISO string com timezone" }
+  ).nullable().optional(),
   data_validade: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   resultado_final: z.string().max(50).nullable().optional(),
   vazamento_mascara_resultado: z.string().max(50).nullable().optional(),
@@ -81,7 +89,11 @@ export const scbaSchema = baseEquipmentSchema.extend({
 // Schema para Inspeção de Extintor
 export const extinguisherInspectionSchema = baseEquipmentSchema.extend({
   numero_identificacao: z.string().min(1).max(100),
-  data_servico: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  // Aceita tanto data (YYYY-MM-DD) quanto ISO string com timezone (YYYY-MM-DDTHH:mm:ss.sssZ)
+  data_servico: z.string().refine(
+    (val) => !val || /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?)?$/.test(val),
+    { message: "Data deve estar no formato YYYY-MM-DD ou ISO string com timezone" }
+  ).nullable().optional(),
   tipo_servico: z.string().max(50).nullable().optional(),
   numero_selo_inmetro: z.string().max(100).nullable().optional(), // Atualizado em manutenções nível 2 ou 3
   aprovado_inspecao: z.enum(['Sim', 'Não', 'Pendente']).nullable().optional(),
@@ -96,7 +108,11 @@ export const extinguisherInspectionSchema = baseEquipmentSchema.extend({
 // Schema para Inspeção Multigas
 export const multigasInspectionSchema = baseEquipmentSchema.extend({
   id_equipamento: z.string().min(1).max(100),
-  data_teste: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  // Aceita tanto data (YYYY-MM-DD) quanto ISO string com timezone (YYYY-MM-DDTHH:mm:ss.sssZ)
+  data_teste: z.string().refine(
+    (val) => !val || /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?)?$/.test(val),
+    { message: "Data deve estar no formato YYYY-MM-DD ou ISO string com timezone" }
+  ).nullable().optional(),
   tipo_teste: z.enum(['Periódico', 'Extraordinário']).nullable().optional(),
   resultado_teste: z.string().max(50).nullable().optional(),
   LEL_referencia: z.number().min(0).max(100).nullable().optional(),
@@ -116,7 +132,11 @@ export const multigasInspectionSchema = baseEquipmentSchema.extend({
 // Schema para Inspeção SCBA
 export const scbaInspectionSchema = baseEquipmentSchema.extend({
   numero_serie_equipamento: z.string().min(1).max(100),
-  data_inspecao: z.string().optional().nullable(),
+  // Aceita tanto data (YYYY-MM-DD) quanto ISO string com timezone (YYYY-MM-DDTHH:mm:ss.sssZ)
+  data_inspecao: z.string().refine(
+    (val) => !val || /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?)?$/.test(val),
+    { message: "Data deve estar no formato YYYY-MM-DD ou ISO string com timezone" }
+  ).optional().nullable(),
   status_geral: z.string().max(50).nullable().optional(),
   resultados_json: z.record(z.string(), z.any()).nullable().optional(),
   plano_de_acao: z.string().max(2000).nullable().optional(),

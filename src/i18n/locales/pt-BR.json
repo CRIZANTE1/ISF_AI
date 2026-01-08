@@ -243,7 +243,9 @@
     "updateValuesPermanently": "Atualizar valores permanentemente",
     "foundValuesTitle": "Valores Encontrados no Teste",
     "nonConformitiesFound": "{{count}} não conformidade(s) encontrada(s). Foto obrigatória.",
-    "functionalTestPhotoRequired": "Para Testes Funcionais Anuais, anexe uma foto do equipamento durante o teste."
+    "functionalTestPhotoRequired": "Para Testes Funcionais Anuais, anexe uma foto do equipamento durante o teste.",
+    "dateTimeRequired": "Data e Hora da Inspeção",
+    "dateTimeHint": "Horário capturado automaticamente. Você pode editar se necessário."
   },
   "profile": {
     "title": "Perfil",
@@ -490,7 +492,16 @@
     "all": "Todos",
     "approved": "Aprovado",
     "rejected": "Rejeitado",
-    "pending": "Pendente"
+    "pending": "Pendente",
+    "inspectionDetails": "Detalhes da Inspeção",
+    "type": "Tipo",
+    "equipment": "Equipamento",
+    "date": "Data",
+    "time": "Hora",
+    "status": "Status",
+    "inspector": "Inspetor",
+    "observations": "Observações",
+    "createdAt": "Criado em"
   },
   "actionPlans": {
     "title": "Planos de Ação",
@@ -819,7 +830,7 @@
     "add_abrigo": {
       "title": "Guia - Cadastrar Abrigo",
       "howToRegister": "Como preencher",
-      "howToRegisterContent": "1. **ID Abrigo:** Opcional. Gerado automaticamente se vazio.\n2. **Localização:** Onde o abrigo está instalado.\n3. **Tipo:** Hidrante ou Extintor.\n4. **Itens:** Liste os itens contidos (mangueiras, esguichos, chaves)."
+      "howToRegisterContent": "1. **ID Abrigo:** Opcional. Gerado automaticamente se vazio.\n2. **Localização:** Onde o abrigo está instalado.\n3. **Tipo:** Abrigo de Emergência.\n4. **Itens:** Liste os itens contidos (mangueiras, esguichos, chaves)."
     },
     "add_custom": {
       "title": "Guia - Cadastrar Equipamento Personalizado",

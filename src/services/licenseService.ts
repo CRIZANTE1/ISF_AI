@@ -153,6 +153,7 @@ export class LicenseService {
 
   /**
    * Associa um usuário à licença do machine_id atual
+   * Se o usuário já tiver uma licença premium/lifetime, vincula ao novo machine_id
    * Se a licença já tiver um user_id diferente, apenas atualiza se estiver vazio ou for o mesmo usuário
    */
   async associateUserToLicense(userId: string, machineId?: string): Promise<{ success: boolean; error?: string }> {
@@ -161,7 +162,122 @@ export class LicenseService {
         machineId = await this.getMachineId();
       }
 
-      // Primeiro, verificar se a licença existe e qual user_id atual
+      // NOVA LÓGICA: Primeiro verificar se o usuário JÁ tem uma licença premium/lifetime
+      const { data: userLicenses, error: userLicensesError } = await supabase
+        .from('licenses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true }); // Ordenar pela mais antiga (primeira licença)
+
+      if (userLicensesError && userLicensesError.code !== 'PGRST116') {
+        logger.error('Erro ao buscar licenças do usuário', 'license', userLicensesError);
+        return { success: false, error: 'Erro ao buscar licenças do usuário' };
+      }
+
+      // Se o usuário já tem licenças, verificar se alguma é premium/lifetime
+      if (userLicenses && userLicenses.length > 0) {
+        // Priorizar licença lifetime, depois premium, depois a mais recente
+        const premiumLicense = userLicenses.find(l => l.is_lifetime || l.license_type === 'lifetime');
+        const activePremium = userLicenses.find(l => l.license_type === 'premium' && l.last_activation_date);
+        const existingPremiumLicense = premiumLicense || activePremium;
+
+        if (existingPremiumLicense) {
+          // Usuário JÁ tem licença premium/lifetime em outro device
+          // Verificar se o machine_id já está associado a essa licença
+          if (existingPremiumLicense.machine_id === machineId) {
+            logger.debug('Licença premium já está associada a este machine_id', 'license', { machineId, userId });
+            return { success: true };
+          }
+
+          // IMPORTANTE: Atualizar o machine_id da licença premium para o novo device
+          logger.info('Usuário premium reinstalou o app - vinculando licença ao novo machine_id', 'license', {
+            userId,
+            oldMachineId: existingPremiumLicense.machine_id,
+            newMachineId: machineId,
+            licenseType: existingPremiumLicense.license_type
+          });
+
+          // VERIFICAR PRIMEIRO: Se já existe uma licença com o novo machine_id
+          const { data: conflictingLicense, error: checkError } = await supabase
+            .from('licenses')
+            .select('id, user_id, license_type')
+            .eq('machine_id', machineId)
+            .maybeSingle();
+
+          if (checkError && checkError.code !== 'PGRST116') {
+            logger.error('Erro ao verificar conflito de machine_id', 'license', checkError);
+            return { success: false, error: 'Erro ao verificar machine_id' };
+          }
+
+          if (conflictingLicense) {
+            // Se a licença conflitante é experimental e pertence ao mesmo usuário, deletá-la
+            if (conflictingLicense.license_type === 'experimental' && 
+                conflictingLicense.user_id === userId) {
+              logger.info('Removendo licença experimental conflitante para atualizar licença premium', 'license', {
+                conflictingLicenseId: conflictingLicense.id,
+                machineId
+              });
+              
+              const { error: deleteError } = await supabase
+                .from('licenses')
+                .delete()
+                .eq('id', conflictingLicense.id);
+              
+              if (deleteError) {
+                logger.error('Erro ao remover licença experimental conflitante', 'license', deleteError);
+                // Continuar mesmo assim - tentar atualizar
+              }
+            } else if (conflictingLicense.user_id !== userId && conflictingLicense.user_id !== null) {
+              // Licença de outro usuário - não podemos sobrescrever
+              logger.warn('Machine ID já está em uso por outra licença de outro usuário', 'license', {
+                machineId,
+                conflictingUserId: conflictingLicense.user_id,
+                currentUserId: userId,
+                conflictingLicenseId: conflictingLicense.id
+              });
+              return { 
+                success: false, 
+                error: 'Este dispositivo já está associado a outra conta. Faça logout da outra conta primeiro.' 
+              };
+            } else if (conflictingLicense.id === existingPremiumLicense.id) {
+              // É a própria licença - já está atualizada (não deveria acontecer, mas check de segurança)
+              logger.debug('Licença já está associada a este machine_id', 'license', { machineId, userId });
+              return { success: true };
+            }
+          }
+
+          // Agora podemos atualizar com segurança
+          const { error: updateError } = await supabase
+            .from('licenses')
+            .update({ machine_id: machineId })
+            .eq('id', existingPremiumLicense.id);
+
+          if (updateError) {
+            logger.error('Erro ao atualizar machine_id da licença premium', 'license', updateError);
+            
+            // Se ainda assim der erro de duplicata (race condition), verificar novamente
+            if (updateError.code === '23505') {
+              const { data: retryCheck } = await supabase
+                .from('licenses')
+                .select('id, user_id')
+                .eq('machine_id', machineId)
+                .maybeSingle();
+              
+              if (retryCheck?.user_id === userId) {
+                logger.info('Machine ID já atualizado por outra operação (race condition)', 'license', { machineId, userId });
+                return { success: true };
+              }
+            }
+            
+            return { success: false, error: 'Erro ao atualizar machine_id da licença' };
+          }
+
+          logger.info('Licença premium vinculada com sucesso ao novo device', 'license', { userId, machineId });
+          return { success: true };
+        }
+      }
+
+      // Verificar se já existe uma licença para este machine_id
       const { data: existingLicense, error: fetchError } = await supabase
         .from('licenses')
         .select('user_id')
@@ -173,7 +289,7 @@ export class LicenseService {
         return { success: false, error: 'Erro ao buscar licença' };
       }
 
-      // Se a licença não existe, criar uma nova com o user_id
+      // Se a licença não existe para este machine_id, criar uma nova experimental
       if (!existingLicense) {
         const now = new Date().toISOString();
         const { error: createError } = await supabase
@@ -187,7 +303,7 @@ export class LicenseService {
               is_active: true,
               is_lifetime: false,
               license_type: 'experimental',
-              user_id: userId, // Já associar o usuário na criação
+              user_id: userId,
             },
           ]);
 
@@ -196,11 +312,11 @@ export class LicenseService {
           return { success: false, error: 'Erro ao criar licença' };
         }
 
-        logger.info('Nova licença criada e associada ao usuário', 'license', { machineId, userId });
+        logger.info('Nova licença experimental criada e associada ao usuário', 'license', { machineId, userId });
         return { success: true };
       }
 
-      // Se a licença já existe
+      // Se a licença já existe para este machine_id
       const currentUserId = existingLicense.user_id;
 
       // Se já tem o mesmo user_id, não precisa atualizar

@@ -47,13 +47,27 @@ const MyDataPage = () => {
 
         // Atualiza email no auth (se foi alterado)
         if (formData.email !== user.email) {
+          // CRÍTICO: Verificar sessão antes de updateUser
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError || !session) {
+            throw new Error('Sessão expirada. Faça login novamente.');
+          }
+
           const { error: emailError } = await supabase.auth.updateUser({
             email: formData.email,
           });
 
           if (emailError) {
+            // Verificar se é erro de sessão
+            if (emailError.message?.includes('session') || emailError.message?.includes('jwt')) {
+              throw new Error('Sessão expirada. Faça login novamente.');
+            }
             throw new Error('Não foi possível atualizar o email. Verifique se o email já está em uso ou se você precisa confirmar o novo email.');
           }
+          
+          // Pequeno delay para garantir persistência
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
 
         return true;

@@ -1,5 +1,6 @@
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -57,13 +58,33 @@ const PageSuspense = ({ children }: { children: React.ReactNode }) => (
 function App() {
   const navigate = useNavigate();
 
-  // Configurar callback de navegação para notificações
+  // Configurar callback de navegação para notificações e deep links
   useEffect(() => {
     setNotificationNavigationCallback((url: string) => {
       // Extrai o path da URL se for uma URL completa
       const path = url.startsWith('http') ? new URL(url).pathname : url;
       navigate(path);
     });
+
+    // Listener para Deep Links (global)
+    // Isso garante que links como reset de senha funcionem mesmo se o usuário já estiver logado ou em outra tela
+    const setupDeepLinks = async () => {
+      const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
+      if (!isCapacitor) return;
+
+      CapacitorApp.addListener('appUrlOpen', (data) => {
+        logger.info('[App] Deep link recebido globalmente', 'app', { url: data.url });
+
+        // Verificar se é reset de senha
+        if (data.url.includes('reset-password')) {
+          logger.info('[App] Link de reset de senha detectado, navegando para Auth', 'app');
+          // Forçar navegação para Auth, passando a URL no state
+          navigate('/auth', { state: { deepLink: data.url } });
+        }
+      });
+    };
+
+    setupDeepLinks();
 
     // Registrar tipos de ação para notificações locais
     notificationService.registerActionTypes();
@@ -76,6 +97,7 @@ function App() {
     // Limpar ao desmontar
     return () => {
       backgroundSyncService.stop();
+      CapacitorApp.removeAllListeners();
     };
   }, [navigate]);
 

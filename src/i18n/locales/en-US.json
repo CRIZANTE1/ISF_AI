@@ -244,7 +244,9 @@
     "updateValuesPermanently": "Update values permanently",
     "foundValuesTitle": "Values Found in Test",
     "nonConformitiesFound": "{{count}} non-conformity(ies) found. Photo required.",
-    "functionalTestPhotoRequired": "For Annual Functional Tests, attach a photo of the equipment during the test."
+    "functionalTestPhotoRequired": "For Annual Functional Tests, attach a photo of the equipment during the test.",
+    "dateTimeRequired": "Inspection Date and Time",
+    "dateTimeHint": "Time captured automatically. You can edit if necessary."
   },
   "profile": {
     "title": "Profile",
@@ -491,7 +493,16 @@
     "all": "All",
     "approved": "Approved",
     "rejected": "Rejected",
-    "pending": "Pending"
+    "pending": "Pending",
+    "inspectionDetails": "Inspection Details",
+    "type": "Type",
+    "equipment": "Equipment",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "inspector": "Inspector",
+    "observations": "Observations",
+    "createdAt": "Created at"
   },
   "actionPlans": {
     "title": "Action Plans",
