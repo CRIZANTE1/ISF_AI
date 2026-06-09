@@ -9,6 +9,8 @@ import Skeleton from './components/Skeleton';
 import { setNotificationNavigationCallback, notificationService } from './services/notificationService';
 import { backgroundSyncService } from './services/backgroundSyncService';
 import { logger } from './utils/logger';
+import { isPushEnabled } from './lib/pushFlags';
+import { PushNotificationsEffects } from './capacitor/PushNotificationsEffects';
 
 // Lazy loading de rotas públicas (carregamento sob demanda)
 const AuthPage = lazy(() => import('./pages/Auth'));
@@ -31,6 +33,9 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const EquipmentMap = lazy(() => import('./pages/EquipmentMap'));
 const QrInspectionPage = lazy(() => import('./pages/QrInspectionPage'));
 const QrGeneratorPage = lazy(() => import('./pages/QrGeneratorPage'));
+const AddWaterReservoirPage = lazy(() => import('./pages/AddWaterReservoirPage'));
+const WaterReservoirDetailPage = lazy(() => import('./pages/WaterReservoirDetailPage'));
+const AddWaterReservoirInspectionPage = lazy(() => import('./pages/AddWaterReservoirInspectionPage'));
 
 // Lazy loading de rotas admin (raramente acessadas)
 const AdminUtilities = lazy(() => import('./pages/AdminUtilities'));
@@ -103,6 +108,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      {isPushEnabled() && <PushNotificationsEffects />}
       <Routes>
         <Route 
           path="/auth" 
@@ -253,6 +259,30 @@ function App() {
             element={
               <PageSuspense>
                 <Utilities />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="reservoir/new" 
+            element={
+              <PageSuspense>
+                <AddWaterReservoirPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="reservoir/:id/inspection/new" 
+            element={
+              <PageSuspense>
+                <AddWaterReservoirInspectionPage />
+              </PageSuspense>
+            } 
+          />
+          <Route 
+            path="reservoir/:id" 
+            element={
+              <PageSuspense>
+                <WaterReservoirDetailPage />
               </PageSuspense>
             } 
           />

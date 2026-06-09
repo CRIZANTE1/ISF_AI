@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ChevronRight, Info, AlertCircle, HelpCircle, X } from 'lucide-react';
 import { EquipmentInstructions, getInstructions } from '../constants/instructions';
@@ -293,6 +294,11 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const rawInstructions = getInstructions(equipmentType);
   
@@ -392,7 +398,8 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
         </motion.button>
       </div>
 
-      {/* Modal */}
+      {/* Modal via Portal para ficar acima do header fixo */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
@@ -799,7 +806,9 @@ const InstructionsPanel = ({ equipmentType, className = '' }: InstructionsPanelP
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </>
   );
 };

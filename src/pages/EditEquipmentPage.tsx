@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import PageHeader from '../components/PageHeader';
@@ -31,11 +31,17 @@ import { getAllHoses } from '../utils/hoseOperations';
 
 type EquipmentData = Record<string, any>;
 
+type EditEquipmentLocationState = {
+  returnAfterSave?: string;
+};
+
 import InstructionsPanel from '../components/InstructionsPanel';
 
 const EditEquipmentPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnAfterSave = (location.state as EditEquipmentLocationState | null)?.returnAfterSave;
   const { handleError, executeWithFeedback } = useErrorHandler();
   const { refreshCache } = useEquipmentCache();
   const { t } = useTranslation();
@@ -312,7 +318,7 @@ const EditEquipmentPage = () => {
               } catch (error) {
                 logger.error('Erro ao atualizar cache', 'equipment', error);
               }
-              navigate(`/equipment/${type}/${id}`);
+              navigate(returnAfterSave ?? `/equipment/${type}/${id}`);
               setLoading(false);
               return;
             }
@@ -348,7 +354,7 @@ const EditEquipmentPage = () => {
         // Log do erro mas não impede a navegação
         logger.error('Erro ao atualizar cache', 'equipment', error);
       }
-      navigate(`/equipment/${type}/${id}`);
+      navigate(returnAfterSave ?? `/equipment/${type}/${id}`);
     }
     
     setLoading(false);
@@ -363,7 +369,7 @@ const EditEquipmentPage = () => {
     
     switch (type) {
       case 'extintor':
-        return <ExtinguisherForm register={register} errors={errors} />;
+        return <ExtinguisherForm register={register} errors={errors} watch={watch} />;
       case 'mangueira':
         return <HoseForm register={register} />;
       case 'scba':

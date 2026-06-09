@@ -129,25 +129,6 @@ export async function importUserData(
       }
     }
 
-    // Importar locais
-    if (data.locations && data.locations.length > 0) {
-      const cleanedLocations = data.locations.map(item => {
-        const { id, created_at, updated_at, ...rest } = item;
-        return {
-          ...rest,
-          user_id: user.id,
-        };
-      });
-
-      const { error } = await supabase
-        .from('locais')
-        .upsert(cleanedLocations, { onConflict: 'id', ignoreDuplicates: true });
-
-      if (!error) {
-        importedCount += cleanedLocations.length;
-      }
-    }
-
     return {
       success: true,
       message: `Importação concluída! ${importedCount} registros importados.`,

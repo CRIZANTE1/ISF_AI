@@ -23,8 +23,30 @@ export interface MultigasDetector {
   h2s_cilindro?: number | null;
   co_cilindro?: number | null;
   margem_erro_cilindro?: number | null; // Margem de erro em percentual (padrão: 20%)
+  margem_erro_lel?: number | null;
+  margem_erro_o2?: number | null;
+  margem_erro_h2s?: number | null;
+  margem_erro_co?: number | null;
   created_at?: string;
   user_id?: string | null;
+}
+
+export interface GasTolerances {
+  LEL: number;
+  O2: number;
+  H2S: number;
+  CO: number;
+}
+
+/** Resolve tolerâncias por vapor com fallback para margem_erro_cilindro */
+export function resolveGasTolerances(detector: MultigasDetector | null | undefined): GasTolerances {
+  const fallback = detector?.margem_erro_cilindro ?? 20;
+  return {
+    LEL: detector?.margem_erro_lel ?? fallback,
+    O2: detector?.margem_erro_o2 ?? fallback,
+    H2S: detector?.margem_erro_h2s ?? fallback,
+    CO: detector?.margem_erro_co ?? fallback,
+  };
 }
 
 export interface MultigasInspection {
@@ -71,7 +93,11 @@ function mapSupabaseToDetector(data: any): MultigasDetector {
     O2_cilindro: data.o2_cilindro ?? data.O2_cilindro,
     H2S_cilindro: data.h2s_cilindro ?? data.H2S_cilindro,
     CO_cilindro: data.co_cilindro ?? data.CO_cilindro,
-    margem_erro_cilindro: data.margem_erro_cilindro ?? 20.00, // Valor padrão: 20%
+    margem_erro_cilindro: data.margem_erro_cilindro ?? 20.00,
+    margem_erro_lel: data.margem_erro_lel ?? null,
+    margem_erro_o2: data.margem_erro_o2 ?? null,
+    margem_erro_h2s: data.margem_erro_h2s ?? null,
+    margem_erro_co: data.margem_erro_co ?? null,
     created_at: data.created_at,
     user_id: data.user_id,
   };
@@ -118,7 +144,11 @@ export async function saveNewMultigasDetector(
       o2_cilindro: detector.o2_cilindro ?? detector.O2_cilindro ?? null,
       h2s_cilindro: detector.h2s_cilindro ?? detector.H2S_cilindro ?? null,
       co_cilindro: detector.co_cilindro ?? detector.CO_cilindro ?? null,
-      margem_erro_cilindro: detector.margem_erro_cilindro ?? 20.00, // Valor padrão: 20%
+      margem_erro_cilindro: detector.margem_erro_cilindro ?? 20.00,
+      margem_erro_lel: detector.margem_erro_lel ?? null,
+      margem_erro_o2: detector.margem_erro_o2 ?? null,
+      margem_erro_h2s: detector.margem_erro_h2s ?? null,
+      margem_erro_co: detector.margem_erro_co ?? null,
       user_id: user.id,
     };
 
@@ -348,12 +378,12 @@ export async function updateCylinderValues(
     }
 
     const result = await offlineUpdate('inventario_multigas', detector.id, updateData);
-    
+
     if (!result.success) {
       logger.error('Falha ao atualizar valores do cilindro via wrapper offline', 'equipment', {
         idEquipamento,
         detectorId: detector.id,
-        values
+        values,
       });
       return false;
     }
@@ -439,12 +469,41 @@ export async function saveMultigasInspection(
 }
 
 /**
+ * Atualiza margens de erro por vapor no detector
+ */
+export async function updateCylinderTolerances(
+  idEquipamento: string,
+  tolerances: GasTolerances,
+  user_id?: string
+): Promise<boolean> {
+  try {
+    const { offlineUpdate } = await import('./offlineOperations');
+    const detector = await getMultigasDetectorById(idEquipamento);
+    if (!detector?.id) return false;
+
+    const updateData: Record<string, unknown> = {
+      margem_erro_lel: tolerances.LEL,
+      margem_erro_o2: tolerances.O2,
+      margem_erro_h2s: tolerances.H2S,
+      margem_erro_co: tolerances.CO,
+      user_id: user_id ?? detector.user_id,
+    };
+
+    const result = await offlineUpdate('inventario_multigas', detector.id, updateData);
+    return result.success;
+  } catch (error) {
+    logger.error('Erro ao atualizar margens por vapor', 'equipment', error);
+    return false;
+  }
+}
+
+/**
  * Verifica os resultados de um bump test
  */
 export function verifyBumpTest(
   referenceValues: CylinderValues,
   foundValues: CylinderValues,
-  tolerancePercent: number = 20
+  tolerancePercent: number | GasTolerances = 20
 ): { isApproved: boolean; observations: string[] } {
   const observations: string[] = [];
   let isApproved = true;
@@ -456,16 +515,22 @@ export function verifyBumpTest(
     CO: 'CO',
   };
 
+  const getTolerance = (gas: keyof CylinderValues): number => {
+    if (typeof tolerancePercent === 'number') return tolerancePercent;
+    return tolerancePercent[gas];
+  };
+
   for (const gas of ['LEL', 'O2', 'H2S', 'CO'] as const) {
     const refVal = referenceValues[gas];
     const foundVal = foundValues[gas];
+    const tolerance = getTolerance(gas);
 
     if (refVal === 0 || !foundVal) continue;
 
     const difference = foundVal - refVal;
     const variationPercent = (difference / refVal) * 100;
 
-    if (Math.abs(variationPercent) > tolerancePercent) {
+    if (Math.abs(variationPercent) > tolerance) {
       isApproved = false;
       observations.push(
         `Sensor de ${gasMap[gas]} REPROVADO. Leitura: ${foundVal}, Referência: ${refVal} (Variação: ${variationPercent.toFixed(1)}%).`

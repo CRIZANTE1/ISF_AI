@@ -31,7 +31,6 @@ export interface UserDataExport {
     alarms: any[];
     shelters: any[];
   };
-  locations: any[];
 }
 
 /**
@@ -96,12 +95,6 @@ export async function exportUserData(user: User): Promise<UserDataExport> {
       supabase.from('inspecoes_abrigos').select('*').eq('user_id', user.id),
     ]);
 
-    // Buscar locais
-    const { data: locations } = await supabase
-      .from('locais')
-      .select('*')
-      .eq('user_id', user.id);
-
     // Montar objeto de exportação
     const exportData: UserDataExport = {
       exportDate: new Date().toISOString(),
@@ -128,7 +121,6 @@ export async function exportUserData(user: User): Promise<UserDataExport> {
         alarms: alarmInspections.data || [],
         shelters: shelterInspections.data || [],
       },
-      locations: locations || [],
     };
 
     return exportData;

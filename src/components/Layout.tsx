@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import BottomNav from './BottomNav';
 import PageTransition from './PageTransition';
+import AppOnboardingTour from './AppOnboardingTour';
 
 const Layout = () => {
   const location = useLocation();
@@ -36,6 +37,7 @@ const Layout = () => {
         </AnimatePresence>
       </div>
       <BottomNav />
+      <AppOnboardingTour />
     </div>
   );
 };

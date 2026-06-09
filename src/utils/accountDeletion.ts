@@ -60,7 +60,6 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     'user_action_logs',
     'user_access_logs',
     // Outros
-    'locais',
     'purchases', // Dados de compra (atenção a regras fiscais aqui, mas para LGPD total remove-se)
   ];
 

@@ -477,7 +477,7 @@ const AuthPage = () => {
           options: {
             data: {
               full_name: fullName,
-              role: 'admin', // Default role for new signups
+              role: 'user', // Default role for new signups
             },
           },
         });

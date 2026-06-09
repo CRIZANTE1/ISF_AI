@@ -49,7 +49,19 @@ export const extinguisherSchema = baseEquipmentSchema.extend({
   link_foto_nao_conformidade: z.string().url().max(500).nullable().optional(),
   latitude: z.number().min(-90).max(90).nullable().optional(),
   longitude: z.number().min(-180).max(180).nullable().optional(),
-  local_id: z.string().max(100).nullable().optional(),
+  peso_cheio_placa_kg: z.number().positive().max(10000).nullable().optional(),
+  peso_vazio_conjunto_kg: z.number().min(0).max(10000).nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.tipo_agente === 'CO2') {
+    const pc = data.peso_cheio_placa_kg;
+    if (pc == null || typeof pc !== 'number' || !(pc > 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Peso cheio na placa (PC) é obrigatório para extintor CO₂',
+        path: ['peso_cheio_placa_kg'],
+      });
+    }
+  }
 });
 
 // Schema para Multigas
@@ -64,6 +76,10 @@ export const multigasSchema = baseEquipmentSchema.extend({
   h2s_cilindro: z.number().int().min(0).max(1000).nullable().optional(),
   co_cilindro: z.number().int().min(0).max(1000).nullable().optional(),
   margem_erro_cilindro: z.number().min(0).max(100).nullable().optional(),
+  margem_erro_lel: z.number().min(0).max(100).nullable().optional(),
+  margem_erro_o2: z.number().min(0).max(100).nullable().optional(),
+  margem_erro_h2s: z.number().min(0).max(100).nullable().optional(),
+  margem_erro_co: z.number().min(0).max(100).nullable().optional(),
 });
 
 // Schema para SCBA

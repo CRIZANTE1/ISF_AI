@@ -4,6 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.isfia.app',
   appName: 'ISF IA',
   webDir: 'dist',
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+  },
   server: {
     androidScheme: 'https'
   },

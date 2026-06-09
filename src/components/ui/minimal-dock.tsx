@@ -14,6 +14,7 @@ interface DockItem {
   to?: string;
   onClick?: () => void;
   adminOnly?: boolean;
+  dataTour?: string;
 }
 
 interface DockItemProps {
@@ -34,6 +35,7 @@ const DockItemComponent: React.FC<DockItemProps> = ({ item, isHovered, isActive,
       onMouseLeave={() => onHover(null)}
     >
       <div
+        data-tour={item.dataTour}
         className={`
           relative flex items-center justify-center
           ${isAddButton ? 'w-10 h-10 rounded-full' : 'w-9 h-9 rounded-lg'}
@@ -126,7 +128,8 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
       id: 'inspections', 
       icon: <ClipboardCheck size={16} />, 
       label: t('navigation.inspections'),
-      to: '/inspections'
+      to: '/inspections',
+      dataTour: 'dock-inspections',
     },
     { 
       id: 'history', 
@@ -138,7 +141,8 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
       id: 'action-plans', 
       icon: <FileText size={16} />, 
       label: t('navigation.actionPlans', { defaultValue: 'Planos de Ação' }),
-      to: '/action-plans'
+      to: '/action-plans',
+      dataTour: 'dock-action-plans',
     },
     { 
       id: 'home', 

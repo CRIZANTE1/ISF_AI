@@ -19,29 +19,12 @@ export default defineConfig({
   
   optimizeDeps: {
     exclude: [
-      'lucide-react', 
-      '@capacitor/core', 
-      '@capacitor/push-notifications',
-      '@capacitor/filesystem', // Plugin opcional
-      '@capacitor/share', // Plugin opcional
-      '@sentry/react', // Opcional - só carrega se instalado
+      'lucide-react',
+      '@capacitor/core',
+      '@capacitor/filesystem',
+      '@capacitor/share',
+      '@sentry/react',
     ],
     include: ['three', '@react-three/fiber'],
-  },
-  
-  // Permite imports dinâmicos de módulos opcionais
-  build: {
-    rollupOptions: {
-      external: (id) => {
-        // Externaliza plugins do Capacitor que só existem em runtime
-        if (id === '@capacitor/push-notifications' || 
-            id === '@capacitor/local-notifications' ||
-            id.startsWith('@capacitor/push-notifications/') ||
-            id.startsWith('@capacitor/local-notifications/')) {
-          return true;
-        }
-        return false;
-      },
-    },
   },
 });

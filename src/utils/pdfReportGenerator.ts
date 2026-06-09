@@ -229,7 +229,20 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
       doc.text(`Data de Cadastro: ${formatDateShort(equipment.data_cadastro)}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
-    if (equipment.margem_erro_cilindro !== undefined && equipment.margem_erro_cilindro !== null) {
+    const eqAny = equipment as Record<string, unknown>;
+    const hasPerGas =
+      eqAny.margem_erro_lel != null ||
+      eqAny.margem_erro_o2 != null ||
+      eqAny.margem_erro_h2s != null ||
+      eqAny.margem_erro_co != null;
+    if (hasPerGas) {
+      doc.text(
+        `Margens: LEL ${eqAny.margem_erro_lel ?? equipment.margem_erro_cilindro ?? 20}% | O² ${eqAny.margem_erro_o2 ?? equipment.margem_erro_cilindro ?? 20}% | H²S ${eqAny.margem_erro_h2s ?? equipment.margem_erro_cilindro ?? 20}% | CO ${eqAny.margem_erro_co ?? equipment.margem_erro_cilindro ?? 20}%`,
+        PAGE_MARGINS.LEFT,
+        yPos
+      );
+      yPos += 7;
+    } else if (equipment.margem_erro_cilindro !== undefined && equipment.margem_erro_cilindro !== null) {
       doc.text(`Margem de Erro: ${equipment.margem_erro_cilindro}%`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
@@ -454,8 +467,10 @@ function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData,
     return yPos;
   }
 
-  // Obtém margem de erro do equipamento (padrão 20%)
-  const margemErro = equipment.margem_erro_cilindro ?? 20.0;
+  const eqAny = equipment as Record<string, unknown>;
+  const fallback = equipment.margem_erro_cilindro ?? 20.0;
+  const getMargem = (gas: 'lel' | 'o2' | 'h2s' | 'co') =>
+    (eqAny[`margem_erro_${gas}`] as number | undefined) ?? fallback;
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
@@ -473,16 +488,19 @@ function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData,
     return diff >= 0 ? `+${diff.toFixed(2)}%` : `${diff.toFixed(2)}%`;
   };
 
-  // Função auxiliar para verificar se está dentro da margem
-  const estaDentroMargem = (ref: number | undefined, encontrado: number | undefined): boolean => {
+  const estaDentroMargem = (
+    ref: number | undefined,
+    encontrado: number | undefined,
+    margem: number
+  ): boolean => {
     if (ref === undefined || encontrado === undefined) return false;
     const diffPercent = Math.abs(((encontrado - ref) / ref) * 100);
-    return diffPercent <= margemErro;
+    return diffPercent <= margem;
   };
 
   // LEL
   if (lelRef !== undefined) {
-    const status = estaDentroMargem(lelRef, lelEncontrado) ? 'Dentro da margem' : 'Fora da margem';
+    const status = estaDentroMargem(lelRef, lelEncontrado, getMargem('lel')) ? 'Dentro da margem' : 'Fora da margem';
     tableData.push([
       'LEL',
       lelRef.toFixed(2),
@@ -494,7 +512,7 @@ function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData,
 
   // O2
   if (o2Ref !== undefined) {
-    const status = estaDentroMargem(o2Ref, o2Encontrado) ? 'Dentro da margem' : 'Fora da margem';
+    const status = estaDentroMargem(o2Ref, o2Encontrado, getMargem('o2')) ? 'Dentro da margem' : 'Fora da margem';
     tableData.push([
       'O2',
       o2Ref.toFixed(2),
@@ -506,7 +524,7 @@ function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData,
 
   // H2S
   if (h2sRef !== undefined) {
-    const status = estaDentroMargem(h2sRef, h2sEncontrado) ? 'Dentro da margem' : 'Fora da margem';
+    const status = estaDentroMargem(h2sRef, h2sEncontrado, getMargem('h2s')) ? 'Dentro da margem' : 'Fora da margem';
     tableData.push([
       'H2S',
       h2sRef.toString(),
@@ -518,7 +536,7 @@ function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData,
 
   // CO
   if (coRef !== undefined) {
-    const status = estaDentroMargem(coRef, coEncontrado) ? 'Dentro da margem' : 'Fora da margem';
+    const status = estaDentroMargem(coRef, coEncontrado, getMargem('co')) ? 'Dentro da margem' : 'Fora da margem';
     tableData.push([
       'CO',
       coRef.toString(),
@@ -1076,6 +1094,265 @@ export async function generateMultipleInspectionReport(
   // Não é necessário fazer cleanup manual
 
   return pdfBlob;
+}
+
+export interface EquipmentListReportItem {
+  _reportId: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  link_foto_nao_conformidade?: string | null;
+  observacoes?: string | null;
+  plano_de_acao?: string | null;
+  localizacao?: string;
+  local?: string;
+  location?: string;
+  status_geral?: string;
+  aprovado_inspecao?: string;
+  resultado?: string;
+  marca?: string;
+  marca_fabricante?: string;
+  modelo?: string;
+  tipo_agente?: string;
+  [key: string]: any;
+}
+
+export interface EquipmentListReportData {
+  equipmentList: EquipmentListReportItem[];
+  equipmentType: string;
+  typeName: string;
+  companyName?: string;
+}
+
+function formatInventoryLocation(item: EquipmentListReportItem): string {
+  if (item.latitude != null && item.longitude != null) {
+    return `${Number(item.latitude).toFixed(6)}, ${Number(item.longitude).toFixed(6)}`;
+  }
+  return item.localizacao || item.local || item.location || '-';
+}
+
+function formatInventoryExtraInfo(item: EquipmentListReportItem): string {
+  const parts: string[] = [];
+
+  if (item.status_geral) {
+    parts.push(`Status: ${item.status_geral}`);
+  } else if (item.aprovado_inspecao) {
+    parts.push(`Status: ${item.aprovado_inspecao}`);
+  } else if (item.resultado) {
+    parts.push(`Resultado: ${item.resultado}`);
+  }
+
+  if (item.tipo_agente) parts.push(item.tipo_agente);
+  if (item.marca_fabricante) parts.push(item.marca_fabricante);
+  else if (item.marca) parts.push(item.marca);
+  if (item.modelo) parts.push(item.modelo);
+
+  return parts.length > 0 ? parts.join(' | ') : '-';
+}
+
+function addInventoryHeader(doc: jsPDF, typeName: string): number {
+  let yPos = PAGE_MARGINS.TOP;
+
+  doc.setFontSize(16);
+  doc.setTextColor(COLORS.BLACK);
+  doc.setFont('helvetica', 'bold');
+  const title = `RELATÓRIO DE INVENTÁRIO - ${typeName.toUpperCase()}`;
+  const titleWidth = doc.getTextWidth(title);
+  doc.text(title, PAGE_MARGINS.LEFT + (CONTENT_WIDTH - titleWidth) / 2, yPos);
+  yPos += 10;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const today = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const dateText = `Gerado em: ${today}`;
+  const dateWidth = doc.getTextWidth(dateText);
+  doc.text(dateText, PAGE_MARGINS.LEFT + (CONTENT_WIDTH - dateWidth) / 2, yPos);
+  yPos += 8;
+
+  doc.setDrawColor(COLORS.GRAY);
+  doc.setLineWidth(0.5);
+  doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + CONTENT_WIDTH, yPos);
+  yPos += 10;
+
+  return yPos;
+}
+
+async function addInventoryPhoto(
+  doc: jsPDF,
+  yPos: number,
+  photoUrl: string,
+  equipmentId: string
+): Promise<number> {
+  if (yPos > PAGE_HEIGHT - 80) {
+    doc.addPage();
+    yPos = PAGE_MARGINS.TOP;
+  }
+
+  const base64Image = await imageUrlToBase64(photoUrl);
+  if (!base64Image) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(COLORS.GRAY);
+    doc.text('Foto não disponível', PAGE_MARGINS.LEFT, yPos);
+    return yPos + 10;
+  }
+
+  const maxWidth = 120;
+  const maxHeight = 80;
+
+  try {
+    doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+    yPos += maxHeight + 4;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(COLORS.GRAY);
+    doc.text(`Evidência fotográfica - ${equipmentId}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 8;
+  } catch (imgError) {
+    logger.error('Erro ao adicionar imagem ao relatório de inventário', 'pdf', { error: imgError });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(COLORS.GRAY);
+    doc.text('Foto não pôde ser adicionada', PAGE_MARGINS.LEFT, yPos);
+    yPos += 10;
+  }
+
+  return yPos;
+}
+
+async function addInventoryDetailsAndEvidence(
+  doc: jsPDF,
+  yPos: number,
+  equipmentList: EquipmentListReportItem[]
+): Promise<number> {
+  const itemsWithDetails = equipmentList.filter(
+    (item) => item.link_foto_nao_conformidade || item.observacoes || item.plano_de_acao
+  );
+
+  if (itemsWithDetails.length === 0) {
+    return yPos;
+  }
+
+  if (yPos > PAGE_HEIGHT - 60) {
+    doc.addPage();
+    yPos = PAGE_MARGINS.TOP;
+  }
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('DETALHES E EVIDÊNCIAS', PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
+
+  for (const item of itemsWithDetails) {
+    if (yPos > PAGE_HEIGHT - 80) {
+      doc.addPage();
+      yPos = PAGE_MARGINS.TOP;
+    }
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Equipamento: ${item._reportId}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+
+    if (item.observacoes) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Observações:', PAGE_MARGINS.LEFT, yPos);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      const obsLines = doc.splitTextToSize(item.observacoes, CONTENT_WIDTH);
+      doc.text(obsLines, PAGE_MARGINS.LEFT, yPos);
+      yPos += obsLines.length * 5 + 4;
+    }
+
+    if (item.plano_de_acao) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      const planLines = doc.splitTextToSize(item.plano_de_acao, CONTENT_WIDTH);
+      doc.text(planLines, PAGE_MARGINS.LEFT, yPos);
+      yPos += planLines.length * 5 + 4;
+    }
+
+    if (item.link_foto_nao_conformidade) {
+      yPos = await addInventoryPhoto(doc, yPos, item.link_foto_nao_conformidade, item._reportId);
+    }
+
+    yPos += 4;
+    doc.setDrawColor(COLORS.LIGHT_GRAY);
+    doc.setLineWidth(0.3);
+    doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + CONTENT_WIDTH, yPos);
+    yPos += 8;
+  }
+
+  return yPos;
+}
+
+/**
+ * Gera relatório PDF de inventário de equipamentos no formato ABNT
+ */
+export async function generateEquipmentListReport(
+  equipmentList: EquipmentListReportItem[],
+  equipmentType: string,
+  typeName: string
+): Promise<Blob> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true,
+    compress: true,
+  });
+
+  let yPos = addInventoryHeader(doc, typeName);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text(`INVENTÁRIO (${equipmentList.length} equipamento(s))`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
+
+  const tableData = equipmentList.map((item, index) => [
+    String(index + 1),
+    item._reportId,
+    formatInventoryLocation(item),
+    formatInventoryExtraInfo(item),
+  ]);
+
+  doc.autoTable({
+    startY: yPos,
+    head: [['#', 'ID', 'Localização', 'Info extras']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [0, 0, 0],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    bodyStyles: {
+      textColor: [0, 0, 0],
+    },
+    alternateRowStyles: {
+      fillColor: [224, 224, 224],
+    },
+    margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      overflow: 'linebreak',
+    },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 'auto' },
+    },
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 12;
+  await addInventoryDetailsAndEvidence(doc, yPos, equipmentList);
+
+  return doc.output('blob');
 }
 
 /**

@@ -130,32 +130,31 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
       </div>
       
       <div className="mb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <label htmlFor="margem_erro_cilindro" className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
-            {t('equipment.cylinderErrorMargin', { defaultValue: 'Margem de Erro do Cilindro (%)' })}
-          </label>
-          <HelpTip 
-            titleKey="help.errorMargin.title"
-            contentKey="help.errorMargin.content"
-          />
+        <p className="text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+          {t('equipment.marginsPerGas', { defaultValue: 'Margens de Erro por Vapor (%)' })}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {(['lel', 'o2', 'h2s', 'co'] as const).map((gas) => (
+            <div key={gas}>
+              <label htmlFor={`margem_erro_${gas}`} className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>
+                {gas.toUpperCase() === 'LEL' ? 'LEL' : gas === 'o2' ? 'O²' : gas === 'h2s' ? 'H²S' : 'CO'}
+              </label>
+              <input
+                id={`margem_erro_${gas}`}
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                placeholder="20.0"
+                {...register(`margem_erro_${gas}`, { valueAsNumber: true })}
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
+                style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+              />
+            </div>
+          ))}
         </div>
-        <input
-          id="margem_erro_cilindro"
-          type="number"
-          step="0.1"
-          min="0"
-          max="100"
-          placeholder="20.0"
-          {...register('margem_erro_cilindro', { 
-            valueAsNumber: true,
-            min: { value: 0, message: t('equipment.errorMarginMin', { defaultValue: 'A margem de erro deve ser maior ou igual a 0' }) },
-            max: { value: 100, message: t('equipment.errorMarginMax', { defaultValue: 'A margem de erro deve ser menor ou igual a 100' }) }
-          })}
-          className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white" 
-          style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
-        />
-        <p className="text-xs text-gray-400 mt-1">
-          {t('equipment.errorMarginHint', { defaultValue: 'Margem de tolerância em percentual para os valores do cilindro durante inspeções. Padrão: 20%' })}
+        <p className="text-xs text-gray-400 mt-2">
+          {t('equipment.errorMarginHint', { defaultValue: 'Margem de tolerância em percentual por vapor. Se vazio, usa margem genérica de 20%.' })}
         </p>
       </div>
     </>

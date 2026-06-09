@@ -49,7 +49,7 @@ const MAX_OPERATION_AGE_DAYS = 30; // Remove operações com mais de 30 dias
  * 
  * 📋 STATUS DAS TABELAS (verificado em 2025-12-20):
  * ✅ Mapeadas: abrigos, conjuntos_autonomos, extintores, inventario_*, mangueiras, 
- *    custom_equipment, inspecoes_extintores, locais
+ *    custom_equipment, inspecoes_extintores
  * ✅ Verificadas (sem constraint UNIQUE): inspecoes_scba, inspecoes_multigas, 
  *    inspecoes_camaras_espuma, inspecoes_canhoes_monitores, inspecoes_chuveiros_lava_olhos,
  *    inspecoes_alarmes, inspecoes_abrigos
@@ -73,8 +73,6 @@ function extractUniqueFields(table: string, data: any): Array<{ field: string; v
     'inventario_chuveiros_lava_olhos': ['id_equipamento'],
     'inventario_multigas': ['id_equipamento'],
     'mangueiras': ['id_mangueira'],
-    'locais': ['local_id'], // Verificado em 2025-12-20
-    
     // Constraints compostas (múltiplos campos)
     'extintores': ['numero_identificacao', 'user_id'], // Composta
     'custom_equipment': ['equipment_type_id', 'id_equipamento', 'user_id'], // Composta

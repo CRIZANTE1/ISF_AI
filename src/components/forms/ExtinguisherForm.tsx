@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import HelpTip from '../HelpTip';
+import { CO2_AGENT_VALUE } from '../../utils/co2Weighing';
 
 interface ExtinguisherFormProps {
   register: UseFormRegister<any>;
   errors: FieldErrors<any>;
+  watch?: UseFormWatch<any>;
 }
 
 // Agentes extintores padronizados conforme normas brasileiras
@@ -44,9 +46,10 @@ const EXTINGUISHER_CAPACITIES = [
   { value: 'Outro', label: 'Outro (especificar)' },
 ];
 
-const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
+const ExtinguisherForm = ({ register, errors, watch }: ExtinguisherFormProps) => {
   const { t } = useTranslation();
   const [showManualCapacity, setShowManualCapacity] = useState(false);
+  const tipoAgente = watch?.('tipo_agente');
 
   const handleCapacityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -164,6 +167,54 @@ const ExtinguisherForm = ({ register, errors }: ExtinguisherFormProps) => {
           <p className="text-sm text-red-500 mt-1">{String(errors.capacidade.message)}</p>
         )}
       </div>
+
+      {tipoAgente === CO2_AGENT_VALUE && (
+        <div className="mb-4 p-3 rounded-lg border" style={{ borderColor: '#2A2A2A', backgroundColor: 'rgba(255,255,255,0.03)' }}>
+          <p className="text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
+            {t('extinguisher.co2Weighing.title')}
+          </p>
+          <p className="text-xs text-gray-400 mb-3">{t('extinguisher.co2Weighing.sectionHint')}</p>
+          <div className="mb-3">
+            <label htmlFor="peso_cheio_placa_kg" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+              {t('extinguisher.co2Weighing.pcPlateKg')}{' '}
+              <span className="text-gray-500 text-xs">({t('extinguisher.co2Weighing.required')})</span>
+            </label>
+            <input
+              id="peso_cheio_placa_kg"
+              type="number"
+              step="0.001"
+              min="0"
+              {...register('peso_cheio_placa_kg', {
+                required: t('extinguisher.co2Weighing.pcRequired'),
+                setValueAs: (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+                min: { value: 0.001, message: t('extinguisher.co2Weighing.pcPositive') },
+              })}
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
+              style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            />
+            {errors.peso_cheio_placa_kg && (
+              <p className="text-sm text-red-500 mt-1">{String(errors.peso_cheio_placa_kg.message)}</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="peso_vazio_conjunto_kg" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
+              {t('extinguisher.co2Weighing.pvEmptyKg')}{' '}
+              <span className="text-gray-500 text-xs">({t('extinguisher.co2Weighing.optional')})</span>
+            </label>
+            <input
+              id="peso_vazio_conjunto_kg"
+              type="number"
+              step="0.001"
+              min="0"
+              {...register('peso_vazio_conjunto_kg', {
+                setValueAs: (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+              })}
+              className="w-full p-3 bg-light-surface dark:bg-dark-surface border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
+              style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mb-4">
         <label htmlFor="marca_fabricante" className="block text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>

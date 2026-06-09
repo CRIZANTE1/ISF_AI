@@ -9,6 +9,7 @@ import { getAllCannonMonitors } from '../utils/cannonMonitorOperations';
 import { getAllEyewashStations } from '../utils/eyewashOperations';
 import { getAllAlarmSystems } from '../utils/alarmOperations';
 import { getAllShelters } from '../utils/shelterOperations';
+import { getAllWaterReservoirs } from '../utils/waterReservoirOperations';
 import { getAllCustomEquipmentTypes, getAllCustomEquipment } from '../utils/customEquipmentOperations';
 import { logger } from '../utils/logger';
 
@@ -22,6 +23,7 @@ interface EquipmentCache {
   eyewashStations: any[];
   alarmSystems: any[];
   shelters: any[];
+  waterReservoirs: any[];
   lastFetch: number | null;
   isLoading: boolean;
 }
@@ -51,6 +53,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
     eyewashStations: [],
     alarmSystems: [],
     shelters: [],
+    waterReservoirs: [],
     lastFetch: null,
     isLoading: false,
   });
@@ -93,6 +96,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         eyewashStations,
         alarmSystems,
         shelters,
+        waterReservoirs,
       ] = await Promise.all([
         getAllExtinguishers(),
         getAllHoses(),
@@ -103,6 +107,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         getAllEyewashStations(),
         getAllAlarmSystems(),
         getAllShelters(),
+        getAllWaterReservoirs(),
       ]);
 
       setCache({
@@ -115,6 +120,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         eyewashStations,
         alarmSystems,
         shelters,
+        waterReservoirs,
         lastFetch: Date.now(),
         isLoading: false,
       });
@@ -151,6 +157,8 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         return cache.alarmSystems;
       case 'abrigo':
         return cache.shelters;
+      case 'reserva_tecnica':
+        return cache.waterReservoirs;
       default:
         return [];
     }
@@ -167,6 +175,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
       ...cache.eyewashStations,
       ...cache.alarmSystems,
       ...cache.shelters,
+      ...cache.waterReservoirs,
     ];
   }, [cache]);
 
@@ -195,6 +204,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
         eyewashStations: [],
         alarmSystems: [],
         shelters: [],
+        waterReservoirs: [],
         lastFetch: null,
         isLoading: false,
       });

@@ -7,10 +7,14 @@ import PageHeader from '../components/PageHeader';
 import FloatingActionButton from '../components/FloatingActionButton';
 import Skeleton from '../components/Skeleton';
 import InstructionsPanel from '../components/InstructionsPanel';
-import { ChevronRight, QrCode } from 'lucide-react';
+import { ChevronRight, QrCode, FileText } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
+import EquipmentListTour from '../components/EquipmentListTour';
+import { format } from 'date-fns';
+import { enrichEquipmentForReport } from '../utils/equipmentReportEnricher';
+import { generateEquipmentListReport, savePdfToDevice } from '../utils/pdfReportGenerator';
 
 type EquipmentItem = {
   id: number | string;
@@ -30,10 +34,11 @@ const EquipmentListPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { getEquipmentByType, cache, refreshCache } = useEquipmentCache();
-  const { handleError } = useErrorHandler();
+  const { handleError, showSuccess } = useErrorHandler();
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [customTypeName, setCustomTypeName] = useState<string | null>(null);
 
   // Memoizar nome do tipo de equipamento
@@ -56,6 +61,7 @@ const EquipmentListPage = () => {
       multigas: t('equipment.multigas'),
       scba: t('equipment.scba'),
       abrigo: t('equipment.shelter'),
+      reserva_tecnica: t('equipment.waterReservoir'),
     };
     return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
   }, [type, t]);
@@ -92,7 +98,8 @@ const EquipmentListPage = () => {
     cache.cannonMonitors, 
     cache.eyewashStations, 
     cache.alarmSystems, 
-    cache.shelters, 
+    cache.shelters,
+    cache.waterReservoirs,
     handleError
   ]);
 
@@ -159,6 +166,28 @@ const EquipmentListPage = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [refreshCache]);
 
+  const handleGenerateReport = async () => {
+    if (!user || !type || equipment.length === 0 || generatingReport) return;
+
+    setGeneratingReport(true);
+    try {
+      const enriched = await enrichEquipmentForReport(equipment, type, user.id);
+      const reportTypeName = customTypeName || equipmentTypeName;
+      const pdfBlob = await generateEquipmentListReport(enriched, type, reportTypeName);
+
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const safeTypeName = reportTypeName.replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Relatorio_Inventario_${safeTypeName}_${dateStr}.pdf`;
+
+      await savePdfToDevice(pdfBlob, filename);
+      showSuccess(t('help.equipmentList.reportSuccess'));
+    } catch (error) {
+      handleError(error, 'equipment', t('help.equipmentList.reportError'));
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
       <PageHeader 
@@ -169,7 +198,10 @@ const EquipmentListPage = () => {
         }}
       />
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
-        {type && <InstructionsPanel equipmentType={type.startsWith('custom-') ? 'custom' : type} />}
+        <div data-tour="equipment-list-instructions">
+          {type && <InstructionsPanel equipmentType={type.startsWith('custom-') ? 'custom' : type} />}
+        </div>
+        <div data-tour="equipment-list-actions">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,6 +220,33 @@ const EquipmentListPage = () => {
             <span className="font-semibold">{t('qr.scan')}</span>
           </button>
         </motion.div>
+        {!loading && equipment.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4"
+          >
+            <button
+              onClick={handleGenerateReport}
+              disabled={generatingReport}
+              className="w-full p-4 rounded-lg border flex items-center justify-center space-x-3 hover:border-white/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                borderColor: '#2A2A2A',
+                color: '#FFFFFF',
+              }}
+            >
+              <FileText size={24} />
+              <span className="font-semibold">
+                {generatingReport
+                  ? t('help.equipmentList.generatingReport')
+                  : t('help.equipmentList.generateReport')}
+              </span>
+            </button>
+          </motion.div>
+        )}
+        </div>
+        <div data-tour="equipment-list-content">
         {loading && (
           <div className="space-y-3 relative" style={{ zIndex: 10, position: 'relative' }}>
             <Skeleton className="h-16 w-full rounded-lg" />
@@ -203,8 +262,15 @@ const EquipmentListPage = () => {
         {!loading && equipment.length > 0 && (
           <EquipmentListMemoized equipment={equipment} type={type || ''} />
         )}
+        </div>
       </main>
-      {type && <FloatingActionButton to={`/inspections/${type}/new`} />}
+      <EquipmentListTour loading={loading} hasType={!!type} />
+      {type && (
+        <FloatingActionButton
+          to={type === 'reserva_tecnica' ? '/reservoir/new' : `/inspections/${type}/new`}
+          dataTour="equipment-list-fab"
+        />
+      )}
     </div>
   );
 };
@@ -214,7 +280,13 @@ const EquipmentListItem = memo(({ item, type, index }: { item: EquipmentItem; ty
   const itemId = item.equipment_id || item.id_mangueira || item.numero_serie_equipamento || 
                item.id_equipamento || item.id_camara || item.id_sistema || item.id_abrigo || 
                item.numero_identificacao || String(item.id);
-  const location = item.localizacao || '';
+  const location = item.localizacao || (item as any).location || '';
+  const displayName = type === 'reserva_tecnica'
+    ? ((item as any).name || itemId)
+    : itemId;
+  const detailLink = type === 'reserva_tecnica'
+    ? `/reservoir/${itemId}`
+    : `/equipment/${type}/${itemId}`;
   
   return (
     <motion.li 
@@ -229,9 +301,9 @@ const EquipmentListItem = memo(({ item, type, index }: { item: EquipmentItem; ty
         ease: [0.4, 0, 0.2, 1]
       }}
     >
-      <Link to={`/equipment/${type}/${itemId}`} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
+      <Link to={detailLink} className="flex items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg border hover:border-white/30 transition-colors relative" style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(26, 26, 26, 0.95)', borderColor: '#2A2A2A', borderWidth: '1px' }}>
         <div>
-          <p className="font-semibold" style={{ color: '#FFFFFF' }}>{itemId}</p>
+          <p className="font-semibold" style={{ color: '#FFFFFF' }}>{displayName}</p>
           {location && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }}>{location}</p>}
         </div>
         <ChevronRight size={20} className="text-light-text-secondary dark:text-dark-text-secondary" style={{ color: '#B0B0B0' }} />

@@ -165,7 +165,6 @@ serve(async (req) => {
       'user_access_logs',
       'email_logs',
       // Outros
-      'locais',
       'purchases',
     ];
 

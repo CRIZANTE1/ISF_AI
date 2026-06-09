@@ -68,9 +68,10 @@ export interface Extinguisher {
   latitude?: number;
   longitude?: number;
   link_foto_nao_conformidade?: string;
-  local_id?: string;
   created_at?: string;
   user_id?: string;
+  peso_cheio_placa_kg?: number | null;
+  peso_vazio_conjunto_kg?: number | null;
 }
 
 /**
@@ -502,9 +503,15 @@ export async function saveNewExtinguisher(
       throw new Error(`Extintor com ID '${extinguisher.numero_identificacao}' já existe.`);
     }
 
+    const extinguisherData = {
+      ...extinguisher,
+      peso_cheio_placa_kg: extinguisher.peso_cheio_placa_kg ?? null,
+      peso_vazio_conjunto_kg: extinguisher.peso_vazio_conjunto_kg ?? null,
+    };
+
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('extintores', extinguisher);
+    const result = await offlineInsert('extintores', extinguisherData);
     
     if (!result.success) {
       throw new Error('Falha ao salvar extintor');
@@ -522,6 +529,47 @@ export async function saveNewExtinguisher(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar extintor', 'equipment', error);
+    throw error;
+  }
+}
+
+/**
+ * Atualiza cadastro de extintor (inclui pesos CO2)
+ */
+export async function updateExtinguisher(
+  numeroIdentificacao: string,
+  data: Partial<Omit<Extinguisher, 'id' | 'created_at' | 'numero_identificacao'>>
+): Promise<boolean> {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    const updateData = {
+      ...data,
+      peso_cheio_placa_kg: data.peso_cheio_placa_kg ?? null,
+      peso_vazio_conjunto_kg: data.peso_vazio_conjunto_kg ?? null,
+    };
+
+    const { error } = await supabase
+      .from('extintores')
+      .update(updateData)
+      .eq('numero_identificacao', numeroIdentificacao)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    try {
+      await logUserAction('update', 'equipment', numeroIdentificacao, { type: 'extintor' });
+    } catch (logError) {
+      logger.error('Failed to log action', 'equipment', logError);
+    }
+
+    return true;
+  } catch (error) {
+    logger.error('Erro ao atualizar extintor', 'equipment', error);
     throw error;
   }
 }

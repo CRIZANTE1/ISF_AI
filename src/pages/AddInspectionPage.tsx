@@ -1,5 +1,5 @@
 import { useForm, Controller } from 'react-hook-form';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useState, useEffect, useCallback } from 'react';
@@ -15,6 +15,7 @@ import { useHaptics } from '../hooks/useHaptics';
 import AnimatedFormField from '../components/AnimatedFormField';
 import PhotoUpload from '../components/PhotoUpload';
 import InstructionsPanel from '../components/InstructionsPanel';
+import AddInspectionTour from '../components/AddInspectionTour';
 import HelpTip from '../components/HelpTip';
 import EyewashChecklist from '../components/checklists/EyewashChecklist';
 import FoamChamberChecklist from '../components/checklists/FoamChamberChecklist';
@@ -45,13 +46,16 @@ import { saveEyewashInspection, generateEyewashActionPlan } from '../utils/eyewa
 import { saveFoamChamberInspection } from '../utils/foamChamberOperations';
 import { saveAlarmInspection } from '../utils/alarmOperations';
 import { saveCannonMonitorInspection, generateCannonMonitorActionPlan } from '../utils/cannonMonitorOperations';
-import { saveMultigasInspection, getMultigasDetectorById, updateCylinderValues, verifyBumpTest, generateMultigasActionPlan } from '../utils/multigasOperations';
-import type { CylinderValues } from '../utils/multigasOperations';
+import { saveMultigasInspection, getMultigasDetectorById, updateCylinderValues, updateCylinderTolerances, verifyBumpTest, generateMultigasActionPlan, resolveGasTolerances } from '../utils/multigasOperations';
+import type { CylinderValues, GasTolerances } from '../utils/multigasOperations';
+import { evaluateCo2Weighing, getNextPesagemDate, CO2_AGENT_VALUE } from '../utils/co2Weighing';
+import ChecklistLocationMap from '../components/ChecklistLocationMap';
 import { saveSCBAVisualInspection, getSCBABySerial } from '../utils/scbaOperations';
 import { saveShelterInspection } from '../utils/shelterOperations';
 import { getHoseById, saveHoseInspection } from '../utils/hoseOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
 import { Spinner } from '../components/ui/spinner';
+import { Edit } from 'lucide-react';
 import { 
   extinguisherInspectionSchema, 
   multigasInspectionSchema, 
@@ -144,7 +148,12 @@ const AddInspectionPage = () => {
   const [multigasFoundCO, setMultigasFoundCO] = useState<string>('');
   const [multigasTestTime, setMultigasTestTime] = useState<string>('');
   const [multigasUpdateCylinder, setMultigasUpdateCylinder] = useState<boolean>(false);
-  const [multigasCylinderTolerance, setMultigasCylinderTolerance] = useState<string>('');
+  const [multigasMarginLEL, setMultigasMarginLEL] = useState<string>('');
+  const [multigasMarginO2, setMultigasMarginO2] = useState<string>('');
+  const [multigasMarginH2S, setMultigasMarginH2S] = useState<string>('');
+  const [multigasMarginCO, setMultigasMarginCO] = useState<string>('');
+  const [co2PerformWeighing, setCo2PerformWeighing] = useState(false);
+  const [co2PesoMedido, setCo2PesoMedido] = useState<string>('');
   
   // Estado para geolocalização
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -213,7 +222,12 @@ const AddInspectionPage = () => {
             multigasFoundCO,
             multigasTestTime,
             multigasUpdateCylinder,
-            multigasCylinderTolerance,
+            multigasMarginLEL,
+            multigasMarginO2,
+            multigasMarginH2S,
+            multigasMarginCO,
+            co2PerformWeighing,
+            co2PesoMedido,
             latitude,
             longitude,
           };
@@ -238,7 +252,9 @@ const AddInspectionPage = () => {
       foamChamberInspectionType, cannonMonitorInspectionType, multigasTestType,
       multigasReferenceLEL, multigasReferenceO2, multigasReferenceH2S, multigasReferenceCO,
       multigasFoundLEL, multigasFoundO2, multigasFoundH2S, multigasFoundCO,
-      multigasTestTime, multigasUpdateCylinder, multigasCylinderTolerance, latitude, longitude
+      multigasTestTime, multigasUpdateCylinder,
+      multigasMarginLEL, multigasMarginO2, multigasMarginH2S, multigasMarginCO,
+      co2PerformWeighing, co2PesoMedido, latitude, longitude
     ]);
 
     // Lógica para restaurar estado
@@ -278,7 +294,12 @@ const AddInspectionPage = () => {
           setMultigasFoundCO(savedState.multigasFoundCO);
           setMultigasTestTime(savedState.multigasTestTime);
           setMultigasUpdateCylinder(savedState.multigasUpdateCylinder);
-          setMultigasCylinderTolerance(savedState.multigasCylinderTolerance);
+          setMultigasMarginLEL(savedState.multigasMarginLEL ?? savedState.multigasCylinderTolerance ?? '');
+          setMultigasMarginO2(savedState.multigasMarginO2 ?? savedState.multigasCylinderTolerance ?? '');
+          setMultigasMarginH2S(savedState.multigasMarginH2S ?? savedState.multigasCylinderTolerance ?? '');
+          setMultigasMarginCO(savedState.multigasMarginCO ?? savedState.multigasCylinderTolerance ?? '');
+          setCo2PerformWeighing(savedState.co2PerformWeighing ?? false);
+          setCo2PesoMedido(savedState.co2PesoMedido ?? '');
           setLatitude(savedState.latitude);
           setLongitude(savedState.longitude);
   
@@ -378,7 +399,13 @@ const AddInspectionPage = () => {
               equipmentData = {
                 id: extData.numero_identificacao,
                 name: extData.numero_identificacao,
-                location: extData.local_id || undefined,
+                location: undefined,
+                tipo_agente: extData.tipo_agente,
+                capacidade: extData.capacidade,
+                peso_cheio_placa_kg: extData.peso_cheio_placa_kg,
+                peso_vazio_conjunto_kg: extData.peso_vazio_conjunto_kg,
+                latitude: extData.latitude,
+                longitude: extData.longitude,
               };
             }
             break;
@@ -469,7 +496,11 @@ const AddInspectionPage = () => {
               setMultigasReferenceH2S(multigasData.H2S_cilindro?.toString() || '');
               setMultigasReferenceCO(multigasData.CO_cilindro?.toString() || '');
               // Carregar margem de erro do cilindro
-              setMultigasCylinderTolerance(multigasData.margem_erro_cilindro?.toString() || '20.0');
+              const tol = resolveGasTolerances(multigasData);
+              setMultigasMarginLEL(tol.LEL.toString());
+              setMultigasMarginO2(tol.O2.toString());
+              setMultigasMarginH2S(tol.H2S.toString());
+              setMultigasMarginCO(tol.CO.toString());
             }
             break;
           }
@@ -805,14 +836,16 @@ const AddInspectionPage = () => {
             Object.entries(nextDates).map(([key, value]) => [key, value ?? undefined])
           );
 
-          const inspectionRecord = {
+          let extObservacoes = observacoes || '';
+          let extAprovado = aprovado || 'Sim';
+          const extRecord: Record<string, unknown> = {
             numero_identificacao: id,
             tipo_servico: formData.tipo_servico || 'Inspeção',
-            data_servico: inspectionDateTime || inspectionDate, // Usa datetime completo se disponível
-            numero_selo_inmetro: formData.numero_selo_inmetro || undefined, // Salva o selo do Inmetro (atualizado em manutenções nível 2 ou 3)
+            data_servico: inspectionDateTime || inspectionDate,
+            numero_selo_inmetro: formData.numero_selo_inmetro || undefined,
             inspetor_responsavel: user.user_metadata?.full_name || user.email || 'Usuário',
-            aprovado_inspecao: aprovado || 'Sim',
-            observacoes_gerais: observacoes || '',
+            aprovado_inspecao: extAprovado,
+            observacoes_gerais: extObservacoes,
             plano_de_acao: planAction,
             link_foto_nao_conformidade: photoLink || undefined,
             latitude: latitude || undefined,
@@ -820,6 +853,28 @@ const AddInspectionPage = () => {
             ...cleanDates,
             user_id: user.id,
           };
+
+          if (equipment?.tipo_agente === CO2_AGENT_VALUE && co2PerformWeighing && co2PesoMedido) {
+            const pc = equipment.peso_cheio_placa_kg;
+            const pv = equipment.peso_vazio_conjunto_kg;
+            const cap = equipment.capacidade;
+            const peso = parseFloat(co2PesoMedido);
+            const evalResult = evaluateCo2Weighing(pc, pv, cap, peso);
+            extRecord.peso_medido_conjunto_kg = peso;
+            extRecord.peso_cheio_placa_snapshot_kg = pc ?? undefined;
+            extRecord.carga_nominal_kg = evalResult.cargaNominal ?? undefined;
+            extRecord.perda_kg = evalResult.perda;
+            extRecord.data_proxima_pesagem_co2 = getNextPesagemDate(inspectionDate);
+            const co2Line = `[Pesagem CO₂] PC: ${pc} kg | Medido: ${peso} kg | Perda: ${evalResult.perda} kg | Limite: ${evalResult.limite ?? 'N/A'} kg | ${evalResult.aprovado ? 'Aprovado' : 'Reprovado'}`;
+            extObservacoes = extObservacoes ? `${extObservacoes}\n${co2Line}` : co2Line;
+            extRecord.observacoes_gerais = extObservacoes;
+            if (!evalResult.aprovado) {
+              extAprovado = 'Não';
+              extRecord.aprovado_inspecao = 'Não';
+            }
+          }
+
+          const inspectionRecord = extRecord;
 
           // Valida dados antes de salvar
           const validation = safeValidateData(extinguisherInspectionSchema, inspectionRecord);
@@ -960,15 +1015,17 @@ const AddInspectionPage = () => {
           };
 
           // Obter margem de erro do cilindro (do campo editável ou do equipamento)
-          const cylinderTolerance = multigasCylinderTolerance 
-            ? Number(multigasCylinderTolerance) 
-            : (equipment?.margem_erro_cilindro ? Number(equipment.margem_erro_cilindro) : 20);
-          
-          // Verificar bump test automaticamente usando a margem de erro do cilindro
+          const gasTolerances: GasTolerances = {
+            LEL: multigasMarginLEL ? Number(multigasMarginLEL) : resolveGasTolerances(equipment as any).LEL,
+            O2: multigasMarginO2 ? Number(multigasMarginO2) : resolveGasTolerances(equipment as any).O2,
+            H2S: multigasMarginH2S ? Number(multigasMarginH2S) : resolveGasTolerances(equipment as any).H2S,
+            CO: multigasMarginCO ? Number(multigasMarginCO) : resolveGasTolerances(equipment as any).CO,
+          };
+
           const { isApproved, observations } = verifyBumpTest(
             referenceValues, 
             foundValues, 
-            cylinderTolerance
+            gasTolerances
           );
           const autoObservations = observations.join(' ');
           
@@ -989,25 +1046,7 @@ const AddInspectionPage = () => {
               }
               
               // Atualiza margem de erro se foi alterada
-              if (multigasCylinderTolerance && multigasCylinderTolerance !== equipment?.margem_erro_cilindro?.toString()) {
-                const { offlineUpdate } = await import('../utils/offlineOperations');
-                const detector = await getMultigasDetectorById(id);
-                if (detector && detector.id) {
-                  const toleranceValue = parseFloat(multigasCylinderTolerance);
-                  if (!isNaN(toleranceValue) && toleranceValue >= 0 && toleranceValue <= 100) {
-                    const toleranceResult = await offlineUpdate('inventario_multigas', detector.id, {
-                      margem_erro_cilindro: toleranceValue,
-                      user_id: user.id,
-                    });
-                    if (!toleranceResult.success) {
-                      logger.warn('Falha ao atualizar margem de erro do cilindro, mas continuando com salvamento da inspeção', 'inspection', {
-                        id,
-                        tolerance: toleranceValue
-                      });
-                    }
-                  }
-                }
-              }
+              await updateCylinderTolerances(id, gasTolerances, user.id);
             } catch (updateError: any) {
               // Log do erro mas não bloqueia o salvamento da inspeção
               logger.error('Erro ao atualizar valores de referência do cilindro ou margem de erro', 'inspection', updateError);
@@ -1350,6 +1389,7 @@ const AddInspectionPage = () => {
       <main className="px-ios-4 py-ios-4 pb-32 relative" style={{ zIndex: 10, position: 'relative', backgroundColor: '#000000' }}>
         {type && (
           <motion.div
+            data-tour="inspection-flow-instructions"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
@@ -1359,20 +1399,33 @@ const AddInspectionPage = () => {
         )}
         {equipment && (
           <motion.div 
-            className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg relative" 
+            data-tour="inspection-flow-equipment"
+            className="mb-ios-4 p-ios-3 apple-card rounded-ios-lg relative flex items-start justify-between gap-3" 
             style={{ zIndex: 10, position: 'relative', backgroundColor: 'rgba(28, 28, 30, 0.9)', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: '1px' }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
-            <p className="font-semibold text-sm text-white">{equipment.name}</p>
-            <p className="text-xs text-[#8E8E93]">
-              {equipment.location || equipment.localizacao || t('inspection.noLocation')}
-            </p>
-            {equipment.model && (
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                {t('inspection.model')} {equipment.model}
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-white">{equipment.name}</p>
+              <p className="text-xs text-[#8E8E93]">
+                {equipment.location || equipment.localizacao || t('inspection.noLocation')}
               </p>
+              {equipment.model && (
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {t('inspection.model')} {equipment.model}
+                </p>
+              )}
+            </div>
+            {type && id && (
+              <Link
+                to={`/equipment/${type}/${id}/edit`}
+                state={{ returnAfterSave: `/equipment/${type}/${id}/inspections/new` }}
+                className="flex-shrink-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                aria-label={t('inspection.editEquipment')}
+              >
+                <Edit className="w-4 h-4 text-white" />
+              </Link>
             )}
           </motion.div>
         )}
@@ -1418,7 +1471,7 @@ const AddInspectionPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
         >
-          <AnimatedFormField delay={0.25} className="mb-4">
+          <AnimatedFormField delay={0.25} className="mb-4" data-tour="inspection-flow-datetime">
             <label htmlFor="data_inspecao" className="block text-sm font-medium mb-1" style={{ color: '#FFFFFF' }}>
               {t('inspection.dateTimeRequired', { defaultValue: 'Data e Hora da Inspeção' })}
             </label>
@@ -1608,6 +1661,57 @@ const AddInspectionPage = () => {
                   </div>
                 </motion.div>
               )}
+
+              {equipment?.tipo_agente === CO2_AGENT_VALUE && (
+                <motion.div className="mb-4 p-4 rounded-lg border" style={{ borderColor: '#2A2A2A', backgroundColor: 'rgba(26,26,26,0.95)' }}>
+                  <label className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={co2PerformWeighing}
+                      onChange={(e) => setCo2PerformWeighing(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium text-white">
+                      {t('extinguisher.co2Weighing.performWeighing', { defaultValue: 'Realizar pesagem semestral CO₂' })}
+                    </span>
+                  </label>
+                  {equipment.peso_cheio_placa_kg != null && (
+                    <p className="text-xs text-gray-400 mb-1">
+                      PC: {equipment.peso_cheio_placa_kg} kg
+                      {equipment.peso_vazio_conjunto_kg != null ? ` | PV: ${equipment.peso_vazio_conjunto_kg} kg` : ''}
+                      {equipment.capacidade != null ? ` | Cap: ${equipment.capacidade} kg` : ''}
+                    </p>
+                  )}
+                  {co2PerformWeighing && (
+                    <>
+                      <label className="block text-xs mb-1 text-gray-400">
+                        {t('extinguisher.co2Weighing.measuredWeight', { defaultValue: 'Peso medido do conjunto (kg)' })}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={co2PesoMedido}
+                        onChange={(e) => setCo2PesoMedido(e.target.value)}
+                        className="w-full p-2 rounded"
+                        style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFF' }}
+                      />
+                      {co2PesoMedido && equipment.peso_cheio_placa_kg != null && (() => {
+                        const ev = evaluateCo2Weighing(
+                          equipment.peso_cheio_placa_kg,
+                          equipment.peso_vazio_conjunto_kg,
+                          equipment.capacidade,
+                          parseFloat(co2PesoMedido)
+                        );
+                        return (
+                          <p className="text-xs mt-2" style={{ color: ev.aprovado ? '#53D769' : '#FC3D39' }}>
+                            {t('extinguisher.co2Weighing.result', { defaultValue: 'Perda' })}: {ev.perda} kg / {t('extinguisher.co2Weighing.limit', { defaultValue: 'Limite' })}: {ev.limite ?? '—'} kg — {ev.aprovado ? t('inspection.approved') : t('inspection.rejected')}
+                          </p>
+                        );
+                      })()}
+                    </>
+                  )}
+                </motion.div>
+              )}
             </>
           )}
 
@@ -1778,34 +1882,32 @@ const AddInspectionPage = () => {
                   </div>
                 </div>
                 
-                {/* Campo de Margem de Erro */}
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: '#2A2A2A' }}>
                   <label className="block text-xs mb-2" style={{ color: '#9E9E9E' }}>
-                    Margem de Erro do Cilindro (%)
+                    {t('equipment.marginsPerGas', { defaultValue: 'Margens de Erro por Vapor (%)' })}
                   </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={multigasCylinderTolerance}
-                      onChange={(e) => setMultigasCylinderTolerance(e.target.value)}
-                      placeholder="20.0"
-                      className="flex-1 p-2 rounded relative" 
-                      style={{ 
-                        zIndex: 10, 
-                        position: 'relative', 
-                        backgroundColor: 'rgba(18, 18, 18, 0.95)', 
-                        borderColor: '#2A2A2A', 
-                        borderWidth: '1px', 
-                        borderStyle: 'solid', 
-                        color: '#FFFFFF' 
-                      }}
-                    />
-                    <span className="text-xs" style={{ color: '#9E9E9E' }}>
-                      Tolerância usada na verificação do bump test
-                    </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ['LEL', multigasMarginLEL, setMultigasMarginLEL],
+                      ['O²', multigasMarginO2, setMultigasMarginO2],
+                      ['H²S', multigasMarginH2S, setMultigasMarginH2S],
+                      ['CO', multigasMarginCO, setMultigasMarginCO],
+                    ] as const).map(([label, value, setter]) => (
+                      <div key={label}>
+                        <span className="text-xs" style={{ color: '#9E9E9E' }}>{label}</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          value={value}
+                          onChange={(e) => setter(e.target.value)}
+                          placeholder="20.0"
+                          className="w-full p-2 rounded mt-1"
+                          style={{ backgroundColor: 'rgba(18,18,18,0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </motion.div>
@@ -2169,7 +2271,14 @@ const AddInspectionPage = () => {
             </motion.div>
           )}
 
+          <ChecklistLocationMap
+            latitude={latitude ?? equipment?.latitude}
+            longitude={longitude ?? equipment?.longitude}
+            title={equipment?.name}
+          />
+
           <motion.button
+            data-tour="inspection-flow-submit"
             type="submit"
             disabled={loading || (requiresPhoto && !photoFile)}
             className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
@@ -2190,6 +2299,7 @@ const AddInspectionPage = () => {
           </motion.button>
         </motion.form>
       </main>
+      <AddInspectionTour ready={!loadingEquipment && !!equipment} />
     </div>
   );
 };

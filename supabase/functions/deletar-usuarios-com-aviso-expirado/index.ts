@@ -54,7 +54,7 @@ async function deletarUsuarioCompleto(adminClient: any, userId: string): Promise
     'log_acoes_camaras_espuma', 'log_acoes_canhoes_monitores', 'log_acoes_chuveiros_lava_olhos',
     'log_acoes_alarmes', 'log_acoes_abrigos', 'log_baixa_extintores',
     'user_action_logs', 'user_access_logs', 'email_logs',
-    'locais', 'purchases',
+    'purchases',
   ];
 
   // Deletar dados de todas as tabelas

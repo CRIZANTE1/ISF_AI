@@ -536,7 +536,7 @@ const ActionPlansPage = () => {
           contentKey: 'help.actionPlans.content'
         }}
       />
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-32" data-tour="action-plans-main">
         {/* Filtros */}
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
           <button

@@ -38,6 +38,7 @@ import { useConfirm } from '../hooks/useConfirm';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 import InstructionsPanel from '../components/InstructionsPanel';
+import AddEquipmentTour from '../components/AddEquipmentTour';
 
 const AddEquipmentPage = () => {
   const { type } = useParams<{ type: string }>();
@@ -638,7 +639,7 @@ const AddEquipmentPage = () => {
   const renderSpecificForm = () => {
     switch (type) {
       case 'extintor':
-        return <ExtinguisherForm register={register} errors={errors} />;
+        return <ExtinguisherForm register={register} errors={errors} watch={watch} />;
       case 'mangueira':
         return <HoseForm register={register} />;
       case 'scba':
@@ -672,9 +673,11 @@ const AddEquipmentPage = () => {
         }}
       />
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
-        <InstructionsPanel equipmentType={instructionType} className="mb-6" />
+        <div data-tour="add-equipment-intro">
+          <InstructionsPanel equipmentType={instructionType} className="mb-6" />
+        </div>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="mb-4">
+          <div className="mb-4" data-tour="add-equipment-id">
             <div className="flex items-center gap-2 mb-1">
               <label htmlFor={idField.name} className="block text-sm font-medium" style={{ color: '#FFFFFF' }}>
                 {idField.label}
@@ -907,6 +910,7 @@ const AddEquipmentPage = () => {
             </>
           )}
 
+          <div data-tour="add-equipment-form-body">
           {isCustomType && customTypeId ? (
             <>
               {profile?.plan === 'trial' && customEquipmentCount !== null && (
@@ -931,8 +935,10 @@ const AddEquipmentPage = () => {
           ) : (
             renderSpecificForm()
           )}
+          </div>
 
           <button
+            data-tour="add-equipment-submit"
             type="submit"
             disabled={loading}
             onClick={() => haptics.medium()}
@@ -942,6 +948,7 @@ const AddEquipmentPage = () => {
           </button>
         </form>
       </main>
+      <AddEquipmentTour hasType={!!type} />
 
       {confirmData && (
         <ConfirmationModal

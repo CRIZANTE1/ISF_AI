@@ -113,7 +113,7 @@ const EquipmentDetailPage = () => {
               ...extData,
               id: extData.numero_identificacao,
               name: extData.numero_identificacao,
-              location: extData.local_id || undefined,
+              location: undefined,
               numero_selo_inmetro: numeroSeloInmetro, // Selo vem da última manutenção
             };
             
