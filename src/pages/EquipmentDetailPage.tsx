@@ -1081,6 +1081,30 @@ const EquipmentDetailPage = () => {
                       <span className="text-white text-right text-xs">{equipment.inspetor_responsavel}</span>
                     </div>
                   )}
+                  {/* Pesagem CO₂ — exibido apenas quando o cadastro tem PC e o agente é CO2 */}
+                  {equipment.tipo_agente === 'CO2' && (equipment as any).peso_cheio_placa_kg != null && (
+                    <div className="mt-2 pt-2 border-t space-y-2" style={{ borderColor: '#3A3A3A' }}>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pesagem CO₂</p>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-semibold text-gray-400">Peso Cheio (placa):</span>
+                        <span className="text-white text-right">{(equipment as any).peso_cheio_placa_kg} kg</span>
+                      </div>
+                      {(equipment as any).peso_vazio_conjunto_kg != null && (
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-semibold text-gray-400">Peso Vazio (conjunto):</span>
+                          <span className="text-white text-right">{(equipment as any).peso_vazio_conjunto_kg} kg</span>
+                        </div>
+                      )}
+                      {(equipment as any).data_proxima_pesagem_co2 && (
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-semibold text-gray-400">Próxima Pesagem:</span>
+                          <span className="text-white text-right">
+                            {format(new Date((equipment as any).data_proxima_pesagem_co2), 'dd/MM/yyyy', { locale: currentLanguage === 'pt-BR' ? ptBR : enUS })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1189,7 +1213,21 @@ const EquipmentDetailPage = () => {
                       <span className="text-white text-right">{equipment.co_cilindro}ppm</span>
                     </div>
                   )}
-                  {(equipment.margem_erro_cilindro !== null && equipment.margem_erro_cilindro !== undefined) && (
+                  {/* Margens por vapor (novas) */}
+                  {(['lel', 'o2', 'h2s', 'co'] as const).some(g => (equipment as any)[`margem_erro_${g}`] != null) ? (
+                    <>
+                      {(['lel', 'o2', 'h2s', 'co'] as const).map(gas => {
+                        const val = (equipment as any)[`margem_erro_${gas}`];
+                        if (val == null) return null;
+                        return (
+                          <div key={gas} className="flex justify-between items-center text-sm">
+                            <span className="font-semibold text-gray-400">Margem {gas.toUpperCase()}:</span>
+                            <span className="text-white text-right">{val}%</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (equipment.margem_erro_cilindro !== null && equipment.margem_erro_cilindro !== undefined) && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-semibold text-gray-400">Margem de Erro:</span>
                       <span className="text-white text-right">{equipment.margem_erro_cilindro}%</span>

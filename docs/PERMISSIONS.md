@@ -1,8 +1,11 @@
 # Documentação: Permissões do Aplicativo
 
+> Configuração geral do projeto Android: [CAPACITOR_SETUP.md](./CAPACITOR_SETUP.md)  
+> Arquivo fonte: `android/app/src/main/AndroidManifest.xml`
+
 ## Visão Geral
 
-Este documento descreve todas as permissões necessárias para o funcionamento do aplicativo ISFIA Android, incluindo câmera e localização.
+Este documento descreve todas as permissões necessárias para o funcionamento do aplicativo ISF IA Android (`com.isfia.app`), incluindo rede, câmera, localização, armazenamento e notificações push.
 
 ## Permissões Configuradas
 
@@ -70,6 +73,36 @@ Este documento descreve todas as permissões necessárias para o funcionamento d
 - App verifica disponibilidade em runtime
 
 **Status:** ✅ Configurada
+
+### 4. Rede
+
+| Permissão | Uso |
+|-----------|-----|
+| `ACCESS_NETWORK_STATE` | Detectar conectividade (`@capacitor/network`) |
+| `ACCESS_WIFI_STATE` | Estado da rede Wi-Fi |
+
+**Status:** ✅ Configuradas
+
+### 5. Armazenamento / mídia
+
+| Permissão | Uso |
+|-----------|-----|
+| `READ_EXTERNAL_STORAGE` | Leitura de arquivos (API ≤ 32) |
+| `WRITE_EXTERNAL_STORAGE` | Gravação de PDFs e fotos (API ≤ 29) |
+| `READ_MEDIA_IMAGES` | Galeria no Android 13+ |
+
+**Status:** ✅ Configuradas
+
+### 6. Notificações push (FCM)
+
+| Permissão | Uso |
+|-----------|-----|
+| `POST_NOTIFICATIONS` | Exibir notificações (Android 13+) |
+| `RECEIVE_BOOT_COMPLETED` | Reagendar notificações após reinício |
+| `WAKE_LOCK` | Entrega de push em background |
+| `VIBRATE` | Feedback tátil em notificações |
+
+**Status:** ✅ Configuradas — requer `google-services.json` para FCM. Ver [push-fcm-firebase.md](./push-fcm-firebase.md).
 
 ## Solicitação de Permissões em Runtime
 
@@ -147,26 +180,39 @@ O scanner de QR Code (`html5-qrcode`) gerencia permissões automaticamente:
 Localização: `android/app/src/main/AndroidManifest.xml`
 
 ```xml
-<!-- Permissions -->
+<!-- Rede -->
 <uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
-<!-- Geolocation Permissions -->
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-<!-- Camera Permissions -->
+<!-- Câmera e armazenamento -->
 <uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
-<!-- Feature declaration -->
+<!-- GPS -->
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+<!-- Push / FCM -->
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<uses-permission android:name="android.permission.VIBRATE" />
+
+<!-- Hardware opcional -->
 <uses-feature android:name="android.hardware.camera" android:required="false" />
-<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+<uses-feature android:name="android.hardware.location.gps" android:required="false" />
 ```
 
 ## Versões do Android Suportadas
 
+Definidas em `android/variables.gradle`:
+
 - **MinSdkVersion:** 22 (Android 5.1 Lollipop)
-- **TargetSdkVersion:** 35 (Android 15)
-- **CompileSdkVersion:** 35
+- **TargetSdkVersion:** 34 (Android 14)
+- **CompileSdkVersion:** 34
 
 ## Permissões por Funcionalidade
 
@@ -185,6 +231,14 @@ Localização: `android/app/src/main/AndroidManifest.xml`
 
 ### Sincronização de Dados
 - ✅ `INTERNET` (obrigatória)
+- ✅ `ACCESS_NETWORK_STATE` (offline/online)
+
+### Notificações push (FCM)
+- ✅ `POST_NOTIFICATIONS` (Android 13+)
+- ✅ `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `VIBRATE`
+
+### Exportação de PDF / fotos
+- ✅ `READ_MEDIA_IMAGES` / `WRITE_EXTERNAL_STORAGE` (conforme versão do Android)
 
 ## Tratamento de Permissões Negadas
 

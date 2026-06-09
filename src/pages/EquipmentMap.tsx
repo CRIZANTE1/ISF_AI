@@ -45,6 +45,7 @@ function createCustomIcon(type: string): Icon {
     chuveiro_lavaolhos: '#157EFB',
     alarme: '#FC3D39',
     abrigo: '#53D769',
+    reserva_tecnica: '#5AC8FA',
   };
   
   const color = colors[type] || '#8E8E93';
@@ -230,6 +231,25 @@ const EquipmentMap = () => {
             latitude: Number(eq.latitude),
             longitude: Number(eq.longitude),
             name: `Abrigo ${eq.id_abrigo}`,
+            status: 'N/A',
+          });
+        });
+
+        // Processar reservas técnicas com localização
+        const reservoirs = (cache as any).waterReservoirs?.filter((r: any) =>
+          r.id &&
+          r.gps_latitude != null && r.gps_longitude != null &&
+          !isNaN(Number(r.gps_latitude)) && !isNaN(Number(r.gps_longitude))
+        ) ?? [];
+
+        reservoirs.forEach((r: any) => {
+          equipmentMarkers.push({
+            id: r.id,
+            type: 'reserva_tecnica',
+            serial: r.code || r.id,
+            latitude: Number(r.gps_latitude),
+            longitude: Number(r.gps_longitude),
+            name: `Reserva ${r.name || r.code}`,
             status: 'N/A',
           });
         });

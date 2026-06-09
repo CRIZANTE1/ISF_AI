@@ -443,6 +443,56 @@ function addChecklistResults(doc: jsPDF, yPos: number, resultados: Record<string
 }
 
 /**
+ * Adiciona seção de Pesagem Semestral CO₂ (apenas para extintores CO₂ com pesagem)
+ */
+function addCo2WeighingSection(doc: jsPDF, yPos: number, inspection: InspectionData): number {
+  const insp = inspection as any;
+  if (!insp.peso_medido_conjunto_kg) return yPos;
+
+  const pc = insp.peso_cheio_placa_snapshot_kg ?? insp.peso_cheio_placa_kg;
+  const medido = insp.peso_medido_conjunto_kg;
+  const carga = insp.carga_nominal_kg;
+  const perda = insp.perda_kg;
+  const proxima = insp.data_proxima_pesagem_co2;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('3. PESAGEM SEMESTRAL CO₂', PAGE_MARGINS.LEFT, yPos);
+  yPos += 6;
+
+  doc.setDrawColor(COLORS.GRAY);
+  doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_WIDTH - PAGE_MARGINS.RIGHT, yPos);
+  yPos += 8;
+
+  const rows: string[][] = [];
+  if (pc !== undefined && pc !== null) rows.push(['Peso Cheio (placa)', `${pc} kg`]);
+  if (medido !== undefined && medido !== null) rows.push(['Peso Medido (conjunto)', `${medido} kg`]);
+  if (carga !== undefined && carga !== null) rows.push(['Carga Nominal', `${carga} kg`]);
+  if (perda !== undefined && perda !== null) {
+    const limite = carga ? (carga * 0.1).toFixed(3) : '-';
+    const aprovado = carga ? perda <= carga * 0.1 : true;
+    rows.push(['Perda Apurada', `${perda} kg (limite: ${limite} kg) — ${aprovado ? 'APROVADO' : 'REPROVADO'}`]);
+  }
+  if (proxima) rows.push(['Próxima Pesagem', format(new Date(proxima), 'dd/MM/yyyy', { locale: ptBR })]);
+
+  doc.autoTable({
+    startY: yPos,
+    body: rows,
+    theme: 'plain',
+    styles: { fontSize: 10, textColor: COLORS.BLACK },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 70, fillColor: COLORS.LIGHT_GRAY },
+      1: { cellWidth: CONTENT_WIDTH - 70 },
+    },
+    margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+  return yPos;
+}
+
+/**
  * Adiciona valores de medição multigas (apenas para equipamentos multigas)
  */
 function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData, equipment: EquipmentData): number {
@@ -850,6 +900,15 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
     yPos = addMultigasValues(doc, yPos, data.inspection, data.equipment);
     
     // Verifica se precisa de nova página
+    if (yPos > PAGE_HEIGHT - 100) {
+      doc.addPage();
+      yPos = PAGE_MARGINS.TOP;
+    }
+  }
+
+  // Pesagem CO₂ (apenas para extintores CO₂ com pesagem realizada)
+  if (data.equipment.type === 'extintor') {
+    yPos = addCo2WeighingSection(doc, yPos, data.inspection);
     if (yPos > PAGE_HEIGHT - 100) {
       doc.addPage();
       yPos = PAGE_MARGINS.TOP;

@@ -97,6 +97,13 @@ const History = () => {
           .eq('user_id', user.id)
           .order('data_inspecao', { ascending: false });
 
+        // Buscar inspeções de reservas técnicas
+        const { data: reservoirInspections } = await supabase
+          .from('water_reservoir_inspections' as any)
+          .select('*, water_reservoirs(name, code)')
+          .eq('user_id', user.id)
+          .order('inspection_date', { ascending: false });
+
         // Processar inspeções SCBA
         if (scbaInspections.data) {
           scbaInspections.data.forEach((insp: any) => {
@@ -239,6 +246,23 @@ const History = () => {
               status: status,
               inspector: insp.inspetor_responsavel,
               observations: insp.observacoes_gerais,
+              created_at: insp.created_at,
+            });
+          });
+        }
+
+        // Processar inspeções de Reservas Técnicas
+        if (reservoirInspections) {
+          reservoirInspections.forEach((insp: any) => {
+            const reservoir = insp.water_reservoirs;
+            const name = reservoir ? `${reservoir.name || reservoir.code}` : String(insp.reservoir_id);
+            allInspections.push({
+              id: insp.id,
+              type: 'Reserva Técnica',
+              equipmentId: name,
+              date: insp.inspection_date || insp.created_at,
+              status: normalizeStatus(insp.overall_condition === 'OK' ? 'aprovado' : insp.overall_condition === 'NOK' ? 'reprovado' : 'pendente'),
+              observations: insp.corrective_action,
               created_at: insp.created_at,
             });
           });
