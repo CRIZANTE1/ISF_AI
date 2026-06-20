@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { logger } from '../../utils/logger';
+import { ButtonSkeleton } from '../skeletons';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface LoginFormProps {
@@ -240,7 +241,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className="w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40"
           >
-            {loading ? t('auth.sending') : t('auth.sendRecoveryLink')}
+            {loading ? <ButtonSkeleton width="w-32" className="mx-auto" /> : t('auth.sendRecoveryLink')}
           </button>
           <button
             type="button"
@@ -273,7 +274,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className="w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40"
           >
-            {loading ? t('auth.resetting') : t('auth.resetPasswordButton')}
+            {loading ? <ButtonSkeleton width="w-32" className="mx-auto" /> : t('auth.resetPasswordButton')}
           </button>
           <button
             type="button"
@@ -329,7 +330,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className="w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40"
           >
-            {loading ? t('auth.creating') : t('auth.createAccountButton')}
+            {loading ? <ButtonSkeleton width="w-32" className="mx-auto" /> : t('auth.createAccountButton')}
           </button>
           <button
             type="button"
@@ -400,7 +401,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             disabled={loading}
             className={`w-full py-3 rounded-lg bg-white hover:bg-white/90 text-black font-medium transition-all duration-200 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-white/20 hover:shadow-white/40`}
           >
-            {loading ? t('auth.loggingIn') : t('auth.login')}
+            {loading ? <ButtonSkeleton width="w-24" className="mx-auto" /> : t('auth.login')}
           </button>
 
           <div className="relative my-6">
@@ -437,7 +438,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              {loading ? t('auth.signingInWithGoogle') : t('auth.signInWithGoogle')}
+              {loading ? <ButtonSkeleton width="w-36" className="mx-auto" /> : t('auth.signInWithGoogle')}
             </button>
           )}
         </form>

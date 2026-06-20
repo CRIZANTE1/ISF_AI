@@ -100,7 +100,11 @@ const Dashboard = () => {
         <InstructionsPanel equipmentType="dashboard" />
 
         {/* Apple Activity Rings */}
-        {!isLoading && stats && (
+        {isLoading ? (
+          <div className="mb-ios-6">
+            <Skeleton className="h-48 w-full rounded-2xl" />
+          </div>
+        ) : stats && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

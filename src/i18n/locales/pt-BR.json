@@ -978,9 +978,13 @@
       "title": "Lista de Equipamentos",
       "content": "Visualize todos os seus equipamentos deste tipo. Toque em um item para ver detalhes ou no botão '+' para adicionar um novo. O status é atualizado automaticamente após cada inspeção.",
       "generateReport": "Emitir Relatório",
+      "generateMonthlyReport": "Emitir Relatório Mensal",
+      "reportMonth": "Mês do relatório",
       "generatingReport": "Gerando relatório...",
       "reportSuccess": "Relatório de inventário gerado com sucesso!",
-      "reportError": "Erro ao gerar relatório de inventário."
+      "reportError": "Erro ao gerar relatório de inventário.",
+      "monthlyReportSuccess": "Relatório mensal de extintores gerado com sucesso!",
+      "monthlyReportError": "Erro ao gerar relatório mensal de extintores."
     },
     "photoRequired": {
       "title": "Foto Obrigatória",

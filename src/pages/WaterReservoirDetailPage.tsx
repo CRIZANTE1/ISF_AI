@@ -5,7 +5,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import { Trash2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { Spinner } from '../components/ui/spinner';
+import { DetailSkeleton } from '../components/skeletons';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useHaptics } from '../hooks/useHaptics';
@@ -94,8 +94,11 @@ const WaterReservoirDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="theme-pages dark min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
-        <Spinner size="lg" color="white" />
+      <div className="theme-pages dark min-h-screen" style={{ backgroundColor: '#000000' }}>
+        <PageHeader title={t('waterReservoir.detailTitle')} />
+        <main className="p-4">
+          <DetailSkeleton />
+        </main>
       </div>
     );
   }

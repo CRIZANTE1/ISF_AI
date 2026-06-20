@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, AlertTriangle, X, RefreshCw, WifiOff, CheckCircle, Lightbulb } from 'lucide-react';
 import LazyImage from './LazyImage';
+import { IconSkeleton } from './skeletons';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useSyncStatus } from '../hooks/useSyncStatus';
@@ -420,7 +421,7 @@ const DashboardHeader = () => {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           {isSyncing ? (
-                            <RefreshCw size={16} className="text-yellow-500 animate-spin flex-shrink-0" />
+                            <IconSkeleton className="h-4 w-4 rounded-full flex-shrink-0" />
                           ) : hasError ? (
                             <WifiOff size={16} className="text-red-500 flex-shrink-0" />
                           ) : (

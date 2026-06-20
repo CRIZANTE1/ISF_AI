@@ -11,6 +11,7 @@ import {
   updateSystemSetting,
   SystemSetting,
 } from '../utils/systemSettingsOperations';
+import { FormSkeleton } from '../components/skeletons';
 import {
   Settings,
   Bell,
@@ -175,8 +176,11 @@ const AdminSystemSettingsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
-        <RefreshCw className="animate-spin text-white" size={32} />
+      <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
+        <PageHeader title={{ key: 'admin.systemSettings', defaultValue: 'Configurações do Sistema' }} />
+        <main className="p-4">
+          <FormSkeleton fields={6} />
+        </main>
       </div>
     );
   }

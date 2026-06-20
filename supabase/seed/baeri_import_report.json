@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-06-20T13:08:01.912Z",
+  "userId": "2cce6373-6ecc-4bf3-a44c-1df959d7cc84",
+  "xlsxPath": "C:\\Users\\ce9x\\Downloads\\BAERI.xlsx",
+  "dryRun": false,
+  "extintores": {
+    "sourceRows": 1293,
+    "uniqueCadastro": 92,
+    "inspections": 1203,
+    "invalid": [],
+    "duplicateCadastroInExcel": 1201
+  },
+  "baixas": {
+    "sourceRows": 6,
+    "prepared": 6,
+    "invalid": [],
+    "skippedMissingCadastro": 0
+  }
+}

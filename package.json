@@ -30,7 +30,16 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "import:baeri": "node scripts/import-baeri-extintores.mjs",
+    "import:baeri:dry-run": "node scripts/import-baeri-extintores.mjs --dry-run",
+    "import:baeri:execute": "node scripts/execute-baeri-batches.mjs",
+    "import:baeri:camaras-abrigos": "node scripts/import-baeri-camaras-abrigos.mjs",
+    "import:baeri:camaras-abrigos:dry-run": "node scripts/import-baeri-camaras-abrigos.mjs --dry-run",
+    "import:baeri:camaras-abrigos:execute": "node scripts/import-baeri-camaras-abrigos.mjs && node scripts/execute-baeri-batches.mjs batch_ca_",
+    "import:baeri:chuveiros": "node scripts/import-baeri-chuveiros.mjs",
+    "import:baeri:chuveiros:dry-run": "node scripts/import-baeri-chuveiros.mjs --dry-run",
+    "import:baeri:chuveiros:execute": "node scripts/import-baeri-chuveiros.mjs && node scripts/execute-baeri-batches.mjs batch_cl_"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -99,10 +108,12 @@
     "jsdom": "^23.0.1",
     "postcss": "^8.4.38",
     "sharp": "^0.34.5",
+    "supabase": "^2.107.0",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.49.0",
     "vite": "^7.2.2",
-    "vitest": "^4.0.9"
+    "vitest": "^4.0.9",
+    "xlsx": "^0.18.5"
   }
 }

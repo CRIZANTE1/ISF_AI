@@ -54,7 +54,7 @@ import { saveSCBAVisualInspection, getSCBABySerial } from '../utils/scbaOperatio
 import { saveShelterInspection } from '../utils/shelterOperations';
 import { getHoseById, saveHoseInspection } from '../utils/hoseOperations';
 import { uploadEvidencePhoto } from '../utils/storage';
-import { Spinner } from '../components/ui/spinner';
+import { FormSkeleton, ButtonSkeleton } from '../components/skeletons';
 import { Edit } from 'lucide-react';
 import { 
   extinguisherInspectionSchema, 
@@ -1360,9 +1360,7 @@ const AddInspectionPage = () => {
       <div className="min-h-screen">
         <PageHeader title={{ key: 'inspection.add', defaultValue: 'Registrar Inspeção' }} />
         <main className="p-4">
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="blue" />
-          </div>
+          <FormSkeleton fields={6} />
         </main>
       </div>
     );
@@ -2291,10 +2289,7 @@ const AddInspectionPage = () => {
             onTap={() => haptics.medium()}
           >
             {loading ? (
-              <div className="flex items-center gap-2">
-                <Spinner size="sm" color="white" />
-                <span>{t('common.loading')}</span>
-              </div>
+              <ButtonSkeleton width="w-28" className="bg-white/20" />
             ) : t('inspection.saveSuccess', { defaultValue: 'Salvar Inspeção' })}
           </motion.button>
         </motion.form>

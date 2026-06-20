@@ -23,6 +23,8 @@ export interface UserDataExport {
     shelters: any[];
   };
   inspections: {
+    extinguishers: any[];
+    hoses: any[];
     scba: any[];
     multigas: any[];
     foamChambers: any[];
@@ -78,6 +80,8 @@ export async function exportUserData(user: User): Promise<UserDataExport> {
 
     // Buscar todas as inspeções
     const [
+      extinguisherInspections,
+      hoseInspections,
       scbaInspections,
       multigasInspections,
       foamChamberInspections,
@@ -86,6 +90,8 @@ export async function exportUserData(user: User): Promise<UserDataExport> {
       alarmInspections,
       shelterInspections,
     ] = await Promise.all([
+      supabase.from('inspecoes_extintores').select('*').eq('user_id', user.id),
+      supabase.from('inspecoes_mangueiras').select('*').eq('user_id', user.id),
       supabase.from('inspecoes_scba').select('*').eq('user_id', user.id),
       supabase.from('inspecoes_multigas').select('*').eq('user_id', user.id),
       supabase.from('inspecoes_camaras_espuma').select('*').eq('user_id', user.id),
@@ -113,6 +119,8 @@ export async function exportUserData(user: User): Promise<UserDataExport> {
         shelters: shelters.data || [],
       },
       inspections: {
+        extinguishers: extinguisherInspections.data || [],
+        hoses: hoseInspections.data || [],
         scba: scbaInspections.data || [],
         multigas: multigasInspections.data || [],
         foamChambers: foamChamberInspections.data || [],

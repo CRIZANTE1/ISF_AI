@@ -88,6 +88,27 @@ const CONTENT_WIDTH = 150; // 210 - 30 - 30
 
 ## Tipos de Relatórios
 
+### Relatório Mensal de Extintores (Android / Web)
+
+**Arquivos:**
+- `src/utils/monthlyExtinguisherReport.ts` — consulta Supabase e montagem das linhas
+- `src/utils/pdfReportGenerator.ts` — `generateMonthlyExtinguisherReport()`
+- `src/pages/EquipmentListPage.tsx` — UI na lista `extintor` (seletor de mês + botão)
+
+**Fluxo:**
+1. Usuário escolhe o mês (`YYYY-MM`) na lista de extintores
+2. Busca em `inspecoes_extintores` com `user_id`, `data_servico >= YYYY-MM-01` e `< primeiro dia do mês seguinte`
+3. Para cada extintor cadastrado, usa a inspeção mais recente do mês (`data_servico` desc, `created_at` desc)
+4. Se nenhuma linha: erro *"Nenhuma inspeção encontrada para o mês selecionado."*
+5. Gera PDF A4 **paisagem**, margens 30 mm, tabela + seção **DETALHES E EVIDÊNCIAS** (observações, plano de ação e/ou foto quando existirem) + assinatura
+6. Salva/compartilha via `savePdfToDevice()` — nome: `Relatorio_Inspecoes_Extintores_{YYYY-MM}_{YYYY-MM-DD}.pdf`
+
+```typescript
+const rows = await buildMonthlyExtinguisherReportData(equipment, userId, '2026-06', profileName);
+const blob = await generateMonthlyExtinguisherReport(rows, '2026-06', responsibleName);
+await savePdfToDevice(blob, `Relatorio_Inspecoes_Extintores_2026-06_${dateStr}.pdf`);
+```
+
 ### Relatório de Inspeção Única
 
 ```typescript

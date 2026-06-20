@@ -36,8 +36,9 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     'inventario_chuveiros_lava_olhos',
     'inventario_alarmes',
     'abrigos',
-    'equipment', // Genérico
     // Inspeções
+    'inspecoes_extintores',
+    'inspecoes_mangueiras',
     'inspecoes_scba',
     'inspecoes_multigas',
     'inspecoes_camaras_espuma',
@@ -45,7 +46,6 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     'inspecoes_chuveiros_lava_olhos',
     'inspecoes_alarmes',
     'inspecoes_abrigos',
-    'inspections', // Genérico
     // Logs de ações
     'log_acoes_extintores',
     'log_acoes_scba',

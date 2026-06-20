@@ -15,9 +15,11 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
+import { X, Minus, Plus, Locate, Maximize } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import Skeleton from "../Skeleton";
+import { IconSkeleton } from "../skeletons";
 
 type MapContextValue = {
   map: MapLibreGL.Map | null;
@@ -51,12 +53,10 @@ type MapProps = {
 } & Omit<MapLibreGL.MapOptions, "container" | "style">;
 
 const DefaultLoader = () => (
-  <div className="absolute inset-0 flex items-center justify-center">
-    <div className="flex gap-1">
-      <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
-      <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:150ms]" />
-      <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:300ms]" />
-    </div>
+  <div className="absolute inset-0 p-4 grid grid-cols-4 gap-2" aria-busy="true" role="status">
+    {Array.from({ length: 12 }).map((_, i) => (
+      <Skeleton key={i} className="h-full min-h-[60px] rounded" />
+    ))}
   </div>
 );
 
@@ -656,7 +656,7 @@ function MapControls({
             disabled={waitingForLocation}
           >
             {waitingForLocation ? (
-              <Loader2 className="size-4 animate-spin" />
+              <IconSkeleton className="size-4" />
             ) : (
               <Locate className="size-4" />
             )}

@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
@@ -50,6 +52,50 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      blocked_ips: {
+        Row: {
+          blocked_at: string
+          blocked_by: string | null
+          blocked_until: string | null
+          id: string
+          ip_address: unknown
+          is_active: boolean | null
+          metadata: Json | null
+          policy_id: string | null
+          reason: string
+        }
+        Insert: {
+          blocked_at?: string
+          blocked_by?: string | null
+          blocked_until?: string | null
+          id?: string
+          ip_address: unknown
+          is_active?: boolean | null
+          metadata?: Json | null
+          policy_id?: string | null
+          reason: string
+        }
+        Update: {
+          blocked_at?: string
+          blocked_by?: string | null
+          blocked_until?: string | null
+          id?: string
+          ip_address?: unknown
+          is_active?: boolean | null
+          metadata?: Json | null
+          policy_id?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_ips_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "security_policies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conjuntos_autonomos: {
         Row: {
@@ -105,44 +151,383 @@ export type Database = {
         }
         Relationships: []
       }
-      equipment: {
+      custom_checklist_items: {
         Row: {
-          created_at: string
-          data_validade: string | null
-          equipment_id: string
-          equipment_type: Database["public"]["Enums"]["equipment_type"]
-          id: number
-          localizacao: string | null
-          proxima_inspecao: string | null
-          qr_code: string | null
-          specifications: Json | null
-          status: Database["public"]["Enums"]["equipment_status"]
+          action_plan_template: string | null
+          created_at: string | null
+          id: string
+          item_order: number | null
+          question_text: string
+          section_id: string | null
+        }
+        Insert: {
+          action_plan_template?: string | null
+          created_at?: string | null
+          id?: string
+          item_order?: number | null
+          question_text: string
+          section_id?: string | null
+        }
+        Update: {
+          action_plan_template?: string | null
+          created_at?: string | null
+          id?: string
+          item_order?: number | null
+          question_text?: string
+          section_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_checklist_items_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "custom_checklist_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_checklist_sections: {
+        Row: {
+          checklist_id: string | null
+          created_at: string | null
+          id: string
+          section_name: string
+          section_order: number | null
+        }
+        Insert: {
+          checklist_id?: string | null
+          created_at?: string | null
+          id?: string
+          section_name: string
+          section_order?: number | null
+        }
+        Update: {
+          checklist_id?: string | null
+          created_at?: string | null
+          id?: string
+          section_name?: string
+          section_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_checklist_sections_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "custom_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_checklists: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          equipment_type_id: string | null
+          id: string
+          inspection_type: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
-          created_at?: string
-          data_validade?: string | null
-          equipment_id: string
-          equipment_type: Database["public"]["Enums"]["equipment_type"]
-          id?: number
-          localizacao?: string | null
-          proxima_inspecao?: string | null
-          qr_code?: string | null
-          specifications?: Json | null
-          status?: Database["public"]["Enums"]["equipment_status"]
+          created_at?: string | null
+          description?: string | null
+          equipment_type_id?: string | null
+          id?: string
+          inspection_type?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
-          created_at?: string
-          data_validade?: string | null
-          equipment_id?: string
-          equipment_type?: Database["public"]["Enums"]["equipment_type"]
-          id?: number
+          created_at?: string | null
+          description?: string | null
+          equipment_type_id?: string | null
+          id?: string
+          inspection_type?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_checklists_equipment_type_id_fkey"
+            columns: ["equipment_type_id"]
+            isOneToOne: false
+            referencedRelation: "custom_equipment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_equipment: {
+        Row: {
+          created_at: string | null
+          custom_fields: Json | null
+          data_cadastro: string | null
+          equipment_type_id: string | null
+          id: string
+          id_equipamento: string
+          latitude: number | null
+          localizacao: string | null
+          longitude: number | null
+          numero_serie: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_fields?: Json | null
+          data_cadastro?: string | null
+          equipment_type_id?: string | null
+          id?: string
+          id_equipamento: string
+          latitude?: number | null
           localizacao?: string | null
-          proxima_inspecao?: string | null
-          qr_code?: string | null
-          specifications?: Json | null
-          status?: Database["public"]["Enums"]["equipment_status"]
+          longitude?: number | null
+          numero_serie?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_fields?: Json | null
+          data_cadastro?: string | null
+          equipment_type_id?: string | null
+          id?: string
+          id_equipamento?: string
+          latitude?: number | null
+          localizacao?: string | null
+          longitude?: number | null
+          numero_serie?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_equipment_equipment_type_id_fkey"
+            columns: ["equipment_type_id"]
+            isOneToOne: false
+            referencedRelation: "custom_equipment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_equipment_fields: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          equipment_type_id: string | null
+          field_label: string
+          field_name: string
+          field_type: string
+          id: string
+          is_required: boolean | null
+          options: Json | null
+          placeholder: string | null
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          equipment_type_id?: string | null
+          field_label: string
+          field_name: string
+          field_type: string
+          id?: string
+          is_required?: boolean | null
+          options?: Json | null
+          placeholder?: string | null
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          equipment_type_id?: string | null
+          field_label?: string
+          field_name?: string
+          field_type?: string
+          id?: string
+          is_required?: boolean | null
+          options?: Json | null
+          placeholder?: string | null
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_equipment_fields_equipment_type_id_fkey"
+            columns: ["equipment_type_id"]
+            isOneToOne: false
+            referencedRelation: "custom_equipment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_equipment_inspections: {
+        Row: {
+          created_at: string | null
+          data_inspecao: string | null
+          data_proxima_inspecao: string | null
+          equipment_type_id: string | null
+          id: string
+          id_equipamento: string
+          inspetor: string | null
+          latitude: number | null
+          link_foto_nao_conformidade: string | null
+          longitude: number | null
+          plano_de_acao: string | null
+          resultados_json: Json | null
+          status_geral: string | null
+          tipo_inspecao: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_inspecao?: string | null
+          data_proxima_inspecao?: string | null
+          equipment_type_id?: string | null
+          id?: string
+          id_equipamento: string
+          inspetor?: string | null
+          latitude?: number | null
+          link_foto_nao_conformidade?: string | null
+          longitude?: number | null
+          plano_de_acao?: string | null
+          resultados_json?: Json | null
+          status_geral?: string | null
+          tipo_inspecao?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_inspecao?: string | null
+          data_proxima_inspecao?: string | null
+          equipment_type_id?: string | null
+          id?: string
+          id_equipamento?: string
+          inspetor?: string | null
+          latitude?: number | null
+          link_foto_nao_conformidade?: string | null
+          longitude?: number | null
+          plano_de_acao?: string | null
+          resultados_json?: Json | null
+          status_geral?: string | null
+          tipo_inspecao?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_equipment_inspections_equipment_type_id_fkey"
+            columns: ["equipment_type_id"]
+            isOneToOne: false
+            referencedRelation: "custom_equipment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_equipment_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          has_data_cadastro: boolean | null
+          icon_name: string | null
+          id: string
+          id_field_label: string
+          id_field_name: string
+          is_active: boolean | null
+          name: string
+          requires_gps: boolean | null
+          requires_location: boolean | null
+          slug: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          has_data_cadastro?: boolean | null
+          icon_name?: string | null
+          id?: string
+          id_field_label?: string
+          id_field_name?: string
+          is_active?: boolean | null
+          name: string
+          requires_gps?: boolean | null
+          requires_location?: boolean | null
+          slug: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          has_data_cadastro?: boolean | null
+          icon_name?: string | null
+          id?: string
+          id_field_label?: string
+          id_field_name?: string
+          is_active?: boolean | null
+          name?: string
+          requires_gps?: boolean | null
+          requires_location?: boolean | null
+          slug?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      device_push_tokens: {
+        Row: {
+          fcm_token: string
+          id: string
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          fcm_token: string
+          id?: string
+          platform?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          fcm_token?: string
+          id?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          email_address: string | null
+          email_type: string
+          id: string
+          sent_at: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          email_address?: string | null
+          email_type: string
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          email_address?: string | null
+          email_type?: string
+          id?: string
+          sent_at?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -150,184 +535,44 @@ export type Database = {
       extintores: {
         Row: {
           ano_fabricacao: number | null
-          aprovado_inspecao: string | null
           capacidade: number | null
           created_at: string
-          data_proxima_inspecao: string | null
-          data_proxima_manutencao_2_nivel: string | null
-          data_proxima_manutencao_3_nivel: string | null
-          data_servico: string | null
-          data_ultimo_ensaio_hidrostatico: string | null
-          empresa_executante: string | null
           id: number
-          inspetor_responsavel: string | null
-          latitude: number | null
-          link_foto_nao_conformidade: string | null
-          link_relatorio_pdf: string | null
-          longitude: number | null
           marca_fabricante: string | null
           numero_identificacao: string
-          numero_selo_inmetro: string | null
-          observacoes_gerais: string | null
+          numero_serie: string | null
           peso_cheio_placa_kg: number | null
           peso_vazio_conjunto_kg: number | null
-          plano_de_acao: string | null
           tipo_agente: string | null
-          tipo_servico: string | null
           user_id: string | null
         }
         Insert: {
           ano_fabricacao?: number | null
-          aprovado_inspecao?: string | null
           capacidade?: number | null
           created_at?: string
-          data_proxima_inspecao?: string | null
-          data_proxima_manutencao_2_nivel?: string | null
-          data_proxima_manutencao_3_nivel?: string | null
-          data_servico?: string | null
-          data_ultimo_ensaio_hidrostatico?: string | null
-          empresa_executante?: string | null
           id?: number
-          inspetor_responsavel?: string | null
-          latitude?: number | null
-          link_foto_nao_conformidade?: string | null
-          link_relatorio_pdf?: string | null
-          longitude?: number | null
           marca_fabricante?: string | null
           numero_identificacao: string
-          numero_selo_inmetro?: string | null
-          observacoes_gerais?: string | null
+          numero_serie?: string | null
           peso_cheio_placa_kg?: number | null
           peso_vazio_conjunto_kg?: number | null
-          plano_de_acao?: string | null
           tipo_agente?: string | null
-          tipo_servico?: string | null
           user_id?: string | null
         }
         Update: {
           ano_fabricacao?: number | null
-          aprovado_inspecao?: string | null
           capacidade?: number | null
           created_at?: string
-          data_proxima_inspecao?: string | null
-          data_proxima_manutencao_2_nivel?: string | null
-          data_proxima_manutencao_3_nivel?: string | null
-          data_servico?: string | null
-          data_ultimo_ensaio_hidrostatico?: string | null
-          empresa_executante?: string | null
           id?: number
-          inspetor_responsavel?: string | null
-          latitude?: number | null
-          link_foto_nao_conformidade?: string | null
-          link_relatorio_pdf?: string | null
-          longitude?: number | null
           marca_fabricante?: string | null
           numero_identificacao?: string
-          numero_selo_inmetro?: string | null
-          observacoes_gerais?: string | null
+          numero_serie?: string | null
           peso_cheio_placa_kg?: number | null
           peso_vazio_conjunto_kg?: number | null
-          plano_de_acao?: string | null
           tipo_agente?: string | null
-          tipo_servico?: string | null
           user_id?: string | null
         }
         Relationships: []
-      }
-      inspecoes_extintores: {
-        Row: {
-          aprovado_inspecao: string | null
-          carga_nominal_kg: number | null
-          created_at: string
-          data_proxima_inspecao: string | null
-          data_proxima_manutencao_2_nivel: string | null
-          data_proxima_manutencao_3_nivel: string | null
-          data_proxima_pesagem_co2: string | null
-          data_servico: string | null
-          data_ultimo_ensaio_hidrostatico: string | null
-          empresa_executante: string | null
-          id: number
-          inspetor_responsavel: string | null
-          latitude: number | null
-          link_foto_nao_conformidade: string | null
-          link_relatorio_pdf: string | null
-          longitude: number | null
-          numero_identificacao: string
-          numero_selo_inmetro: string | null
-          observacoes_gerais: string | null
-          perda_kg: number | null
-          peso_cheio_placa_snapshot_kg: number | null
-          peso_medido_conjunto_kg: number | null
-          plano_de_acao: string | null
-          status_geral: string | null
-          tipo_servico: string | null
-          user_id: string | null
-        }
-        Insert: {
-          aprovado_inspecao?: string | null
-          carga_nominal_kg?: number | null
-          created_at?: string
-          data_proxima_inspecao?: string | null
-          data_proxima_manutencao_2_nivel?: string | null
-          data_proxima_manutencao_3_nivel?: string | null
-          data_proxima_pesagem_co2?: string | null
-          data_servico?: string | null
-          data_ultimo_ensaio_hidrostatico?: string | null
-          empresa_executante?: string | null
-          id?: number
-          inspetor_responsavel?: string | null
-          latitude?: number | null
-          link_foto_nao_conformidade?: string | null
-          link_relatorio_pdf?: string | null
-          longitude?: number | null
-          numero_identificacao: string
-          numero_selo_inmetro?: string | null
-          observacoes_gerais?: string | null
-          perda_kg?: number | null
-          peso_cheio_placa_snapshot_kg?: number | null
-          peso_medido_conjunto_kg?: number | null
-          plano_de_acao?: string | null
-          status_geral?: string | null
-          tipo_servico?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          aprovado_inspecao?: string | null
-          carga_nominal_kg?: number | null
-          created_at?: string
-          data_proxima_inspecao?: string | null
-          data_proxima_manutencao_2_nivel?: string | null
-          data_proxima_manutencao_3_nivel?: string | null
-          data_proxima_pesagem_co2?: string | null
-          data_servico?: string | null
-          data_ultimo_ensaio_hidrostatico?: string | null
-          empresa_executante?: string | null
-          id?: number
-          inspetor_responsavel?: string | null
-          latitude?: number | null
-          link_foto_nao_conformidade?: string | null
-          link_relatorio_pdf?: string | null
-          longitude?: number | null
-          numero_identificacao?: string
-          numero_selo_inmetro?: string | null
-          observacoes_gerais?: string | null
-          perda_kg?: number | null
-          peso_cheio_placa_snapshot_kg?: number | null
-          peso_medido_conjunto_kg?: number | null
-          plano_de_acao?: string | null
-          status_geral?: string | null
-          tipo_servico?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inspecoes_extintores_numero_identificacao_fkey"
-            columns: ["numero_identificacao"]
-            isOneToOne: false
-            referencedRelation: "extintores"
-            referencedColumns: ["numero_identificacao"]
-          },
-        ]
       }
       inspecoes_abrigos: {
         Row: {
@@ -337,6 +582,8 @@ export type Database = {
           id: number
           id_abrigo: string
           inspetor: string | null
+          latitude: number | null
+          longitude: number | null
           plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
@@ -349,6 +596,8 @@ export type Database = {
           id?: number
           id_abrigo: string
           inspetor?: string | null
+          latitude?: number | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -361,6 +610,8 @@ export type Database = {
           id?: number
           id_abrigo?: string
           inspetor?: string | null
+          latitude?: number | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -384,7 +635,9 @@ export type Database = {
           id: number
           id_sistema: string
           inspetor: string | null
+          latitude: number | null
           link_foto_nao_conformidade: string | null
+          longitude: number | null
           plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
@@ -397,7 +650,9 @@ export type Database = {
           id?: number
           id_sistema: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -410,7 +665,9 @@ export type Database = {
           id?: number
           id_sistema?: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -434,7 +691,9 @@ export type Database = {
           id: number
           id_camara: string
           inspetor: string | null
+          latitude: number | null
           link_foto_nao_conformidade: string | null
+          longitude: number | null
           plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
@@ -448,7 +707,9 @@ export type Database = {
           id?: number
           id_camara: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -462,7 +723,9 @@ export type Database = {
           id?: number
           id_camara?: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -487,7 +750,9 @@ export type Database = {
           id: number
           id_equipamento: string
           inspetor: string | null
+          latitude: number | null
           link_foto_nao_conformidade: string | null
+          longitude: number | null
           plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
@@ -501,7 +766,9 @@ export type Database = {
           id?: number
           id_equipamento: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -515,7 +782,9 @@ export type Database = {
           id?: number
           id_equipamento?: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -540,7 +809,9 @@ export type Database = {
           id: number
           id_equipamento: string
           inspetor: string | null
+          latitude: number | null
           link_foto_nao_conformidade: string | null
+          longitude: number | null
           plano_de_acao: string | null
           resultados_json: Json | null
           status_geral: string | null
@@ -553,7 +824,9 @@ export type Database = {
           id?: number
           id_equipamento: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -566,7 +839,9 @@ export type Database = {
           id?: number
           id_equipamento?: string
           inspetor?: string | null
+          latitude?: number | null
           link_foto_nao_conformidade?: string | null
+          longitude?: number | null
           plano_de_acao?: string | null
           resultados_json?: Json | null
           status_geral?: string | null
@@ -579,6 +854,155 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventario_chuveiros_lava_olhos"
             referencedColumns: ["id_equipamento"]
+          },
+        ]
+      }
+      inspecoes_extintores: {
+        Row: {
+          aprovado_inspecao: string | null
+          carga_nominal_kg: number | null
+          created_at: string | null
+          data_proxima_inspecao: string | null
+          data_proxima_manutencao_2_nivel: string | null
+          data_proxima_manutencao_3_nivel: string | null
+          data_proxima_pesagem_co2: string | null
+          data_servico: string
+          data_ultimo_ensaio_hidrostatico: string | null
+          empresa_executante: string | null
+          id: number
+          inspetor_responsavel: string | null
+          latitude: number | null
+          link_foto_nao_conformidade: string | null
+          link_relatorio_pdf: string | null
+          longitude: number | null
+          numero_identificacao: string
+          numero_selo_inmetro: string | null
+          observacoes_gerais: string | null
+          perda_kg: number | null
+          peso_cheio_placa_snapshot_kg: number | null
+          peso_medido_conjunto_kg: number | null
+          plano_de_acao: string | null
+          status_geral: string | null
+          tipo_servico: string | null
+          user_id: string | null
+        }
+        Insert: {
+          aprovado_inspecao?: string | null
+          carga_nominal_kg?: number | null
+          created_at?: string | null
+          data_proxima_inspecao?: string | null
+          data_proxima_manutencao_2_nivel?: string | null
+          data_proxima_manutencao_3_nivel?: string | null
+          data_proxima_pesagem_co2?: string | null
+          data_servico: string
+          data_ultimo_ensaio_hidrostatico?: string | null
+          empresa_executante?: string | null
+          id?: number
+          inspetor_responsavel?: string | null
+          latitude?: number | null
+          link_foto_nao_conformidade?: string | null
+          link_relatorio_pdf?: string | null
+          longitude?: number | null
+          numero_identificacao: string
+          numero_selo_inmetro?: string | null
+          observacoes_gerais?: string | null
+          perda_kg?: number | null
+          peso_cheio_placa_snapshot_kg?: number | null
+          peso_medido_conjunto_kg?: number | null
+          plano_de_acao?: string | null
+          status_geral?: string | null
+          tipo_servico?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          aprovado_inspecao?: string | null
+          carga_nominal_kg?: number | null
+          created_at?: string | null
+          data_proxima_inspecao?: string | null
+          data_proxima_manutencao_2_nivel?: string | null
+          data_proxima_manutencao_3_nivel?: string | null
+          data_proxima_pesagem_co2?: string | null
+          data_servico?: string
+          data_ultimo_ensaio_hidrostatico?: string | null
+          empresa_executante?: string | null
+          id?: number
+          inspetor_responsavel?: string | null
+          latitude?: number | null
+          link_foto_nao_conformidade?: string | null
+          link_relatorio_pdf?: string | null
+          longitude?: number | null
+          numero_identificacao?: string
+          numero_selo_inmetro?: string | null
+          observacoes_gerais?: string | null
+          perda_kg?: number | null
+          peso_cheio_placa_snapshot_kg?: number | null
+          peso_medido_conjunto_kg?: number | null
+          plano_de_acao?: string | null
+          status_geral?: string | null
+          tipo_servico?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      inspecoes_mangueiras: {
+        Row: {
+          created_at: string | null
+          data_inspecao: string
+          data_proxima_inspecao: string | null
+          id: number
+          id_mangueira: string
+          inspetor: string | null
+          latitude: number | null
+          link_foto_nao_conformidade: string | null
+          longitude: number | null
+          observacoes: string | null
+          plano_de_acao: string | null
+          resultado: string
+          resultados_json: Json | null
+          status_geral: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_inspecao: string
+          data_proxima_inspecao?: string | null
+          id?: number
+          id_mangueira: string
+          inspetor?: string | null
+          latitude?: number | null
+          link_foto_nao_conformidade?: string | null
+          longitude?: number | null
+          observacoes?: string | null
+          plano_de_acao?: string | null
+          resultado: string
+          resultados_json?: Json | null
+          status_geral?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_inspecao?: string
+          data_proxima_inspecao?: string | null
+          id?: number
+          id_mangueira?: string
+          inspetor?: string | null
+          latitude?: number | null
+          link_foto_nao_conformidade?: string | null
+          longitude?: number | null
+          observacoes?: string | null
+          plano_de_acao?: string | null
+          resultado?: string
+          resultados_json?: Json | null
+          status_geral?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_mangueira"
+            columns: ["id_mangueira"]
+            isOneToOne: false
+            referencedRelation: "mangueiras"
+            referencedColumns: ["id_mangueira"]
           },
         ]
       }
@@ -883,12 +1307,12 @@ export type Database = {
           id: number
           id_equipamento: string
           lel_cilindro: number | null
+          marca: string | null
           margem_erro_cilindro: number | null
+          margem_erro_co: number | null
+          margem_erro_h2s: number | null
           margem_erro_lel: number | null
           margem_erro_o2: number | null
-          margem_erro_h2s: number | null
-          margem_erro_co: number | null
-          marca: string | null
           modelo: string | null
           numero_serie: string | null
           o2_cilindro: number | null
@@ -902,12 +1326,12 @@ export type Database = {
           id?: number
           id_equipamento: string
           lel_cilindro?: number | null
+          marca?: string | null
           margem_erro_cilindro?: number | null
+          margem_erro_co?: number | null
+          margem_erro_h2s?: number | null
           margem_erro_lel?: number | null
           margem_erro_o2?: number | null
-          margem_erro_h2s?: number | null
-          margem_erro_co?: number | null
-          marca?: string | null
           modelo?: string | null
           numero_serie?: string | null
           o2_cilindro?: number | null
@@ -921,15 +1345,72 @@ export type Database = {
           id?: number
           id_equipamento?: string
           lel_cilindro?: number | null
+          marca?: string | null
           margem_erro_cilindro?: number | null
+          margem_erro_co?: number | null
+          margem_erro_h2s?: number | null
           margem_erro_lel?: number | null
           margem_erro_o2?: number | null
-          margem_erro_h2s?: number | null
-          margem_erro_co?: number | null
-          marca?: string | null
           modelo?: string | null
           numero_serie?: string | null
           o2_cilindro?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      licenses: {
+        Row: {
+          activation_token: string | null
+          client_email: string | null
+          client_name: string | null
+          created_at: string
+          id: string
+          install_date: string
+          is_active: boolean
+          is_lifetime: boolean
+          last_activation_date: string | null
+          license_type: Database["public"]["Enums"]["license_type_enum"] | null
+          machine_id: string
+          notes: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          activation_token?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          install_date?: string
+          is_active?: boolean
+          is_lifetime?: boolean
+          last_activation_date?: string | null
+          license_type?: Database["public"]["Enums"]["license_type_enum"] | null
+          machine_id: string
+          notes?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          activation_token?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          install_date?: string
+          is_active?: boolean
+          is_lifetime?: boolean
+          last_activation_date?: string | null
+          license_type?: Database["public"]["Enums"]["license_type_enum"] | null
+          machine_id?: string
+          notes?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: []
@@ -941,6 +1422,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
+          photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -951,6 +1436,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -961,6 +1450,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -982,7 +1475,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
           photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -993,7 +1489,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1004,7 +1503,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1026,6 +1528,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
+          photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -1036,6 +1542,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1046,6 +1556,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1067,7 +1581,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
           photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -1078,7 +1595,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1089,7 +1609,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1111,7 +1634,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
           photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -1122,7 +1648,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1133,7 +1662,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1156,7 +1688,10 @@ export type Database = {
           id: number
           id_equipamento: string
           id_substituto: string | null
+          inspection_id: number | null
           photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -1168,7 +1703,10 @@ export type Database = {
           id?: number
           id_equipamento: string
           id_substituto?: string | null
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1180,20 +1718,57 @@ export type Database = {
           id?: number
           id_equipamento?: string
           id_substituto?: string | null
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "log_acoes_extintores_id_equipamento_fkey"
-            columns: ["id_equipamento"]
-            isOneToOne: false
-            referencedRelation: "extintores"
-            referencedColumns: ["numero_identificacao"]
-          },
-        ]
+        Relationships: []
+      }
+      log_acoes_mangueiras: {
+        Row: {
+          acao_realizada: string | null
+          data_acao: string | null
+          id: number
+          id_mangueira: number | null
+          inspection_id: number | null
+          photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
+          problema_original: string | null
+          responsavel_acao: string | null
+          user_id: string | null
+        }
+        Insert: {
+          acao_realizada?: string | null
+          data_acao?: string | null
+          id?: number
+          id_mangueira?: number | null
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
+          problema_original?: string | null
+          responsavel_acao?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          acao_realizada?: string | null
+          data_acao?: string | null
+          id?: number
+          id_mangueira?: number | null
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
+          problema_original?: string | null
+          responsavel_acao?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       log_acoes_multigas: {
         Row: {
@@ -1202,7 +1777,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
           photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -1213,7 +1791,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1224,7 +1805,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
           photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1246,6 +1830,10 @@ export type Database = {
           data_acao: string | null
           id: number
           id_equipamento: string
+          inspection_id: number | null
+          photo_link: string | null
+          plano_resolvido: boolean | null
+          plano_resolvido_em: string | null
           problema_original: string | null
           responsavel_acao: string | null
           user_id: string | null
@@ -1256,6 +1844,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento: string
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1266,6 +1858,10 @@ export type Database = {
           data_acao?: string | null
           id?: number
           id_equipamento?: string
+          inspection_id?: number | null
+          photo_link?: string | null
+          plano_resolvido?: boolean | null
+          plano_resolvido_em?: string | null
           problema_original?: string | null
           responsavel_acao?: string | null
           user_id?: string | null
@@ -1317,32 +1913,42 @@ export type Database = {
           responsavel_baixa?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "log_baixa_extintores_numero_identificacao_fkey"
-            columns: ["numero_identificacao"]
-            isOneToOne: false
-            referencedRelation: "extintores"
-            referencedColumns: ["numero_identificacao"]
-          },
-        ]
+        Relationships: []
+      }
+      log_retention_config: {
+        Row: {
+          access_logs_retention_days: number
+          action_logs_retention_days: number
+          id: number
+          last_cleanup_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_logs_retention_days?: number
+          action_logs_retention_days?: number
+          id?: number
+          last_cleanup_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_logs_retention_days?: number
+          action_logs_retention_days?: number
+          id?: number
+          last_cleanup_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       mangueiras: {
         Row: {
           ano_fabricacao: number | null
           comprimento: number | null
           created_at: string
-          data_inspecao: string | null
-          data_proximo_teste: string | null
           diametro: number | null
-          empresa_executante: string | null
           id: number
           id_mangueira: string
-          link_certificado_pdf: string | null
           marca: string | null
-          registrado_por: string | null
-          resp_tecnico_certificado: string | null
-          resultado: string | null
+          numero_serie: string | null
           tipo: string | null
           user_id: string | null
         }
@@ -1350,17 +1956,11 @@ export type Database = {
           ano_fabricacao?: number | null
           comprimento?: number | null
           created_at?: string
-          data_inspecao?: string | null
-          data_proximo_teste?: string | null
           diametro?: number | null
-          empresa_executante?: string | null
           id?: number
           id_mangueira: string
-          link_certificado_pdf?: string | null
           marca?: string | null
-          registrado_por?: string | null
-          resp_tecnico_certificado?: string | null
-          resultado?: string | null
+          numero_serie?: string | null
           tipo?: string | null
           user_id?: string | null
         }
@@ -1368,19 +1968,304 @@ export type Database = {
           ano_fabricacao?: number | null
           comprimento?: number | null
           created_at?: string
-          data_inspecao?: string | null
-          data_proximo_teste?: string | null
           diametro?: number | null
-          empresa_executante?: string | null
           id?: number
           id_mangueira?: string
-          link_certificado_pdf?: string | null
           marca?: string | null
-          registrado_por?: string | null
-          resp_tecnico_certificado?: string | null
-          resultado?: string | null
+          numero_serie?: string | null
           tipo?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          app_tours: Json
+          avatar_url: string | null
+          dev: boolean
+          full_name: string | null
+          id: string
+          plan: Database["public"]["Enums"]["user_plan"] | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          app_tours?: Json
+          avatar_url?: string | null
+          dev?: boolean
+          full_name?: string | null
+          id: string
+          plan?: Database["public"]["Enums"]["user_plan"] | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          app_tours?: Json
+          avatar_url?: string | null
+          dev?: boolean
+          full_name?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["user_plan"] | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          acknowledged: boolean | null
+          created_at: string
+          id: string
+          order_id: string | null
+          original_json: Json | null
+          product_id: string
+          purchase_state: number
+          purchase_time: string
+          purchase_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          original_json?: Json | null
+          product_id: string
+          purchase_state?: number
+          purchase_time: string
+          purchase_token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          original_json?: Json | null
+          product_id?: string
+          purchase_state?: number
+          purchase_time?: string
+          purchase_token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      security_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resource_id: string | null
+          resource_type: string | null
+          severity: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_policies: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string | null
+          enabled: boolean | null
+          id: string
+          policy_name: string
+          policy_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          policy_name: string
+          policy_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          policy_name?: string
+          policy_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      user_access_logs: {
+        Row: {
+          action: string
+          created_at: string
+          error_message: string | null
+          id: number
+          ip_address: unknown
+          session_id: string | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_message?: string | null
+          id?: number
+          ip_address?: unknown
+          session_id?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_message?: string | null
+          id?: number
+          ip_address?: unknown
+          session_id?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_action_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json | null
+          id: number
+          ip_address: unknown
+          resource_id: string | null
+          resource_type: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: Json | null
+          id?: number
+          ip_address?: unknown
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: number
+          ip_address?: unknown
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_feedback: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1557,87 +2442,150 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          app_tours: Json
-          avatar_url: string | null
-          full_name: string | null
-          id: string
-          plan: Database["public"]["Enums"]["user_plan"] | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string | null
-        }
-        Insert: {
-          app_tours?: Json
-          avatar_url?: string | null
-          full_name?: string | null
-          id: string
-          plan?: Database["public"]["Enums"]["user_plan"] | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Update: {
-          app_tours?: Json
-          avatar_url?: string | null
-          full_name?: string | null
-          id?: string
-          plan?: Database["public"]["Enums"]["user_plan"] | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      inspections: {
-        Row: {
-          created_at: string
-          equipment_id: number
-          id: number
-          inspection_date: string
-          notes: string | null
-          status: "aprovado" | "reprovado" | "pendente"
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          equipment_id: number
-          id?: number
-          inspection_date?: string
-          notes?: string | null
-          status: "aprovado" | "reprovado" | "pendente"
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          equipment_id?: number
-          id?: number
-          inspection_date?: string
-          notes?: string | null
-          status?: "aprovado" | "reprovado" | "pendente"
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inspections_equipment_id_fkey"
-            columns: ["equipment_id"]
-            isOneToOne: false
-            referencedRelation: "equipment"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inspections_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      associate_all_licenses_to_most_active_user: {
+        Args: never
+        Returns: {
+          licenses_associated: number
+          user_email: string
+          user_id: string
+        }[]
+      }
+      associate_license_to_user: {
+        Args: { p_machine_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      associate_licenses_to_users: {
+        Args: never
+        Returns: {
+          association_method: string
+          license_id: string
+          machine_id: string
+          success: boolean
+          user_id: string
+        }[]
+      }
+      block_ip: {
+        Args: {
+          p_blocked_until?: string
+          p_ip: unknown
+          p_metadata?: Json
+          p_policy_id?: string
+          p_reason: string
+        }
+        Returns: string
+      }
+      cleanup_old_logs: { Args: never; Returns: undefined }
+      cleanup_old_logs_v2: {
+        Args: never
+        Returns: {
+          deleted_access_logs: number
+          deleted_action_logs: number
+          retention_days: number
+        }[]
+      }
+      create_security_alert: {
+        Args: {
+          p_alert_type: string
+          p_description: string
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_severity: string
+          p_title: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
+      deletar_usuarios_com_aviso_expirado: { Args: never; Returns: undefined }
+      ensure_profile_exists: {
+        Args: { p_user_id: string }
+        Returns: {
+          full_name: string
+          id: string
+          plan: Database["public"]["Enums"]["user_plan"]
+          role: Database["public"]["Enums"]["user_role"]
+          trial_ends_at: string
+        }[]
+      }
+      enviar_alertas_vencimento: { Args: never; Returns: undefined }
+      enviar_lembrete_inatividade: { Args: never; Returns: undefined }
+      enviar_notificacao_trial_expirando: { Args: never; Returns: undefined }
+      enviar_notificacoes_dev: { Args: never; Returns: undefined }
+      enviar_notificacoes_pendencias: { Args: never; Returns: undefined }
+      enviar_relatorio_diario: { Args: never; Returns: undefined }
+      enviar_relatorio_mensal: { Args: never; Returns: undefined }
+      enviar_relatorio_semanal: { Args: never; Returns: undefined }
+      generate_unique_equipment_id: {
+        Args: {
+          p_id_field_name: string
+          p_prefix: string
+          p_table_name: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      get_local_date: { Args: { timestamp_with_tz: string }; Returns: string }
+      is_ip_blocked: { Args: { p_ip: unknown }; Returns: boolean }
+      limpar_usuarios_inativos: { Args: never; Returns: undefined }
+      list_unassociated_licenses: {
+        Args: never
+        Returns: {
+          created_at: string
+          is_active: boolean
+          last_activation_date: string
+          license_id: string
+          license_type: string
+          machine_id: string
+        }[]
+      }
+      log_user_access: {
+        Args: {
+          p_action: string
+          p_error_message?: string
+          p_ip_address?: unknown
+          p_session_id?: string
+          p_success?: boolean
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      log_user_action: {
+        Args: {
+          p_action_type: string
+          p_details?: Json
+          p_ip_address?: unknown
+          p_resource_id?: string
+          p_resource_type?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      testar_cron_job_individual: {
+        Args: { p_funcao_nome: string }
+        Returns: {
+          mensagem: string
+          sucesso: boolean
+          tempo_execucao: string
+          timestamp_fim: string
+          timestamp_inicio: string
+        }[]
+      }
+      testar_todos_cron_jobs: {
+        Args: never
+        Returns: {
+          cron_job: string
+          funcao_sql: string
+          mensagem: string
+          sucesso: boolean
+          tempo_execucao: string
+        }[]
+      }
     }
     Enums: {
       equipment_status:
@@ -1656,6 +2604,7 @@ export type Database = {
         | "multigas"
         | "alarme"
         | "canhao_monitor"
+      license_type_enum: "experimental" | "premium" | "lifetime"
       user_plan: "trial" | "premium"
       user_role: "user" | "admin"
     }
@@ -1803,6 +2752,7 @@ export const Constants = {
         "alarme",
         "canhao_monitor",
       ],
+      license_type_enum: ["experimental", "premium", "lifetime"],
       user_plan: ["trial", "premium"],
       user_role: ["user", "admin"],
     },

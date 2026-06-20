@@ -19,6 +19,7 @@ import AlarmForm from '../components/forms/AlarmForm';
 import ShelterForm from '../components/forms/ShelterForm';
 import CustomEquipmentForm from '../components/forms/CustomEquipmentForm';
 import Skeleton from '../components/Skeleton';
+import { ButtonSkeleton } from '../components/skeletons';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getAllEyewashStations } from '../utils/eyewashOperations';
 import { getAllFoamChambers } from '../utils/foamChamberOperations';
@@ -429,7 +430,7 @@ const EditEquipmentPage = () => {
               onClick={() => haptics.medium()}
               className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? t('common.loading') : t('common.save')}
+              {loading ? <ButtonSkeleton width="w-16" /> : t('common.save')}
             </button>
           </form>
         ) : (

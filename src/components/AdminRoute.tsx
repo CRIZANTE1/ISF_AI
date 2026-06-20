@@ -1,13 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
-import LoadingScreen from './LoadingScreen';
+import { FullScreenSkeleton } from './skeletons';
 
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
   const { profile, loading, user, profileError, refreshProfile } = useAuth();
 
   if (loading) {
-    return <LoadingScreen fullScreen={true} size="lg" color="white" />;
+    return <FullScreenSkeleton />;
   }
 
   if (!user) {

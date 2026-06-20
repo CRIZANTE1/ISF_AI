@@ -4,8 +4,35 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { TablesInsert } from '../types/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+
+const EXTINTOR_CADASTRO_FIELDS = [
+  'numero_identificacao',
+  'tipo_agente',
+  'capacidade',
+  'marca_fabricante',
+  'ano_fabricacao',
+  'numero_serie',
+  'peso_cheio_placa_kg',
+  'peso_vazio_conjunto_kg',
+  'user_id',
+] as const satisfies readonly (keyof TablesInsert<'extintores'>)[];
+
+type ExtintorCadastroInsert = TablesInsert<'extintores'>;
+
+function pickExtintorCadastroFields(
+  data: Record<string, unknown>
+): ExtintorCadastroInsert {
+  const result: Record<string, unknown> = {};
+  for (const field of EXTINTOR_CADASTRO_FIELDS) {
+    if (data[field] !== undefined) {
+      result[field] = data[field];
+    }
+  }
+  return result as ExtintorCadastroInsert;
+}
 
 // Mapeamento de ações para plano de ação baseado em não conformidades
 export const ACTION_MAP: Record<string, string> = {
@@ -503,11 +530,12 @@ export async function saveNewExtinguisher(
       throw new Error(`Extintor com ID '${extinguisher.numero_identificacao}' já existe.`);
     }
 
-    const extinguisherData = {
+    const extinguisherData = pickExtintorCadastroFields({
       ...extinguisher,
+      user_id: user.id,
       peso_cheio_placa_kg: extinguisher.peso_cheio_placa_kg ?? null,
       peso_vazio_conjunto_kg: extinguisher.peso_vazio_conjunto_kg ?? null,
-    };
+    });
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
@@ -547,11 +575,11 @@ export async function updateExtinguisher(
       throw new Error('Usuário não autenticado');
     }
 
-    const updateData = {
+    const updateData = pickExtintorCadastroFields({
       ...data,
       peso_cheio_placa_kg: data.peso_cheio_placa_kg ?? null,
       peso_vazio_conjunto_kg: data.peso_vazio_conjunto_kg ?? null,
-    };
+    });
 
     const { error } = await supabase
       .from('extintores')
@@ -836,20 +864,25 @@ export async function registerExtinguisherDisposal(
 
     if (logError) throw logError;
 
-    // Marca o equipamento como baixado (atualiza o registro existente)
-    const { error: updateError } = await supabase
-      .from('extintores')
-      .update({
-        tipo_servico: 'Baixa Definitiva',
-        data_servico: new Date().toISOString().split('T')[0],
-        aprovado_inspecao: 'N/A',
-        observacoes_gerais: `EQUIPAMENTO BAIXADO - ${motivoCondenacao}`,
-        plano_de_acao: `BAIXADO DEFINITIVAMENTE - SUBSTITUTO: ${numeroSubstituto || 'AGUARDANDO'}`,
-      })
-      .eq('id', extinguisher.id)
-      .eq('user_id', user.id);
+    const observacoesBaixa = `EQUIPAMENTO BAIXADO - ${motivoCondenacao}`;
+    const planoBaixa = `BAIXADO DEFINITIVAMENTE - SUBSTITUTO: ${numeroSubstituto || 'AGUARDANDO'}`;
 
-    if (updateError) throw updateError;
+    const { error: inspectionError } = await supabase
+      .from('inspecoes_extintores')
+      .insert({
+        numero_identificacao: numeroIdentificacao,
+        data_servico: new Date().toISOString().split('T')[0],
+        tipo_servico: 'Baixa Definitiva',
+        aprovado_inspecao: 'N/A',
+        status_geral: 'reprovado',
+        observacoes_gerais: observacoesBaixa,
+        plano_de_acao: planoBaixa,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+        user_id: user.id,
+      });
+
+    if (inspectionError) throw inspectionError;
     return true;
   } catch (error) {
     logger.error('Erro ao registrar baixa de extintor', 'equipment', error);

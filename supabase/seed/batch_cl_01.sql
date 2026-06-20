@@ -1,0 +1,8 @@
+INSERT INTO inspecoes_chuveiros_lava_olhos (data_inspecao, id_equipamento, status_geral, plano_de_acao, resultados_json, link_foto_nao_conformidade, inspetor, data_proxima_inspecao, user_id)
+SELECT '2025-08-19', 'PLECT-02', 'Reprovado com Pendências', 'Programar a pintura de demarcação do piso conforme norma.', '{"A VAZÃO DO CHUVEIRO ESTÁ ADEQUADA?":"Conforme","A PRESSÃO ESTÁ ADEQUADA?":"Conforme","A PINTURA ESTA ÍNTEGRA?":"Conforme","OPERAÇÃO DAS VÁLVULAS – ACIONAMENTO POSSUI VAZAMENTO?":"Conforme","O ACESSO ESTÁ LIVRE?":"Conforme","NIVELAMENTO POSSUI DESNÍVEL?":"Conforme","A DRENAGEM DE ÁGUA FUNCIONA?":"Conforme","O CRIVO ESTÁ DESOBISTRUIDO E BEM FIXADO?":"Conforme","O FILTRO ESTÁ LIMPO?":"Conforme","O REGULADOR DE PRESSÃO FUNCIONA CORRETAMENTE?":"Conforme","O PISO POSSUI ADERÊNCIA?":"Conforme","OS EMPREGADOS SÃO CAPACITADOS PARA UTILIZÁ-LOS?":"Conforme","O EQUIPAMENTO POSSUI CORROSÃO?":"Conforme","EXISTE PINTURA DO PISO SOB/EM VOLTA DA ESTAÇÃO?":"Não Conforme","OS ESGUICHOS POSSUEM DEFEITOS?":"Conforme","O PISO ESTÁ DANIFICADO?":"Conforme"}'::jsonb, 'https://drive.google.com/uc?export=view&id=1EjFQrpkkOzjeg_peoUez4F5wvPO86npZ', 'Cristian ferreira', '2025-09-19', '2cce6373-6ecc-4bf3-a44c-1df959d7cc84'
+WHERE NOT EXISTS (
+  SELECT 1 FROM inspecoes_chuveiros_lava_olhos b
+  WHERE b.id_equipamento = 'PLECT-02'
+    AND b.data_inspecao = '2025-08-19'
+    AND b.user_id = '2cce6373-6ecc-4bf3-a44c-1df959d7cc84'
+);

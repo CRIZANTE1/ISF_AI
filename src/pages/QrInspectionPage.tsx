@@ -8,7 +8,8 @@ import PageHeader from '../components/PageHeader';
 import { parseQrCodeData } from '../utils/qrInspectionUtils';
 import { findEquipmentByIdentifier, getEquipmentTypeName } from '../utils/qrGeneratorUtils';
 import { QrCode, Camera, Search, X, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Spinner } from '../components/ui/spinner';
+import Skeleton from '../components/Skeleton';
+import { ButtonSkeleton, ImageSkeleton } from '../components/skeletons';
 import { logger } from '../utils/logger';
 import { motion } from 'framer-motion';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -376,12 +377,7 @@ const QrInspectionPage = () => {
 
               {/* Loading overlay */}
               {loading && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Spinner size="xl" color="white" />
-                    <p className="text-sm text-white/80">{t('common.loading')}</p>
-                  </div>
-                </div>
+                <ImageSkeleton fullScreen />
               )}
 
               {/* Erro de câmera */}
@@ -441,7 +437,7 @@ const QrInspectionPage = () => {
                 className="w-full p-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
               >
-                {loading ? t('qr.searching') : t('qr.searchManually')}
+                {loading ? <ButtonSkeleton width="w-28" className="mx-auto" /> : t('qr.searchManually')}
               </button>
             </div>
 
@@ -499,7 +495,7 @@ const QrInspectionPage = () => {
               className="w-full p-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
             >
-              {loading ? t('common.loading') : t('common.search')}
+              {loading ? <ButtonSkeleton width="w-20" className="mx-auto" /> : t('common.search')}
             </button>
 
             <button

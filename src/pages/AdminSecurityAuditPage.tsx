@@ -36,7 +36,7 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react';
-import { Spinner } from '../components/ui/spinner';
+import { TableSkeleton } from '../components/skeletons';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from '../hooks/useTranslation';
@@ -352,10 +352,7 @@ const AdminSecurityAuditPage = () => {
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Loading State */}
           {loading && (
-            <div className="flex items-center justify-center p-8">
-              <Spinner size="lg" color="white" />
-              <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">{t('common.loading')}</span>
-            </div>
+            <TableSkeleton rows={5} columns={4} />
           )}
 
           {/* Error Message */}
@@ -634,9 +631,7 @@ const AdminSecurityAuditPage = () => {
           {activeTab === 'security' && (
             <div className="space-y-2">
               {loading ? (
-                <div className="flex items-center justify-center p-8">
-                  <Spinner size="lg" color="white" />
-                </div>
+                <TableSkeleton rows={4} columns={3} />
               ) : filteredSecurityEvents.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
                   Nenhum evento de segurança encontrado.
@@ -708,9 +703,7 @@ const AdminSecurityAuditPage = () => {
           {activeTab === 'access' && (
             <div className="space-y-2">
               {loading ? (
-                <div className="flex items-center justify-center p-8">
-                  <Spinner size="lg" color="white" />
-                </div>
+                <TableSkeleton rows={4} columns={3} />
               ) : accessLogs.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
                   Nenhum log de acesso encontrado.
@@ -756,9 +749,7 @@ const AdminSecurityAuditPage = () => {
           {activeTab === 'audit' && (
             <div className="space-y-2">
               {loading ? (
-                <div className="flex items-center justify-center p-8">
-                  <Spinner size="lg" color="white" />
-                </div>
+                <TableSkeleton rows={4} columns={3} />
               ) : actionLogs.length === 0 ? (
                 <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
                   Nenhum log de auditoria encontrado.

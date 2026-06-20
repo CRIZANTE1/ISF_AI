@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-06-20T13:31:44.497Z",
+  "userId": "2cce6373-6ecc-4bf3-a44c-1df959d7cc84",
+  "xlsxPath": "C:\\Users\\ce9x\\Downloads\\BAERI.xlsx",
+  "dryRun": false,
+  "chuveiros": {
+    "inventario": 13,
+    "inspecoes": 119,
+    "invalid": []
+  }
+}

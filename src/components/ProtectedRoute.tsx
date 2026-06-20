@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { licenseService } from '../services/licenseService';
 import { LicenseStatus } from '../types/license';
 import { logger } from '../utils/logger';
-import SplashScreen from './SplashScreen';
+import { FullScreenSkeleton } from './skeletons';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { user, profile, profileError, loading, refreshProfile } = useAuth();
@@ -87,7 +87,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   }, [user, profile, loading]);
 
   if (loading || checkingLicense) {
-    return <SplashScreen />;
+    return <FullScreenSkeleton />;
   }
 
   if (!user) {

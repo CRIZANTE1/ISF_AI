@@ -7,7 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
-import { Spinner } from '../components/ui/spinner';
+import Skeleton from '../components/Skeleton';
+import { FormSkeleton, ButtonSkeleton } from '../components/skeletons';
 import { logger } from '../utils/logger';
 
 const ActivateLicense = () => {
@@ -148,10 +149,7 @@ const ActivateLicense = () => {
           </div>
 
           {checkingStatus ? (
-            <div className="text-center py-8">
-              <Spinner size="lg" color="white" />
-              <p className="text-gray-400 mt-4">Verificando status da licença...</p>
-            </div>
+            <FormSkeleton fields={2} showSubmit={false} />
           ) : status && (
             <div className={`mb-6 p-4 rounded-2xl border ${
               status.valid 
@@ -205,7 +203,7 @@ const ActivateLicense = () => {
 
             <div className="bg-light-background dark:bg-dark-background p-4 rounded-xl" style={{ backgroundColor: '#121212' }}>
               <p className="text-xs text-gray-400 mb-2">Machine ID:</p>
-              <p className="text-sm font-mono text-white break-all">{machineId || 'Carregando...'}</p>
+              <p className="text-sm font-mono text-white break-all">{machineId || <Skeleton className="h-4 w-48 inline-block" />}</p>
             </div>
           </div>
 
@@ -218,10 +216,7 @@ const ActivateLicense = () => {
                   className="flex-1 px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
-                    <>
-                      <RefreshCw className="animate-spin" size={18} />
-                      Ativando...
-                    </>
+                    <ButtonSkeleton width="w-28" />
                   ) : (
                     'Ativar Licença'
                   )}

@@ -5,10 +5,12 @@
 
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseInspectionDate } from './dateUtils';
 import { logger } from './logger';
+import type { MonthlyExtinguisherReportRow } from './monthlyExtinguisherReport';
+import { formatCapacityDisplay } from './monthlyExtinguisherReport';
 
 // Extensão do autoTable para jsPDF
 declare module 'jspdf' {
@@ -1410,6 +1412,306 @@ export async function generateEquipmentListReport(
 
   yPos = (doc as any).lastAutoTable.finalY + 12;
   await addInventoryDetailsAndEvidence(doc, yPos, equipmentList);
+
+  return doc.output('blob');
+}
+
+const LANDSCAPE_PAGE_WIDTH = 297;
+const LANDSCAPE_PAGE_HEIGHT = 210;
+const LANDSCAPE_CONTENT_WIDTH =
+  LANDSCAPE_PAGE_WIDTH - PAGE_MARGINS.LEFT - PAGE_MARGINS.RIGHT;
+
+function addMonthlyExtinguisherHeader(
+  doc: jsPDF,
+  monthYYYYMM: string
+): number {
+  let yPos = PAGE_MARGINS.TOP;
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  const title = 'RELATÓRIO MENSAL DE INSPEÇÕES - EXTINTORES';
+  const titleWidth = doc.getTextWidth(title);
+  doc.text(title, PAGE_MARGINS.LEFT + (LANDSCAPE_CONTENT_WIDTH - titleWidth) / 2, yPos);
+  yPos += 10;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const generatedAt = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const generatedText = `Gerado em: ${generatedAt}`;
+  const generatedWidth = doc.getTextWidth(generatedText);
+  doc.text(generatedText, PAGE_MARGINS.LEFT + (LANDSCAPE_CONTENT_WIDTH - generatedWidth) / 2, yPos);
+  yPos += 6;
+
+  const monthLabel = format(
+    parse(`${monthYYYYMM}-01`, 'yyyy-MM-dd', new Date()),
+    "MMMM 'de' yyyy",
+    { locale: ptBR }
+  );
+  const periodText = `Inspeções realizadas em ${monthLabel}`;
+  const periodWidth = doc.getTextWidth(periodText);
+  doc.text(periodText, PAGE_MARGINS.LEFT + (LANDSCAPE_CONTENT_WIDTH - periodWidth) / 2, yPos);
+  yPos += 8;
+
+  doc.setDrawColor(COLORS.GRAY);
+  doc.setLineWidth(0.5);
+  doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + LANDSCAPE_CONTENT_WIDTH, yPos);
+  yPos += 10;
+
+  return yPos;
+}
+
+function addMonthlyExtinguisherSignature(
+  doc: jsPDF,
+  yPos: number,
+  responsibleName?: string
+): number {
+  if (yPos > LANDSCAPE_PAGE_BOTTOM - 40) {
+    doc.addPage();
+    yPos = PAGE_MARGINS.TOP;
+  }
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('ASSINATURA DO RESPONSÁVEL', PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
+
+  doc.setDrawColor(COLORS.BLACK);
+  doc.setLineWidth(0.5);
+  doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + 80, yPos);
+  yPos += 8;
+
+  if (responsibleName) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(responsibleName, PAGE_MARGINS.LEFT, yPos);
+    yPos += 6;
+  }
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(COLORS.GRAY);
+  const today = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  doc.text(`Data: ${today}`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 12;
+
+  return yPos;
+}
+
+const LANDSCAPE_PAGE_BOTTOM = LANDSCAPE_PAGE_HEIGHT - PAGE_MARGINS.BOTTOM;
+
+function ensureLandscapeSpace(doc: jsPDF, yPos: number, requiredHeight: number): number {
+  if (yPos + requiredHeight > LANDSCAPE_PAGE_BOTTOM) {
+    doc.addPage();
+    return PAGE_MARGINS.TOP;
+  }
+  return yPos;
+}
+
+function addMonthlyEvidenceTextBlock(
+  doc: jsPDF,
+  yPos: number,
+  label: string,
+  text: string
+): number {
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const lines = doc.splitTextToSize(text, LANDSCAPE_CONTENT_WIDTH);
+  const blockHeight = 5 + lines.length * 4 + 4;
+  yPos = ensureLandscapeSpace(doc, yPos, blockHeight);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text(`${label}:`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(lines, PAGE_MARGINS.LEFT, yPos);
+  yPos += lines.length * 4 + 4;
+
+  return yPos;
+}
+
+function hasMonthlyEvidenceDetails(row: MonthlyExtinguisherReportRow): boolean {
+  return Boolean(
+    row.link_foto_nao_conformidade ||
+      row.observacoes?.trim() ||
+      row.plano_de_acao?.trim()
+  );
+}
+
+async function addMonthlyExtinguisherDetailsAndEvidence(
+  doc: jsPDF,
+  yPos: number,
+  rows: MonthlyExtinguisherReportRow[]
+): Promise<number> {
+  const itemsWithDetails = rows.filter(hasMonthlyEvidenceDetails);
+  if (itemsWithDetails.length === 0) return yPos;
+
+  yPos = ensureLandscapeSpace(doc, yPos, 20);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('DETALHES E EVIDÊNCIAS', PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
+
+  for (const row of itemsWithDetails) {
+    yPos = ensureLandscapeSpace(doc, yPos, 40);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.BLACK);
+    doc.text(`Equipamento: ${row.numero_identificacao}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+
+    if (row.observacoes?.trim()) {
+      yPos = addMonthlyEvidenceTextBlock(doc, yPos, 'Observações', row.observacoes.trim());
+    }
+
+    if (row.plano_de_acao?.trim()) {
+      yPos = addMonthlyEvidenceTextBlock(doc, yPos, 'Plano de Ação', row.plano_de_acao.trim());
+    }
+
+    if (row.link_foto_nao_conformidade) {
+      yPos = await addMonthlyReportPhoto(
+        doc,
+        yPos,
+        row.link_foto_nao_conformidade,
+        row.numero_identificacao
+      );
+    }
+
+    yPos += 4;
+    doc.setDrawColor(COLORS.LIGHT_GRAY);
+    doc.setLineWidth(0.3);
+    doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + LANDSCAPE_CONTENT_WIDTH, yPos);
+    yPos += 8;
+  }
+
+  return yPos;
+}
+
+async function addMonthlyReportPhoto(
+  doc: jsPDF,
+  yPos: number,
+  photoUrl: string,
+  equipmentId: string
+): Promise<number> {
+  const maxWidth = 120;
+  const maxHeight = 80;
+  const blockHeight = maxHeight + 14;
+
+  yPos = ensureLandscapeSpace(doc, yPos, blockHeight);
+
+  const base64Image = await imageUrlToBase64(photoUrl);
+  if (!base64Image) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(COLORS.GRAY);
+    doc.text('Foto não disponível', PAGE_MARGINS.LEFT, yPos);
+    return yPos + 10;
+  }
+
+  try {
+    doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+    yPos += maxHeight + 4;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(COLORS.GRAY);
+    doc.text(`Evidência fotográfica - ${equipmentId}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 8;
+  } catch (imgError) {
+    logger.error('Erro ao adicionar foto ao relatório mensal', 'pdf', { error: imgError });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(COLORS.GRAY);
+    doc.text('Foto não pôde ser adicionada', PAGE_MARGINS.LEFT, yPos);
+    yPos += 10;
+  }
+
+  return yPos;
+}
+
+/**
+ * Gera relatório mensal de inspeções de extintores (A4 paisagem, ABNT).
+ */
+export async function generateMonthlyExtinguisherReport(
+  rows: MonthlyExtinguisherReportRow[],
+  monthYYYYMM: string,
+  responsibleName?: string
+): Promise<Blob> {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true,
+    compress: true,
+  });
+
+  let yPos = addMonthlyExtinguisherHeader(doc, monthYYYYMM);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text(
+    `INSPEÇÕES DO PERÍODO (${rows.length} extintor(es) inspecionado(s))`,
+    PAGE_MARGINS.LEFT,
+    yPos
+  );
+  yPos += 8;
+
+  const tableData = rows.map((row, index) => [
+    String(index + 1),
+    row.numero_identificacao,
+    row.tipo_agente || '—',
+    formatCapacityDisplay(row.tipo_agente, row.capacidade),
+    row.localizacao,
+    formatDateShort(row.data_servico),
+    row.status,
+    row.pesoCo2Display,
+    row.inspetor,
+  ]);
+
+  doc.autoTable({
+    startY: yPos,
+    head: [['#', 'ID', 'Agente', 'Cap.', 'Localização', 'Data', 'Status', 'Peso CO₂', 'Inspetor']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [0, 0, 0],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    bodyStyles: {
+      textColor: [0, 0, 0],
+    },
+    alternateRowStyles: {
+      fillColor: [224, 224, 224],
+    },
+    margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+    styles: {
+      fontSize: 7,
+      cellPadding: 2,
+      overflow: 'linebreak',
+    },
+    columnStyles: {
+      0: { cellWidth: 8 },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 14 },
+      4: { cellWidth: 38 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 22 },
+      7: { cellWidth: 28 },
+      8: { cellWidth: 'auto' },
+    },
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 12;
+  yPos = await addMonthlyExtinguisherDetailsAndEvidence(doc, yPos, rows);
+  addMonthlyExtinguisherSignature(doc, yPos, responsibleName);
 
   return doc.output('blob');
 }

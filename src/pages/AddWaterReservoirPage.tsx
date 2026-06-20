@@ -7,7 +7,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useHaptics } from '../hooks/useHaptics';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { saveNewWaterReservoir } from '../utils/waterReservoirOperations';
-import { Spinner } from '../components/ui/spinner';
+import { ButtonSkeleton } from '../components/skeletons';
 
 type WaterReservoirFormData = {
   name: string;
@@ -243,8 +243,7 @@ const AddWaterReservoirPage = () => {
             disabled={loading}
             className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading && <Spinner size="sm" color="black" />}
-            {t('common.save')}
+            {loading ? <ButtonSkeleton width="w-16" /> : t('common.save')}
           </button>
         </form>
       </main>

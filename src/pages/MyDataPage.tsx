@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import PageHeader from '../components/PageHeader';
 import { Mail, User, Save, X } from 'lucide-react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { useTranslation } from '../hooks/useTranslation';
+import { ButtonSkeleton } from '../components/skeletons';
 
 interface MyDataFormData {
   full_name: string;
@@ -165,7 +165,7 @@ const MyDataPage = () => {
               className="flex-1 flex items-center justify-center gap-2 p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              {loading ? t('common.loading') : t('common.save')}
+              {loading ? <ButtonSkeleton width="w-16" /> : t('common.save')}
             </button>
             <button
               type="button"

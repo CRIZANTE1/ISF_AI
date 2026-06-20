@@ -100,6 +100,8 @@ export async function importUserData(
 
     // Importar inspeções
     const inspectionTables = [
+      { name: 'inspecoes_extintores', data: data.inspections.extinguishers },
+      { name: 'inspecoes_mangueiras', data: data.inspections.hoses },
       { name: 'inspecoes_scba', data: data.inspections.scba },
       { name: 'inspecoes_multigas', data: data.inspections.multigas },
       { name: 'inspecoes_camaras_espuma', data: data.inspections.foamChambers },

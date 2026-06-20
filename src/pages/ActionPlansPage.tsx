@@ -12,8 +12,8 @@ import { useTranslation } from '../hooks/useTranslation';
 import { parseInspectionDate } from '../utils/dateUtils';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNavigate } from 'react-router-dom';
-import { Spinner } from '../components/ui/spinner';
-import LoadingScreen from '../components/LoadingScreen';
+import Skeleton from '../components/Skeleton';
+import { PageHeaderSkeleton, ListSkeleton, ButtonSkeleton } from '../components/skeletons';
 import { logger } from '../utils/logger';
 import { getActionPlanStatus, classifyActionPlanPriority, getActionPlanStatusMessage, type ActionPlanPriority } from '../utils/actionPlanUtils';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -517,11 +517,14 @@ const ActionPlansPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
-        <PageHeader title={{ key: 'actionPlans.title', defaultValue: 'Planos de Ação' }} />
-        <main className="p-4">
-          <div className="flex items-center justify-center py-12">
-            <LoadingScreen size="lg" color="blue" />
+        <PageHeaderSkeleton />
+        <main className="p-4 space-y-4">
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-24 rounded-lg" />
+            <Skeleton className="h-10 w-28 rounded-lg" />
           </div>
+          <ListSkeleton count={5} itemClassName="h-24 w-full rounded-lg" />
         </main>
       </div>
     );
@@ -805,10 +808,7 @@ const ActionPlansPage = () => {
                   }}
                 >
                   {isUpdating ? (
-                    <div className="flex items-center gap-2">
-                      <Spinner size="sm" color="black" />
-                      <span>{t('actionPlans.resolving', { defaultValue: 'Resolvendo...' })}</span>
-                    </div>
+                    <ButtonSkeleton width="w-24" />
                   ) : (
                     <>
                       <Check size={16} className="inline mr-2" />

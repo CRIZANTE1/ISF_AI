@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, HelpCircle, Info, AlertCircle } from 'lucide-react';
 import { useEffect } from 'react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { ButtonSkeleton } from './skeletons';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -185,7 +186,7 @@ const ConfirmationModal = ({
                 onClick={handleConfirmWithHaptics}
                 disabled={isLoading}
               >
-                {isLoading ? 'Processando...' : confirmText}
+                {isLoading ? <ButtonSkeleton width="w-24" /> : confirmText}
               </button>
             </div>
           </motion.div>

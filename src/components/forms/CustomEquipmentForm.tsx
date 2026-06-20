@@ -4,6 +4,7 @@
 
 import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
 import { useEffect, useState } from 'react';
+import { FormSkeleton } from '../skeletons';
 import {
   getCustomEquipmentFields,
   type CustomEquipmentField,
@@ -41,7 +42,7 @@ const CustomEquipmentForm = ({ equipmentTypeId, register, errors, watch }: Custo
   }, [equipmentTypeId]);
 
   if (loading) {
-    return <div className="text-sm" style={{ color: '#B0B0B0' }}>Carregando campos...</div>;
+    return <FormSkeleton fields={3} showSubmit={false} />;
   }
 
   if (fields.length === 0) {

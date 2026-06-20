@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useHaptics } from '../hooks/useHaptics';
+import { ButtonSkeleton } from '../components/skeletons';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
 import ScbaForm from '../components/forms/ScbaForm';
@@ -260,8 +261,6 @@ const AddEquipmentPage = () => {
         const extinguisherData: Record<string, any> = {
           ...dataToInsert,
           numero_identificacao: numeroIdentificacao.trim(),
-          latitude: formData.latitude ? Number(formData.latitude) : undefined,
-          longitude: formData.longitude ? Number(formData.longitude) : undefined,
           numero_serie: formData.numero_serie?.trim() || undefined,
         };
         
@@ -944,7 +943,7 @@ const AddEquipmentPage = () => {
             onClick={() => haptics.medium()}
             className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? t('common.loading') : t('equipment.saveSuccess', { defaultValue: 'Salvar Equipamento' })}
+            {loading ? <ButtonSkeleton width="w-32" /> : t('equipment.saveSuccess', { defaultValue: 'Salvar Equipamento' })}
           </button>
         </form>
       </main>

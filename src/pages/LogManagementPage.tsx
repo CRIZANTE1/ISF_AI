@@ -12,6 +12,7 @@ import {
   cleanupOldLogs,
   type LogRetentionConfig,
 } from '../utils/adminOperations';
+import { ListSkeleton } from '../components/skeletons';
 import { logger } from '../utils/logger';
 
 const LogManagementPage = () => {
@@ -111,9 +112,7 @@ const LogManagementPage = () => {
       <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
         <PageHeader title={{ key: 'admin.logManagement', defaultValue: 'Gerenciamento de Logs' }} />
         <main className="p-4">
-          <div className="text-center py-8" style={{ color: '#FFFFFF' }}>
-            Carregando...
-          </div>
+          <ListSkeleton count={4} itemClassName="h-20 w-full rounded-lg" />
         </main>
       </div>
     );

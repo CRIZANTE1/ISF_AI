@@ -4,7 +4,7 @@
 
 import { useState, useEffect, ImgHTMLAttributes } from 'react';
 import LazyImage from './LazyImage';
-import { Spinner } from './ui/spinner';
+import { ImageSkeleton } from './skeletons';
 
 interface ProgressiveImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'loading'> {
   src: string;
@@ -120,7 +120,7 @@ const ProgressiveImage = ({
           className="absolute inset-0 flex items-center justify-center"
           style={{ backgroundColor: '#1A1A1A' }}
         >
-          <Spinner size="sm" color="slate" />
+          <ImageSkeleton className="h-full w-full" />
         </div>
       )}
 

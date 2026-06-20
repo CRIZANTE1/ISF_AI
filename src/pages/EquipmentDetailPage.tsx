@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import PageHeader from '../components/PageHeader';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { Spinner } from '../components/ui/spinner';
+import { DetailSkeleton, IconSkeleton, ButtonSkeleton } from '../components/skeletons';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import ProgressiveImage from '../components/ProgressiveImage';
 import { format } from 'date-fns';
@@ -992,11 +992,7 @@ const EquipmentDetailPage = () => {
         )}
       </PageHeader>
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="blue" />
-          </div>
-        )}
+        {loading && <DetailSkeleton />}
         {!loading && equipment && (
           <>
             <div className="p-3 bg-light-surface dark:bg-dark-surface rounded-lg border mb-4" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}>
@@ -1382,7 +1378,7 @@ const EquipmentDetailPage = () => {
                           title="Gerar relatório PDF"
                         >
                           {generatingPdf === insp.id ? (
-                            <Spinner size="sm" color="blue" />
+                            <IconSkeleton className="h-4 w-4" />
                           ) : (
                             <FileText size={16} />
                           )}
@@ -1523,8 +1519,8 @@ const EquipmentDetailPage = () => {
               >
                 {generatingMultiplePdf ? (
                   <>
-                    <Spinner size="sm" color="white" />
-                    Gerando...
+                    <IconSkeleton className="h-4 w-4" />
+                    <ButtonSkeleton width="w-16" />
                   </>
                 ) : (
                   'Gerar Relatório'

@@ -6,7 +6,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useHaptics } from '../hooks/useHaptics';
 import { useAuth } from '../contexts/AuthContext';
-import { Spinner } from '../components/ui/spinner';
+import { FormSkeleton, ButtonSkeleton } from '../components/skeletons';
 import {
   getWaterReservoirById,
   saveWaterReservoirInspection,
@@ -107,8 +107,11 @@ const AddWaterReservoirInspectionPage = () => {
 
   if (loadingReservoir) {
     return (
-      <div className="theme-pages dark min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
-        <Spinner size="lg" color="white" />
+      <div className="theme-pages dark min-h-screen" style={{ backgroundColor: '#000000' }}>
+        <PageHeader title={t('waterReservoir.inspectionTitle')} />
+        <main className="px-4 py-4">
+          <FormSkeleton fields={5} />
+        </main>
       </div>
     );
   }
@@ -240,8 +243,7 @@ const AddWaterReservoirInspectionPage = () => {
             disabled={loading}
             className="w-full p-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading && <Spinner size="sm" color="black" />}
-            {t('inspection.register')}
+            {loading ? <ButtonSkeleton width="w-24" /> : t('inspection.register')}
           </button>
         </form>
       </main>

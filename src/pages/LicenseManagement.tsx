@@ -28,8 +28,7 @@ import {
   RotateCcw,
   Plus,
 } from 'lucide-react';
-import { Spinner } from '../components/ui/spinner';
-import LoadingScreen from '../components/LoadingScreen';
+import { FullScreenSkeleton, TableSkeleton, IconSkeleton, ButtonSkeleton } from '../components/skeletons';
 import { logger } from '../utils/logger';
 
 const LicenseManagement = () => {
@@ -505,7 +504,7 @@ const LicenseManagement = () => {
 
   // Aguardar carregamento do perfil antes de verificar permissão
   if (authLoading) {
-    return <LoadingScreen fullScreen={true} size="lg" color="white" />;
+    return <FullScreenSkeleton />;
   }
 
   // Verificar permissão (dev OU admin)
@@ -531,7 +530,7 @@ const LicenseManagement = () => {
           disabled={loading}
           className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
         >
-          {loading ? <Spinner size="sm" color="white" /> : <RefreshCw size={20} />}
+          {loading ? <IconSkeleton className="h-5 w-5" /> : <RefreshCw size={20} />}
         </button>
       </PageHeader>
       <main className="p-4 pb-32" style={{ backgroundColor: '#000000' }}>
@@ -603,10 +602,7 @@ const LicenseManagement = () => {
         {/* Lista de Licenças */}
         <div className="space-y-4">
           {loading && filteredLicenses.length === 0 ? (
-            <div className="text-center py-12">
-              <Spinner size="lg" color="white" />
-              <p className="text-gray-400 mt-4">{t('common.loading')}</p>
-            </div>
+            <TableSkeleton rows={5} columns={4} />
           ) : filteredLicenses.length === 0 ? (
             <div className="text-center py-12 p-6 bg-light-surface dark:bg-dark-surface rounded-lg border" style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}>
               <Key size={48} className="text-gray-400 mx-auto mb-4 opacity-50" />

@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
-import { logger } from '../utils/logger';
+import { ButtonSkeleton } from './skeletons';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -227,10 +227,7 @@ const FeedbackModal = ({ isOpen, onClose }: FeedbackModalProps) => {
                   style={{ backgroundColor: '#72DEFF', color: '#000000' }}
                 >
                   {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      {t('feedback.sending')}
-                    </>
+                    <ButtonSkeleton width="w-20" />
                   ) : (
                     <>
                       <Send size={16} />

@@ -4,7 +4,7 @@ import { Icon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import LoadingScreen from '../components/LoadingScreen';
+import { MapSkeleton } from '../components/skeletons';
 import { useTranslation } from '../hooks/useTranslation';
 import { 
   ExtinguisherIcon, 
@@ -366,13 +366,7 @@ const EquipmentMap = () => {
   };
 
   if (loading) {
-    return (
-      <LoadingScreen 
-        fullScreen={true} 
-        size="xl" 
-        color="blue"
-      />
-    );
+    return <MapSkeleton />;
   }
 
   return (

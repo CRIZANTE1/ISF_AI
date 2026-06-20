@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import ChecklistSection from '../ChecklistSection';
+import { ListSkeleton } from '../skeletons';
 import { getCustomChecklistFull, type CustomChecklist } from '../../utils/customEquipmentOperations';
 
 interface CustomChecklistProps {
@@ -68,7 +69,7 @@ const CustomChecklist = ({ equipmentTypeId, checklistId, results, onResultChange
   }, [equipmentTypeId, checklistId]);
 
   if (loading) {
-    return <div className="text-sm" style={{ color: '#B0B0B0' }}>Carregando checklist...</div>;
+    return <ListSkeleton count={4} itemClassName="h-12 w-full rounded-lg" />;
   }
 
   if (!checklistData || checklistData.sections.length === 0) {

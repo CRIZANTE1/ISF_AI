@@ -8,6 +8,7 @@ import { getOfflineStats, cleanExpiredCache, cleanOldOperations, cleanFailedOper
 import { syncPendingOperations } from '../utils/offlineSync';
 import { WifiOff, Wifi, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { IconSkeleton, ButtonSkeleton } from './skeletons';
 import { logger } from '../utils/logger';
 
 interface OfflineStats {
@@ -183,8 +184,8 @@ const OfflineIndicator = () => {
             >
               {isSyncing ? (
                 <>
-                  <RefreshCw size={16} className="text-white animate-spin" />
-                  <span className="text-xs text-white">Sincronizando...</span>
+                  <IconSkeleton className="h-4 w-4 rounded-full" />
+                  <ButtonSkeleton width="w-24" className="bg-white/20" />
                 </>
               ) : (
                 <>

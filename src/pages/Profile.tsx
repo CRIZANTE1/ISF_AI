@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { compressImage } from '../utils/imageCompression';
 import LazyImage from '../components/LazyImage';
-import { Spinner } from '../components/ui/spinner';
+import { ProfileSkeleton, IconSkeleton } from '../components/skeletons';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
 import { licenseService } from '../services/licenseService';
@@ -335,11 +335,7 @@ const Profile = () => {
   // Mostra loading apenas se estiver carregando o perfil inicialmente
   // Não bloqueia se estiver apenas carregando estatísticas
   if (loading) {
-    return (
-      <div className="p-4 flex flex-col items-center justify-center text-center min-h-screen" style={{ backgroundColor: '#000000' }}>
-        <Spinner size="lg" color="blue" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   // Se há erro ao carregar perfil, mostra mensagem de erro
@@ -429,7 +425,7 @@ const Profile = () => {
         </label>
         {isUploadingAvatar && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-            <Spinner size="md" color="white" />
+            <IconSkeleton className="h-6 w-6 rounded-full" />
           </div>
         )}
       </div>

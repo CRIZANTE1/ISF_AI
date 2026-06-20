@@ -970,9 +970,13 @@
       "title": "Equipment List",
       "content": "View all your equipment of this type. Tap an item to see details or the '+' button to add a new one. The status is automatically updated after each inspection.",
       "generateReport": "Generate Report",
+      "generateMonthlyReport": "Generate Monthly Report",
+      "reportMonth": "Report month",
       "generatingReport": "Generating report...",
       "reportSuccess": "Inventory report generated successfully!",
-      "reportError": "Failed to generate inventory report."
+      "reportError": "Failed to generate inventory report.",
+      "monthlyReportSuccess": "Monthly extinguisher report generated successfully!",
+      "monthlyReportError": "Failed to generate monthly extinguisher report."
     },
     "photoRequired": {
       "title": "Photo Required",

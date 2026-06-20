@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, SwitchCamera } from 'lucide-react';
-import { Spinner } from './ui/spinner';
+import { ImageSkeleton } from './skeletons';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../hooks/useHaptics';
 
@@ -175,10 +175,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
       {/* Área do Vídeo */}
       <div className="flex-1 relative overflow-hidden bg-black flex items-center justify-center">
         {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-zinc-900/50 backdrop-blur-sm">
-            <Spinner size="lg" color="white" />
-            <p className="text-white font-medium">Iniciando câmera...</p>
-          </div>
+          <ImageSkeleton fullScreen />
         )}
         
         <video

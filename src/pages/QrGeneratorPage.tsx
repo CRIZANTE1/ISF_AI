@@ -10,7 +10,7 @@ import {
   getEquipmentTypeName,
   getIdentifierFieldName
 } from '../utils/qrGeneratorUtils';
-import { Download, FileText, Package, Search } from 'lucide-react';
+import { ButtonSkeleton } from '../components/skeletons';
 import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1038,7 +1038,7 @@ const QrGeneratorPage = () => {
                   style={{ backgroundColor: '#FC3D39', color: '#FFFFFF' }}
                 >
                   <Download size={18} />
-                  <span>{loading ? t('qr.generating') : t('qr.downloadAllZip')}</span>
+                  <span>{loading ? <ButtonSkeleton width="w-24" className="inline-block" /> : t('qr.downloadAllZip')}</span>
                 </button>
               </div>
 

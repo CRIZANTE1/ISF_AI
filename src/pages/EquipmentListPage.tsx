@@ -13,8 +13,16 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
 import EquipmentListTour from '../components/EquipmentListTour';
 import { format } from 'date-fns';
-import { enrichEquipmentForReport } from '../utils/equipmentReportEnricher';
-import { generateEquipmentListReport, savePdfToDevice } from '../utils/pdfReportGenerator';
+import {
+  buildMonthlyExtinguisherReportData,
+  MONTHLY_EXTINGUISHER_EMPTY_MESSAGE,
+} from '../utils/monthlyExtinguisherReport';
+import {
+  generateEquipmentListReport,
+  generateMonthlyExtinguisherReport,
+  savePdfToDevice,
+} from '../utils/pdfReportGenerator';
+import { ButtonSkeleton } from '../components/skeletons';
 
 type EquipmentItem = {
   id: number | string;
@@ -32,13 +40,15 @@ type EquipmentItem = {
 const EquipmentListPage = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { getEquipmentByType, cache, refreshCache } = useEquipmentCache();
   const { handleError, showSuccess } = useErrorHandler();
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [generatingMonthlyReport, setGeneratingMonthlyReport] = useState(false);
+  const [reportMonth, setReportMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [customTypeName, setCustomTypeName] = useState<string | null>(null);
 
   // Memoizar nome do tipo de equipamento
@@ -171,6 +181,7 @@ const EquipmentListPage = () => {
 
     setGeneratingReport(true);
     try {
+      const { enrichEquipmentForReport } = await import('../utils/equipmentReportEnricher');
       const enriched = await enrichEquipmentForReport(equipment, type, user.id);
       const reportTypeName = customTypeName || equipmentTypeName;
       const pdfBlob = await generateEquipmentListReport(enriched, type, reportTypeName);
@@ -187,6 +198,48 @@ const EquipmentListPage = () => {
       setGeneratingReport(false);
     }
   };
+
+  const handleGenerateMonthlyReport = async () => {
+    if (!user || type !== 'extintor' || equipment.length === 0 || generatingMonthlyReport) return;
+
+    setGeneratingMonthlyReport(true);
+    try {
+      const rows = await buildMonthlyExtinguisherReportData(
+        equipment,
+        user.id,
+        reportMonth,
+        profile?.full_name || user.email || undefined
+      );
+
+      if (rows.length === 0) {
+        handleError(
+          new Error(MONTHLY_EXTINGUISHER_EMPTY_MESSAGE),
+          'equipment',
+          MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
+        );
+        return;
+      }
+
+      const responsibleName = profile?.full_name || user.email || undefined;
+      const pdfBlob = await generateMonthlyExtinguisherReport(rows, reportMonth, responsibleName);
+
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const filename = `Relatorio_Inspecoes_Extintores_${reportMonth}_${dateStr}.pdf`;
+
+      await savePdfToDevice(pdfBlob, filename);
+      showSuccess(t('help.equipmentList.monthlyReportSuccess'));
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message === MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
+          ? MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
+          : t('help.equipmentList.monthlyReportError');
+      handleError(error, 'equipment', message);
+    } finally {
+      setGeneratingMonthlyReport(false);
+    }
+  };
+
+  const isExtintorList = type === 'extintor';
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
@@ -241,6 +294,51 @@ const EquipmentListPage = () => {
                 {generatingReport
                   ? t('help.equipmentList.generatingReport')
                   : t('help.equipmentList.generateReport')}
+              </span>
+            </button>
+          </motion.div>
+        )}
+        {!loading && isExtintorList && equipment.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 space-y-3"
+          >
+            <label className="block">
+              <span className="text-sm font-medium mb-2 block" style={{ color: '#B0B0B0' }}>
+                {t('help.equipmentList.reportMonth')}
+              </span>
+              <input
+                type="month"
+                value={reportMonth}
+                onChange={(e) => setReportMonth(e.target.value)}
+                disabled={generatingMonthlyReport}
+                className="w-full p-3 rounded-lg border focus:ring-2 focus:ring-white/30 focus:outline-none"
+                style={{
+                  backgroundColor: '#1A1A1A',
+                  borderColor: '#2A2A2A',
+                  color: '#FFFFFF',
+                }}
+              />
+            </label>
+            <button
+              onClick={handleGenerateMonthlyReport}
+              disabled={generatingMonthlyReport || !reportMonth}
+              aria-busy={generatingMonthlyReport}
+              className="w-full p-4 rounded-lg border flex items-center justify-center space-x-3 hover:border-white/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                borderColor: '#2A2A2A',
+                color: '#FFFFFF',
+              }}
+            >
+              <FileText size={24} />
+              <span className="font-semibold">
+                {generatingMonthlyReport ? (
+                  <ButtonSkeleton width="w-40" className="inline-block" />
+                ) : (
+                  t('help.equipmentList.generateMonthlyReport')
+                )}
               </span>
             </button>
           </motion.div>
