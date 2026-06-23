@@ -1,5 +1,14 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  readonly VITE_ENABLE_PUSH?: string;
+  readonly VITE_HAS_GOOGLE_SERVICES?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 declare module '*.png' {
   const value: string;
   export default value;

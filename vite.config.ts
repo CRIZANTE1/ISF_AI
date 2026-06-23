@@ -1,8 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
 import path from 'path';
 
+const hasGoogleServices = fs.existsSync(
+  path.resolve(__dirname, 'android/app/google-services.json'),
+);
+
 export default defineConfig({
+  define: {
+    'import.meta.env.VITE_HAS_GOOGLE_SERVICES': JSON.stringify(
+      hasGoogleServices ? 'true' : 'false',
+    ),
+  },
   plugins: [react()],
   
   resolve: {

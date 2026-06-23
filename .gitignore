@@ -29,15 +29,15 @@ dist-ssr
 .env.production
 
 # Capacitor
-android/
-ios/
 .capacitor/
 
-# Android Keystore (NUNCA commitar!)
+# Android Keystore e Firebase (NUNCA commitar!)
 *.jks
 *.keystore
 android/app/*.jks
 android/app/*.keystore
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
 
 # Test Results (fora do diretório do app)
 ../test-results/

@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { isPushEnabled } from '../lib/pushFlags';
 import { logger } from '../utils/logger';
 
 // Importação dinâmica dos plugins para evitar erros se não estiverem instalados
@@ -209,6 +210,10 @@ class NotificationService {
    * Registra o dispositivo para receber notificações push
    */
   async register(): Promise<void> {
+    if (!isPushEnabled()) {
+      return;
+    }
+
     const native = await this.isNative();
     if (!native || !this.isSupported()) {
       return;
