@@ -8,7 +8,6 @@ interface EquipmentWithDates {
   data_proxima_inspecao?: string | null;
   data_proxima_manutencao_2_nivel?: string | null;
   data_proxima_manutencao_3_nivel?: string | null;
-  data_ultimo_ensaio_hidrostatico?: string | null;
   data_validade?: string | null;
   aprovado_inspecao?: string | null; // 'Sim', 'Não', 'Pendente'
   status?: string | null; // Status geral do equipamento
@@ -78,9 +77,8 @@ function getRelevantDates(equipment: EquipmentWithDates): string[] {
   if (equipment.data_proxima_manutencao_3_nivel) {
     dates.push(equipment.data_proxima_manutencao_3_nivel);
   }
-  if (equipment.data_ultimo_ensaio_hidrostatico) {
-    dates.push(equipment.data_ultimo_ensaio_hidrostatico);
-  }
+  // data_ultimo_ensaio_hidrostatico é a data em que o ensaio FOI realizado (sempre no passado),
+  // não a próxima data de vencimento — o prazo do ensaio é data_proxima_manutencao_3_nivel.
   
   // Data de validade (SCBA e outros)
   if (equipment.data_validade) {
