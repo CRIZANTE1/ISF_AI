@@ -19,7 +19,7 @@ import { getExtinguisherById } from '../utils/extinguisherOperations';
 import { getHoseById } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
 import { getMultigasDetectorById } from '../utils/multigasOperations';
-import { generateInspectionReport, generateMultipleInspectionReport, savePdfToDevice, type InspectionData, type EquipmentData } from '../utils/pdfReportGenerator';
+import { generateInspectionReport, generateMultipleInspectionReport, savePdfToDevice, mapInspectionForPdf, type InspectionData, type EquipmentData } from '../utils/pdfReportGenerator';
 
 type EquipmentInfo = {
   id: string;
@@ -810,21 +810,7 @@ const EquipmentDetailPage = () => {
           type: type,
           location: equipment.location,
         } as EquipmentData,
-        inspection: {
-          id: inspectionData.id,
-          data_inspecao: inspectionData.data_inspecao || inspectionData.data_servico || inspectionData.data_teste || '',
-          status_geral: inspectionData.status_geral || inspectionData.resultado_teste,
-          tipo_servico: inspectionData.tipo_servico || inspectionData.tipo_inspecao || inspectionData.tipo_teste,
-          tipo_inspecao: inspectionData.tipo_inspecao || inspectionData.tipo_teste,
-          inspetor: inspectionData.inspetor || inspectionData.inspetor_responsavel,
-          observacoes_gerais: inspectionData.observacoes_gerais || inspectionData.observacoes,
-          plano_de_acao: inspectionData.plano_de_acao,
-          link_foto_nao_conformidade: inspectionData.link_foto_nao_conformidade,
-          resultados_json: inspectionData.resultados_json,
-          latitude: inspectionData.latitude,
-          longitude: inspectionData.longitude,
-          data_proxima_inspecao: inspectionData.data_proxima_inspecao || inspectionData.data_proximo_teste,
-        } as InspectionData,
+        inspection: mapInspectionForPdf(inspectionData, type),
         companyName: undefined,
         responsibleName: profile?.full_name || inspectionData.inspetor || inspectionData.inspetor_responsavel,
       };
@@ -896,21 +882,7 @@ const EquipmentDetailPage = () => {
       for (const inspectionId of selectedInspections) {
         const inspectionData = await fetchInspectionData(inspectionId);
         if (inspectionData) {
-          inspectionDataList.push({
-            id: inspectionData.id,
-            data_inspecao: inspectionData.data_inspecao || inspectionData.data_servico || inspectionData.data_teste || '',
-            status_geral: inspectionData.status_geral,
-            tipo_servico: inspectionData.tipo_servico,
-            tipo_inspecao: inspectionData.tipo_inspecao,
-            inspetor: inspectionData.inspetor || inspectionData.inspetor_responsavel,
-            observacoes_gerais: inspectionData.observacoes_gerais,
-            plano_de_acao: inspectionData.plano_de_acao,
-            link_foto_nao_conformidade: inspectionData.link_foto_nao_conformidade,
-            resultados_json: inspectionData.resultados_json,
-            latitude: inspectionData.latitude,
-            longitude: inspectionData.longitude,
-            data_proxima_inspecao: inspectionData.data_proxima_inspecao,
-          });
+          inspectionDataList.push(mapInspectionForPdf(inspectionData, type));
         }
       }
 

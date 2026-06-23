@@ -9,6 +9,14 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseInspectionDate } from './dateUtils';
 import { logger } from './logger';
+import {
+  generateMultigasActionPlan,
+  resolveGasTolerances,
+  verifyBumpTest,
+  type CylinderValues,
+  type GasTolerances,
+  type MultigasDetector,
+} from './multigasOperations';
 import type { MonthlyExtinguisherReportRow } from './monthlyExtinguisherReport';
 import { formatCapacityDisplay } from './monthlyExtinguisherReport';
 
@@ -68,6 +76,129 @@ export interface ReportData {
   inspection: InspectionData;
   companyName?: string;
   responsibleName?: string;
+}
+
+type MultigasGasKey = 'LEL' | 'O2' | 'H2S' | 'CO';
+
+const MULTIGAS_GAS_CONFIG: Array<{
+  key: MultigasGasKey;
+  label: string;
+  unit: string;
+  cylinderUnit: string;
+  decimals: number;
+  toleranceKey: keyof GasTolerances;
+  refKeys: string[];
+  foundKeys: string[];
+  cylinderKeys: string[];
+}> = [
+  {
+    key: 'LEL',
+    label: 'LEL',
+    unit: '% LIE',
+    cylinderUnit: '% LIE',
+    decimals: 2,
+    toleranceKey: 'LEL',
+    refKeys: ['lel_referencia', 'LEL_referencia'],
+    foundKeys: ['lel_encontrado', 'LEL_encontrado'],
+    cylinderKeys: ['lel_cilindro', 'LEL_cilindro'],
+  },
+  {
+    key: 'O2',
+    label: 'O²',
+    unit: '% vol',
+    cylinderUnit: '% vol',
+    decimals: 2,
+    toleranceKey: 'O2',
+    refKeys: ['o2_referencia', 'O2_referencia'],
+    foundKeys: ['o2_encontrado', 'O2_encontrado'],
+    cylinderKeys: ['o2_cilindro', 'O2_cilindro'],
+  },
+  {
+    key: 'H2S',
+    label: 'H²S',
+    unit: 'ppm',
+    cylinderUnit: 'ppm',
+    decimals: 0,
+    toleranceKey: 'H2S',
+    refKeys: ['h2s_referencia', 'H2S_referencia'],
+    foundKeys: ['h2s_encontrado', 'H2S_encontrado'],
+    cylinderKeys: ['h2s_cilindro', 'H2S_cilindro'],
+  },
+  {
+    key: 'CO',
+    label: 'CO',
+    unit: 'ppm',
+    cylinderUnit: 'ppm',
+    decimals: 0,
+    toleranceKey: 'CO',
+    refKeys: ['co_referencia', 'CO_referencia'],
+    foundKeys: ['co_encontrado', 'CO_encontrado'],
+    cylinderKeys: ['co_cilindro', 'CO_cilindro'],
+  },
+];
+
+/**
+ * Mapeia registro de inspeção do Supabase para o formato usado no PDF.
+ */
+export function mapInspectionForPdf(
+  inspectionData: Record<string, unknown>,
+  equipmentType?: string
+): InspectionData {
+  const data = inspectionData as Record<string, any>;
+  const mapped: InspectionData & Record<string, unknown> = {
+    id: data.id,
+    data_inspecao: data.data_inspecao || data.data_servico || data.data_teste || '',
+    status_geral: data.status_geral || data.resultado_teste,
+    tipo_servico: data.tipo_servico || data.tipo_inspecao || data.tipo_teste,
+    tipo_inspecao: data.tipo_inspecao || data.tipo_teste,
+    inspetor: data.inspetor || data.inspetor_responsavel,
+    observacoes_gerais: data.observacoes_gerais || data.observacoes,
+    plano_de_acao: data.plano_de_acao,
+    link_foto_nao_conformidade: data.link_foto_nao_conformidade,
+    resultados_json: data.resultados_json,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    data_proxima_inspecao: data.data_proxima_inspecao || data.data_proximo_teste,
+  };
+
+  if (equipmentType === 'multigas') {
+    mapped.tipo_teste = data.tipo_teste;
+    mapped.resultado_teste = data.resultado_teste;
+    mapped.lel_referencia = data.lel_referencia ?? data.LEL_referencia;
+    mapped.o2_referencia = data.o2_referencia ?? data.O2_referencia;
+    mapped.h2s_referencia = data.h2s_referencia ?? data.H2S_referencia;
+    mapped.co_referencia = data.co_referencia ?? data.CO_referencia;
+    mapped.lel_encontrado = data.lel_encontrado ?? data.LEL_encontrado;
+    mapped.o2_encontrado = data.o2_encontrado ?? data.O2_encontrado;
+    mapped.h2s_encontrado = data.h2s_encontrado ?? data.H2S_encontrado;
+    mapped.co_encontrado = data.co_encontrado ?? data.CO_encontrado;
+  }
+
+  return mapped;
+}
+
+function ensurePageSpace(doc: jsPDF, yPos: number, needed = 40): number {
+  if (yPos > PAGE_HEIGHT - needed) {
+    doc.addPage();
+    return PAGE_MARGINS.TOP;
+  }
+  return yPos;
+}
+
+function readMultigasNumber(source: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = source[key];
+    if (value !== null && value !== undefined && value !== '') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function formatMultigasNumber(value: number | undefined, decimals: number): string {
+  if (value === undefined) return '-';
+  return decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
 }
 
 /**
@@ -495,134 +626,194 @@ function addCo2WeighingSection(doc: jsPDF, yPos: number, inspection: InspectionD
 }
 
 /**
- * Adiciona valores de medição multigas (apenas para equipamentos multigas)
+ * Adiciona resultados detalhados de medição multigas (formato completo)
  */
 function addMultigasValues(doc: jsPDF, yPos: number, inspection: InspectionData, equipment: EquipmentData): number {
-  // Verifica se é multigas e se há dados de medição
   if (equipment.type !== 'multigas') {
     return yPos;
   }
 
-  // Acessa campos de multigas do objeto inspection (que pode ter campos extras)
-  const inspectionAny = inspection as any;
-  const lelRef = inspectionAny.lel_referencia ?? inspectionAny.LEL_referencia;
-  const o2Ref = inspectionAny.o2_referencia ?? inspectionAny.O2_referencia;
-  const h2sRef = inspectionAny.h2s_referencia ?? inspectionAny.H2S_referencia;
-  const coRef = inspectionAny.co_referencia ?? inspectionAny.CO_referencia;
-  const lelEncontrado = inspectionAny.lel_encontrado ?? inspectionAny.LEL_encontrado;
-  const o2Encontrado = inspectionAny.o2_encontrado ?? inspectionAny.O2_encontrado;
-  const h2sEncontrado = inspectionAny.h2s_encontrado ?? inspectionAny.H2S_encontrado;
-  const coEncontrado = inspectionAny.co_encontrado ?? inspectionAny.CO_encontrado;
+  const inspectionAny = inspection as Record<string, unknown>;
+  const equipmentAny = equipment as Record<string, unknown>;
+  const tolerances = resolveGasTolerances(equipment as MultigasDetector);
 
-  // Verifica se há pelo menos um valor de referência
-  if (lelRef === undefined && o2Ref === undefined && h2sRef === undefined && coRef === undefined) {
+  const referenceValues: CylinderValues = {
+    LEL: readMultigasNumber(inspectionAny, 'lel_referencia', 'LEL_referencia') ?? 0,
+    O2: readMultigasNumber(inspectionAny, 'o2_referencia', 'O2_referencia') ?? 0,
+    H2S: readMultigasNumber(inspectionAny, 'h2s_referencia', 'H2S_referencia') ?? 0,
+    CO: readMultigasNumber(inspectionAny, 'co_referencia', 'CO_referencia') ?? 0,
+  };
+
+  const foundValues: CylinderValues = {
+    LEL: readMultigasNumber(inspectionAny, 'lel_encontrado', 'LEL_encontrado') ?? 0,
+    O2: readMultigasNumber(inspectionAny, 'o2_encontrado', 'O2_encontrado') ?? 0,
+    H2S: readMultigasNumber(inspectionAny, 'h2s_encontrado', 'H2S_encontrado') ?? 0,
+    CO: readMultigasNumber(inspectionAny, 'co_encontrado', 'CO_encontrado') ?? 0,
+  };
+
+  const hasReference = MULTIGAS_GAS_CONFIG.some(
+    (gas) => readMultigasNumber(inspectionAny, ...gas.refKeys) !== undefined
+  );
+  if (!hasReference) {
     return yPos;
   }
 
-  const eqAny = equipment as Record<string, unknown>;
-  const fallback = equipment.margem_erro_cilindro ?? 20.0;
-  const getMargem = (gas: 'lel' | 'o2' | 'h2s' | 'co') =>
-    (eqAny[`margem_erro_${gas}`] as number | undefined) ?? fallback;
+  const tipoTeste =
+    (inspectionAny.tipo_teste as string) ||
+    inspection.tipo_servico ||
+    inspection.tipo_inspecao ||
+    'Periódico';
+  const tipoTitulo = tipoTeste.toUpperCase();
 
+  yPos = ensurePageSpace(doc, yPos, 120);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.BLACK);
-  doc.text('3. VALORES DE MEDIÇÃO MULTIGAS', PAGE_MARGINS.LEFT, yPos);
-  yPos += 10;
+  doc.text(`3. RESULTADOS DAS MEDIÇÕES — ${tipoTitulo}`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
 
-  // Prepara dados para tabela
-  const tableData: string[][] = [];
-  
-  // Função auxiliar para calcular diferença percentual
-  const calcularDiferenca = (ref: number | undefined, encontrado: number | undefined): string => {
-    if (ref === undefined || encontrado === undefined) return '-';
-    const diff = ((encontrado - ref) / ref) * 100;
-    return diff >= 0 ? `+${diff.toFixed(2)}%` : `${diff.toFixed(2)}%`;
-  };
+  // Valores cadastrados no cilindro
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Valores cadastrados no cilindro de calibração:', PAGE_MARGINS.LEFT, yPos);
+  yPos += 6;
 
-  const estaDentroMargem = (
-    ref: number | undefined,
-    encontrado: number | undefined,
-    margem: number
-  ): boolean => {
-    if (ref === undefined || encontrado === undefined) return false;
-    const diffPercent = Math.abs(((encontrado - ref) / ref) * 100);
-    return diffPercent <= margem;
-  };
-
-  // LEL
-  if (lelRef !== undefined) {
-    const status = estaDentroMargem(lelRef, lelEncontrado, getMargem('lel')) ? 'Dentro da margem' : 'Fora da margem';
-    tableData.push([
-      'LEL',
-      lelRef.toFixed(2),
-      lelEncontrado !== undefined ? lelEncontrado.toFixed(2) : '-',
-      calcularDiferenca(lelRef, lelEncontrado),
-      status
-    ]);
+  const cylinderRows: string[][] = [];
+  for (const gas of MULTIGAS_GAS_CONFIG) {
+    const cylinderValue =
+      readMultigasNumber(equipmentAny, ...gas.cylinderKeys) ??
+      readMultigasNumber(inspectionAny, ...gas.refKeys);
+    if (cylinderValue !== undefined) {
+      cylinderRows.push([
+        gas.label,
+        `${formatMultigasNumber(cylinderValue, gas.decimals)} ${gas.cylinderUnit}`,
+      ]);
+    }
   }
 
-  // O2
-  if (o2Ref !== undefined) {
-    const status = estaDentroMargem(o2Ref, o2Encontrado, getMargem('o2')) ? 'Dentro da margem' : 'Fora da margem';
-    tableData.push([
-      'O2',
-      o2Ref.toFixed(2),
-      o2Encontrado !== undefined ? o2Encontrado.toFixed(2) : '-',
-      calcularDiferenca(o2Ref, o2Encontrado),
-      status
-    ]);
-  }
-
-  // H2S
-  if (h2sRef !== undefined) {
-    const status = estaDentroMargem(h2sRef, h2sEncontrado, getMargem('h2s')) ? 'Dentro da margem' : 'Fora da margem';
-    tableData.push([
-      'H2S',
-      h2sRef.toString(),
-      h2sEncontrado !== undefined ? h2sEncontrado.toString() : '-',
-      calcularDiferenca(h2sRef, h2sEncontrado),
-      status
-    ]);
-  }
-
-  // CO
-  if (coRef !== undefined) {
-    const status = estaDentroMargem(coRef, coEncontrado, getMargem('co')) ? 'Dentro da margem' : 'Fora da margem';
-    tableData.push([
-      'CO',
-      coRef.toString(),
-      coEncontrado !== undefined ? coEncontrado.toString() : '-',
-      calcularDiferenca(coRef, coEncontrado),
-      status
-    ]);
-  }
-
-  if (tableData.length > 0) {
+  if (cylinderRows.length > 0) {
     doc.autoTable({
       startY: yPos,
-      head: [['Gás', 'Referência', 'Medido', 'Diferença (%)', 'Status']],
-      body: tableData,
+      head: [['Gás', 'Valor de referência (cadastro)']],
+      body: cylinderRows,
       theme: 'striped',
       headStyles: {
-        fillColor: [0, 0, 0], // Preto
-        textColor: [255, 255, 255], // Branco
+        fillColor: [0, 0, 0],
+        textColor: [255, 255, 255],
         fontStyle: 'bold',
       },
-      bodyStyles: {
-        textColor: [0, 0, 0], // Preto
-      },
-      alternateRowStyles: {
-        fillColor: [224, 224, 224], // Cinza claro
-      },
+      bodyStyles: { textColor: [0, 0, 0] },
+      alternateRowStyles: { fillColor: [224, 224, 224] },
       margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
+      styles: { fontSize: 9, cellPadding: 2 },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  // Tabela de medições do teste
+  const measurementRows: string[][] = [];
+  for (const gas of MULTIGAS_GAS_CONFIG) {
+    const ref = readMultigasNumber(inspectionAny, ...gas.refKeys);
+    const found = readMultigasNumber(inspectionAny, ...gas.foundKeys);
+    if (ref === undefined) continue;
+
+    const tolerance = tolerances[gas.toleranceKey];
+    const absDiff = found !== undefined ? found - ref : undefined;
+    const pctDiff =
+      found !== undefined && ref !== 0 ? ((found - ref) / ref) * 100 : undefined;
+    const approved =
+      found !== undefined && ref !== 0
+        ? Math.abs(((found - ref) / ref) * 100) <= tolerance
+        : false;
+
+    const absText =
+      absDiff === undefined
+        ? '-'
+        : absDiff >= 0
+          ? `+${formatMultigasNumber(absDiff, gas.decimals)}`
+          : formatMultigasNumber(absDiff, gas.decimals);
+    const pctText =
+      pctDiff === undefined
+        ? '-'
+        : pctDiff >= 0
+          ? `+${pctDiff.toFixed(1)}%`
+          : `${pctDiff.toFixed(1)}%`;
+
+    measurementRows.push([
+      gas.label,
+      gas.unit,
+      formatMultigasNumber(ref, gas.decimals),
+      found !== undefined ? formatMultigasNumber(found, gas.decimals) : '-',
+      absText,
+      pctText,
+      `±${tolerance}%`,
+      approved ? 'Aprovado' : 'Reprovado',
+    ]);
+  }
+
+  if (measurementRows.length > 0) {
+    yPos = ensurePageSpace(doc, yPos, 80);
+    doc.autoTable({
+      startY: yPos,
+      head: [['Gás', 'Unid.', 'Ref. teste', 'Leitura', 'Abs.', '%', 'Margem', 'Resultado']],
+      body: measurementRows,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [0, 0, 0],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 7,
+      },
+      bodyStyles: { textColor: [0, 0, 0], fontSize: 7 },
+      alternateRowStyles: { fillColor: [224, 224, 224] },
+      margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+      styles: { fontSize: 7, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 12 },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 18 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 14 },
+        5: { cellWidth: 14 },
+        6: { cellWidth: 16 },
+        7: { cellWidth: 22 },
       },
     });
-    yPos = (doc as any).lastAutoTable.finalY + 12; // Melhor espaçamento
+    yPos = (doc as any).lastAutoTable.finalY + 8;
   }
+
+  const bumpResult = verifyBumpTest(referenceValues, foundValues, tolerances);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Resumo por sensor:', PAGE_MARGINS.LEFT, yPos);
+  yPos += 6;
+  doc.setFont('helvetica', 'normal');
+  for (const line of bumpResult.observations) {
+    yPos = ensurePageSpace(doc, yPos, 20);
+    const wrapped = doc.splitTextToSize(`• ${line}`, CONTENT_WIDTH);
+    doc.text(wrapped, PAGE_MARGINS.LEFT, yPos);
+    yPos += wrapped.length * 5 + 2;
+  }
+
+  const resultadoGeral =
+    (inspectionAny.resultado_teste as string) ||
+    inspection.status_geral ||
+    (bumpResult.isApproved ? 'Aprovado' : 'Reprovado');
+  yPos += 4;
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Resultado geral do teste: ${resultadoGeral.toUpperCase()}`, PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
+
+  const plano =
+    inspection.plano_de_acao ||
+    generateMultigasActionPlan(resultadoGeral, tipoTeste);
+  doc.text('Plano de ação:', PAGE_MARGINS.LEFT, yPos);
+  yPos += 6;
+  doc.setFont('helvetica', 'normal');
+  const planoLines = doc.splitTextToSize(plano, CONTENT_WIDTH);
+  doc.text(planoLines, PAGE_MARGINS.LEFT, yPos);
+  yPos += planoLines.length * 5 + 10;
 
   return yPos;
 }
@@ -694,10 +885,16 @@ function addNonConformities(doc: jsPDF, yPos: number, inspection: InspectionData
 /**
  * Adiciona observações e plano de ação
  */
-function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): number {
+function addObservations(
+  doc: jsPDF,
+  yPos: number,
+  inspection: InspectionData,
+  options?: { skipPlano?: boolean }
+): number {
+  const skipPlano = options?.skipPlano ?? false;
   let hasContent = false;
 
-  if (inspection.observacoes_gerais || inspection.plano_de_acao) {
+  if (inspection.observacoes_gerais || (!skipPlano && inspection.plano_de_acao)) {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.BLACK);
@@ -727,7 +924,7 @@ function addObservations(doc: jsPDF, yPos: number, inspection: InspectionData): 
     yPos += textHeight + 8;
   }
 
-  if (inspection.plano_de_acao) {
+  if (!skipPlano && inspection.plano_de_acao) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
@@ -937,8 +1134,10 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
     yPos = PAGE_MARGINS.TOP;
   }
 
-  // Observações e plano de ação
-  yPos = addObservations(doc, yPos, data.inspection);
+  // Observações e plano de ação (plano multigas fica na seção 3)
+  yPos = addObservations(doc, yPos, data.inspection, {
+    skipPlano: data.equipment.type === 'multigas',
+  });
 
   // Foto (se houver) - otimizado para Android
   if (data.inspection.link_foto_nao_conformidade) {
@@ -1064,6 +1263,10 @@ export async function generateMultipleInspectionReport(
       yPos += 7;
     }
 
+    if (data.equipment.type === 'multigas') {
+      yPos = addMultigasValues(doc, yPos, inspection, data.equipment);
+    }
+
     if (inspection.observacoes_gerais) {
       doc.setFont('helvetica', 'bold');
       doc.text('Observações:', PAGE_MARGINS.LEFT, yPos);
@@ -1074,14 +1277,16 @@ export async function generateMultipleInspectionReport(
       yPos += obsLines.length * 6 + 8;
     }
 
-    if (inspection.plano_de_acao) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
-      yPos += 7;
-      doc.setFont('helvetica', 'normal');
-      const planoLines = doc.splitTextToSize(inspection.plano_de_acao, CONTENT_WIDTH);
-      doc.text(planoLines, PAGE_MARGINS.LEFT, yPos);
-      yPos += planoLines.length * 6 + 8;
+    if (!data.equipment.type || data.equipment.type !== 'multigas') {
+      if (inspection.plano_de_acao) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Plano de Ação:', PAGE_MARGINS.LEFT, yPos);
+        yPos += 7;
+        doc.setFont('helvetica', 'normal');
+        const planoLines = doc.splitTextToSize(inspection.plano_de_acao, CONTENT_WIDTH);
+        doc.text(planoLines, PAGE_MARGINS.LEFT, yPos);
+        yPos += planoLines.length * 6 + 8;
+      }
     }
 
     // Resultados do checklist (se houver)
