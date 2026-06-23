@@ -4,7 +4,7 @@
  */
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { applyPlugin } from 'jspdf-autotable';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseInspectionDate } from './dateUtils';
@@ -19,6 +19,9 @@ import {
 } from './multigasOperations';
 import type { MonthlyExtinguisherReportRow } from './monthlyExtinguisherReport';
 import { formatCapacityDisplay } from './monthlyExtinguisherReport';
+
+// jspdf-autotable v5 não aplica o plugin via side-effect em bundlers ESM (Vite/Capacitor)
+applyPlugin(jsPDF);
 
 // Extensão do autoTable para jsPDF
 declare module 'jspdf' {
