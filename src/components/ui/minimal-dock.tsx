@@ -240,40 +240,6 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
             />
           ))}
         </div>
-        
-        {/* Reflection Effect */}
-        <div className="absolute top-full left-0 right-0 h-16 overflow-hidden pointer-events-none">
-          <div className={`
-            flex items-start gap-2 px-4 py-3
-            rounded-2xl
-            bg-black/20 backdrop-blur-xl
-            border border-white/5
-            opacity-30
-            transform scale-y-[-1]
-            transition-all duration-500 ease-out
-            ${hoveredItem ? 'scale-105 scale-y-[-1.05]' : ''}
-          `}>
-            {dockItems.map((item) => (
-              <div
-                key={`reflection-${item.id}`}
-                className={`
-                  flex items-center justify-center
-                  w-9 h-9 rounded-lg
-                  bg-white/5
-                  transition-all duration-300 ease-out
-                  ${hoveredItem === item.id 
-                    ? 'scale-125 -translate-y-2' 
-                    : ''
-                  }
-                `}
-              >
-                <div className="text-white/50">
-                  {item.icon}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
