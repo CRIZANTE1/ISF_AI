@@ -73,7 +73,7 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300 relative" style={{ backgroundColor: '#000000' }}>
       <DashboardHeader />
-      <main className="px-ios-4 flex-grow py-ios-4 pb-32 relative" style={{ backgroundColor: '#000000', paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
+      <main className="px-ios-4 flex-grow py-ios-4 pb-32 relative" style={{ backgroundColor: '#000000' }}>
         <motion.div 
           data-tour="dashboard-welcome"
           initial={{ opacity: 0, y: 20 }}

@@ -335,18 +335,16 @@ const DashboardHeader = () => {
 
   return (
     <header 
-      className="fixed left-0 right-0 top-0 border-b"
+      className="sticky left-0 right-0 z-50"
       style={{ 
         paddingLeft: '16px',
         paddingRight: '16px',
-        paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
+        paddingTop: '12px',
         paddingBottom: '12px',
-        zIndex: 50,
-        position: 'fixed',
+        top: 'env(safe-area-inset-top, 0px)',
         backgroundColor: 'rgba(0, 0, 0, 0.4)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
       }}
     >
       <div className="flex justify-between items-center">
