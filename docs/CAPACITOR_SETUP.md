@@ -2,6 +2,8 @@
 
 Documentação do projeto nativo Android do app **ISF IA** (`com.isfia.app`), versão **1.9.3** (`versionCode` 36).
 
+> **iOS:** ver [CAPACITOR_SETUP_IOS.md](./CAPACITOR_SETUP_IOS.md)
+
 ---
 
 ## Status atual

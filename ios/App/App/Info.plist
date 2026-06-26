@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>pt-BR</string>
 	<key>CFBundleDisplayName</key>
-        <string>ISF IA</string>
+	<string>ISF IA</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,18 +18,37 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.isfia.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.isfia.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O ISF IA usa a câmera para ler QR Codes de equipamentos e registrar fotos de inspeção.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O ISF IA usa sua localização para registrar coordenadas GPS durante inspeções de equipamentos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O ISF IA precisa salvar relatórios e fotos de inspeção na sua galeria.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O ISF IA precisa acessar fotos da galeria para anexar evidências às inspeções.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>armv7</string>
-	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

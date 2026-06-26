@@ -18,6 +18,11 @@ const config: CapacitorConfig = {
     // Permite apenas conteúdo HTTPS, prevenindo ataques Man-in-the-Middle
     // Necessário para aprovação no Google Play Store
   },
+  ios: {
+    backgroundColor: '#000000',
+    contentInset: 'automatic',
+    scheme: 'com.isfia.app',
+  },
   // Removido buildOptions para evitar conflito com build.gradle
   // A assinatura será gerenciada diretamente no android/app/build.gradle
 };

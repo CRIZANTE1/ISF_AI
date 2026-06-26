@@ -6,11 +6,15 @@ import path from 'path';
 const hasGoogleServices = fs.existsSync(
   path.resolve(__dirname, 'android/app/google-services.json'),
 );
+const hasGoogleServiceInfo = fs.existsSync(
+  path.resolve(__dirname, 'ios/App/App/GoogleService-Info.plist'),
+);
+const hasFirebasePushConfig = hasGoogleServices || hasGoogleServiceInfo;
 
 export default defineConfig({
   define: {
     'import.meta.env.VITE_HAS_GOOGLE_SERVICES': JSON.stringify(
-      hasGoogleServices ? 'true' : 'false',
+      hasFirebasePushConfig ? 'true' : 'false',
     ),
   },
   plugins: [react()],
