@@ -8,6 +8,7 @@ import { X, SwitchCamera } from 'lucide-react';
 import { ImageSkeleton } from './skeletons';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../hooks/useHaptics';
+import { requestCameraPermission } from '../hooks/useCameraPermission';
 
 interface InlineCameraProps {
   onCapture: (file: File) => void;
@@ -21,6 +22,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [retryKey, setRetryKey] = useState(0);
   const haptics = useHaptics();
 
   // Esconde o BottomNav quando a câmera está aberta e bloqueia scroll
@@ -51,6 +53,15 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
       }
 
       try {
+        const granted = await requestCameraPermission();
+        if (!mounted) return;
+
+        if (!granted) {
+          setIsLoading(false);
+          setError('Permissão de câmera negada. Ative o acesso à câmera nas configurações do dispositivo.');
+          return;
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: facingMode,
@@ -76,7 +87,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
         if (mounted) {
           setIsLoading(false);
           if (err.name === 'NotAllowedError') {
-            setError('Permissão negada. Verifique as configurações do navegador.');
+            setError('Permissão de câmera negada. Ative o acesso à câmera nas configurações do dispositivo.');
           } else {
             setError('Não foi possível iniciar a câmera.');
           }
@@ -92,7 +103,7 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [facingMode]);
+  }, [facingMode, retryKey]);
 
   const handleVideoLoaded = () => {
     setIsLoading(false);
@@ -155,7 +166,10 @@ const InlineCamera = ({ onCapture, onCancel }: InlineCameraProps) => {
             </button>
             <button
               type="button"
-              onClick={() => setFacingMode('environment')}
+              onClick={() => {
+                setError(null);
+                setRetryKey((key) => key + 1);
+              }}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium"
             >
               Tentar Novamente

@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import BottomNav from './BottomNav';
 import PageTransition from './PageTransition';
 import AppOnboardingTour from './AppOnboardingTour';
+import OfflineIndicator from './OfflineIndicator';
 
 const Layout = () => {
   const location = useLocation();
@@ -35,6 +36,7 @@ const Layout = () => {
         </AnimatePresence>
       </div>
       <BottomNav />
+      <OfflineIndicator />
       <AppOnboardingTour />
     </div>
   );

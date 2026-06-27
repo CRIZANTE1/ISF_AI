@@ -14,6 +14,7 @@ import { logger } from '../utils/logger';
 import { motion } from 'framer-motion';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useTranslation } from '../hooks/useTranslation';
+import { requestCameraPermission } from '../hooks/useCameraPermission';
 
 type QrStep = 'start' | 'scan' | 'manual' | 'found' | 'not_found';
 
@@ -150,6 +151,13 @@ const QrInspectionPage = () => {
       setScanning(true);
       setCameraError(null);
       setScanStatus('Iniciando câmera...');
+
+      const granted = await requestCameraPermission();
+      if (!granted) {
+        setScanning(false);
+        setCameraError('Permissão de câmera negada. Por favor, permita o acesso à câmera nas configurações do dispositivo.');
+        return;
+      }
 
       const scanner = new Html5Qrcode('qr-reader', {
         verbose: false,

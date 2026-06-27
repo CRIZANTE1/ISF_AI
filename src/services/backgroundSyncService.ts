@@ -11,7 +11,7 @@ import { logger } from '../utils/logger';
 import { syncPendingOperations } from '../utils/offlineSync';
 import { getOfflineStats } from '../utils/offlineDB';
 import { notificationService } from './notificationService';
-import { checkSupabaseConnection } from '../hooks/useOnlineStatus';
+import { checkSupabaseConnection, networkStatusService } from './networkStatusService';
 
 interface PendingOperation {
   id: string;
@@ -41,32 +41,6 @@ class BackgroundSyncService {
   };
   private syncCheckInterval: NodeJS.Timeout | null = null;
   private appStateListeners: Array<() => void> = [];
-  private networkPlugin: any = null;
-
-  /**
-   * Carrega o plugin de rede se disponível
-   */
-  private async loadNetworkPlugin(): Promise<void> {
-    if (this.networkPlugin) return;
-
-    try {
-      // Tenta carregar o plugin de rede do Capacitor
-      const Capacitor = (window as any).Capacitor;
-      if (Capacitor && Capacitor.Plugins && Capacitor.Plugins.Network) {
-        this.networkPlugin = Capacitor.Plugins.Network;
-        logger.info('Plugin @capacitor/network carregado com sucesso', 'background_sync');
-      } else {
-        // Tenta importação dinâmica
-        const networkModule = await import('@capacitor/network');
-        this.networkPlugin = networkModule.Network;
-        logger.info('Plugin @capacitor/network importado dinamicamente', 'background_sync');
-      }
-    } catch (error) {
-      // Plugin não disponível, usará fallback
-      logger.debug('Plugin @capacitor/network não disponível, usando fallback', 'background_sync');
-      this.networkPlugin = null;
-    }
-  }
 
   /**
    * Verifica se há operações pendentes e inicia o serviço se necessário
@@ -106,9 +80,6 @@ class BackgroundSyncService {
     this.status.isRunning = true;
     logger.info('Iniciando serviço de sincronização em background', 'background_sync');
 
-    // Carrega plugin de rede se disponível
-    await this.loadNetworkPlugin();
-
     // Verifica conexão periodicamente (a cada 30 segundos)
     this.syncCheckInterval = setInterval(() => {
       this.checkAndSync();
@@ -118,7 +89,6 @@ class BackgroundSyncService {
     if (Capacitor.isNativePlatform()) {
       const appStateListener = await App.addListener('appStateChange', async (state) => {
         if (state.isActive) {
-          // App voltou ao foreground, verifica se precisa sincronizar
           logger.info('App voltou ao foreground, verificando sincronização', 'background_sync');
           await this.checkAndSync();
         }
@@ -126,34 +96,18 @@ class BackgroundSyncService {
       this.appStateListeners.push(() => appStateListener.remove());
     }
 
-    // Configura listener de rede (nativo ou web)
-    if (this.networkPlugin && Capacitor.isNativePlatform()) {
-      // Usa plugin do Capacitor no Android/iOS
-      const networkListener = await this.networkPlugin.addListener('networkStatusChange', (status: any) => {
-        if (status.connected) {
-          logger.info('Conexão detectada via plugin, verificando sincronização', 'background_sync');
-          // Aguarda um pouco para garantir que a conexão está estável
-          setTimeout(() => {
-            this.checkAndSync();
-          }, 2000);
-        }
-      });
-      this.appStateListeners.push(() => networkListener.remove());
-    } else if (typeof window !== 'undefined') {
-      // Fallback para web usando eventos nativos
-      const handleOnline = () => {
+    // Reage quando a conexão volta (via serviço global de rede)
+    let wasOnline = networkStatusService.getState().isOnline;
+    const unsubscribeNetwork = networkStatusService.subscribe(({ isOnline }) => {
+      if (!wasOnline && isOnline) {
         logger.info('Conexão detectada, verificando sincronização', 'background_sync');
-        // Aguarda um pouco para garantir que a conexão está estável
         setTimeout(() => {
-          this.checkAndSync();
+          void this.checkAndSync();
         }, 2000);
-      };
-
-      window.addEventListener('online', handleOnline);
-      this.appStateListeners.push(() => {
-        window.removeEventListener('online', handleOnline);
-      });
-    }
+      }
+      wasOnline = isOnline;
+    });
+    this.appStateListeners.push(unsubscribeNetwork);
 
     // Verificação inicial
     await this.checkAndSync();

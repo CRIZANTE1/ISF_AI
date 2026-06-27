@@ -12,6 +12,7 @@ import { logger } from './utils/logger';
 import { isPushEnabled } from './lib/pushFlags';
 import { PushNotificationsEffects } from './capacitor/PushNotificationsEffects';
 import { GeolocationEffects } from './capacitor/GeolocationEffects';
+import { NetworkEffects } from './capacitor/NetworkEffects';
 
 // Lazy loading de rotas públicas (carregamento sob demanda)
 const AuthPage = lazy(() => import('./pages/Auth'));
@@ -111,6 +112,7 @@ function App() {
     <ErrorBoundary>
       {isPushEnabled() && <PushNotificationsEffects />}
       <GeolocationEffects />
+      <NetworkEffects />
       <Routes>
         <Route 
           path="/auth" 
