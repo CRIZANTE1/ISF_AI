@@ -9,7 +9,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseInspectionDate } from './dateUtils';
 import { logger } from './logger';
-import { resolveEmbeddablePhotoUrl } from './photoUrlUtils';
+import { fetchPhotoBlobForEmbed } from './photoUrlUtils';
 import {
   generateMultigasActionPlan,
   resolveGasTolerances,
@@ -206,48 +206,77 @@ function formatMultigasNumber(value: number | undefined, decimals: number): stri
 }
 
 /**
- * Converte uma URL de imagem para base64
- * Melhoria para Android: adicione tratamento de timeout e limitação de tamanho
+ * Converte uma imagem (blob) para PNG via Canvas.
+ * Necessário para formatos que o jsPDF não suporta nativamente (WebP, AVIF).
+ * Retorna um data URL PNG + o formato 'PNG'.
+ */
+async function convertImageToPng(blob: Blob): Promise<{ dataUrl: string; format: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Não foi possível criar canvas context'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      // Converte para PNG (formato universalmente suportado pelo jsPDF)
+      const dataUrl = canvas.toDataURL('image/png');
+      resolve({ dataUrl, format: 'PNG' });
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Falha ao carregar imagem para conversão'));
+    };
+
+    img.src = url;
+  });
+}
+
+/**
+ * Converte uma URL de imagem para PNG embutível no jsPDF.
+ * WebP/AVIF (compressão do storage) e JPEG/PNG passam pelo canvas para garantir compatibilidade.
+ */
+async function imageUrlToBase64WithFormat(url: string): Promise<{ dataUrl: string; format: string } | null> {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Timeout ao carregar imagem')), 15000);
+  });
+
+  try {
+    const blob = await Promise.race([fetchPhotoBlobForEmbed(url), timeoutPromise]);
+
+    if (!blob) {
+      logger.warn('Foto não pôde ser baixada para o PDF', 'pdf', { url });
+      return null;
+    }
+
+    if (blob.size > 5 * 1024 * 1024) {
+      logger.warn('Imagem muito grande, pode causar problemas de memória no Android', 'pdf', {
+        size: blob.size,
+      });
+    }
+
+    return await convertImageToPng(blob);
+  } catch (error) {
+    logger.error('Erro ao converter imagem para base64', 'pdf', { error, url });
+    return null;
+  }
+}
+
+/**
+ * Converte uma URL de imagem para base64 (mantida para compatibilidade).
+ * @deprecated Use imageUrlToBase64WithFormat para obter o formato correto.
  */
 async function imageUrlToBase64(url: string): Promise<string> {
-  try {
-    const embeddableUrl = resolveEmbeddablePhotoUrl(url);
-
-    // Adiciona timeout para evitar congelamentos em dispositivos lentos
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout ao carregar imagem')), 10000); // 10 segundos
-    });
-
-    // Faz a requisição com timeout
-    const response = await Promise.race([
-      fetch(embeddableUrl),
-      timeoutPromise
-    ]);
-
-    if (!response.ok) {
-      throw new Error(`Falha ao carregar imagem: ${response.status} ${response.statusText}`);
-    }
-
-    const blob = await response.blob();
-
-    // Verifica o tamanho da imagem para evitar problemas de memória no Android
-    if (blob.size > 5 * 1024 * 1024) { // 5MB
-      logger.warn('Imagem muito grande, pode causar problemas de memória no Android', 'pdf', { url, size: blob.size });
-    }
-
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    logger.error('Erro ao converter imagem para base64', 'pdf', { error });
-    return '';
-  }
+  const result = await imageUrlToBase64WithFormat(url);
+  return result?.dataUrl ?? '';
 }
 
 /**
@@ -971,9 +1000,9 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
       yPos = PAGE_MARGINS.TOP;
     }
 
-    // Converte imagem para base64
-    const base64Image = await imageUrlToBase64(photoUrl);
-    if (!base64Image) {
+    // Converte imagem para base64 com detecção de formato
+    const imageData = await imageUrlToBase64WithFormat(photoUrl);
+    if (!imageData || !imageData.dataUrl) {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(COLORS.GRAY);
@@ -985,11 +1014,11 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
     const maxWidth = 150;
     const maxHeight = 100;
 
-    // Adiciona a imagem com tratamento de erro para dispositivos Android
+    // Adiciona a imagem com o formato correto detectado
     try {
-      doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+      doc.addImage(imageData.dataUrl, imageData.format, PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
     } catch (imgError) {
-      logger.error('Erro ao adicionar imagem ao PDF', 'pdf', { error: imgError });
+      logger.error('Erro ao adicionar imagem ao PDF', 'pdf', { error: imgError, format: imageData.format });
       // Se não conseguir adicionar a imagem, apenas mostra mensagem
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
@@ -1459,8 +1488,8 @@ async function addInventoryPhoto(
     yPos = PAGE_MARGINS.TOP;
   }
 
-  const base64Image = await imageUrlToBase64(photoUrl);
-  if (!base64Image) {
+  const imageData = await imageUrlToBase64WithFormat(photoUrl);
+  if (!imageData || !imageData.dataUrl) {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(COLORS.GRAY);
@@ -1472,7 +1501,7 @@ async function addInventoryPhoto(
   const maxHeight = 80;
 
   try {
-    doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+    doc.addImage(imageData.dataUrl, imageData.format, PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
     yPos += maxHeight + 4;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
@@ -1480,7 +1509,7 @@ async function addInventoryPhoto(
     doc.text(`Evidência fotográfica - ${equipmentId}`, PAGE_MARGINS.LEFT, yPos);
     yPos += 8;
   } catch (imgError) {
-    logger.error('Erro ao adicionar imagem ao relatório de inventário', 'pdf', { error: imgError });
+    logger.error('Erro ao adicionar imagem ao relatório de inventário', 'pdf', { error: imgError, format: imageData.format });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(COLORS.GRAY);
@@ -1816,8 +1845,8 @@ async function addMonthlyReportPhoto(
 
   yPos = ensureLandscapeSpace(doc, yPos, blockHeight);
 
-  const base64Image = await imageUrlToBase64(photoUrl);
-  if (!base64Image) {
+  const imageData = await imageUrlToBase64WithFormat(photoUrl);
+  if (!imageData || !imageData.dataUrl) {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(COLORS.GRAY);
@@ -1826,7 +1855,7 @@ async function addMonthlyReportPhoto(
   }
 
   try {
-    doc.addImage(base64Image, 'JPEG', PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
+    doc.addImage(imageData.dataUrl, imageData.format, PAGE_MARGINS.LEFT, yPos, maxWidth, maxHeight);
     yPos += maxHeight + 4;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
@@ -1834,7 +1863,7 @@ async function addMonthlyReportPhoto(
     doc.text(`Evidência fotográfica - ${equipmentId}`, PAGE_MARGINS.LEFT, yPos);
     yPos += 8;
   } catch (imgError) {
-    logger.error('Erro ao adicionar foto ao relatório mensal', 'pdf', { error: imgError });
+    logger.error('Erro ao adicionar foto ao relatório mensal', 'pdf', { error: imgError, format: imageData.format });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(COLORS.GRAY);
