@@ -1841,7 +1841,7 @@ const AddInspectionPage = () => {
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>LEL (% LEL)</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.referenceLEL')}</label>
                     <input
                       type="number"
                       step="0.1"
@@ -1851,7 +1851,7 @@ const AddInspectionPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>O² (% Vol)</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.referenceO2')}</label>
                     <input
                       type="number"
                       step="0.1"
@@ -1861,7 +1861,7 @@ const AddInspectionPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>H²S (ppm)</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.referenceH2S')}</label>
                     <input
                       type="number"
                       value={multigasReferenceH2S}
@@ -1870,7 +1870,7 @@ const AddInspectionPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>CO (ppm)</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.referenceCO')}</label>
                     <input
                       type="number"
                       value={multigasReferenceCO}
@@ -1882,17 +1882,19 @@ const AddInspectionPage = () => {
                 
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: '#2A2A2A' }}>
                   <label className="block text-xs mb-2" style={{ color: '#9E9E9E' }}>
-                    {t('equipment.marginsPerGas', { defaultValue: 'Margens de Erro por Vapor (%)' })}
+                    {t('equipment.marginsPerGas')}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {([
-                      ['LEL', multigasMarginLEL, setMultigasMarginLEL],
-                      ['O²', multigasMarginO2, setMultigasMarginO2],
-                      ['H²S', multigasMarginH2S, setMultigasMarginH2S],
-                      ['CO', multigasMarginCO, setMultigasMarginCO],
-                    ] as const).map(([label, value, setter]) => (
-                      <div key={label}>
-                        <span className="text-xs" style={{ color: '#9E9E9E' }}>{label}</span>
+                      ['lel', multigasMarginLEL, setMultigasMarginLEL],
+                      ['o2', multigasMarginO2, setMultigasMarginO2],
+                      ['h2s', multigasMarginH2S, setMultigasMarginH2S],
+                      ['co', multigasMarginCO, setMultigasMarginCO],
+                    ] as const).map(([gas, value, setter]) => (
+                      <div key={gas}>
+                        <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>
+                          {t(`equipment.gas${({ lel: 'LEL', o2: 'O2', h2s: 'H2S', co: 'CO' } as const)[gas]}`)}
+                        </label>
                         <input
                           type="number"
                           step="0.1"
@@ -1901,7 +1903,7 @@ const AddInspectionPage = () => {
                           value={value}
                           onChange={(e) => setter(e.target.value)}
                           placeholder="20.0"
-                          className="w-full p-2 rounded mt-1"
+                          className="w-full p-2 rounded"
                           style={{ backgroundColor: 'rgba(18,18,18,0.95)', borderColor: '#2A2A2A', borderWidth: '1px', color: '#FFFFFF' }}
                         />
                       </div>
@@ -1922,7 +1924,7 @@ const AddInspectionPage = () => {
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>LEL</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.gasLEL')}</label>
                     <input
                       type="text"
                       value={multigasFoundLEL}
@@ -1932,7 +1934,7 @@ const AddInspectionPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>O²</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.gasO2')}</label>
                     <input
                       type="text"
                       value={multigasFoundO2}
@@ -1942,7 +1944,7 @@ const AddInspectionPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>H²S</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.gasH2S')}</label>
                     <input
                       type="text"
                       value={multigasFoundH2S}
@@ -1952,7 +1954,7 @@ const AddInspectionPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>CO</label>
+                    <label className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>{t('equipment.gasCO')}</label>
                     <input
                       type="text"
                       value={multigasFoundCO}

@@ -131,13 +131,13 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
       
       <div className="mb-4">
         <p className="text-sm font-medium mb-2" style={{ color: '#FFFFFF' }}>
-          {t('equipment.marginsPerGas', { defaultValue: 'Margens de Erro por Vapor (%)' })}
+          {t('equipment.marginsPerGas')}
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {(['lel', 'o2', 'h2s', 'co'] as const).map((gas) => (
             <div key={gas}>
               <label htmlFor={`margem_erro_${gas}`} className="block text-xs mb-1" style={{ color: '#9E9E9E' }}>
-                {gas.toUpperCase() === 'LEL' ? 'LEL' : gas === 'o2' ? 'O²' : gas === 'h2s' ? 'H²S' : 'CO'}
+                {t(`equipment.gas${({ lel: 'LEL', o2: 'O2', h2s: 'H2S', co: 'CO' } as const)[gas]}`)}
               </label>
               <input
                 id={`margem_erro_${gas}`}
@@ -147,14 +147,14 @@ const MultigasForm = ({ register }: MultigasFormProps) => {
                 max="100"
                 placeholder="20.0"
                 {...register(`margem_erro_${gas}`, { valueAsNumber: true })}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-white/30 focus:outline-none text-white"
                 style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: '1px' }}
               />
             </div>
           ))}
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          {t('equipment.errorMarginHint', { defaultValue: 'Margem de tolerância em percentual por vapor. Se vazio, usa margem genérica de 20%.' })}
+          {t('equipment.errorMarginHint')}
         </p>
       </div>
     </>

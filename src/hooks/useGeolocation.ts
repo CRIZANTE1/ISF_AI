@@ -41,10 +41,39 @@ function isCapacitorEnvironment(): boolean {
 }
 
 /**
- * Função auxiliar para obter localização uma única vez com alta precisão
- * Funciona tanto no navegador quanto no Android/iOS usando Capacitor
- * Tenta múltiplas vezes para obter a melhor precisão possível
+ * Solicita permissão de localização no dispositivo nativo (Android/iOS).
  */
+export async function requestLocationPermission(): Promise<boolean> {
+  if (!isCapacitorEnvironment()) {
+    return true;
+  }
+
+  try {
+    const permissions = await Geolocation.checkPermissions();
+    const platform = Capacitor.getPlatform();
+
+    const isGranted =
+      permissions.location === 'granted' ||
+      (platform === 'android' && permissions.coarseLocation === 'granted');
+
+    if (isGranted) {
+      return true;
+    }
+
+    logger.info('Solicitando permissão de localização...', 'geolocation');
+    const requestResult = await Geolocation.requestPermissions();
+    logger.info(`Resultado da solicitação: ${JSON.stringify(requestResult)}`, 'geolocation');
+
+    return (
+      requestResult.location === 'granted' ||
+      (platform === 'android' && requestResult.coarseLocation === 'granted')
+    );
+  } catch (error: any) {
+    logger.error(`Erro ao solicitar permissão de localização: ${error.message}`, 'geolocation');
+    return false;
+  }
+}
+
 export async function getCurrentLocation(): Promise<{ latitude: number; longitude: number } | null> {
   try {
     logger.info('=== INICIANDO getCurrentLocation ===', 'geolocation');
@@ -61,33 +90,11 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
         }
         
         logger.info('Plugin Geolocation disponível, verificando permissões...', 'geolocation');
-        
-        // Verifica permissões primeiro
-        let permissions;
-        try {
-          permissions = await Geolocation.checkPermissions();
-          logger.info(`Status da permissão: ${JSON.stringify(permissions)}`, 'geolocation');
-        } catch (permError: any) {
-          logger.error(`Erro ao verificar permissões: ${permError.message}`, 'geolocation');
-          throw permError;
-        }
-        
-        if (permissions.location !== 'granted') {
-          // Solicita permissão
-          logger.info('Permissão não concedida, solicitando...', 'geolocation');
-          let requestResult;
-          try {
-            requestResult = await Geolocation.requestPermissions();
-            logger.info(`Resultado da solicitação: ${JSON.stringify(requestResult)}`, 'geolocation');
-          } catch (reqError: any) {
-            logger.error(`Erro ao solicitar permissões: ${reqError.message}`, 'geolocation');
-            throw reqError;
-          }
-          
-          if (requestResult.location !== 'granted') {
-            logger.warn(`Permissão negada. Status: ${requestResult.location}`, 'permission');
-            return null;
-          }
+
+        const hasPermission = await requestLocationPermission();
+        if (!hasPermission) {
+          logger.warn('Permissão de localização negada', 'permission');
+          return null;
         }
 
         // Obtém localização com alta precisão (otimizado para Android)

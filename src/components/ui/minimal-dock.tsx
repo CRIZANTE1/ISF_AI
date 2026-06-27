@@ -214,12 +214,12 @@ const MinimalistDock: React.FC<MinimalistDockProps> = ({ className }) => {
 
   return (
     <div 
-      className={`fixed left-1/2 transform -translate-x-1/2 z-50 ${className || ''}`}
+      className={`fixed inset-x-0 z-50 flex justify-center pointer-events-none ${className || ''}`}
       style={{
-        bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,
+        bottom: 'max(24px, calc(8px + env(safe-area-inset-bottom, 0px)))',
       }}
     >
-      <div className="relative">
+      <div className="relative pointer-events-auto">
         {/* Dock Container */}
         <div className={`
           flex items-end gap-2 px-4 py-3

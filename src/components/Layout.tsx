@@ -15,9 +15,7 @@ const Layout = () => {
         width: '100%', 
         minHeight: '100vh', 
         backgroundColor: '#000000',
-        // Safe area insets - garante espaço para StatusBar e NavigationBar
         paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
       <div 
@@ -27,7 +25,7 @@ const Layout = () => {
           position: 'relative', 
           minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
           backgroundColor: '#000000',
-          paddingBottom: '160px', // Espaço para o BottomNav
+          paddingBottom: '120px',
         }}
       >
         <AnimatePresence mode="wait">
