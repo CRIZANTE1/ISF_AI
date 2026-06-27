@@ -29,6 +29,7 @@ async function loadNotificationPlugins() {
 
 // Callback para navegação - será definido pela aplicação
 let navigationCallback: ((url: string) => void) | null = null;
+let pendingNavigationUrl: string | null = null;
 
 /**
  * Define o callback de navegação para ser usado nas notificações
@@ -36,6 +37,24 @@ let navigationCallback: ((url: string) => void) | null = null;
  */
 export function setNotificationNavigationCallback(callback: (url: string) => void) {
   navigationCallback = callback;
+  flushPendingNavigation();
+}
+
+/**
+ * Processa navegação pendente (ex.: app aberto via notificação antes do Router montar)
+ */
+export function flushPendingNavigation(): void {
+  if (!pendingNavigationUrl || !navigationCallback) return;
+
+  const url = pendingNavigationUrl;
+  pendingNavigationUrl = null;
+
+  try {
+    navigationCallback(url);
+  } catch (error) {
+    logger.error('Erro ao processar navegação pendente', 'notifications', error);
+    pendingNavigationUrl = url;
+  }
 }
 
 /**
@@ -45,15 +64,15 @@ function navigateToUrl(url: string) {
   if (navigationCallback) {
     try {
       navigationCallback(url);
+      pendingNavigationUrl = null;
       return;
     } catch (error) {
       logger.error('Erro ao navegar via callback', 'notifications', error);
     }
   }
-  
-  // Fallback: usar window.location apenas se callback não estiver disponível
-  logger.warn('Navegação via window.location (callback não configurado)', 'notifications');
-  window.location.href = url;
+
+  pendingNavigationUrl = url;
+  logger.info('Navegação enfileirada até o app estar pronto', 'notifications', { url });
 }
 
 export interface NotificationPermissionStatus {

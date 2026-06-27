@@ -1120,8 +1120,9 @@
     },
     "alerts": {
       "multipleAlerts": {
-        "title": "⚠️ Atenção Necessária",
-        "body": "Você tem {{count}} alerta(s) que precisam de sua atenção."
+        "title": "⚠️ {{count}} alerta(s) pendentes",
+        "body": "Você tem {{count}} alerta(s) que precisam de sua atenção.",
+        "bodyWithSummary": "{{count}} alerta(s) pendentes:\n{{summary}}"
       },
       "pendingIssues": {
         "title": "📋 Pendências Encontradas",

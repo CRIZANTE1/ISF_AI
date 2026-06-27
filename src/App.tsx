@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import Skeleton from './components/Skeleton';
-import { setNotificationNavigationCallback, notificationService } from './services/notificationService';
+import { setNotificationNavigationCallback, notificationService, flushPendingNavigation } from './services/notificationService';
 import { backgroundSyncService } from './services/backgroundSyncService';
 import { logger } from './utils/logger';
 import { isPushEnabled } from './lib/pushFlags';
@@ -68,10 +68,14 @@ function App() {
   // Configurar callback de navegação para notificações e deep links
   useEffect(() => {
     setNotificationNavigationCallback((url: string) => {
-      // Extrai o path da URL se for uma URL completa
-      const path = url.startsWith('http') ? new URL(url).pathname : url;
-      navigate(path);
+      if (url.startsWith('http')) {
+        const parsed = new URL(url);
+        navigate(`${parsed.pathname}${parsed.search}`);
+        return;
+      }
+      navigate(url);
     });
+    flushPendingNavigation();
 
     // Listener para Deep Links (global)
     // Isso garante que links como reset de senha funcionem mesmo se o usuário já estiver logado ou em outra tela

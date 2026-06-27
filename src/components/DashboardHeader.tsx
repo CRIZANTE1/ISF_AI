@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, AlertTriangle, X, RefreshCw, WifiOff, CheckCircle, Lightbulb } from 'lucide-react';
 import LazyImage from './LazyImage';
@@ -37,10 +37,13 @@ interface Alert {
   message: string;
 }
 
+const ALERTS_NOTIFICATION_KEY = 'isfia_last_alerts_notification';
+
 const DashboardHeader = () => {
   const { profile, user } = useAuth();
   const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { cache } = useEquipmentCache();
   const [showNotifications, setShowNotifications] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -67,6 +70,15 @@ const DashboardHeader = () => {
     }) || t('common.dateNotAvailable', { defaultValue: 'Data não disponível' });
   }
   const userInitial = profile?.full_name?.charAt(0).toUpperCase() || 'U';
+
+  // Abre o painel de alertas quando o usuário toca na notificação
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('notifications') !== 'open') return;
+
+    setShowNotifications(true);
+    navigate('/', { replace: true });
+  }, [location.search, navigate]);
 
   // Buscar alertas
   useEffect(() => {
@@ -280,37 +292,43 @@ const DashboardHeader = () => {
 
       setAlerts(allAlerts);
 
-      // Envia notificações de alertas
+      // Envia notificações de alertas (apenas quando o conjunto de alertas muda)
       if (allAlerts.length > 0) {
-        // Notifica múltiplos alertas
-        if (allAlerts.length > 1) {
-          notifyMultipleAlerts(allAlerts.length).catch(err => {
-            logger.error('Erro ao enviar notificação de múltiplos alertas', 'notifications', err);
-          });
-        }
+        const fingerprint = allAlerts.map((alert) => alert.id).sort().join('|');
+        const lastFingerprint = sessionStorage.getItem(ALERTS_NOTIFICATION_KEY);
 
-        // Notifica pendências e manutenções individuais
-        allAlerts.forEach(alert => {
-          if (alert.status === 'pendente' || alert.status === 'nao_conforme') {
-            const equipmentType = t(`equipment.${alert.equipment_type}`, { defaultValue: alert.equipment_type });
-            notifyPendingIssues(alert.equipment_id, equipmentType).catch(err => {
-              logger.error('Erro ao enviar notificação de pendências', 'notifications', err);
+        if (fingerprint !== lastFingerprint) {
+          sessionStorage.setItem(ALERTS_NOTIFICATION_KEY, fingerprint);
+
+          if (allAlerts.length > 1) {
+            notifyMultipleAlerts(allAlerts.length, allAlerts).catch((err) => {
+              logger.error('Erro ao enviar notificação de múltiplos alertas', 'notifications', err);
             });
+          } else {
+            const alert = allAlerts[0];
+            const equipmentLabel = t(`equipment.${alert.equipment_type}`, {
+              defaultValue: alert.equipment_type,
+            });
+
+            if (alert.status === 'pendente' || alert.status === 'nao_conforme') {
+              notifyPendingIssues(alert.equipment_id, equipmentLabel, alert.equipment_type).catch((err) => {
+                logger.error('Erro ao enviar notificação de pendências', 'notifications', err);
+              });
+            } else if (alert.message.includes('manutenção nível 2')) {
+              notifyMaintenanceRequired(alert.equipment_id, equipmentLabel, 2, alert.equipment_type).catch((err) => {
+                logger.error('Erro ao enviar notificação de manutenção', 'notifications', err);
+              });
+            } else if (alert.message.includes('manutenção nível 3')) {
+              notifyMaintenanceRequired(alert.equipment_id, equipmentLabel, 3, alert.equipment_type).catch((err) => {
+                logger.error('Erro ao enviar notificação de manutenção', 'notifications', err);
+              });
+            } else {
+              notifyMultipleAlerts(1, allAlerts).catch((err) => {
+                logger.error('Erro ao enviar notificação de alerta', 'notifications', err);
+              });
+            }
           }
-          
-          // Verifica se é manutenção (nível 2 ou 3)
-          if (alert.message.includes('manutenção nível 2')) {
-            const equipmentType = t(`equipment.${alert.equipment_type}`, { defaultValue: alert.equipment_type });
-            notifyMaintenanceRequired(alert.equipment_id, equipmentType, 2).catch(err => {
-              logger.error('Erro ao enviar notificação de manutenção', 'notifications', err);
-            });
-          } else if (alert.message.includes('manutenção nível 3')) {
-            const equipmentType = t(`equipment.${alert.equipment_type}`, { defaultValue: alert.equipment_type });
-            notifyMaintenanceRequired(alert.equipment_id, equipmentType, 3).catch(err => {
-              logger.error('Erro ao enviar notificação de manutenção', 'notifications', err);
-            });
-          }
-        });
+        }
       }
     };
 

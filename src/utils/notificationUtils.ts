@@ -331,19 +331,51 @@ export async function notifyEquipmentNonCompliant(
 /**
  * Envia notificação para múltiplos alertas
  */
-export async function notifyMultipleAlerts(count: number): Promise<void> {
+export interface AlertNotificationItem {
+  message: string;
+  equipment_id: string;
+  equipment_type: string;
+}
+
+const MAX_SUMMARY_ITEMS = 3;
+const MAX_MESSAGE_LENGTH = 80;
+
+function buildAlertsSummary(alerts: AlertNotificationItem[]): string {
+  const lines = alerts.slice(0, MAX_SUMMARY_ITEMS).map((alert) => {
+    const text = alert.message.trim();
+    return text.length > MAX_MESSAGE_LENGTH
+      ? `${text.slice(0, MAX_MESSAGE_LENGTH - 1)}…`
+      : text;
+  });
+
+  const remaining = alerts.length - lines.length;
+  if (remaining > 0) {
+    lines.push(`… +${remaining}`);
+  }
+
+  return lines.join('\n');
+}
+
+export async function notifyMultipleAlerts(
+  count: number,
+  alerts: AlertNotificationItem[] = [],
+): Promise<void> {
   const permission = await notificationService.checkPermission();
   if (!permission.granted) {
     return;
   }
 
   const t = i18n.t.bind(i18n);
-  const title = t('notifications.alerts.multipleAlerts.title');
-  const body = t('notifications.alerts.multipleAlerts.body', { count });
+  const title = t('notifications.alerts.multipleAlerts.title', { count });
+  const summary = alerts.length > 0 ? buildAlertsSummary(alerts) : '';
+  const body = summary
+    ? t('notifications.alerts.multipleAlerts.bodyWithSummary', { count, summary })
+    : t('notifications.alerts.multipleAlerts.body', { count });
 
   await notificationService.showLocalNotification(title, body, {
     tag: 'multiple-alerts',
-    url: '/dashboard',
+    url: '/?notifications=open',
+    actionTypeId: 'SIMPLE_VIEW',
   });
 }
 
@@ -352,7 +384,8 @@ export async function notifyMultipleAlerts(count: number): Promise<void> {
  */
 export async function notifyPendingIssues(
   equipmentId: string,
-  equipmentType: string
+  equipmentType: string,
+  equipmentTypeRoute?: string,
 ): Promise<void> {
   const permission = await notificationService.checkPermission();
   if (!permission.granted) {
@@ -366,11 +399,13 @@ export async function notifyPendingIssues(
     equipment_id: equipmentId,
   });
 
+  const routeType = equipmentTypeRoute || equipmentType;
+
   await notificationService.showLocalNotification(title, body, {
     tag: `pending-issues-${equipmentId}`,
-    url: `/equipment/${equipmentId}`,
+    url: `/equipment/${routeType}/${equipmentId}`,
     equipmentId,
-    equipmentType,
+    equipmentType: routeType,
   });
 }
 
@@ -380,7 +415,8 @@ export async function notifyPendingIssues(
 export async function notifyMaintenanceRequired(
   equipmentId: string,
   equipmentType: string,
-  maintenanceLevel: number
+  maintenanceLevel: number,
+  equipmentTypeRoute?: string,
 ): Promise<void> {
   const permission = await notificationService.checkPermission();
   if (!permission.granted) {
@@ -395,11 +431,13 @@ export async function notifyMaintenanceRequired(
     level: maintenanceLevel,
   });
 
+  const routeType = equipmentTypeRoute || equipmentType;
+
   await notificationService.showLocalNotification(title, body, {
     tag: `maintenance-required-${equipmentId}`,
-    url: `/equipment/${equipmentId}`,
+    url: `/equipment/${routeType}/${equipmentId}`,
     equipmentId,
-    equipmentType,
+    equipmentType: routeType,
   });
 }
 

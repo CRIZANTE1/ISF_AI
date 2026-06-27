@@ -1112,8 +1112,9 @@
     },
     "alerts": {
       "multipleAlerts": {
-        "title": "⚠️ Attention Required",
-        "body": "You have {{count}} alert(s) that require your attention."
+        "title": "⚠️ {{count}} alert(s) pending",
+        "body": "You have {{count}} alert(s) that require your attention.",
+        "bodyWithSummary": "{{count}} pending alert(s):\n{{summary}}"
       },
       "pendingIssues": {
         "title": "📋 Pending Issues Found",
