@@ -1,18 +1,9 @@
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from '../hooks/useTranslation';
+import { configureLeafletDefaultIcons, LEAFLET_TILE_DARK } from '../utils/leafletMapConfig';
 
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+configureLeafletDefaultIcons();
 
 interface ChecklistLocationMapProps {
   latitude: number | null | undefined;
@@ -54,8 +45,8 @@ const ChecklistLocationMap = ({
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution={LEAFLET_TILE_DARK.attribution}
+            url={LEAFLET_TILE_DARK.url}
           />
           <Marker position={position}>
             <Popup>

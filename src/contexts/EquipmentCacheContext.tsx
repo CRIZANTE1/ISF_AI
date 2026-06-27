@@ -10,13 +10,50 @@ import { getAllEyewashStations } from '../utils/eyewashOperations';
 import { getAllAlarmSystems } from '../utils/alarmOperations';
 import { getAllShelters } from '../utils/shelterOperations';
 import { getAllWaterReservoirs } from '../utils/waterReservoirOperations';
-import { getAllCustomEquipmentTypes, getAllCustomEquipment } from '../utils/customEquipmentOperations';
 import { logger } from '../utils/logger';
 import type {
   EquipmentCache,
   AnyEquipment,
   EquipmentTypeKey,
 } from '../types/equipment';
+
+// ---------------------------------------------------------------------------
+// Mapa interno: tipo de equipamento → fetcher + chave do cache
+// ---------------------------------------------------------------------------
+
+type TypeFetcher = () => Promise<AnyEquipment[]>;
+
+const TYPE_FETCHERS: Record<EquipmentTypeKey, TypeFetcher> = {
+  extintor: getAllExtinguishers,
+  mangueira: getAllHoses,
+  scba: getAllSCBAs,
+  multigas: getAllMultigasDetectors,
+  camara_espuma: getAllFoamChambers,
+  canhao_monitor: getAllCannonMonitors,
+  chuveiro_lavaolhos: getAllEyewashStations,
+  alarme: getAllAlarmSystems,
+  abrigo: getAllShelters,
+  reserva_tecnica: getAllWaterReservoirs,
+};
+
+/**
+ * Mapeia EquipmentTypeKey → chave do cache onde a lista é armazenada.
+ */
+const CACHE_KEY_MAP: Record<EquipmentTypeKey, keyof EquipmentCache> = {
+  extintor: 'extinguishers',
+  mangueira: 'hoses',
+  scba: 'scbas',
+  multigas: 'multigasDetectors',
+  camara_espuma: 'foamChambers',
+  canhao_monitor: 'cannonMonitors',
+  chuveiro_lavaolhos: 'eyewashStations',
+  alarme: 'alarmSystems',
+  abrigo: 'shelters',
+  reserva_tecnica: 'waterReservoirs',
+};
+
+/** Lista de todos os tipos de equipamento (reutilizada em refreshCache completo) */
+const ALL_EQUIPMENT_TYPES = Object.keys(TYPE_FETCHERS) as EquipmentTypeKey[];
 
 // ---------------------------------------------------------------------------
 // Tipos auxiliares para getEquipmentByType — retorna o tipo correto conforme
@@ -42,7 +79,10 @@ type EquipmentByType<T extends EquipmentTypeKey> =
 
 interface EquipmentCacheContextType {
   cache: EquipmentCache;
-  refreshCache: () => Promise<void>;
+  /** Atualiza todos os tipos de equipamento (fallback para compatibilidade) */
+  refreshCache: (force?: boolean) => Promise<void>;
+  /** Atualiza apenas os tipos de equipamento informados (invalidação seletiva) */
+  refreshTypes: (types: EquipmentTypeKey[], force?: boolean) => Promise<void>;
   /** Retorna a lista tipada de equipamentos para o tipo informado */
   getEquipmentByType: <T extends EquipmentTypeKey>(type: T) => EquipmentByType<T>;
   /** Retorna todos os equipamentos como array plano (union type) */
@@ -74,77 +114,91 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
 
   const isFetchingRef = useRef(false);
 
-  const refreshCache = useCallback(async (force: boolean = false) => {
+  /**
+   * Atualiza apenas os tipos de equipamento especificados.
+   * Usa Promise.allSettled para que a falha de UM tipo não impeça os outros
+   * de serem atualizados. Tipos que falharem mantêm os dados anteriores e
+   * o erro é logado individualmente.
+   */
+  const refreshTypes = useCallback(async (types: EquipmentTypeKey[], force: boolean = false) => {
     if (!user) return;
+    if (types.length === 0) return;
 
     // Se já está buscando e não é forçado, aguarda a atualização atual terminar
     if (isFetchingRef.current && !force) {
       logger.info('Cache já está sendo atualizado, aguardando...', 'equipment');
-      // Aguarda a atualização atual terminar (máximo 5 segundos)
       let attempts = 0;
       while (isFetchingRef.current && attempts < 50) {
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
-      // Se ainda está buscando após 5 segundos, força uma nova atualização
       if (isFetchingRef.current) {
         logger.warn('Timeout aguardando atualização do cache, forçando nova atualização', 'equipment');
         isFetchingRef.current = false;
       } else {
-        // A atualização anterior terminou, não precisa fazer nada
-        return;
+        return; // a atualização anterior terminou
       }
     }
 
     isFetchingRef.current = true;
     setCache(prev => ({ ...prev, isLoading: true }));
 
-    try {
-      const [
-        extinguishers,
-        hoses,
-        scbas,
-        multigasDetectors,
-        foamChambers,
-        cannonMonitors,
-        eyewashStations,
-        alarmSystems,
-        shelters,
-        waterReservoirs,
-      ] = await Promise.all([
-        getAllExtinguishers(),
-        getAllHoses(),
-        getAllSCBAs(),
-        getAllMultigasDetectors(),
-        getAllFoamChambers(),
-        getAllCannonMonitors(),
-        getAllEyewashStations(),
-        getAllAlarmSystems(),
-        getAllShelters(),
-        getAllWaterReservoirs(),
-      ]);
+    // Dispara todas as queries em paralelo, mas cada uma é independente
+    const results = await Promise.allSettled(
+      types.map(async (type) => {
+        const fetcher = TYPE_FETCHERS[type];
+        const data = await fetcher();
+        return { type, data };
+      })
+    );
 
-      setCache({
-        extinguishers,
-        hoses,
-        scbas,
-        multigasDetectors,
-        foamChambers,
-        cannonMonitors,
-        eyewashStations,
-        alarmSystems,
-        shelters,
-        waterReservoirs,
+    // Constrói o patch de cache apenas com os tipos que tiveram sucesso
+    const patch: Partial<EquipmentCache> = {};
+    let hasAnySuccess = false;
+
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        const { type, data } = result.value;
+        const cacheKey = CACHE_KEY_MAP[type];
+        (patch as Record<string, unknown>)[cacheKey] = data;
+        hasAnySuccess = true;
+      } else {
+        // Extrai o tipo do erro quando possível
+        logger.error(
+          `Falha ao atualizar equipamentos do tipo — dados anteriores mantidos no cache`,
+          'equipment',
+          result.reason
+        );
+      }
+    });
+
+    if (hasAnySuccess) {
+      setCache(prev => ({
+        ...prev,
+        ...patch,
         lastFetch: Date.now(),
         isLoading: false,
-      });
-    } catch (error) {
-      logger.error('Erro ao atualizar cache de equipamentos', 'equipment', error);
+      }));
+    } else {
+      // Nenhum tipo foi atualizado com sucesso
+      logger.error(
+        'Nenhum tipo de equipamento pôde ser atualizado — cache mantido com dados anteriores',
+        'equipment'
+      );
       setCache(prev => ({ ...prev, isLoading: false }));
-    } finally {
-      isFetchingRef.current = false;
     }
+
+    isFetchingRef.current = false;
   }, [user]);
+
+  /**
+   * Atualiza TODOS os tipos de equipamento.
+   * Mantido para compatibilidade com chamadores legados.
+   * Internamente delega para refreshTypes com a lista completa.
+   */
+  const refreshCache = useCallback(async (force: boolean = false) => {
+    await refreshTypes(ALL_EQUIPMENT_TYPES, force);
+  }, [refreshTypes]);
 
   const isStale = useCallback(() => {
     if (!cache.lastFetch) return true;
@@ -200,18 +254,14 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
   // Carregar cache quando o usuário estiver disponível (otimizado)
   useEffect(() => {
     if (user) {
-      // Se o cache está vazio ou está obsoleto, buscar dados
-      // Usa setTimeout para não bloquear a renderização inicial
       const isCacheStale = !cache.lastFetch || (Date.now() - cache.lastFetch > CACHE_DURATION);
       if (isCacheStale && !isFetchingRef.current) {
-        // Delay pequeno para não bloquear a UI inicial
         const timer = setTimeout(() => {
           refreshCache();
         }, 100);
         return () => clearTimeout(timer);
       }
     } else {
-      // Limpar cache quando o usuário sair
       setCache({
         extinguishers: [],
         hoses: [],
@@ -232,6 +282,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
   const value: EquipmentCacheContextType = {
     cache,
     refreshCache,
+    refreshTypes,
     getEquipmentByType,
     getAllEquipment,
     isStale,

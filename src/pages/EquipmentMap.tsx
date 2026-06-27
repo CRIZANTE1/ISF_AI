@@ -17,23 +17,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getCurrentLocation } from '../hooks/useGeolocation';
 import { logger } from '../utils/logger';
+import { configureLeafletDefaultIcons, LEAFLET_TILE_DARK } from '../utils/leafletMapConfig';
 
-// Fix para ícones padrão do Leaflet
-import L from 'leaflet';
-// Usar caminhos diretos para os ícones do leaflet
-const iconUrl = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href;
-const iconShadowUrl = new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href;
-
-const DefaultIcon = new Icon({
-  iconUrl: iconUrl,
-  shadowUrl: iconShadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
+configureLeafletDefaultIcons();
 
 // Função para criar ícone customizado baseado no tipo
 function createCustomIcon(type: string): Icon {
@@ -394,8 +380,8 @@ const EquipmentMap = () => {
             scrollWheelZoom={true}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution={LEAFLET_TILE_DARK.attribution}
+              url={LEAFLET_TILE_DARK.url}
             />
             
             {/* Marcador da localização do usuário */}
