@@ -3,6 +3,9 @@
 interface ImportMetaEnv {
   readonly VITE_ENABLE_PUSH?: string;
   readonly VITE_HAS_GOOGLE_SERVICES?: string;
+  readonly VITE_SENTRY_DSN?: string;
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
+  readonly VITE_APP_VERSION?: string;
 }
 
 interface ImportMeta {

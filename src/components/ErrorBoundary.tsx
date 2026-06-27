@@ -47,12 +47,6 @@ class ErrorBoundaryClass extends Component<Props, State> {
       componentStack: errorInfo.componentStack 
     });
 
-    // Em produção, pode integrar com serviço de monitoramento externo
-    // TODO: Se necessário, integrar com serviço de monitoramento (ex: Sentry, LogRocket, etc.)
-    // if (import.meta.env.PROD) {
-    //   // Enviar erro para serviço de monitoramento
-    // }
-
     this.setState({
       error,
       errorInfo,

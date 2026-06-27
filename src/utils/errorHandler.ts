@@ -150,10 +150,10 @@ export const processError = (
   };
 };
 
+import { captureException } from '../lib/sentry';
+
 /**
- * Loga erro de forma estruturada
- * 
- * Em produção, isso pode ser integrado com serviços como Sentry
+ * Loga erro de forma estruturada e reporta ao Sentry em produção.
  */
 export const logError = (error: AppError, additionalInfo?: Record<string, any>) => {
   // Verifica se está em ambiente Android/Capacitor
@@ -212,11 +212,20 @@ export const logError = (error: AppError, additionalInfo?: Record<string, any>) 
     }
   }
 
-  // Em produção, pode integrar com serviço de monitoramento externo
-  // TODO: Se necessário, integrar com serviço de monitoramento (ex: Sentry, LogRocket, etc.)
-  // if (import.meta.env.PROD) {
-  //   // Enviar para serviço de monitoramento
-  // }
+  if (import.meta.env.PROD) {
+    const reportError =
+      error.originalError instanceof Error
+        ? error.originalError
+        : new Error(error.message);
+
+    captureException(reportError, {
+      appErrorContext: error.context,
+      appErrorCode: error.code,
+      userMessage: error.userMessage,
+      ...logData,
+      ...additionalInfo,
+    });
+  }
 };
 
 /**

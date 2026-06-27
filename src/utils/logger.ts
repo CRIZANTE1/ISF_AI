@@ -1,8 +1,8 @@
+import { captureException, captureMessage } from '../lib/sentry';
+
 /**
  * Sistema centralizado de logging
  * Substitui console.log/error/warn por sistema estruturado
- * 
- * Em produção, pode ser integrado com serviços como Sentry
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -76,11 +76,29 @@ class Logger {
       }
     }
 
-    // Em produção, pode integrar com serviço de monitoramento externo
-    // TODO: Se necessário, integrar com serviço de monitoramento (ex: Sentry, LogRocket, etc.)
-    // if (this.isProd && level === 'error') {
-    //   // Enviar para serviço de monitoramento
-    // }
+    if (level === 'error' && import.meta.env.PROD) {
+      const nestedError =
+        data instanceof Error
+          ? data
+          : data?.error instanceof Error
+            ? data.error
+            : null;
+
+      if (nestedError) {
+        captureException(nestedError, {
+          logMessage: message,
+          context,
+          componentStack: data?.componentStack,
+        });
+      } else {
+        captureMessage(message, {
+          context,
+          data: data instanceof Error
+            ? { message: data.message, name: data.name, stack: data.stack }
+            : data,
+        });
+      }
+    }
   }
 
   /**

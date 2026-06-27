@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { setSentryUser } from '../lib/sentry';
 import { logUserAccess } from '../utils/adminOperations';
 import { logger } from '../utils/logger';
 
@@ -85,6 +86,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setSentryUser({ id: user.id, email: user.email });
+    } else {
+      setSentryUser(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {

@@ -11,11 +11,16 @@ const hasGoogleServiceInfo = fs.existsSync(
 );
 const hasFirebasePushConfig = hasGoogleServices || hasGoogleServiceInfo;
 
+const appVersion = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'),
+).version as string;
+
 export default defineConfig({
   define: {
     'import.meta.env.VITE_HAS_GOOGLE_SERVICES': JSON.stringify(
       hasFirebasePushConfig ? 'true' : 'false',
     ),
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
   },
   plugins: [react()],
   
@@ -38,6 +43,7 @@ export default defineConfig({
       '@capacitor/filesystem',
       '@capacitor/share',
       '@sentry/react',
+      '@sentry/capacitor',
     ],
     include: ['three', '@react-three/fiber'],
   },

@@ -7,7 +7,14 @@ import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { EquipmentCacheProvider } from './contexts/EquipmentCacheContext.tsx';
 import { ToastProvider } from './contexts/ToastContext.tsx';
+import { initSentry } from './lib/sentry';
 import { logger } from './utils/logger';
+
+try {
+  initSentry();
+} catch (error) {
+  logger.warn('Monitoramento Sentry indisponível; app continuará normalmente.', 'sentry', error);
+}
 
 // Verificar preferência do usuário e aplicar tema de forma segura
 const getInitialTheme = () => {
