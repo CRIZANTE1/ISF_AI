@@ -5,6 +5,7 @@
 import { useState, useEffect, ImgHTMLAttributes } from 'react';
 import LazyImage from './LazyImage';
 import { ImageSkeleton } from './skeletons';
+import { resolveEmbeddablePhotoUrl } from '../utils/photoUrlUtils';
 
 interface ProgressiveImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'loading'> {
   src: string;
@@ -65,6 +66,8 @@ const ProgressiveImage = ({
   className = '',
   ...props
 }: ProgressiveImageProps) => {
+  const embeddableSrc = resolveEmbeddablePhotoUrl(src);
+  const embeddableThumbnail = thumbnail ? resolveEmbeddablePhotoUrl(thumbnail) : undefined;
   const [blurSrc, setBlurSrc] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -72,20 +75,19 @@ const ProgressiveImage = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Se não há blurDataURL fornecido, tenta criar um
-    if (!blurDataURL && !blurSrc && (thumbnail || src)) {
-      const source = thumbnail || src;
+    if (!blurDataURL && !blurSrc && (embeddableThumbnail || embeddableSrc)) {
+      const source = embeddableThumbnail || embeddableSrc;
       createBlurDataURL(source)
         .then(setBlurSrc)
         .catch(() => {
-          // Se falhar, usa o thumbnail como fallback
-          if (thumbnail) setBlurSrc(thumbnail);
+          if (embeddableThumbnail) setBlurSrc(embeddableThumbnail);
         });
     } else if (blurDataURL) {
       setBlurSrc(blurDataURL);
-    } else if (thumbnail) {
-      setBlurSrc(thumbnail);
+    } else if (embeddableThumbnail) {
+      setBlurSrc(embeddableThumbnail);
     }
-  }, [blurDataURL, thumbnail, src]);
+  }, [blurDataURL, embeddableThumbnail, embeddableSrc]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -126,9 +128,9 @@ const ProgressiveImage = ({
 
       {/* Imagem principal */}
       <LazyImage
-        src={src}
+        src={embeddableSrc}
         alt={alt}
-        placeholder={thumbnail || blurSrc || placeholder}
+        placeholder={embeddableThumbnail || blurSrc || placeholder}
         onLoad={handleLoad}
         onError={handleError}
         className={`relative transition-opacity duration-500 ${

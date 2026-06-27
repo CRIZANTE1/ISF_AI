@@ -9,6 +9,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseInspectionDate } from './dateUtils';
 import { logger } from './logger';
+import { resolveEmbeddablePhotoUrl } from './photoUrlUtils';
 import {
   generateMultigasActionPlan,
   resolveGasTolerances,
@@ -210,6 +211,8 @@ function formatMultigasNumber(value: number | undefined, decimals: number): stri
  */
 async function imageUrlToBase64(url: string): Promise<string> {
   try {
+    const embeddableUrl = resolveEmbeddablePhotoUrl(url);
+
     // Adiciona timeout para evitar congelamentos em dispositivos lentos
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Timeout ao carregar imagem')), 10000); // 10 segundos
@@ -217,7 +220,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
 
     // Faz a requisição com timeout
     const response = await Promise.race([
-      fetch(url),
+      fetch(embeddableUrl),
       timeoutPromise
     ]);
 

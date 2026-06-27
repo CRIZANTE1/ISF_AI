@@ -22,6 +22,7 @@ import { Capacitor } from '@capacitor/core';
 import { useToast } from '../contexts/ToastContext';
 import FileUpload from '../components/FileUpload';
 import { uploadEvidencePhoto, uploadFile } from '../utils/storage';
+import { resolveEmbeddablePhotoUrl } from '../utils/photoUrlUtils';
 
 const ACTION_PLAN_MODAL_STATE = 'actionPlanResolutionState';
 
@@ -687,7 +688,7 @@ const ActionPlansPage = () => {
                   {plan.photoUrl && (
                     <div className="mb-3">
                       <img
-                        src={plan.photoUrl}
+                        src={resolveEmbeddablePhotoUrl(plan.photoUrl)}
                         alt="Foto de não conformidade"
                         className="w-full h-32 object-cover rounded-lg"
                         onClick={() => window.open(plan.photoUrl, '_blank')}
