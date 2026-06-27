@@ -14,120 +14,141 @@ export class LicenseService {
   private machineId: string | null = null;
 
   /**
-   * Obtém o Machine ID do dispositivo
-   * Tenta obter via Capacitor (Android) ou fallback (Web)
+   * Obtém o Machine ID do dispositivo.
+   * Prioridade: cache → localStorage → Device.getId() (nativo) → fingerprint → timestamp.
    */
   async getMachineId(): Promise<string> {
-    // Se já foi obtido, retornar do cache
     if (this.machineId) {
       return this.machineId;
     }
 
-    // Tentar obter via Capacitor Plugin (Android)
-    if (typeof window !== 'undefined' && (window as any).Capacitor) {
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (Capacitor.isNativePlatform()) {
-          // Tentar obter device ID via plugin nativo se disponível
-          // Por enquanto, usar localStorage como fallback
-          const storedId = localStorage.getItem('machine_id');
-          if (storedId) {
-            this.machineId = storedId;
-            logger.info('Machine ID obtido do localStorage', 'license');
-            return storedId;
-          }
-        }
-      } catch (error) {
-        logger.warn('Erro ao obter Device ID via Capacitor', 'license', error);
-      }
+    const storedId = this.getStoredMachineId();
+    if (storedId) {
+      this.machineId = storedId;
+      logger.info('Machine ID obtido do localStorage', 'license');
+      return storedId;
     }
 
-    // Fallback: usar localStorage com fingerprint do browser
+    const nativeId = await this.tryGetNativeDeviceId();
+    if (nativeId) {
+      this.persistMachineId(nativeId);
+      logger.info('Machine ID obtido via Device.getId()', 'license', { deviceId: nativeId });
+      return nativeId;
+    }
+
     try {
-      // Verificar se localStorage está disponível
-      if (typeof localStorage === 'undefined') {
-        throw new Error('localStorage não disponível');
-      }
-
-      // Tentar obter do localStorage primeiro
-      const storedId = localStorage.getItem('machine_id');
-      if (storedId) {
-        this.machineId = storedId;
-        logger.info('Machine ID obtido do localStorage', 'license');
-        return storedId;
-      }
-
-      // Verificar se APIs do navegador estão disponíveis
-      if (typeof document === 'undefined' || typeof navigator === 'undefined' || typeof window === 'undefined') {
-        throw new Error('APIs do navegador não disponíveis');
-      }
-
-      // Gerar novo ID baseado em características do navegador
-      let canvasData = '';
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.textBaseline = 'top';
-          ctx.font = '14px "Arial"';
-          ctx.textBaseline = 'alphabetic';
-          ctx.fillStyle = '#f60';
-          ctx.fillRect(125, 1, 62, 20);
-          ctx.fillStyle = '#069';
-          ctx.fillText('ISF IA - License', 2, 15);
-          ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-          ctx.fillText('ISF IA - License', 4, 17);
-          canvasData = canvas.toDataURL();
-        }
-      } catch (canvasError) {
-        logger.warn('Erro ao gerar canvas fingerprint', 'license', canvasError);
-        canvasData = 'canvas-unavailable';
-      }
-
-      const fingerprint = [
-        navigator.userAgent || 'unknown',
-        navigator.language || 'unknown',
-        (typeof screen !== 'undefined' ? screen.width + 'x' + screen.height : 'unknown'),
-        new Date().getTimezoneOffset(),
-        canvasData,
-        navigator.hardwareConcurrency || 0,
-        (navigator as any).deviceMemory || 0,
-        navigator.platform || 'unknown',
-        (typeof window !== 'undefined' && window.location ? window.location.hostname : 'unknown'),
-      ].join('|');
-
-      // Gerar hash SHA-256
-      const hash = await this.hashString(fingerprint);
-      const deviceId = hash.substring(0, 16);
-
-      // Salvar no localStorage para persistência
-      try {
-        localStorage.setItem('machine_id', deviceId);
-      } catch (storageError) {
-        logger.warn('Erro ao salvar machine_id no localStorage', 'license', storageError);
-      }
-      
-      this.machineId = deviceId;
-
-      logger.info('Machine ID gerado (fallback web)', 'license', { deviceId });
-      return deviceId;
+      const fingerprintId = await this.generateFingerprintMachineId();
+      this.persistMachineId(fingerprintId);
+      logger.info('Machine ID gerado via fingerprint', 'license', { deviceId: fingerprintId });
+      return fingerprintId;
     } catch (error) {
       logger.error('Erro ao gerar Machine ID (fallback)', 'license', error);
-      // Último fallback: usar timestamp + random
       const fallbackId = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
       const deviceId = fallbackId.substring(0, 16).padEnd(16, '0');
-      
-      try {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('machine_id', deviceId);
-        }
-      } catch (storageError) {
-        logger.warn('Erro ao salvar machine_id no localStorage (fallback)', 'license', storageError);
-      }
-      
-      this.machineId = deviceId;
+      this.persistMachineId(deviceId);
       return deviceId;
     }
+  }
+
+  private getStoredMachineId(): string | null {
+    try {
+      if (typeof localStorage === 'undefined') {
+        return null;
+      }
+      return localStorage.getItem('machine_id');
+    } catch {
+      return null;
+    }
+  }
+
+  private persistMachineId(deviceId: string): void {
+    this.machineId = deviceId;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('machine_id', deviceId);
+      }
+    } catch (storageError) {
+      logger.warn('Erro ao salvar machine_id no localStorage', 'license', storageError);
+    }
+  }
+
+  private async tryGetNativeDeviceId(): Promise<string | null> {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (!Capacitor.isNativePlatform()) {
+        return null;
+      }
+
+      const { Device } = await import('@capacitor/device');
+      const { identifier } = await Device.getId();
+      if (!identifier) {
+        return null;
+      }
+
+      const hash = await this.hashString(identifier);
+      return hash.substring(0, 16);
+    } catch (error) {
+      logger.warn('Device.getId() falhou, usando fingerprint (método anterior)', 'license', error);
+      return null;
+    }
+  }
+
+  private async generateFingerprintMachineId(): Promise<string> {
+    if (typeof localStorage === 'undefined') {
+      throw new Error('localStorage não disponível');
+    }
+
+    if (typeof document === 'undefined' || typeof navigator === 'undefined' || typeof window === 'undefined') {
+      throw new Error('APIs do navegador não disponíveis');
+    }
+
+    let canvasData = '';
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.textBaseline = 'top';
+        ctx.font = '14px "Arial"';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('ISF IA - License', 2, 15);
+        ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+        ctx.fillText('ISF IA - License', 4, 17);
+        canvasData = canvas.toDataURL();
+      }
+    } catch (canvasError) {
+      logger.warn('Erro ao gerar canvas fingerprint', 'license', canvasError);
+      canvasData = 'canvas-unavailable';
+    }
+
+    const fingerprint = [
+      navigator.userAgent || 'unknown',
+      navigator.language || 'unknown',
+      (typeof screen !== 'undefined' ? screen.width + 'x' + screen.height : 'unknown'),
+      new Date().getTimezoneOffset(),
+      canvasData,
+      navigator.hardwareConcurrency || 0,
+      (navigator as any).deviceMemory || 0,
+      navigator.platform || 'unknown',
+      (typeof window !== 'undefined' && window.location ? window.location.hostname : 'unknown'),
+    ].join('|');
+
+    const hash = await this.hashString(fingerprint);
+    return hash.substring(0, 16);
+  }
+
+  private async hashString(str: string): Promise<string> {
+    const data = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   /**
