@@ -103,7 +103,7 @@
     "deleteSuccess": "Equipamento excluído com sucesso",
     "saveSuccess": "Equipamento salvo com sucesso",
     "registerSuccess": "Equipamento cadastrado com sucesso!",
-    "registerSuccessWithId": "Equipamento cadastrado com sucesso!\n\nID gerado automaticamente: {id}",
+    "registerSuccessWithId": "Equipamento cadastrado com sucesso!\n\nID gerado automaticamente: {{id}}",
     "registerError": "Falha ao cadastrar equipamento. Verifique se o ID já existe.",
     "errorGenerateId": "Falha ao gerar ID automático do equipamento. Tente inserir um ID manualmente.",
     "errorIdRequired": "ID do equipamento é obrigatório",
@@ -1073,23 +1073,23 @@
     "equipment": {
       "expired": {
         "title": "⚠️ Equipamento Vencido",
-        "body": "{equipment_type} ({equipment_id}) está vencido e precisa de atenção imediata."
+        "body": "{{equipment_type}} ({{equipment_id}}) está vencido e precisa de atenção imediata."
       },
       "expiringSoon": {
         "title": "⏰ Equipamento Próximo do Vencimento",
-        "bodyTomorrow": "{equipment_type} ({equipment_id}) vence amanhã.",
-        "bodyDays": "{equipment_type} ({equipment_id}) vence em {days} dias.",
-        "bodyWeek": "{equipment_type} ({equipment_id}) vence em 1 semana."
+        "bodyTomorrow": "{{equipment_type}} ({{equipment_id}}) vence amanhã.",
+        "bodyDays": "{{equipment_type}} ({{equipment_id}}) vence em {{days}} dias.",
+        "bodyWeek": "{{equipment_type}} ({{equipment_id}}) vence em 1 semana."
       },
       "multipleExpired": {
         "titleSingular": "⚠️ 1 Equipamento Vencido",
-        "titlePlural": "⚠️ {count} Equipamentos Vencidos",
+        "titlePlural": "⚠️ {{count}} Equipamentos Vencidos",
         "bodySingular": "Você tem 1 equipamento que precisa de atenção.",
-        "bodyPlural": "Você tem {count} equipamentos que precisam de atenção."
+        "bodyPlural": "Você tem {{count}} equipamentos que precisam de atenção."
       },
       "registered": {
         "title": "✅ Equipamento Cadastrado",
-        "body": "{equipment_type} ({equipment_id}) foi cadastrado com sucesso."
+        "body": "{{equipment_type}} ({{equipment_id}}) foi cadastrado com sucesso."
       },
       "registrationError": {
         "title": "❌ Erro ao Cadastrar",
@@ -1099,37 +1099,37 @@
     "inspection": {
       "created": {
         "title": "✅ Nova Inspeção Criada",
-        "body": "Inspeção de {inspection_type} para {equipment_type} ({equipment_id}) foi criada com sucesso."
+        "body": "Inspeção de {{inspection_type}} para {{equipment_type}} ({{equipment_id}}) foi criada com sucesso."
       },
       "updated": {
         "title": "📝 Inspeção Atualizada",
-        "body": "Inspeção de {inspection_type} para {equipment_type} ({equipment_id}) foi atualizada."
+        "body": "Inspeção de {{inspection_type}} para {{equipment_type}} ({{equipment_id}}) foi atualizada."
       },
       "expired": {
         "title": "⚠️ Inspeção Vencida",
-        "body": "{equipment_type} ({equipment_id}) está com inspeção vencida desde {expiration_date}."
+        "body": "{{equipment_type}} ({{equipment_id}}) está com inspeção vencida desde {{expiration_date}}."
       },
       "expiringSoon": {
         "title": "⏰ Inspeção Próxima",
-        "body": "{equipment_type} ({equipment_id}) tem inspeção vencendo em {days} dia(s)."
+        "body": "{{equipment_type}} ({{equipment_id}}) tem inspeção vencendo em {{days}} dia(s)."
       },
       "nonCompliant": {
         "title": "🚨 Equipamento Não Conforme",
-        "body": "{equipment_type} ({equipment_id}) foi reprovado na inspeção. Ação corretiva necessária."
+        "body": "{{equipment_type}} ({{equipment_id}}) foi reprovado na inspeção. Ação corretiva necessária."
       }
     },
     "alerts": {
       "multipleAlerts": {
         "title": "⚠️ Atenção Necessária",
-        "body": "Você tem {count} alerta(s) que precisam de sua atenção."
+        "body": "Você tem {{count}} alerta(s) que precisam de sua atenção."
       },
       "pendingIssues": {
         "title": "📋 Pendências Encontradas",
-        "body": "{equipment_type} ({equipment_id}) possui pendências que precisam ser resolvidas."
+        "body": "{{equipment_type}} ({{equipment_id}}) possui pendências que precisam ser resolvidas."
       },
       "maintenanceRequired": {
         "title": "🔧 Manutenção Necessária",
-        "body": "{equipment_type} ({equipment_id}) precisa de manutenção nível {level}."
+        "body": "{{equipment_type}} ({{equipment_id}}) precisa de manutenção nível {{level}}."
       }
     }
   },
@@ -1166,7 +1166,7 @@
     "loadError": "Falha ao carregar reserva técnica",
     "notFound": "Reserva técnica não encontrada",
     "deleteConfirm": "Excluir reserva técnica?",
-    "deleteMessage": "Tem certeza que deseja excluir \"{name}\"? Todas as inspeções e logs associados serão removidos.",
+    "deleteMessage": "Tem certeza que deseja excluir \"{{name}}\"? Todas as inspeções e logs associados serão removidos.",
     "deleteSuccess": "Reserva técnica excluída com sucesso",
     "deleteError": "Falha ao excluir reserva técnica",
     "nfpa25Checklist": "Checklist NFPA 25",

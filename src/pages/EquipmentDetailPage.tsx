@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import type { EquipmentTypeKey } from '../types/equipment';
 import PageHeader from '../components/PageHeader';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { DetailSkeleton, IconSkeleton, ButtonSkeleton } from '../components/skeletons';
@@ -43,7 +44,7 @@ const EquipmentDetailPage = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getEquipmentByType, refreshCache } = useEquipmentCache();
+  const { getEquipmentByType, refreshCache, refreshTypes } = useEquipmentCache();
   const { handleError, showSuccess } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
   const haptics = useHaptics();
@@ -643,8 +644,12 @@ const EquipmentDetailPage = () => {
             // Aguarda um pouco mais para garantir que o banco processou a exclusão
             await new Promise(resolve => setTimeout(resolve, 500));
             
-            // Força atualização do cache
-            await refreshCache();
+            // Força atualização seletiva do cache (só o tipo modificado)
+            if (type?.startsWith('custom-')) {
+              await refreshCache();
+            } else {
+              await refreshTypes([type as EquipmentTypeKey]);
+            }
             
             // Aguarda mais um pouco para garantir que o cache foi completamente atualizado
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -705,9 +710,13 @@ const EquipmentDetailPage = () => {
             throw new Error('Falha ao excluir inspeção');
           }
           
-          // Atualiza o cache imediatamente para que as alterações apareçam
+          // Atualiza o cache seletivamente (só o tipo modificado)
           try {
-            await refreshCache();
+            if (type?.startsWith('custom-')) {
+              await refreshCache();
+            } else {
+              await refreshTypes([type as EquipmentTypeKey]);
+            }
           } catch (error) {
             logger.error('Erro ao atualizar cache após exclusão de inspeção', 'equipment', error);
           }

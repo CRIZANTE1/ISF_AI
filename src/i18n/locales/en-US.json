@@ -105,7 +105,7 @@
     "deleteSuccess": "Equipment deleted successfully",
     "saveSuccess": "Equipment saved successfully",
     "registerSuccess": "Equipment registered successfully!",
-    "registerSuccessWithId": "Equipment registered successfully!\n\nAuto-generated ID: {id}",
+    "registerSuccessWithId": "Equipment registered successfully!\n\nAuto-generated ID: {{id}}",
     "registerError": "Failed to register equipment. Check if the ID already exists.",
     "errorGenerateId": "Failed to generate automatic equipment ID. Try entering an ID manually.",
     "errorIdRequired": "Equipment ID is required",
@@ -1065,23 +1065,23 @@
     "equipment": {
       "expired": {
         "title": "⚠️ Equipment Expired",
-        "body": "{equipment_type} ({equipment_id}) is expired and requires immediate attention."
+        "body": "{{equipment_type}} ({{equipment_id}}) is expired and requires immediate attention."
       },
       "expiringSoon": {
         "title": "⏰ Equipment Expiring Soon",
-        "bodyTomorrow": "{equipment_type} ({equipment_id}) expires tomorrow.",
-        "bodyDays": "{equipment_type} ({equipment_id}) expires in {days} days.",
-        "bodyWeek": "{equipment_type} ({equipment_id}) expires in 1 week."
+        "bodyTomorrow": "{{equipment_type}} ({{equipment_id}}) expires tomorrow.",
+        "bodyDays": "{{equipment_type}} ({{equipment_id}}) expires in {{days}} days.",
+        "bodyWeek": "{{equipment_type}} ({{equipment_id}}) expires in 1 week."
       },
       "multipleExpired": {
         "titleSingular": "⚠️ 1 Equipment Expired",
-        "titlePlural": "⚠️ {count} Equipment Expired",
+        "titlePlural": "⚠️ {{count}} Equipment Expired",
         "bodySingular": "You have 1 equipment that requires attention.",
-        "bodyPlural": "You have {count} equipment that require attention."
+        "bodyPlural": "You have {{count}} equipment that require attention."
       },
       "registered": {
         "title": "✅ Equipment Registered",
-        "body": "{equipment_type} ({equipment_id}) has been successfully registered."
+        "body": "{{equipment_type}} ({{equipment_id}}) has been successfully registered."
       },
       "registrationError": {
         "title": "❌ Registration Error",
@@ -1091,37 +1091,37 @@
     "inspection": {
       "created": {
         "title": "✅ New Inspection Created",
-        "body": "{inspection_type} inspection for {equipment_type} ({equipment_id}) has been created successfully."
+        "body": "{{inspection_type}} inspection for {{equipment_type}} ({{equipment_id}}) has been created successfully."
       },
       "updated": {
         "title": "📝 Inspection Updated",
-        "body": "{inspection_type} inspection for {equipment_type} ({equipment_id}) has been updated."
+        "body": "{{inspection_type}} inspection for {{equipment_type}} ({{equipment_id}}) has been updated."
       },
       "expired": {
         "title": "⚠️ Inspection Expired",
-        "body": "{equipment_type} ({equipment_id}) has an expired inspection since {expiration_date}."
+        "body": "{{equipment_type}} ({{equipment_id}}) has an expired inspection since {{expiration_date}}."
       },
       "expiringSoon": {
         "title": "⏰ Inspection Due Soon",
-        "body": "{equipment_type} ({equipment_id}) has an inspection expiring in {days} day(s)."
+        "body": "{{equipment_type}} ({{equipment_id}}) has an inspection expiring in {{days}} day(s)."
       },
       "nonCompliant": {
         "title": "🚨 Equipment Non-Compliant",
-        "body": "{equipment_type} ({equipment_id}) failed inspection. Corrective action required."
+        "body": "{{equipment_type}} ({{equipment_id}}) failed inspection. Corrective action required."
       }
     },
     "alerts": {
       "multipleAlerts": {
         "title": "⚠️ Attention Required",
-        "body": "You have {count} alert(s) that require your attention."
+        "body": "You have {{count}} alert(s) that require your attention."
       },
       "pendingIssues": {
         "title": "📋 Pending Issues Found",
-        "body": "{equipment_type} ({equipment_id}) has pending issues that need to be resolved."
+        "body": "{{equipment_type}} ({{equipment_id}}) has pending issues that need to be resolved."
       },
       "maintenanceRequired": {
         "title": "🔧 Maintenance Required",
-        "body": "{equipment_type} ({equipment_id}) requires level {level} maintenance."
+        "body": "{{equipment_type}} ({{equipment_id}}) requires level {{level}} maintenance."
       }
     }
   },
@@ -1158,7 +1158,7 @@
     "loadError": "Failed to load technical reservoir",
     "notFound": "Technical reservoir not found",
     "deleteConfirm": "Delete technical reservoir?",
-    "deleteMessage": "Are you sure you want to delete \"{name}\"? All associated inspections and logs will be removed.",
+    "deleteMessage": "Are you sure you want to delete \"{{name}}\"? All associated inspections and logs will be removed.",
     "deleteSuccess": "Technical reservoir deleted successfully",
     "deleteError": "Failed to delete technical reservoir",
     "nfpa25Checklist": "NFPA 25 Checklist",

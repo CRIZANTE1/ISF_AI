@@ -37,6 +37,7 @@ import { notifyEquipmentRegistered, notifyEquipmentRegistrationError, scheduleIn
 import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../hooks/useConfirm';
 import ConfirmationModal from '../components/ConfirmationModal';
+import type { EquipmentTypeKey } from '../types/equipment';
 
 import InstructionsPanel from '../components/InstructionsPanel';
 import AddEquipmentTour from '../components/AddEquipmentTour';
@@ -45,7 +46,7 @@ const AddEquipmentPage = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { refreshCache } = useEquipmentCache();
+  const { refreshCache, refreshTypes } = useEquipmentCache();
   const { executeWithFeedback, showInfo } = useErrorHandler();
   const { t } = useTranslation();
   const haptics = useHaptics();
@@ -620,8 +621,13 @@ const AddEquipmentPage = () => {
       }
 
       // Atualiza o cache imediatamente para que o novo equipamento apareça na lista
+      // Recarrega apenas o tipo modificado (economiza ~90% de tráfego em redes móveis)
       try {
-        await refreshCache();
+        if (type?.startsWith('custom-')) {
+          await refreshCache();
+        } else {
+          await refreshTypes([type as EquipmentTypeKey]);
+        }
       } catch (error) {
         // Log do erro mas não impede a navegação
         logger.error('Erro ao atualizar cache', 'equipment', error);

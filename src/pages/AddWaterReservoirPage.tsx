@@ -34,7 +34,7 @@ const AddWaterReservoirPage = () => {
   const { executeWithFeedback } = useErrorHandler();
   const { t } = useTranslation();
   const haptics = useHaptics();
-  const { refreshCache } = useEquipmentCache();
+  const { refreshTypes } = useEquipmentCache();
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<WaterReservoirFormData>({
@@ -67,7 +67,7 @@ const AddWaterReservoirPage = () => {
             throw new Error(t('waterReservoir.saveError'));
           }
 
-          await refreshCache(true);
+          await refreshTypes(['reserva_tecnica'], true);
           haptics.success();
           navigate('/inspections/reserva_tecnica');
         },

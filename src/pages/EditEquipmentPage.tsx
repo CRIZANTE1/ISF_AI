@@ -7,6 +7,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useHaptics } from '../hooks/useHaptics';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import type { EquipmentTypeKey } from '../types/equipment';
 import { logger } from '../utils/logger';
 import ExtinguisherForm from '../components/forms/ExtinguisherForm';
 import HoseForm from '../components/forms/HoseForm';
@@ -44,7 +45,7 @@ const EditEquipmentPage = () => {
   const location = useLocation();
   const returnAfterSave = (location.state as EditEquipmentLocationState | null)?.returnAfterSave;
   const { handleError, executeWithFeedback } = useErrorHandler();
-  const { refreshCache } = useEquipmentCache();
+  const { refreshCache, refreshTypes } = useEquipmentCache();
   const { t } = useTranslation();
   const haptics = useHaptics();
   const [loading, setLoading] = useState(false);
@@ -313,9 +314,13 @@ const EditEquipmentPage = () => {
               
               if (error) throw error;
               
-              // Atualiza cache e navega
+              // Atualiza cache seletivo e navega
               try {
-                await refreshCache();
+                if (type?.startsWith('custom-')) {
+                  await refreshCache();
+                } else {
+                  await refreshTypes([type as EquipmentTypeKey]);
+                }
               } catch (error) {
                 logger.error('Erro ao atualizar cache', 'equipment', error);
               }
@@ -348,9 +353,13 @@ const EditEquipmentPage = () => {
     );
 
     if (success) {
-      // Atualiza o cache imediatamente para que as alterações apareçam na lista
+      // Atualiza o cache seletivamente (só o tipo modificado)
       try {
-        await refreshCache();
+        if (type?.startsWith('custom-')) {
+          await refreshCache();
+        } else {
+          await refreshTypes([type as EquipmentTypeKey]);
+        }
       } catch (error) {
         // Log do erro mas não impede a navegação
         logger.error('Erro ao atualizar cache', 'equipment', error);

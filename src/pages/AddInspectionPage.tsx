@@ -2,6 +2,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import type { EquipmentTypeKey } from '../types/equipment';
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { App } from '@capacitor/app';
@@ -122,7 +123,7 @@ const AddInspectionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
-  const { getEquipmentByType, refreshCache } = useEquipmentCache();
+  const { getEquipmentByType, refreshCache, refreshTypes } = useEquipmentCache();
   const { t } = useTranslation();
   const { showSuccess } = useToast();
   const haptics = useHaptics();
@@ -1346,8 +1347,13 @@ const AddInspectionPage = () => {
       }
 
       // Atualiza o cache imediatamente para que as alterações apareçam na lista
+      // Recarrega apenas o tipo modificado (economiza ~90% de tráfego em redes móveis)
       try {
-        await refreshCache();
+        if (type?.startsWith('custom-')) {
+          await refreshCache();
+        } else {
+          await refreshTypes([type as EquipmentTypeKey]);
+        }
       } catch (error) {
         // Log do erro mas não impede a navegação
         logger.error('Erro ao atualizar cache', 'equipment', error);

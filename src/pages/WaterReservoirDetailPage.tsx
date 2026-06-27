@@ -30,7 +30,7 @@ const WaterReservoirDetailPage = () => {
   const { handleError, showSuccess } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
   const haptics = useHaptics();
-  const { refreshCache } = useEquipmentCache();
+  const { refreshTypes } = useEquipmentCache();
   const [reservoir, setReservoir] = useState<WaterReservoir | null>(null);
   const [inspections, setInspections] = useState<WaterReservoirInspection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ const WaterReservoirDetailPage = () => {
       }
       haptics.success();
       showSuccess(t('waterReservoir.deleteSuccess'));
-      await refreshCache(true);
+      await refreshTypes(['reserva_tecnica'], true);
       navigate('/inspections/reserva_tecnica');
     } catch (error) {
       handleError(error, 'equipment', t('waterReservoir.deleteError'));

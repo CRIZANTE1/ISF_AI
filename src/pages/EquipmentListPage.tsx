@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
+import type { EquipmentTypeKey } from '../types/equipment';
 import PageHeader from '../components/PageHeader';
 import FloatingActionButton from '../components/FloatingActionButton';
 import Skeleton from '../components/Skeleton';
@@ -41,7 +42,7 @@ const EquipmentListPage = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { getEquipmentByType, cache, refreshCache } = useEquipmentCache();
+  const { getEquipmentByType, cache, refreshCache, refreshTypes } = useEquipmentCache();
   const { handleError, showSuccess } = useErrorHandler();
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
@@ -155,26 +156,35 @@ const EquipmentListPage = () => {
     loadEquipment();
   }, [user, type, memoizedEquipment, handleError]);
 
+  // Atualização seletiva: recarrega apenas o tipo atual
+  const smartRefresh = useCallback(() => {
+    if (!type) return;
+    if (type.startsWith('custom-')) {
+      return refreshCache();
+    }
+    return refreshTypes([type as EquipmentTypeKey]);
+  }, [type, refreshCache, refreshTypes]);
+
   // Força atualização quando a página é montada (útil após navegação)
   useEffect(() => {
     if (user && type) {
       // Pequeno delay para garantir que a navegação foi concluída
       const timer = setTimeout(() => {
-        refreshCache();
+        smartRefresh();
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [user, type]); // Não inclui refreshCache para evitar loops
+  }, [user, type, smartRefresh]);
 
   // Atualiza a lista quando a página recebe foco (útil após exclusão)
   useEffect(() => {
     const handleFocus = () => {
-      refreshCache();
+      smartRefresh();
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [refreshCache]);
+  }, [smartRefresh]);
 
   const handleGenerateReport = async () => {
     if (!user || !type || equipment.length === 0 || generatingReport) return;
