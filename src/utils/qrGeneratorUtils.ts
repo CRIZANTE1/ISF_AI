@@ -151,3 +151,77 @@ export function generateQRContentForEquipment(
   // Para outros equipamentos, gera um QR com prefixo e identificador
   return `ISFIA|${type}|${identifier}|${new Date().toISOString()}`;
 }
+
+// ---------------------------------------------------------------------------
+// Funções auxiliares (mantidas para compatibilidade com consumidores legados)
+// ---------------------------------------------------------------------------
+
+/**
+ * Gera string de QR Code para qualquer equipamento.
+ * Para extintores, SEMPRE usa formato industrial (padrão).
+ * Para outros tipos, usa apenas o ID/série.
+ */
+export function generateQrString(
+  equipment: AnyEquipment | Record<string, unknown>,
+  type: string,
+  locationCode?: string,
+  useIndustrialFormat: boolean = true
+): string {
+  const identifier = getEquipmentIdentifier(equipment, type);
+
+  if (!identifier) {
+    return '';
+  }
+
+  // Para extintores, SEMPRE usa formato industrial (padrão)
+  if (type === 'extintor' && useIndustrialFormat) {
+    const eq = equipment as Record<string, unknown>;
+    const qrData: ExtinguisherQrData = {
+      numero_identificacao: identifier,
+      tipo_agente: eq.tipo_agente as string | undefined,
+      capacidade: eq.capacidade as number | undefined,
+      localizacao: eq.localizacao as string | undefined,
+    };
+    // Usa locationCode se fornecido, senão usa padrão "7036"
+    return buildIndustrialQrString(qrData, locationCode || '7036');
+  }
+
+  // Para outros tipos, retorna apenas o ID/série
+  return identifier;
+}
+
+/**
+ * Obtém o nome do tipo de equipamento para exibição.
+ */
+export function getEquipmentTypeName(type: string, t: (key: string) => string): string {
+  const typeMap: Record<string, string> = {
+    extintor: t('equipment.extinguisher'),
+    mangueira: t('equipment.hose'),
+    scba: t('equipment.scba'),
+    multigas: t('equipment.multigas'),
+    camara_espuma: t('equipment.foamChamber'),
+    canhao_monitor: t('equipment.cannonMonitor'),
+    chuveiro_lavaolhos: t('equipment.eyewash'),
+    alarme: t('equipment.alarm'),
+    abrigo: t('equipment.shelter'),
+  };
+  return typeMap[type] || type;
+}
+
+/**
+ * Obtém o nome do campo de identificação para um tipo de equipamento.
+ */
+export function getIdentifierFieldName(type: string): string {
+  const fieldMap: Record<string, string> = {
+    extintor: 'Nº Identificação',
+    mangueira: 'ID Mangueira',
+    scba: 'Nº Série',
+    multigas: 'ID Equipamento',
+    camara_espuma: 'ID Câmara',
+    canhao_monitor: 'ID Equipamento',
+    chuveiro_lavaolhos: 'ID Equipamento',
+    alarme: 'ID Sistema',
+    abrigo: 'ID Abrigo',
+  };
+  return fieldMap[type] || 'ID';
+}

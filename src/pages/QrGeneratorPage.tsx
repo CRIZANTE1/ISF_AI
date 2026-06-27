@@ -17,6 +17,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
+import { Package, Search, FileText, Download } from 'lucide-react';
 
 // Função para carregar plugins do Capacitor dinamicamente (opcionais)
 // Nota: Para usar no Android, instale: npm install @capacitor/filesystem @capacitor/share
