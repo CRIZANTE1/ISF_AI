@@ -395,6 +395,7 @@ const AddInspectionPage = () => {
         switch (type) {
           case 'extintor': {
             const extData = await getExtinguisherById(id);
+            const cachedExt = getEquipmentByType('extintor').find((e) => e.numero_identificacao === id);
             if (extData) {
               equipmentData = {
                 id: extData.numero_identificacao,
@@ -404,8 +405,8 @@ const AddInspectionPage = () => {
                 capacidade: extData.capacidade,
                 peso_cheio_placa_kg: extData.peso_cheio_placa_kg,
                 peso_vazio_conjunto_kg: extData.peso_vazio_conjunto_kg,
-                latitude: extData.latitude,
-                longitude: extData.longitude,
+                latitude: cachedExt?.latitude ?? extData.latitude,
+                longitude: cachedExt?.longitude ?? extData.longitude,
               };
             }
             break;
@@ -430,6 +431,8 @@ const AddInspectionPage = () => {
                 id: eyewashData.id_equipamento,
                 name: eyewashData.id_equipamento,
                 location: eyewashData.localizacao,
+                latitude: eyewashData.latitude,
+                longitude: eyewashData.longitude,
               };
             }
             break;
@@ -444,6 +447,8 @@ const AddInspectionPage = () => {
                 name: foamData.id_camara,
                 location: foamData.localizacao,
                 model: foamData.modelo,
+                latitude: foamData.latitude,
+                longitude: foamData.longitude,
               };
             }
             break;
@@ -457,6 +462,8 @@ const AddInspectionPage = () => {
                 id: alarmData.id_sistema,
                 name: alarmData.id_sistema,
                 location: alarmData.localizacao,
+                latitude: alarmData.latitude,
+                longitude: alarmData.longitude,
               };
             }
             break;
@@ -470,6 +477,8 @@ const AddInspectionPage = () => {
                 id: cannonData.id_equipamento,
                 name: cannonData.id_equipamento,
                 location: cannonData.localizacao,
+                latitude: cannonData.latitude,
+                longitude: cannonData.longitude,
               };
             }
             break;
@@ -524,6 +533,8 @@ const AddInspectionPage = () => {
                 id: shelterData.id_abrigo,
                 name: shelterData.id_abrigo,
                 location: shelterData.local,
+                latitude: shelterData.latitude,
+                longitude: shelterData.longitude,
               };
             }
             break;
@@ -540,6 +551,8 @@ const AddInspectionPage = () => {
                     id: customEq.id_equipamento,
                     name: customEq.id_equipamento,
                     location: customEq.localizacao || undefined,
+                    latitude: customEq.latitude,
+                    longitude: customEq.longitude,
                   };
                 }
               } catch (error) {
@@ -2272,8 +2285,8 @@ const AddInspectionPage = () => {
           )}
 
           <ChecklistLocationMap
-            latitude={latitude ?? equipment?.latitude}
-            longitude={longitude ?? equipment?.longitude}
+            latitude={equipment?.latitude}
+            longitude={equipment?.longitude}
             title={equipment?.name}
           />
 
