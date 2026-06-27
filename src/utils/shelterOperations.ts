@@ -5,35 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { Shelter, ShelterInspection } from '../types/equipment';
 
-export interface Shelter {
-  id?: number;
-  id_abrigo: string;
-  cliente?: string;
-  local?: string;
-  numero_serie?: string;
-  latitude?: number;
-  longitude?: number;
-  itens_json?: Record<string, any>;
-  created_at?: string;
-  user_id?: string;
-}
-
-export interface ShelterInspection {
-  id?: number;
-  data_inspecao?: string;
-  id_abrigo: string;
-  status_geral?: string;
-  resultados_json?: Record<string, any>;
-  plano_de_acao?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  latitude?: number;
-  longitude?: number;
-  link_foto_nao_conformidade?: string;
-  created_at?: string;
-  user_id?: string;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { Shelter, ShelterInspection } from '../types/equipment';
 
 /**
  * Salva um novo abrigo

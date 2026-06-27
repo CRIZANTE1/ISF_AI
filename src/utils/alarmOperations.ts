@@ -5,34 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { AlarmSystem, AlarmInspection } from '../types/equipment';
 
-export interface AlarmSystem {
-  id?: number;
-  id_sistema: string;
-  localizacao: string;
-  marca?: string;
-  modelo?: string;
-  numero_serie?: string;
-  data_cadastro?: string;
-  created_at?: string;
-  user_id?: string;
-}
-
-export interface AlarmInspection {
-  id?: number;
-  data_inspecao?: string;
-  id_sistema: string;
-  status_geral?: string;
-  plano_de_acao?: string;
-  resultados_json?: Record<string, any>;
-  link_foto_nao_conformidade?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  latitude?: number;
-  longitude?: number;
-  created_at?: string;
-  user_id?: string;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { AlarmSystem, AlarmInspection } from '../types/equipment';
 
 /**
  * Gera plano de ação para alarmes

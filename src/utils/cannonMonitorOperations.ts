@@ -5,6 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { CannonMonitor, CannonMonitorInspection } from '../types/equipment';
+
+// Re-exporta para manter compatibilidade com imports existentes
+export type { CannonMonitor, CannonMonitorInspection } from '../types/equipment';
 
 // Mapeamento de ações para plano de ação baseado em não conformidades
 const ACTION_PLAN_MAP: Record<string, string> = {
@@ -17,37 +21,6 @@ const ACTION_PLAN_MAP: Record<string, string> = {
   "Fluxo de água adequado": "Verificar pressão e vazão do sistema. Desobstruir linhas ou substituir componentes se necessário.",
   "Controle de direção funcionando": "Verificar e reparar mecanismo de controle de direção. Lubrificar ou substituir componentes danificados.",
 };
-
-export interface CannonMonitor {
-  id?: number;
-  id_equipamento: string;
-  localizacao?: string;
-  marca?: string;
-  modelo?: string;
-  numero_serie?: string;
-  latitude?: number;
-  longitude?: number;
-  data_cadastro?: string;
-  created_at?: string;
-  user_id?: string;
-}
-
-export interface CannonMonitorInspection {
-  id?: number;
-  data_inspecao?: string;
-  id_equipamento: string;
-  tipo_inspecao?: string;
-  status_geral?: string;
-  plano_de_acao?: string;
-  resultados_json?: Record<string, any>;
-  link_foto_nao_conformidade?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  latitude?: number;
-  longitude?: number;
-  created_at?: string;
-  user_id?: string;
-}
 
 /**
  * Salva um novo canhão monitor

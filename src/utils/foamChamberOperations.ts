@@ -5,40 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { FoamChamber, FoamChamberInspection } from '../types/equipment';
 
-export interface FoamChamber {
-  id?: number;
-  id_camara: string;
-  localizacao?: string;
-  marca?: string;
-  modelo?: string;
-  tamanho_especifico?: string;
-  tipo_camara?: string;
-  numero_mcs?: string;
-  numero_serie?: string;
-  latitude?: number;
-  longitude?: number;
-  data_cadastro?: string;
-  created_at?: string;
-  user_id?: string;
-}
-
-export interface FoamChamberInspection {
-  id?: number;
-  data_inspecao?: string;
-  id_camara: string;
-  tipo_inspecao?: string;
-  status_geral?: string;
-  plano_de_acao?: string;
-  resultados_json?: Record<string, any>;
-  link_foto_nao_conformidade?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  latitude?: number;
-  longitude?: number;
-  created_at?: string;
-  user_id?: string;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { FoamChamber, FoamChamberInspection } from '../types/equipment';
 
 const ACTION_PLAN_MAP: Record<string, string> = {
   "Pintura e estrutura sem corrosão ou amassados": "Programar serviço de tratamento de corrosão, reparo e repintura.",

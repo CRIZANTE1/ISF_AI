@@ -3,163 +3,151 @@
  */
 
 import { buildIndustrialQrString, ExtinguisherQrData } from './qrInspectionUtils';
+import type { EquipmentCache, AnyEquipment, EquipmentTypeKey } from '../types/equipment';
+
+// ---------------------------------------------------------------------------
+// Extrai o identificador único de qualquer equipamento com base no tipo.
+// ---------------------------------------------------------------------------
+
+/** Tipo auxiliar: interseção de todos os possíveis campos de ID */
+type HasId = {
+  numero_identificacao?: string | null;
+  id_mangueira?: string | null;
+  numero_serie_equipamento?: string | null;
+  id_equipamento?: string | null;
+  id_camara?: string | null;
+  id_sistema?: string | null;
+  id_abrigo?: string | null;
+  equipment_id?: string | null;
+  id?: string | number | null;
+};
 
 /**
- * Obtém o ID ou número de série de um equipamento baseado no tipo
+ * Obtém o ID ou número de série de um equipamento baseado no tipo.
  */
-export function getEquipmentIdentifier(equipment: any, type: string): string | null {
+export function getEquipmentIdentifier(equipment: AnyEquipment | Record<string, unknown>, type: string): string | null {
+  const eq = equipment as HasId;
+
   // Para tipos customizados, sempre usa id_equipamento
   if (type.startsWith('custom-')) {
-    return equipment.id_equipamento || equipment.equipment_id || null;
+    return eq.id_equipamento || eq.equipment_id || null;
   }
 
   switch (type) {
     case 'extintor':
-      return equipment.numero_identificacao || null;
+      return eq.numero_identificacao || null;
     case 'mangueira':
-      return equipment.id_mangueira || null;
+      return eq.id_mangueira || null;
     case 'scba':
-      return equipment.numero_serie_equipamento || null;
+      return eq.numero_serie_equipamento || null;
     case 'multigas':
-      return equipment.id_equipamento || null;
+      return eq.id_equipamento || null;
     case 'camara_espuma':
-      return equipment.id_camara || null;
+      return eq.id_camara || null;
     case 'canhao_monitor':
-      return equipment.id_equipamento || null;
+      return eq.id_equipamento || null;
     case 'chuveiro_lavaolhos':
-      return equipment.id_equipamento || null;
+      return eq.id_equipamento || null;
     case 'alarme':
-      return equipment.id_sistema || null;
+      return eq.id_sistema || null;
     case 'abrigo':
-      return equipment.id_abrigo || null;
+      return eq.id_abrigo || null;
     default:
-      return equipment.equipment_id || equipment.id || null;
+      return eq.equipment_id || String(eq.id ?? '') || null;
   }
 }
 
+// ---------------------------------------------------------------------------
+// Busca linear por ID em todos os tipos de equipamento do cache.
+// ---------------------------------------------------------------------------
+
+/** Todas as listas do cache (exclui metadados como lastFetch/isLoading) */
+type CacheListEntries = Pick<
+  EquipmentCache,
+  | 'extinguishers'
+  | 'hoses'
+  | 'scbas'
+  | 'multigasDetectors'
+  | 'foamChambers'
+  | 'cannonMonitors'
+  | 'eyewashStations'
+  | 'alarmSystems'
+  | 'shelters'
+  | 'waterReservoirs'
+>;
+
 /**
- * Busca um equipamento por ID ou número de série em todos os tipos
+ * Busca um equipamento por ID ou número de série em todos os tipos.
+ * `allEquipment` pode ser o cache completo (que inclui lastFetch/isLoading,
+ * mas as chaves extras são ignoradas) ou um objeto com as listas de equipamentos.
  */
 export function findEquipmentByIdentifier(
-  allEquipment: {
-    extinguishers: any[];
-    hoses: any[];
-    scbas: any[];
-    multigasDetectors: any[];
-    foamChambers: any[];
-    cannonMonitors: any[];
-    eyewashStations: any[];
-    alarmSystems: any[];
-    shelters: any[];
-    [key: string]: any[]; // Para tipos customizados
-  },
+  allEquipment: CacheListEntries | EquipmentCache,
   identifier: string
-): { equipment: any; type: string } | null {
-  const searchInList = (list: any[], type: string): { equipment: any; type: string } | null => {
+): { equipment: AnyEquipment; type: EquipmentTypeKey } | null {
+  const searchInList = <T extends AnyEquipment>(
+    list: T[],
+    type: EquipmentTypeKey
+  ): { equipment: T; type: EquipmentTypeKey } | null => {
     for (const item of list) {
       const id = getEquipmentIdentifier(item, type);
-      if (id && (id === identifier || id.toString() === identifier)) {
+      if (id && String(id).toLowerCase() === identifier.toLowerCase()) {
         return { equipment: item, type };
       }
     }
     return null;
   };
 
-  // Busca em todos os tipos de equipamentos padrão
-  const types = [
-    { list: allEquipment.extinguishers, type: 'extintor' },
-    { list: allEquipment.hoses, type: 'mangueira' },
-    { list: allEquipment.scbas, type: 'scba' },
-    { list: allEquipment.multigasDetectors, type: 'multigas' },
-    { list: allEquipment.foamChambers, type: 'camara_espuma' },
-    { list: allEquipment.cannonMonitors, type: 'canhao_monitor' },
-    { list: allEquipment.eyewashStations, type: 'chuveiro_lavaolhos' },
-    { list: allEquipment.alarmSystems, type: 'alarme' },
-    { list: allEquipment.shelters, type: 'abrigo' },
-  ];
+  const cache = allEquipment as CacheListEntries;
 
-  for (const { list, type } of types) {
-    const result = searchInList(list, type);
-    if (result) return result;
-  }
+  // Procura em cada lista, respeitando a ordem de prioridade
+  let result: { equipment: AnyEquipment; type: EquipmentTypeKey } | null = null;
 
-  // Busca em tipos customizados (chaves que começam com 'custom-')
-  for (const [key, list] of Object.entries(allEquipment)) {
-    if (key.startsWith('custom-') && Array.isArray(list)) {
-      const result = searchInList(list, key);
-      if (result) return result;
-    }
-  }
+  result = searchInList(cache.extinguishers, 'extintor');
+  if (result) return result;
+  result = searchInList(cache.hoses, 'mangueira');
+  if (result) return result;
+  result = searchInList(cache.scbas, 'scba');
+  if (result) return result;
+  result = searchInList(cache.multigasDetectors, 'multigas');
+  if (result) return result;
+  result = searchInList(cache.foamChambers, 'camara_espuma');
+  if (result) return result;
+  result = searchInList(cache.cannonMonitors, 'canhao_monitor');
+  if (result) return result;
+  result = searchInList(cache.eyewashStations, 'chuveiro_lavaolhos');
+  if (result) return result;
+  result = searchInList(cache.alarmSystems, 'alarme');
+  if (result) return result;
+  result = searchInList(cache.shelters, 'abrigo');
+  if (result) return result;
+  result = searchInList(cache.waterReservoirs, 'reserva_tecnica');
+  if (result) return result;
 
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Geração de conteúdo QR
+// ---------------------------------------------------------------------------
+
 /**
- * Gera string de QR Code para qualquer equipamento
- * Para extintores, SEMPRE usa formato industrial (padrão)
- * Para outros tipos, usa apenas o ID/série
+ * Gera o conteúdo do QR code para qualquer tipo de equipamento.
  */
-export function generateQrString(
-  equipment: any,
-  type: string,
-  locationCode?: string,
-  useIndustrialFormat: boolean = true
-): string {
+export function generateQRContentForEquipment(
+  equipment: AnyEquipment,
+  type: EquipmentTypeKey | string
+): string | null {
   const identifier = getEquipmentIdentifier(equipment, type);
-  
-  if (!identifier) {
-    return '';
-  }
+  if (!identifier) return null;
 
-  // Para extintores, SEMPRE usa formato industrial (padrão)
-  if (type === 'extintor' && useIndustrialFormat) {
-    const qrData: ExtinguisherQrData = {
+  if (type === 'extintor') {
+    const extData: ExtinguisherQrData = {
       numero_identificacao: identifier,
-      tipo_agente: equipment.tipo_agente,
-      capacidade: equipment.capacidade,
-      localizacao: equipment.localizacao,
     };
-    // Usa locationCode se fornecido, senão usa padrão "7036"
-    return buildIndustrialQrString(qrData, locationCode || '7036');
+    return buildIndustrialQrString(extData);
   }
 
-  // Para outros tipos, retorna apenas o ID/série
-  return identifier;
+  // Para outros equipamentos, gera um QR com prefixo e identificador
+  return `ISFIA|${type}|${identifier}|${new Date().toISOString()}`;
 }
-
-/**
- * Obtém o nome do tipo de equipamento para exibição
- */
-export function getEquipmentTypeName(type: string, t: (key: string) => string): string {
-  const typeMap: Record<string, string> = {
-    extintor: t('equipment.extinguisher'),
-    mangueira: t('equipment.hose'),
-    scba: t('equipment.scba'),
-    multigas: t('equipment.multigas'),
-    camara_espuma: t('equipment.foamChamber'),
-    canhao_monitor: t('equipment.cannonMonitor'),
-    chuveiro_lavaolhos: t('equipment.eyewash'),
-    alarme: t('equipment.alarm'),
-    abrigo: t('equipment.shelter'),
-  };
-  return typeMap[type] || type;
-}
-
-/**
- * Obtém o nome do campo de identificação para um tipo de equipamento
- */
-export function getIdentifierFieldName(type: string): string {
-  const fieldMap: Record<string, string> = {
-    extintor: 'Nº Identificação',
-    mangueira: 'ID Mangueira',
-    scba: 'Nº Série',
-    multigas: 'ID Equipamento',
-    camara_espuma: 'ID Câmara',
-    canhao_monitor: 'ID Equipamento',
-    chuveiro_lavaolhos: 'ID Equipamento',
-    alarme: 'ID Sistema',
-    abrigo: 'ID Abrigo',
-  };
-  return fieldMap[type] || 'ID';
-}
-

@@ -13,11 +13,20 @@ import { useSyncStatus } from '../hooks/useSyncStatus';
 import { supabase } from '../lib/supabase';
 import { isActionPlanOverdue, getActionPlanStatus, classifyActionPlanPriority } from '../utils/actionPlanUtils';
 import { logger } from '../utils/logger';
-import { 
-  notifyMultipleAlerts, 
+import {
+  notifyMultipleAlerts,
   notifyPendingIssues,
-  notifyMaintenanceRequired 
+  notifyMaintenanceRequired
 } from '../utils/notificationUtils';
+import type { AnyEquipment } from '../types/equipment';
+
+/** Tipo auxiliar para acesso indexado seguro nos campos dinâmicos */
+type EquipmentRecord = Record<string, unknown> & {
+  user_id?: string | null;
+  id?: string | number | null;
+  data_proxima_inspecao?: string | null;
+  status_geral?: string | null;
+};
 
 interface Alert {
   id: string;
@@ -67,20 +76,24 @@ const DashboardHeader = () => {
       const allAlerts: Alert[] = [];
 
       const checkEquipment = (
-        equipmentList: any[],
+        equipmentList: readonly AnyEquipment[],
         type: string,
         idField: string,
         statusField?: string,
         nextInspectionField?: string
       ) => {
         equipmentList
-          .filter((eq: any) => !eq.user_id || eq.user_id === user.id)
-          .forEach((eq: any) => {
-            const id = eq[idField] || eq.id || String(eq.id);
-            const status = eq[statusField || 'status'] || 'ok';
-            const nextInspection = eq[nextInspectionField || 'proxima_inspecao'] || eq.data_proxima_inspecao;
+          .filter((eq) => {
+            const r = eq as EquipmentRecord;
+            return !r.user_id || r.user_id === user.id;
+          })
+          .forEach((eq) => {
+            const r = eq as EquipmentRecord;
+            const id = String(r[idField] ?? r.id ?? '');
+            const status = String(r[statusField || 'status'] ?? r.status_geral ?? 'ok');
+            const nextInspection = String(r[nextInspectionField || 'proxima_inspecao'] ?? r.data_proxima_inspecao ?? '');
 
-            if (nextInspection) {
+            if (nextInspection && nextInspection !== 'undefined') {
               const inspectionDate = new Date(nextInspection);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
@@ -109,7 +122,7 @@ const DashboardHeader = () => {
       };
 
       // Verificar extintores com lógica especial (múltiplas datas)
-      cache.extinguishers.forEach((eq: any) => {
+      cache.extinguishers.forEach((eq) => {
         if (!eq.user_id || eq.user_id === user.id) {
           const id = eq.numero_identificacao;
           const today = new Date();
@@ -199,7 +212,7 @@ const DashboardHeader = () => {
             }
 
             if (data) {
-              data.forEach((insp: any) => {
+              data.forEach((insp: Record<string, unknown>) => {
                 const plan = insp.plano_de_acao;
                 if (!plan || plan.toLowerCase().includes('manter em monitoramento') || plan.trim() === 'N/A') {
                   return;

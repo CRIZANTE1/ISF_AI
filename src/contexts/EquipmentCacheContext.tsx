@@ -12,27 +12,41 @@ import { getAllShelters } from '../utils/shelterOperations';
 import { getAllWaterReservoirs } from '../utils/waterReservoirOperations';
 import { getAllCustomEquipmentTypes, getAllCustomEquipment } from '../utils/customEquipmentOperations';
 import { logger } from '../utils/logger';
+import type {
+  EquipmentCache,
+  AnyEquipment,
+  EquipmentTypeKey,
+} from '../types/equipment';
 
-interface EquipmentCache {
-  extinguishers: any[];
-  hoses: any[];
-  scbas: any[];
-  multigasDetectors: any[];
-  foamChambers: any[];
-  cannonMonitors: any[];
-  eyewashStations: any[];
-  alarmSystems: any[];
-  shelters: any[];
-  waterReservoirs: any[];
-  lastFetch: number | null;
-  isLoading: boolean;
-}
+// ---------------------------------------------------------------------------
+// Tipos auxiliares para getEquipmentByType — retorna o tipo correto conforme
+// a chave informada, sem `any`.
+// ---------------------------------------------------------------------------
+
+type EquipmentByType<T extends EquipmentTypeKey> =
+  T extends 'extintor' ? EquipmentCache['extinguishers'] :
+  T extends 'mangueira' ? EquipmentCache['hoses'] :
+  T extends 'scba' ? EquipmentCache['scbas'] :
+  T extends 'multigas' ? EquipmentCache['multigasDetectors'] :
+  T extends 'camara_espuma' ? EquipmentCache['foamChambers'] :
+  T extends 'canhao_monitor' ? EquipmentCache['cannonMonitors'] :
+  T extends 'chuveiro_lavaolhos' ? EquipmentCache['eyewashStations'] :
+  T extends 'alarme' ? EquipmentCache['alarmSystems'] :
+  T extends 'abrigo' ? EquipmentCache['shelters'] :
+  T extends 'reserva_tecnica' ? EquipmentCache['waterReservoirs'] :
+  AnyEquipment[];
+
+// ---------------------------------------------------------------------------
+// Context type
+// ---------------------------------------------------------------------------
 
 interface EquipmentCacheContextType {
   cache: EquipmentCache;
   refreshCache: () => Promise<void>;
-  getEquipmentByType: (type: string) => any[];
-  getAllEquipment: () => any[];
+  /** Retorna a lista tipada de equipamentos para o tipo informado */
+  getEquipmentByType: <T extends EquipmentTypeKey>(type: T) => EquipmentByType<T>;
+  /** Retorna todos os equipamentos como array plano (union type) */
+  getAllEquipment: () => AnyEquipment[];
   isStale: () => boolean;
 }
 
@@ -62,7 +76,7 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
 
   const refreshCache = useCallback(async (force: boolean = false) => {
     if (!user) return;
-    
+
     // Se já está buscando e não é forçado, aguarda a atualização atual terminar
     if (isFetchingRef.current && !force) {
       logger.info('Cache já está sendo atualizado, aguardando...', 'equipment');
@@ -137,34 +151,38 @@ export const EquipmentCacheProvider = ({ children }: { children: React.ReactNode
     return Date.now() - cache.lastFetch > CACHE_DURATION;
   }, [cache.lastFetch]);
 
-  const getEquipmentByType = useCallback((type: string): any[] => {
+  /**
+   * Retorna a lista de equipamentos para um tipo específico.
+   * O tipo de retorno é inferido a partir da chave — sem `any`.
+   */
+  const getEquipmentByType = useCallback(<T extends EquipmentTypeKey>(type: T): EquipmentByType<T> => {
     switch (type) {
       case 'extintor':
-        return cache.extinguishers;
+        return cache.extinguishers as EquipmentByType<T>;
       case 'mangueira':
-        return cache.hoses;
+        return cache.hoses as EquipmentByType<T>;
       case 'scba':
-        return cache.scbas;
+        return cache.scbas as EquipmentByType<T>;
       case 'multigas':
-        return cache.multigasDetectors;
+        return cache.multigasDetectors as EquipmentByType<T>;
       case 'camara_espuma':
-        return cache.foamChambers;
+        return cache.foamChambers as EquipmentByType<T>;
       case 'canhao_monitor':
-        return cache.cannonMonitors;
+        return cache.cannonMonitors as EquipmentByType<T>;
       case 'chuveiro_lavaolhos':
-        return cache.eyewashStations;
+        return cache.eyewashStations as EquipmentByType<T>;
       case 'alarme':
-        return cache.alarmSystems;
+        return cache.alarmSystems as EquipmentByType<T>;
       case 'abrigo':
-        return cache.shelters;
+        return cache.shelters as EquipmentByType<T>;
       case 'reserva_tecnica':
-        return cache.waterReservoirs;
+        return cache.waterReservoirs as EquipmentByType<T>;
       default:
-        return [];
+        return [] as unknown as EquipmentByType<T>;
     }
   }, [cache]);
 
-  const getAllEquipment = useCallback((): any[] => {
+  const getAllEquipment = useCallback((): AnyEquipment[] => {
     return [
       ...cache.extinguishers,
       ...cache.hoses,
@@ -233,5 +251,3 @@ export const useEquipmentCache = () => {
   }
   return context;
 };
-
-

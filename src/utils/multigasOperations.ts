@@ -5,31 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { MultigasDetector, MultigasInspection } from '../types/equipment';
 
-export interface MultigasDetector {
-  id?: number;
-  id_equipamento: string;
-  marca?: string | null;
-  modelo?: string | null;
-  numero_serie?: string | null;
-  data_cadastro?: string | null;
-  // Aceita campos em maiúsculas (legacy) e minúsculas (novo padrão)
-  LEL_cilindro?: number | null;
-  O2_cilindro?: number | null;
-  H2S_cilindro?: number | null;
-  CO_cilindro?: number | null;
-  lel_cilindro?: number | null;
-  o2_cilindro?: number | null;
-  h2s_cilindro?: number | null;
-  co_cilindro?: number | null;
-  margem_erro_cilindro?: number | null; // Margem de erro em percentual (padrão: 20%)
-  margem_erro_lel?: number | null;
-  margem_erro_o2?: number | null;
-  margem_erro_h2s?: number | null;
-  margem_erro_co?: number | null;
-  created_at?: string;
-  user_id?: string | null;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { MultigasDetector, MultigasInspection } from '../types/equipment';
 
 export interface GasTolerances {
   LEL: number;
@@ -47,28 +26,6 @@ export function resolveGasTolerances(detector: MultigasDetector | null | undefin
     H2S: detector?.margem_erro_h2s ?? fallback,
     CO: detector?.margem_erro_co ?? fallback,
   };
-}
-
-export interface MultigasInspection {
-  id?: number;
-  data_teste?: string;
-  id_equipamento: string;
-  tipo_teste?: string;
-  resultado_teste?: string;
-  LEL_referencia?: number;
-  O2_referencia?: number;
-  H2S_referencia?: number;
-  CO_referencia?: number;
-  LEL_encontrado?: number;
-  O2_encontrado?: number;
-  H2S_encontrado?: number;
-  CO_encontrado?: number;
-  observacoes?: string;
-  plano_de_acao?: string;
-  inspetor?: string;
-  data_proximo_teste?: string;
-  created_at?: string;
-  user_id?: string;
 }
 
 export interface CylinderValues {

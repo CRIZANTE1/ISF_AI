@@ -5,36 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { EyewashStation, EyewashInspection } from '../types/equipment';
 
-export interface EyewashStation {
-  id?: number;
-  id_equipamento: string;
-  localizacao?: string;
-  marca?: string;
-  modelo?: string;
-  numero_serie?: string;
-  latitude?: number;
-  longitude?: number;
-  data_cadastro?: string;
-  created_at?: string;
-  user_id?: string;
-}
-
-export interface EyewashInspection {
-  id?: number;
-  data_inspecao?: string;
-  id_equipamento: string;
-  status_geral?: string;
-  plano_de_acao?: string;
-  resultados_json?: Record<string, any>;
-  link_foto_nao_conformidade?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  latitude?: number;
-  longitude?: number;
-  created_at?: string;
-  user_id?: string;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { EyewashStation, EyewashInspection } from '../types/equipment';
 
 const ACTION_PLAN_MAP: Record<string, string> = {
   "A VAZÃO DO CHUVEIRO ESTÁ ADEQUADA?": "Verificar e desobstruir a linha de suprimento ou ajustar a válvula de vazão.",

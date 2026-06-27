@@ -5,48 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { WaterReservoir, WaterReservoirInspection } from '../types/equipment';
 
-export interface WaterReservoir {
-  id?: string;
-  name: string;
-  code?: string | null;
-  reservoir_type?: string | null;
-  product_type: string;
-  capacity_m3: number;
-  location?: string | null;
-  gps_latitude?: number | null;
-  gps_longitude?: number | null;
-  inspection_periodicity: string;
-  notes?: string | null;
-  created_by?: string | null;
-  created_at?: string;
-  updated_at?: string;
-  user_id?: string | null;
-  next_inspection_at?: string | null;
-  overall_status?: string | null;
-}
-
-export interface WaterReservoirInspection {
-  id?: string;
-  reservoir_id: string;
-  inspected_at: string;
-  inspected_at_ts?: string | null;
-  next_inspection_at?: string | null;
-  inspection_type?: string | null;
-  level_reading?: string | null;
-  condition: string;
-  suction_clean: boolean;
-  overflow_clear: boolean;
-  corrective_action_needed: boolean;
-  corrective_action_notes?: string | null;
-  normalized_at?: string | null;
-  overall_status?: string | null;
-  action_plan?: string | null;
-  checklist_json?: Record<string, unknown> | null;
-  inspector_name?: string | null;
-  inspector_user_id?: string | null;
-  created_at?: string;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { WaterReservoir, WaterReservoirInspection } from '../types/equipment';
 
 export interface WaterReservoirActionLog {
   id?: string;

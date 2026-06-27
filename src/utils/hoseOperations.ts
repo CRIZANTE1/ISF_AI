@@ -6,19 +6,10 @@ import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
 import { parseInspectionDate } from './dateUtils';
+import type { Hose, HoseInspection } from '../types/equipment';
 
-export interface Hose {
-  id?: number;
-  id_mangueira: string;
-  marca?: string | null;
-  diametro?: number | null;
-  tipo?: string | null;
-  comprimento?: number | null;
-  ano_fabricacao?: number | null;
-  numero_serie?: string | null;
-  created_at?: string;
-  user_id?: string | null;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { Hose, HoseInspection } from '../types/equipment';
 
 /**
  * Salva uma nova mangueira
@@ -112,9 +103,17 @@ export async function getAllHoses(): Promise<Hose[]> {
       }
 
       // Cria mapa das últimas inspeções
-      const inspectionMap = new Map<string, any>();
+      type InspectionInfo = {
+        id_mangueira: string;
+        data_proxima_inspecao?: string | null;
+        resultado?: string | null;
+        status_geral?: string | null;
+        data_inspecao?: string | null;
+        created_at?: string | null;
+      };
+      const inspectionMap = new Map<string, InspectionInfo>();
       if (allInspections && Array.isArray(allInspections)) {
-        allInspections.forEach((insp: any) => {
+        allInspections.forEach((insp: InspectionInfo) => {
           if (insp && insp.id_mangueira) {
             const id = insp.id_mangueira;
             if (!inspectionMap.has(id)) {
@@ -125,24 +124,24 @@ export async function getAllHoses(): Promise<Hose[]> {
       }
 
       // Mescla dados de cadastro com dados da última inspeção
-      const hosesWithInspections = hoses.map((hose: any) => {
+      const hosesWithInspections = hoses.map((hose: Hose) => {
         if (!hose || !hose.id_mangueira) return hose;
-        
+
         const lastInspection = inspectionMap.get(hose.id_mangueira);
         if (lastInspection) {
           return {
             ...hose,
-            data_proximo_teste: lastInspection.data_proxima_inspecao || hose.data_proximo_teste || null,
-            data_proxima_inspecao: lastInspection.data_proxima_inspecao || hose.data_proxima_inspecao || null,
-            resultado: lastInspection.resultado || hose.resultado || null,
-            status_geral: lastInspection.status_geral || hose.status_geral || null,
-            status: lastInspection.status_geral || lastInspection.resultado || hose.status || null,
-          };
+            data_proximo_teste: lastInspection.data_proxima_inspecao || null,
+            data_proxima_inspecao: lastInspection.data_proxima_inspecao || null,
+            resultado: lastInspection.resultado || null,
+            status_geral: lastInspection.status_geral || null,
+            status: lastInspection.status_geral || lastInspection.resultado || null,
+          } satisfies Hose;
         }
         return hose;
       });
 
-      return hosesWithInspections as Hose[];
+      return hosesWithInspections;
     } catch (inspectionError) {
       logger.warn('Erro ao processar inspeções de mangueiras, retornando apenas cadastros', 'equipment', inspectionError);
       return hoses as Hose[];
@@ -218,23 +217,6 @@ export async function updateHose(
 /**
  * Salva uma inspeção/teste de mangueira
  */
-export interface HoseInspection {
-  id?: number;
-  id_mangueira: string;
-  data_inspecao: string;
-  resultado: string;
-  status_geral?: string;
-  plano_de_acao?: string;
-  resultados_json?: Record<string, any>;
-  observacoes?: string;
-  link_foto_nao_conformidade?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  latitude?: number;
-  longitude?: number;
-  created_at?: string;
-  user_id?: string;
-}
 
 export async function saveHoseInspection(inspection: Omit<HoseInspection, 'id' | 'created_at'>): Promise<boolean> {
   try {
@@ -305,7 +287,7 @@ export async function getHoseInspections(idMangueira: string): Promise<HoseInspe
       .order('data_inspecao', { ascending: false });
 
     if (error) throw error;
-    return (data as any) || [];
+    return (data as HoseInspection[]) || [];
   } catch (error) {
     logger.error('Erro ao buscar inspeções de mangueira', 'equipment', error);
     return [];

@@ -1,7 +1,7 @@
 # Documentação: Lógica de Licenças
 
-**Versão do Sistema:** 1.7.1  
-**Última Atualização:** 2025
+**Versão do Sistema:** 1.9.3  
+**Última Atualização:** 2026-06-27
 
 ## Visão Geral
 
@@ -15,10 +15,15 @@ O sistema de licenças do ISFIA Android controla o acesso ao aplicativo através
    - Serviço centralizado para gerenciamento de licenças
    - Singleton exportado como `licenseService`
 
-2. **ProtectedRoute** (`src/components/ProtectedRoute.tsx`)
+2. **Edge Function: generate-license-token** (`supabase/functions/generate-license-token/index.ts`)
+   - Gera tokens de ativação SERVER-SIDE
+   - O `LICENSE_SECRET` vive exclusivamente em `Deno.env` — nunca exposto no bundle do cliente
+   - Requer caller com `profile.role === 'admin'`
+
+3. **ProtectedRoute** (`src/components/ProtectedRoute.tsx`)
    - Componente que protege rotas verificando licença antes de permitir acesso
 
-3. **Tipos** (`src/types/license.ts`)
+4. **Tipos** (`src/types/license.ts`)
    - Interfaces TypeScript para `License` e `LicenseStatus`
    - Interface `License` inclui `user_id` e objeto `user` com informações do usuário relacionado
 
@@ -238,23 +243,58 @@ Em caso de erro na verificação, o sistema adota estratégia **fail-open**:
 
 ## Geração de Token de Ativação
 
-### Algoritmo
+### Fluxo (server-side desde 2026-06-27)
 
-```typescript
-async generateToken(machineId: string, installDate: string)
+```
+Admin (LicenseManagement.tsx)
+  → licenseService.generateToken(machineId, installDate)
+    → supabase.functions.invoke('generate-license-token', { body: { machineId, installDate } })
+      → Edge Function verifica role === 'admin'
+      → SHA-256 com Deno.env.get('LICENSE_SECRET') [nunca exposto ao cliente]
+      → UPDATE licenses SET activation_token, last_activation_date, license_type='premium'
+      → retorna { success: true, token }
 ```
 
-**Processo:**
+### Algoritmo (executado no servidor)
+
 1. Calcula data de expiração: `installDate + 1 ano`
-2. Cria string de dados: `machineId-installDate-expirationDate-SECRET`
+2. Cria string de dados: `machineId-installDate-expirationDate-LICENSE_SECRET`
 3. Gera hash SHA-256
 4. Formata token: primeiros 32 caracteres em grupos de 4 separados por hífen
    - Exemplo: `A1B2-C3D4-E5F6-G7H8-I9J0-K1L2-M3N4-O5P6`
 
-**Atualização no Banco:**
-- Define `license_type` como 'premium'
-- Atualiza `activation_token`
-- Atualiza `last_activation_date` para data atual
+**Compatibilidade:** O formato do token é idêntico ao anterior. Tokens já emitidos continuam válidos.  
+**Usuários existentes:** Nenhum impacto. `checkLicenseStatus()` lê apenas o banco — não usa o segredo.
+
+### Deploy da Edge Function
+
+Execute **uma única vez** ao fazer deploy inicial ou ao rotacionar o segredo:
+
+```bash
+# 1. Registrar o segredo no Supabase (substitua pelo valor real)
+supabase secrets set LICENSE_SECRET=ISF_IA_2025_SECRET_ALTERE_EM_PRODUCAO
+
+# 2. Deploy da função
+supabase functions deploy generate-license-token
+
+# 3. Verificar segredos configurados
+supabase secrets list
+```
+
+> **Importante:** Deploy o servidor (passo 1 e 2) ANTES de publicar o APK com a nova versão do cliente.
+> Isso garante que a Edge Function esteja disponível quando o admin usar o novo app.
+
+### Rotação do segredo
+
+Se precisar trocar o `LICENSE_SECRET` (boa prática anual):
+
+```bash
+supabase secrets set LICENSE_SECRET=NOVO_VALOR_SEGURO
+supabase functions deploy generate-license-token
+```
+
+> Tokens já emitidos NÃO são afetados — eles estão gravados no banco e a validação
+> é feita por presença do `activation_token`, não por recálculo do hash.
 
 ## Operações Administrativas
 
@@ -356,15 +396,16 @@ CREATE INDEX idx_licenses_user_id ON licenses(user_id);
 
 ## Segurança
 
-### Secret Key
-- Constante `LICENSE_SECRET = 'ISF_IA_2025_SECRET'`
-- Usada na geração de tokens
-- Deve ser mantida em segredo
+### Secret Key (server-side)
+- `LICENSE_SECRET` vive exclusivamente em `Deno.env` da Edge Function
+- Configure via `supabase secrets set LICENSE_SECRET=<valor>`
+- **Nunca** colocar em variáveis `VITE_*` — seriam expostas no bundle do APK
+- `VITE_LICENSE_SECRET` foi removido do projeto em 2026-06-27
 
 ### Validação de Token
-- Tokens são gerados usando hash SHA-256
-- Incluem machine_id, datas e secret
-- Formato padronizado facilita validação
+- Tokens são gerados server-side usando hash SHA-256
+- Incluem machine_id, datas e o segredo (no servidor)
+- Validação no cliente é feita por presença do campo `activation_token` no banco — não recalcula hash
 
 ### Proteção de Associações
 - Sistema previne sobrescrita de `user_id` quando já existe associação diferente

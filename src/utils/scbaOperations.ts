@@ -5,38 +5,10 @@
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import type { SCBA, SCBAInspection } from '../types/equipment';
 
-export interface SCBA {
-  id?: number;
-  numero_serie_equipamento: string;
-  marca?: string;
-  modelo?: string;
-  numero_serie_mascara?: string;
-  numero_serie_segundo_estagio?: string;
-  data_teste?: string;
-  data_validade?: string;
-  resultado_final?: string;
-  vazamento_mascara_resultado?: string;
-  inspetor_responsavel?: string;
-  empresa_executante?: string;
-  link_relatorio_pdf?: string;
-  created_at?: string;
-  user_id?: string;
-}
-
-export interface SCBAInspection {
-  id?: number;
-  data_inspecao?: string;
-  numero_serie_equipamento: string;
-  status_geral?: string;
-  resultados_json?: Record<string, any>;
-  plano_de_acao?: string;
-  inspetor?: string;
-  data_proxima_inspecao?: string;
-  link_foto_nao_conformidade?: string;
-  created_at?: string;
-  user_id?: string;
-}
+// Re-exporta para manter compatibilidade com imports existentes
+export type { SCBA, SCBAInspection } from '../types/equipment';
 
 /**
  * Salva um novo SCBA
@@ -130,9 +102,17 @@ export async function getAllSCBAs(): Promise<SCBA[]> {
       }
 
       // Cria mapa das últimas inspeções
-      const inspectionMap = new Map<string, any>();
+      // Define a minimal type for inspection records fetched from the DB
+      type InspectionInfo = {
+        numero_serie_equipamento: string;
+        data_proxima_inspecao?: string | null;
+        status_geral?: string | null;
+        data_inspecao?: string | null;
+        created_at?: string | null;
+      };
+      const inspectionMap = new Map<string, InspectionInfo>();
       if (allInspections && Array.isArray(allInspections)) {
-        allInspections.forEach((insp: any) => {
+        allInspections.forEach((insp: InspectionInfo) => {
           if (insp && insp.numero_serie_equipamento) {
             const serial = insp.numero_serie_equipamento;
             if (!inspectionMap.has(serial)) {
@@ -143,22 +123,22 @@ export async function getAllSCBAs(): Promise<SCBA[]> {
       }
 
       // Mescla dados de cadastro com dados da última inspeção
-      const scbasWithInspections = scbas.map((scba: any) => {
+      const scbasWithInspections = scbas.map((scba: SCBA) => {
         if (!scba || !scba.numero_serie_equipamento) return scba;
-        
+
         const lastInspection = inspectionMap.get(scba.numero_serie_equipamento);
         if (lastInspection) {
           return {
             ...scba,
-            data_proxima_inspecao: lastInspection.data_proxima_inspecao || scba.data_proxima_inspecao || null,
-            status_geral: lastInspection.status_geral || scba.status_geral || null,
-            status: lastInspection.status_geral || scba.status || null,
-          };
+            data_proxima_inspecao: lastInspection.data_proxima_inspecao || null,
+            status_geral: lastInspection.status_geral || null,
+            status: lastInspection.status_geral || null,
+          } satisfies SCBA;
         }
         return scba;
       });
 
-      return scbasWithInspections as SCBA[];
+      return scbasWithInspections;
     } catch (inspectionError) {
       logger.warn('Erro ao processar inspeções de SCBAs, retornando apenas cadastros', 'equipment', inspectionError);
       return scbas as SCBA[];

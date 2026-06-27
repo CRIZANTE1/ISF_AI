@@ -7,32 +7,11 @@ import { supabase } from '../lib/supabase';
 import { License, LicenseStatus, LicenseType } from '../types/license';
 import { logger } from '../utils/logger';
 
-// Obter chave secreta de variável de ambiente
-// AVISO: Esta é uma solução temporária. A chave ainda estará no bundle do cliente.
-// A solução definitiva seria mover a geração de tokens para uma Edge Function do Supabase.
-const LICENSE_SECRET = import.meta.env.VITE_LICENSE_SECRET || 'ISF_IA_2025_SECRET';
-
-// Log de aviso se estiver usando valor padrão (apenas em desenvolvimento)
-if (!import.meta.env.VITE_LICENSE_SECRET && import.meta.env.DEV) {
-  logger.warn(
-    'VITE_LICENSE_SECRET não configurada no .env. Usando valor padrão (INSEGURO para produção).',
-    'license'
-  );
-}
+// A geração de tokens é realizada server-side pela Edge Function 'generate-license-token'.
+// O LICENSE_SECRET vive exclusivamente no servidor (Deno.env) e nunca é exposto no bundle.
 
 export class LicenseService {
   private machineId: string | null = null;
-
-  /**
-   * Gera hash SHA-256 de uma string
-   */
-  private async hashString(str: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-  }
 
   /**
    * Obtém o Machine ID do dispositivo
@@ -575,39 +554,31 @@ export class LicenseService {
   }
 
   /**
-   * Gera token de ativação para uma licença
+   * Gera token de ativação para uma licença via Edge Function server-side.
+   * O LICENSE_SECRET nunca trafega pelo cliente — a geração acontece no servidor.
+   * Interface pública idêntica à versão anterior: sem quebra para LicenseManagement.tsx.
    */
   async generateToken(
     machineId: string,
     installDate: string
   ): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
-      const expiration = new Date(installDate);
-      expiration.setFullYear(expiration.getFullYear() + 1);
-
-      const data = `${machineId}-${installDate}-${expiration.toISOString()}-${LICENSE_SECRET}`;
-
-      // Gerar hash SHA256
-      const hash = await this.hashString(data);
-      const token =
-        hash.substring(0, 32).toUpperCase().match(/.{1,4}/g)?.join('-') || '';
-
-      // Atualizar no Supabase - definir como PREMIUM quando gerar token
-      const { error } = await supabase
-        .from('licenses')
-        .update({
-          activation_token: token,
-          last_activation_date: new Date().toISOString(),
-          license_type: 'premium',
-        })
-        .eq('machine_id', machineId);
+      const { data, error } = await supabase.functions.invoke('generate-license-token', {
+        body: { machineId, installDate },
+      });
 
       if (error) {
-        logger.error('Erro ao gerar token', 'license', error);
-        return { success: false, error: 'Erro ao gerar token' };
+        logger.error('Erro ao chamar Edge Function generate-license-token', 'license', error);
+        return { success: false, error: error.message || 'Erro ao gerar token' };
       }
 
-      return { success: true, token };
+      if (!data?.success || !data?.token) {
+        logger.error('Resposta inesperada da Edge Function', 'license', data);
+        return { success: false, error: data?.error || 'Erro ao gerar token' };
+      }
+
+      logger.info('Token gerado com sucesso via Edge Function', 'license', { machineId });
+      return { success: true, token: data.token };
     } catch (error: any) {
       logger.error('Erro ao gerar token', 'license', error);
       return { success: false, error: error.message || 'Erro ao gerar token' };

@@ -5,8 +5,12 @@
 
 import { supabase } from '../lib/supabase';
 import { TablesInsert } from '../types/supabase';
+import type { Extinguisher } from '../types/equipment';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+
+// Re-exporta para manter compatibilidade com imports existentes
+export type { Extinguisher } from '../types/equipment';
 
 const EXTINTOR_CADASTRO_FIELDS = [
   'numero_identificacao',
@@ -68,37 +72,6 @@ export interface EquipmentDates {
 export interface InspectionRecord {
   aprovado_inspecao?: string;
   observacoes_gerais?: string;
-}
-
-export interface Extinguisher {
-  id?: number;
-  numero_identificacao: string;
-  numero_selo_inmetro?: string;
-  numero_serie?: string;
-  tipo_agente?: string;
-  capacidade?: number;
-  marca_fabricante?: string;
-  ano_fabricacao?: number;
-  tipo_servico?: string;
-  data_servico?: string;
-  inspetor_responsavel?: string;
-  empresa_executante?: string;
-  data_proxima_inspecao?: string;
-  data_proxima_manutencao_2_nivel?: string;
-  data_proxima_manutencao_3_nivel?: string;
-  data_ultimo_ensaio_hidrostatico?: string;
-  aprovado_inspecao?: string;
-  status_geral?: string; // 'aprovado', 'pendente', 'reprovado'
-  observacoes_gerais?: string;
-  plano_de_acao?: string;
-  link_relatorio_pdf?: string;
-  latitude?: number;
-  longitude?: number;
-  link_foto_nao_conformidade?: string;
-  created_at?: string;
-  user_id?: string;
-  peso_cheio_placa_kg?: number | null;
-  peso_vazio_conjunto_kg?: number | null;
 }
 
 /**

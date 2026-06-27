@@ -5,6 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../utils/logger';
 import { useTranslation } from '../hooks/useTranslation';
+import type { AnyEquipment } from '../types/equipment';
 
 interface Alert {
   id: string;
@@ -19,6 +20,14 @@ interface AlertsListProps {
   userId?: string;
 }
 
+/** Tipo auxiliar: equipamento com acesso indexado seguro */
+type EquipmentRecord = Record<string, unknown> & {
+  user_id?: string | null;
+  id?: string | number | null;
+  data_proxima_inspecao?: string | null;
+  status_geral?: string | null;
+};
+
 const AlertsList = ({ userId }: AlertsListProps) => {
   const { cache } = useEquipmentCache();
   const { t } = useTranslation();
@@ -27,7 +36,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
 
   // Memoizar função de verificação de equipamento
   const checkEquipment = useCallback((
-    equipmentList: any[],
+    equipmentList: readonly AnyEquipment[],
     type: string,
     idField: string,
     statusField?: string,
@@ -38,14 +47,18 @@ const AlertsList = ({ userId }: AlertsListProps) => {
     today.setHours(0, 0, 0, 0);
 
     equipmentList
-      .filter((eq: any) => !eq.user_id || eq.user_id === userId)
-      .forEach((eq: any) => {
-        const id = eq[idField] || eq.id || String(eq.id);
-        const status = eq[statusField || 'status'] || 'ok';
-        const nextInspection = eq[nextInspectionField || 'proxima_inspecao'] || eq.data_proxima_inspecao;
+      .filter((eq) => {
+        const r = eq as EquipmentRecord;
+        return !r.user_id || r.user_id === userId;
+      })
+      .forEach((eq) => {
+        const r = eq as EquipmentRecord;
+        const id = String(r[idField] ?? r.id ?? '');
+        const status = String(r[statusField || 'status'] ?? r.status_geral ?? 'ok');
+        const nextInspection = String(r[nextInspectionField || 'proxima_inspecao'] ?? r.data_proxima_inspecao ?? '');
 
         // Verificar se está vencido (próxima inspeção no passado)
-        if (nextInspection) {
+        if (nextInspection && nextInspection !== 'undefined') {
           const inspectionDate = new Date(nextInspection);
           inspectionDate.setHours(0, 0, 0, 0);
 
@@ -93,7 +106,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
 
     // Verificar cada tipo de equipamento
     // Para extintores, verifica data_proxima_inspecao, data_proxima_manutencao_2_nivel e data_proxima_manutencao_3_nivel
-    extinguishers.forEach((eq: any) => {
+    extinguishers.forEach((eq) => {
       if (!eq.user_id || eq.user_id === userId) {
         const id = eq.numero_identificacao;
         const today = new Date();
@@ -107,7 +120,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
         ].filter(d => d.date);
 
         datesToCheck.forEach(({ date, label }) => {
-          const inspectionDate = new Date(date);
+          const inspectionDate = new Date(date!);
           inspectionDate.setHours(0, 0, 0, 0);
 
           if (inspectionDate < today) {
@@ -116,7 +129,7 @@ const AlertsList = ({ userId }: AlertsListProps) => {
               equipment_id: id,
               equipment_type: 'extintor',
               status: 'vencido',
-              proxima_inspecao: date,
+              proxima_inspecao: date!,
               message: t('alerts.inspectionExpired', { id, defaultValue: `${id} está com ${label} vencida.` }),
             });
           }
@@ -126,10 +139,10 @@ const AlertsList = ({ userId }: AlertsListProps) => {
         // Prioriza status_geral (campo principal do banco: 'aprovado', 'pendente', 'reprovado')
         const statusGeral = (eq.status_geral || '').toLowerCase().trim();
         const aprovado = (eq.aprovado_inspecao || '').toLowerCase().trim();
-        
-        const isPending = statusGeral === 'pendente' || statusGeral === 'reprovado' || 
+
+        const isPending = statusGeral === 'pendente' || statusGeral === 'reprovado' ||
                          aprovado === 'não' || aprovado === 'nao' || aprovado === 'pendente';
-        
+
         if (isPending) {
           allAlerts.push({
             id: `extintor_${id}_pendente`,
