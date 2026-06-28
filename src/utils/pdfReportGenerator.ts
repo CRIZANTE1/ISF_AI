@@ -25,11 +25,19 @@ import {
   groupChecklistBySection,
   extractNonConformities,
   hasSectionedChecklist,
+  resolveChecklistSections,
 } from './pdf/checklistPdfUtils';
+import type { ChecklistSection } from './pdf/types';
 import { mapInspectionForPdf as mapInspectionForPdfImpl, mapWaterReservoirInspectionForPdf } from './pdf/inspectionMapper';
 export { mapWaterReservoirInspectionForPdf };
-import { getEquipmentTypeName as getTypeNameFromRegistry, getPdfConfig } from './pdf/pdfConfigRegistry';
-import { formatInventoryExtraInfo as formatInventoryExtraFromRegistry } from './pdf/inventoryPdfUtils';
+import { getEquipmentTypeName as getTypeNameFromRegistry, getPdfConfig, getCustomPdfConfig } from './pdf/pdfConfigRegistry';
+import { formatInventoryExtraInfo as formatInventoryExtraFromRegistry,
+  buildInventoryTableRow,
+  getInventoryTableHead,
+  getInventoryColumnStyles,
+  shouldShowInventoryDetails,
+  formatInventoryInspectionSummary,
+} from './pdf/inventoryPdfUtils';
 import type { MonthlyReportRow } from './pdf/types';
 import type { MonthlyColumnDef } from './pdf/types';
 
@@ -290,58 +298,86 @@ function getEquipmentTypeName(type: string, customLabel?: string): string {
   return getTypeNameFromRegistry(type, customLabel);
 }
 
+function renderChecklistSections(
+  doc: jsPDF,
+  yPos: number,
+  sections: ChecklistSection[],
+  compact = false
+): number {
+  if (sections.length === 0) return yPos;
+
+  for (const section of sections) {
+    if (yPos > PAGE_HEIGHT - 60) {
+      doc.addPage();
+      yPos = PAGE_MARGINS.TOP;
+    }
+    if (section.title) {
+      doc.setFontSize(compact ? 9 : 10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(COLORS.BLACK);
+      doc.text(section.title, PAGE_MARGINS.LEFT, yPos);
+      yPos += compact ? 6 : 8;
+    }
+    const tableData = section.rows
+      .filter((r) => r.item !== 'Observações')
+      .map((r) => [r.item, r.status]);
+    if (tableData.length > 0) {
+      doc.autoTable({
+        startY: yPos,
+        head: [['Item Verificado', 'Status']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+        bodyStyles: { textColor: [0, 0, 0] },
+        alternateRowStyles: { fillColor: [224, 224, 224] },
+        margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+        styles: { fontSize: compact ? 8 : 9, cellPadding: compact ? 2 : 3 },
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 5;
+    }
+    const obs = section.rows.find((r) => r.item === 'Observações');
+    if (obs?.status) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.text(`Observações: ${obs.status}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 8;
+    }
+  }
+
+  return yPos;
+}
+
 function renderChecklistTable(
   doc: jsPDF,
   yPos: number,
   resultados: Record<string, any>,
-  options?: { compact?: boolean; sectioned?: boolean }
+  options?: {
+    compact?: boolean;
+    sectioned?: boolean;
+    equipmentType?: string;
+    equipment?: Record<string, unknown>;
+    inspection?: Record<string, unknown>;
+  }
 ): number {
   const compact = options?.compact ?? false;
+
+  if (options?.equipmentType && (options.equipmentType === 'camara_espuma' || options.equipmentType === 'canhao_monitor')) {
+    const sections = resolveChecklistSections(
+      options.equipmentType,
+      resultados,
+      options.equipment,
+      options.inspection
+    );
+    return renderChecklistSections(doc, yPos, sections, compact);
+  }
+
   const useSections = options?.sectioned ?? hasSectionedChecklist(resultados);
   const flatRows = flattenChecklistResults(resultados);
 
   if (flatRows.length === 0) return yPos;
 
   if (useSections) {
-    const sections = groupChecklistBySection(flatRows);
-    for (const section of sections) {
-      if (yPos > PAGE_HEIGHT - 60) {
-        doc.addPage();
-        yPos = PAGE_MARGINS.TOP;
-      }
-      if (section.title) {
-        doc.setFontSize(compact ? 9 : 10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(COLORS.BLACK);
-        doc.text(section.title, PAGE_MARGINS.LEFT, yPos);
-        yPos += compact ? 6 : 8;
-      }
-      const tableData = section.rows
-        .filter((r) => r.item !== 'Observações')
-        .map((r) => [r.item, r.status]);
-      if (tableData.length > 0) {
-        doc.autoTable({
-          startY: yPos,
-          head: [['Item Verificado', 'Status']],
-          body: tableData,
-          theme: 'striped',
-          headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
-          bodyStyles: { textColor: [0, 0, 0] },
-          alternateRowStyles: { fillColor: [224, 224, 224] },
-          margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
-          styles: { fontSize: compact ? 8 : 9, cellPadding: compact ? 2 : 3 },
-        });
-        yPos = (doc as any).lastAutoTable.finalY + 5;
-      }
-      const obs = section.rows.find((r) => r.item === 'Observações');
-      if (obs?.status) {
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'italic');
-        doc.text(`Observações: ${obs.status}`, PAGE_MARGINS.LEFT, yPos);
-        yPos += 8;
-      }
-    }
-    return yPos;
+    return renderChecklistSections(doc, yPos, groupChecklistBySection(flatRows), compact);
   }
 
   const tableData = flatRows
@@ -505,6 +541,35 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
       doc.text(`Nº de Série do Segundo Estágio: ${equipment.numero_serie_segundo_estagio}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
+  } else if (equipment.type === 'camara_espuma') {
+    if (equipment.tipo_camara) {
+      doc.text(`Tipo de Câmara: ${equipment.tipo_camara}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.modelo) {
+      doc.text(`Modelo: ${equipment.modelo}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_mcs) {
+      doc.text(`Número MCS: ${equipment.numero_mcs}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.tamanho_especifico) {
+      doc.text(`Tamanho: ${equipment.tamanho_especifico}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.marca) {
+      doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.numero_serie) {
+      doc.text(`Nº de Série: ${equipment.numero_serie}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.data_cadastro) {
+      doc.text(`Data de Cadastro: ${formatDateShort(equipment.data_cadastro)}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
   } else if (equipment.type === 'mangueira') {
     if (equipment.marca) {
       doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
@@ -600,7 +665,12 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
 /**
  * Adiciona informações da inspeção
  */
-function addInspectionInfo(doc: jsPDF, yPos: number, inspection: InspectionData): number {
+function addInspectionInfo(
+  doc: jsPDF,
+  yPos: number,
+  inspection: InspectionData,
+  equipmentType?: string
+): number {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.BLACK);
@@ -616,7 +686,11 @@ function addInspectionInfo(doc: jsPDF, yPos: number, inspection: InspectionData)
   }
 
   if (inspection.tipo_servico || inspection.tipo_inspecao) {
-    doc.text(`Tipo de Serviço: ${inspection.tipo_servico || inspection.tipo_inspecao}`, PAGE_MARGINS.LEFT, yPos);
+    const tipoLabel =
+      equipmentType === 'camara_espuma' || equipmentType === 'canhao_monitor'
+        ? 'Tipo de Inspeção'
+        : 'Tipo de Serviço';
+    doc.text(`${tipoLabel}: ${inspection.tipo_servico || inspection.tipo_inspecao}`, PAGE_MARGINS.LEFT, yPos);
     yPos += 7;
   }
 
@@ -665,6 +739,15 @@ function addInspectionInfo(doc: jsPDF, yPos: number, inspection: InspectionData)
   }
   if (inspAny.resultado) {
     doc.text(`Resultado: ${inspAny.resultado}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+  }
+
+  if (inspection.latitude != null && inspection.longitude != null) {
+    doc.text(
+      `Coordenadas GPS: ${Number(inspection.latitude).toFixed(6)}, ${Number(inspection.longitude).toFixed(6)}`,
+      PAGE_MARGINS.LEFT,
+      yPos
+    );
     yPos += 7;
   }
 
@@ -725,7 +808,9 @@ function addChecklistResults(
   doc: jsPDF,
   yPos: number,
   resultados: Record<string, any>,
-  equipmentType?: string
+  equipmentType?: string,
+  equipment?: Record<string, unknown>,
+  inspection?: InspectionData
 ): number {
   if (!resultados || Object.keys(resultados).length === 0) {
     return yPos;
@@ -740,6 +825,9 @@ function addChecklistResults(
   const config = equipmentType ? getPdfConfig(equipmentType) : null;
   return renderChecklistTable(doc, yPos, resultados, {
     sectioned: config?.sectionedChecklist ?? hasSectionedChecklist(resultados),
+    equipmentType,
+    equipment,
+    inspection: inspection as Record<string, unknown> | undefined,
   });
 }
 
@@ -1110,6 +1198,25 @@ function addObservations(
 }
 
 /**
+ * Placeholder quando foto era esperada mas não foi anexada.
+ */
+function addPhotoPlaceholder(doc: jsPDF, yPos: number, message: string): number {
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('EVIDÊNCIAS FOTOGRÁFICAS', PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(COLORS.GRAY);
+  doc.text(message, PAGE_MARGINS.LEFT, yPos);
+  yPos += 12;
+
+  return yPos;
+}
+
+/**
  * Adiciona foto da inspeção
  */
 async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<number> {
@@ -1117,7 +1224,7 @@ async function addPhoto(doc: jsPDF, yPos: number, photoUrl: string): Promise<num
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.BLACK);
-    doc.text('6. EVIDÊNCIAS FOTOGRÁFICAS', PAGE_MARGINS.LEFT, yPos);
+    doc.text('EVIDÊNCIAS FOTOGRÁFICAS', PAGE_MARGINS.LEFT, yPos);
     yPos += 8;
 
     // Verifica se há espaço na página
@@ -1247,7 +1354,7 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
   }
 
   // Informações da inspeção
-  yPos = addInspectionInfo(doc, yPos, data.inspection);
+  yPos = addInspectionInfo(doc, yPos, data.inspection, data.equipment.type);
 
   // Verifica se precisa de nova página
   if (yPos > PAGE_HEIGHT - 100) {
@@ -1290,7 +1397,9 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
       doc,
       yPos,
       data.inspection.resultados_json,
-      data.equipment.type
+      data.equipment.type,
+      data.equipment as Record<string, unknown>,
+      data.inspection
     );
   }
 
@@ -1315,8 +1424,14 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
   });
 
   // Foto (se houver) - otimizado para Android
+  const inspAny = data.inspection as Record<string, unknown>;
+  const requiresPhotoEvidence =
+    data.equipment.type === 'camara_espuma' && inspAny.tipo_inspecao === 'Funcional Anual';
+
   if (data.inspection.link_foto_nao_conformidade) {
     yPos = await addPhoto(doc, yPos, data.inspection.link_foto_nao_conformidade);
+  } else if (requiresPhotoEvidence) {
+    yPos = addPhotoPlaceholder(doc, yPos, 'Foto do teste funcional não anexada à inspeção.');
   }
 
   // Assinatura
@@ -1483,8 +1598,15 @@ export async function generateMultipleInspectionReport(
         sectioned:
           getPdfConfig(data.equipment.type)?.sectionedChecklist ??
           hasSectionedChecklist(inspection.resultados_json),
+        equipmentType: data.equipment.type,
+        equipment: data.equipment as Record<string, unknown>,
+        inspection: inspection as Record<string, unknown>,
       });
     }
+
+    const inspMulti = inspection as Record<string, unknown>;
+    const requiresPhotoEvidence =
+      data.equipment.type === 'camara_espuma' && inspMulti.tipo_inspecao === 'Funcional Anual';
 
     // Foto (se houver) - otimizado para Android
     if (inspection.link_foto_nao_conformidade) {
@@ -1493,6 +1615,12 @@ export async function generateMultipleInspectionReport(
         yPos = PAGE_MARGINS.TOP;
       }
       yPos = await addPhoto(doc, yPos, inspection.link_foto_nao_conformidade);
+    } else if (requiresPhotoEvidence) {
+      if (yPos > PAGE_HEIGHT - 100) {
+        doc.addPage();
+        yPos = PAGE_MARGINS.TOP;
+      }
+      yPos = addPhotoPlaceholder(doc, yPos, 'Foto do teste funcional não anexada à inspeção.');
     }
 
     // Linha separadora entre inspeções
@@ -1519,6 +1647,13 @@ export async function generateMultipleInspectionReport(
 
 export interface EquipmentListReportItem {
   _reportId: string;
+  _equipmentType?: string;
+  _has_last_inspection?: boolean;
+  _last_inspection_date?: string | null;
+  _last_inspection_status?: string | null;
+  _last_inspection_type?: string | null;
+  _last_inspector?: string | null;
+  resultados_json?: Record<string, unknown> | null;
   latitude?: number | null;
   longitude?: number | null;
   link_foto_nao_conformidade?: string | null;
@@ -1534,6 +1669,7 @@ export interface EquipmentListReportItem {
   marca_fabricante?: string;
   modelo?: string;
   tipo_agente?: string;
+  tipo_inspecao?: string;
   [key: string]: any;
 }
 
@@ -1646,11 +1782,10 @@ async function addInventoryPhoto(
 async function addInventoryDetailsAndEvidence(
   doc: jsPDF,
   yPos: number,
-  equipmentList: EquipmentListReportItem[]
+  equipmentList: EquipmentListReportItem[],
+  equipmentType: string
 ): Promise<number> {
-  const itemsWithDetails = equipmentList.filter(
-    (item) => item.link_foto_nao_conformidade || item.observacoes || item.plano_de_acao
-  );
+  const itemsWithDetails = equipmentList.filter((item) => shouldShowInventoryDetails(item));
 
   if (itemsWithDetails.length === 0) {
     return yPos;
@@ -1677,6 +1812,37 @@ async function addInventoryDetailsAndEvidence(
     doc.setFont('helvetica', 'bold');
     doc.text(`Equipamento: ${item._reportId}`, PAGE_MARGINS.LEFT, yPos);
     yPos += 7;
+
+    const summaryLines = formatInventoryInspectionSummary(item);
+    if (summaryLines.length > 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      for (const line of summaryLines) {
+        doc.text(line, PAGE_MARGINS.LEFT, yPos);
+        yPos += 5;
+      }
+      yPos += 3;
+    }
+
+    if (item.resultados_json && typeof item.resultados_json === 'object') {
+      const config = equipmentType.startsWith('custom-')
+        ? getCustomPdfConfig(equipmentType)
+        : getPdfConfig(equipmentType);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Checklist da última inspeção:', PAGE_MARGINS.LEFT, yPos);
+      yPos += 6;
+      yPos = renderChecklistTable(doc, yPos, item.resultados_json as Record<string, any>, {
+        compact: true,
+        sectioned: config?.sectionedChecklist,
+        equipmentType,
+        equipment: item,
+        inspection: {
+          tipo_inspecao: item._last_inspection_type || item.tipo_inspecao,
+        },
+      });
+      yPos += 4;
+    }
 
     if (item.observacoes) {
       doc.setFont('helvetica', 'bold');
@@ -1736,16 +1902,13 @@ export async function generateEquipmentListReport(
   doc.text(`INVENTÁRIO (${equipmentList.length} equipamento(s))`, PAGE_MARGINS.LEFT, yPos);
   yPos += 8;
 
-  const tableData = equipmentList.map((item, index) => [
-    String(index + 1),
-    item._reportId,
-    formatInventoryLocation(item),
-    formatInventoryExtraInfo(item, equipmentType),
-  ]);
+  const tableData = equipmentList.map((item, index) =>
+    buildInventoryTableRow({ ...item, _equipmentType: equipmentType }, index, equipmentType)
+  );
 
   doc.autoTable({
     startY: yPos,
-    head: [['#', 'ID', 'Localização', 'Info extras']],
+    head: [getInventoryTableHead(equipmentType)],
     body: tableData,
     theme: 'striped',
     headStyles: {
@@ -1765,16 +1928,11 @@ export async function generateEquipmentListReport(
       cellPadding: 3,
       overflow: 'linebreak',
     },
-    columnStyles: {
-      0: { cellWidth: 10 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 50 },
-      3: { cellWidth: 'auto' },
-    },
+    columnStyles: getInventoryColumnStyles(equipmentType),
   });
 
   yPos = (doc as any).lastAutoTable.finalY + 12;
-  await addInventoryDetailsAndEvidence(doc, yPos, equipmentList);
+  await addInventoryDetailsAndEvidence(doc, yPos, equipmentList, equipmentType);
 
   return doc.output('blob');
 }

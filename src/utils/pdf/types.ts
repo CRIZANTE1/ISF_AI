@@ -49,6 +49,12 @@ export interface MonthlyReportRow {
   plano_de_acao?: string | null;
 }
 
+export interface InventoryColumnDef {
+  header: string;
+  width?: number | 'auto';
+  getValue: (item: Record<string, unknown>) => string;
+}
+
 export interface EquipmentPdfConfig {
   typeKey: string;
   typeLabel: string;
@@ -58,6 +64,8 @@ export interface EquipmentPdfConfig {
   observacoesField?: string;
   /** Campos extras a selecionar na query mensual */
   inspectionSelectFields?: string[];
+  /** Colunas da tabela resumo do inventário (além de #). Se omitido, usa ID + Local + Info extras */
+  inventoryTableColumns?: InventoryColumnDef[];
   mapInspection: (raw: Record<string, unknown>) => InspectionData;
   inventoryExtraInfo: (item: Record<string, unknown>) => string;
   monthlyColumns: MonthlyColumnDef[];

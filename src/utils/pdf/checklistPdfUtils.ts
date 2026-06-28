@@ -1,4 +1,9 @@
 import type { ChecklistRow, ChecklistSection } from './types';
+import {
+  FOAM_CHAMBER_CHECKLIST,
+  CANNON_MONITOR_CHECKLIST_VISUAL,
+  CANNON_MONITOR_CHECKLIST_FUNCIONAL,
+} from '../../constants/checklists';
 
 const OBSERVACOES_KEY = 'Observações';
 
@@ -122,6 +127,130 @@ export function groupChecklistBySection(rows: ChecklistRow[]): ChecklistSection[
   }
 
   return sections;
+}
+
+/**
+ * Agrupa checklist plano de câmara de espuma pelas seções do modelo (FOAM_CHAMBER_CHECKLIST).
+ */
+export function groupFoamChamberChecklist(
+  model: string | undefined,
+  inspectionType: string | undefined,
+  results: Record<string, unknown> | null | undefined
+): ChecklistSection[] {
+  if (!results || !model) {
+    return [{ title: '', rows: flattenChecklistResults(results) }];
+  }
+
+  // Import dinâmico evitado — checklist importado pelo chamador ou via require inline
+  return groupTemplateChecklist(results, getFoamChamberSections(model, inspectionType));
+}
+
+/**
+ * Agrupa checklist plano de canhão monitor pelas seções do template.
+ */
+export function groupCannonMonitorChecklist(
+  inspectionType: string | undefined,
+  results: Record<string, unknown> | null | undefined
+): ChecklistSection[] {
+  if (!results) return [];
+  return groupTemplateChecklist(results, getCannonMonitorSections(inspectionType));
+}
+
+function getFoamChamberSections(
+  model: string,
+  inspectionType?: string
+): Array<{ title: string; questions: string[] }> {
+  const checklist = FOAM_CHAMBER_CHECKLIST[model];
+  if (!checklist) return [];
+
+  const isVisual = inspectionType === 'Visual Semestral';
+  return Object.entries(checklist)
+    .filter(([section]) => !(isVisual && section === 'Teste Funcional'))
+    .map(([title, questions]) => ({ title, questions }));
+}
+
+function getCannonMonitorSections(
+  inspectionType?: string
+): Array<{ title: string; questions: string[] }> {
+  const checklist =
+    inspectionType === 'Funcional'
+      ? CANNON_MONITOR_CHECKLIST_FUNCIONAL
+      : CANNON_MONITOR_CHECKLIST_VISUAL;
+  return Object.entries(checklist).map(([title, questions]) => ({ title, questions }));
+}
+
+function groupTemplateChecklist(
+  results: Record<string, unknown>,
+  sections: Array<{ title: string; questions: string[] }>
+): ChecklistSection[] {
+  if (sections.length === 0) {
+    return [{ title: '', rows: flattenChecklistResults(results) }];
+  }
+
+  const usedKeys = new Set<string>();
+  const grouped: ChecklistSection[] = [];
+
+  for (const section of sections) {
+    const rows: ChecklistRow[] = [];
+    for (const question of section.questions) {
+      if (question in results) {
+        usedKeys.add(question);
+        const formatted = formatChecklistStatus(results[question]);
+        rows.push({
+          section: section.title,
+          item: question,
+          status: formatted.display,
+          isNonConforme: formatted.isNonConforme,
+        });
+      }
+    }
+    if (rows.length > 0) {
+      grouped.push({ title: section.title, rows });
+    }
+  }
+
+  const orphanRows: ChecklistRow[] = [];
+  for (const [key, value] of Object.entries(results)) {
+    if (!usedKeys.has(key)) {
+      const formatted = formatChecklistStatus(value);
+      orphanRows.push({
+        item: key,
+        status: formatted.display,
+        isNonConforme: formatted.isNonConforme,
+      });
+    }
+  }
+  if (orphanRows.length > 0) {
+    grouped.push({ title: 'Outros Itens', rows: orphanRows });
+  }
+
+  return grouped;
+}
+
+export function resolveChecklistSections(
+  equipmentType: string,
+  results: Record<string, unknown> | null | undefined,
+  equipment?: Record<string, unknown>,
+  inspection?: Record<string, unknown>
+): ChecklistSection[] {
+  if (!results) return [];
+
+  if (equipmentType === 'camara_espuma') {
+    const model = String(equipment?.modelo || equipment?.model || '');
+    const inspectionType = String(inspection?.tipo_inspecao || '');
+    return groupFoamChamberChecklist(model, inspectionType, results);
+  }
+
+  if (equipmentType === 'canhao_monitor') {
+    const inspectionType = String(inspection?.tipo_inspecao || '');
+    return groupCannonMonitorChecklist(inspectionType, results);
+  }
+
+  if (hasSectionedChecklist(results)) {
+    return groupChecklistBySection(flattenChecklistResults(results));
+  }
+
+  return [{ title: '', rows: flattenChecklistResults(results) }];
 }
 
 export function extractNonConformities(resultados: Record<string, unknown> | null | undefined): string[] {

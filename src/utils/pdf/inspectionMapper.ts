@@ -77,6 +77,13 @@ export function mapInspectionForPdf(
     mapped.inspection_type = data.inspection_type;
   }
 
+  if (equipmentType === 'camara_espuma') {
+    mapped.tipo_inspecao = data.tipo_inspecao;
+    if (!mapped.status_geral && data.status_geral) {
+      mapped.status_geral = data.status_geral;
+    }
+  }
+
   return mapped;
 }
 

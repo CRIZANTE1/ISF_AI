@@ -316,8 +316,72 @@ export const PDF_CONFIGS: Record<string, EquipmentPdfConfig> = {
     inspectionTable: 'inspecoes_camaras_espuma',
     dateField: 'data_inspecao',
     equipmentIdField: 'id_camara',
+    observacoesField: 'observacoes_gerais',
+    inspectionSelectFields: [
+      'id_camara',
+      'data_inspecao',
+      'tipo_inspecao',
+      'status_geral',
+      'inspetor',
+      'link_foto_nao_conformidade',
+      'plano_de_acao',
+      'resultados_json',
+      'latitude',
+      'longitude',
+      'created_at',
+    ],
+    inventoryTableColumns: [
+      { header: 'ID', width: 28, getValue: (item) => String(item._reportId || '—') },
+      { header: 'Modelo', width: 22, getValue: (item) => String(item.modelo || '—') },
+      {
+        header: 'Localização',
+        width: 38,
+        getValue: (item) => {
+          if (item.latitude != null && item.longitude != null) {
+            return `${Number(item.latitude).toFixed(6)}, ${Number(item.longitude).toFixed(6)}`;
+          }
+          return String(item.localizacao || item.local || item.location || '—');
+        },
+      },
+      {
+        header: 'Status',
+        width: 22,
+        getValue: (item) => String(item._last_inspection_status || '—'),
+      },
+      {
+        header: 'Tipo Insp.',
+        width: 28,
+        getValue: (item) => String(item._last_inspection_type || '—'),
+      },
+      {
+        header: 'Última Insp.',
+        width: 22,
+        getValue: (item) => {
+          if (!item._last_inspection_date) return '—';
+          try {
+            const d = new Date(String(item._last_inspection_date));
+            return Number.isNaN(d.getTime())
+              ? String(item._last_inspection_date)
+              : d.toLocaleDateString('pt-BR');
+          } catch {
+            return String(item._last_inspection_date);
+          }
+        },
+      },
+    ],
     mapInspection: (raw) => mapInspectionForPdf(raw, 'camara_espuma'),
-    inventoryExtraInfo: defaultInventoryExtra,
+    sectionedChecklist: true,
+    inventoryExtraInfo: (item) => {
+      const parts: string[] = [];
+      if (item.tipo_camara) parts.push(String(item.tipo_camara));
+      if (item.modelo) parts.push(String(item.modelo));
+      if (item.numero_mcs) parts.push(`MCS ${item.numero_mcs}`);
+      if (item.tamanho_especifico) parts.push(String(item.tamanho_especifico));
+      if (item.marca) parts.push(String(item.marca));
+      if (item._last_inspection_status) parts.push(`Status: ${item._last_inspection_status}`);
+      if (item._last_inspection_type) parts.push(String(item._last_inspection_type));
+      return parts.length > 0 ? parts.join(' | ') : defaultInventoryExtra(item);
+    },
     monthlyColumns: [
       { key: 'id', header: 'ID', width: 24 },
       { key: 'local', header: 'Localização', width: 40 },

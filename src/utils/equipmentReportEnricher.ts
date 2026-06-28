@@ -3,6 +3,13 @@ import { logger } from './logger';
 
 export interface EnrichedEquipmentForReport {
   _reportId: string;
+  _has_last_inspection?: boolean;
+  _last_inspection_date?: string | null;
+  _last_inspection_status?: string | null;
+  _last_inspection_type?: string | null;
+  _last_inspector?: string | null;
+  _equipmentType?: string;
+  resultados_json?: Record<string, unknown> | null;
   latitude?: number | null;
   longitude?: number | null;
   link_foto_nao_conformidade?: string | null;
@@ -53,6 +60,7 @@ const INSPECTION_CONFIGS: Record<string, InspectionConfig> = {
     idField: 'id_camara',
     dateField: 'data_inspecao',
     equipmentIdField: 'id_camara',
+    observacoesField: 'observacoes_gerais',
   },
   canhao_monitor: {
     table: 'inspecoes_canhoes_monitores',
@@ -124,11 +132,13 @@ function extractObservacoes(insp: Record<string, any>, observacoesField?: string
 
 function mapWithoutInspection(
   equipmentList: any[],
-  equipmentIdField: string
+  equipmentIdField: string,
+  equipmentType?: string
 ): EnrichedEquipmentForReport[] {
   return equipmentList.map((item) => ({
     ...item,
     _reportId: getEquipmentReportId(item, equipmentIdField),
+    _equipmentType: equipmentType,
     latitude: item.latitude ?? null,
     longitude: item.longitude ?? null,
   }));
@@ -154,7 +164,7 @@ export async function enrichEquipmentForReport(
 
   const config = getInspectionConfig(equipmentType, customTypeId);
   if (!config) {
-    return mapWithoutInspection(equipmentList, 'id_equipamento');
+    return mapWithoutInspection(equipmentList, 'id_equipamento', equipmentType);
   }
 
   const selectFields = [
@@ -165,6 +175,12 @@ export async function enrichEquipmentForReport(
     'link_foto_nao_conformidade',
     'plano_de_acao',
     'created_at',
+    'status_geral',
+    'tipo_inspecao',
+    'tipo_servico',
+    'inspetor',
+    'inspetor_responsavel',
+    'resultados_json',
   ];
 
   if (config.observacoesField) {
@@ -201,7 +217,7 @@ export async function enrichEquipmentForReport(
     if (equipmentType === 'reserva_tecnica') {
       const reservoirIds = equipmentList.map((item) => String(item.id)).filter(Boolean);
       if (reservoirIds.length === 0) {
-        return mapWithoutInspection(equipmentList, config.equipmentIdField);
+        return mapWithoutInspection(equipmentList, config.equipmentIdField, equipmentType);
       }
       query = query.in('reservoir_id', reservoirIds);
     } else {
@@ -218,7 +234,7 @@ export async function enrichEquipmentForReport(
 
     if (error) {
       logger.warn(`Erro ao buscar inspeções para relatório (${equipmentType})`, 'pdf', error);
-      return mapWithoutInspection(equipmentList, config.equipmentIdField);
+      return mapWithoutInspection(equipmentList, config.equipmentIdField, equipmentType);
     }
 
     const inspectionMap = new Map<string, Record<string, any>>();
@@ -239,6 +255,7 @@ export async function enrichEquipmentForReport(
         return {
           ...item,
           _reportId: reportId,
+          _equipmentType: equipmentType,
           latitude: item.latitude ?? null,
           longitude: item.longitude ?? null,
         };
@@ -247,6 +264,26 @@ export async function enrichEquipmentForReport(
       return {
         ...item,
         _reportId: reportId,
+        _equipmentType: equipmentType,
+        _has_last_inspection: true,
+        _last_inspection_date: lastInspection[config.dateField] ?? null,
+        _last_inspection_status:
+          lastInspection.status_geral ||
+          lastInspection.aprovado_inspecao ||
+          lastInspection.resultado_teste ||
+          lastInspection.overall_status ||
+          null,
+        _last_inspection_type:
+          lastInspection.tipo_inspecao ||
+          lastInspection.tipo_servico ||
+          lastInspection.tipo_teste ||
+          null,
+        _last_inspector:
+          lastInspection.inspetor ||
+          lastInspection.inspetor_responsavel ||
+          lastInspection.inspector_name ||
+          null,
+        resultados_json: lastInspection.resultados_json ?? null,
         latitude: lastInspection.latitude ?? item.latitude ?? null,
         longitude: lastInspection.longitude ?? item.longitude ?? null,
         link_foto_nao_conformidade: lastInspection.link_foto_nao_conformidade ?? null,
@@ -259,6 +296,6 @@ export async function enrichEquipmentForReport(
     });
   } catch (err) {
     logger.error('Erro ao enriquecer equipamentos para relatório', 'pdf', err);
-    return mapWithoutInspection(equipmentList, config.equipmentIdField);
+    return mapWithoutInspection(equipmentList, config.equipmentIdField, equipmentType);
   }
 }

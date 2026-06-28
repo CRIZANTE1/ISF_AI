@@ -5,6 +5,7 @@ import {
   extractNonConformities,
   formatChecklistStatus,
   hasSectionedChecklist,
+  groupFoamChamberChecklist,
 } from '../checklistPdfUtils';
 import { mapInspectionForPdf } from '../inspectionMapper';
 import { getMonthDateRange } from '../../monthlyExtinguisherReport';
@@ -166,6 +167,62 @@ describe('PDF_CONFIGS extintor regressão', () => {
     expect(row.equipmentId).toBe('EXT-01');
     expect(row.cells[0]).toBe('EXT-01');
     expect(row.cells[5]).toBe('Aprovado');
+  });
+});
+
+describe('groupFoamChamberChecklist', () => {
+  it('agrupa itens por seção do modelo', () => {
+    const sections = groupFoamChamberChecklist(
+      'MCS - Selo de Vidro',
+      'Visual Semestral',
+      {
+        'Pintura e estrutura sem corrosão ou amassados': 'Conforme',
+        'Verificação de fluxo de água/espuma': 'Conforme',
+      }
+    );
+    expect(sections.some((s) => s.title === 'Condições Gerais')).toBe(true);
+    expect(sections.some((s) => s.title === 'Teste Funcional')).toBe(false);
+  });
+
+  it('inclui Teste Funcional em inspeção anual', () => {
+    const sections = groupFoamChamberChecklist(
+      'MCS - Selo de Vidro',
+      'Funcional Anual',
+      {
+        'Verificação de fluxo de água/espuma': 'Conforme',
+      }
+    );
+    expect(sections.some((s) => s.title === 'Teste Funcional')).toBe(true);
+  });
+});
+
+describe('inventoryPdfUtils', () => {
+  it('camara_espuma usa colunas específicas no inventário', async () => {
+    const { getInventoryTableHead, buildInventoryTableRow, shouldShowInventoryDetails } =
+      await import('../inventoryPdfUtils');
+
+    const item = {
+      _reportId: 'CAM-01',
+      modelo: 'MCS - Selo de Vidro',
+      _last_inspection_status: 'Conforme',
+      _last_inspection_type: 'Funcional Anual',
+      _last_inspection_date: '2026-01-15',
+      _has_last_inspection: true,
+      resultados_json: { 'Item A': 'Conforme' },
+      link_foto_nao_conformidade: 'https://example.com/foto.jpg',
+    };
+
+    expect(getInventoryTableHead('camara_espuma')).toEqual([
+      '#',
+      'ID',
+      'Modelo',
+      'Localização',
+      'Status',
+      'Tipo Insp.',
+      'Última Insp.',
+    ]);
+    expect(buildInventoryTableRow(item, 0, 'camara_espuma')[1]).toBe('CAM-01');
+    expect(shouldShowInventoryDetails(item)).toBe(true);
   });
 });
 
