@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
-import { Trash2 } from 'lucide-react';
+import { Trash2, FileText } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { DetailSkeleton } from '../components/skeletons';
+import { DetailSkeleton, IconSkeleton } from '../components/skeletons';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useTranslation } from '../hooks/useTranslation';
 import { useHaptics } from '../hooks/useHaptics';
+import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
 import {
   getWaterReservoirById,
@@ -17,6 +18,14 @@ import {
   type WaterReservoir,
   type WaterReservoirInspection,
 } from '../utils/waterReservoirOperations';
+import {
+  generateInspectionReport,
+  generateMultipleInspectionReport,
+  savePdfToDevice,
+  mapWaterReservoirInspectionForPdf,
+  type EquipmentData,
+  type InspectionData,
+} from '../utils/pdfReportGenerator';
 
 const cardStyle = {
   backgroundColor: 'rgba(26, 26, 26, 0.95)',
@@ -27,6 +36,7 @@ const cardStyle = {
 const WaterReservoirDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const { handleError, showSuccess } = useErrorHandler();
   const { t, currentLanguage } = useTranslation();
   const haptics = useHaptics();
@@ -36,6 +46,10 @@ const WaterReservoirDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [showMultipleReportModal, setShowMultipleReportModal] = useState(false);
+  const [selectedInspections, setSelectedInspections] = useState<Set<string>>(new Set());
+  const [generatingMultiplePdf, setGeneratingMultiplePdf] = useState(false);
 
   const dateLocale = currentLanguage === 'pt-BR' ? ptBR : enUS;
 
@@ -65,6 +79,101 @@ const WaterReservoirDetailPage = () => {
   useEffect(() => {
     fetchDetails();
   }, [id]);
+
+  const buildEquipmentData = (): EquipmentData | null => {
+    if (!reservoir) return null;
+    return {
+      ...reservoir,
+      id: reservoir.id,
+      name: reservoir.name,
+      type: 'reserva_tecnica',
+      location: reservoir.location || undefined,
+    } as EquipmentData;
+  };
+
+  const handleGenerateReport = async (inspectionId: string) => {
+    const equipmentData = buildEquipmentData();
+    if (!equipmentData || !user) return;
+
+    setGeneratingPdf(inspectionId);
+    try {
+      const inspection = inspections.find((insp) => insp.id === inspectionId);
+      if (!inspection) throw new Error('Inspeção não encontrada');
+
+      const reportData = {
+        equipment: equipmentData,
+        inspection: mapWaterReservoirInspectionForPdf(
+          inspection as unknown as Record<string, unknown>
+        ),
+        responsibleName: profile?.full_name || inspection.inspector_name || user.email || undefined,
+      };
+
+      const pdfBlob = await generateInspectionReport(reportData);
+      const dateStr = format(new Date(inspection.inspected_at), 'yyyy-MM-dd');
+      const filename = `Relatorio_Inspecao_${reservoir?.name}_${dateStr}.pdf`;
+      await savePdfToDevice(pdfBlob, filename);
+      showSuccess(t('help.equipmentList.reportSuccess'));
+    } catch (error) {
+      handleError(error, 'equipment', t('help.equipmentList.reportError'));
+    } finally {
+      setGeneratingPdf(null);
+    }
+  };
+
+  const handleToggleInspection = (inspectionId: string) => {
+    const next = new Set(selectedInspections);
+    if (next.has(inspectionId)) next.delete(inspectionId);
+    else next.add(inspectionId);
+    setSelectedInspections(next);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedInspections.size === inspections.length) {
+      setSelectedInspections(new Set());
+    } else {
+      setSelectedInspections(new Set(inspections.map((insp) => insp.id)));
+    }
+  };
+
+  const handleGenerateMultipleReport = async () => {
+    const equipmentData = buildEquipmentData();
+    if (!equipmentData || !user || selectedInspections.size === 0) return;
+
+    setGeneratingMultiplePdf(true);
+    try {
+      const inspectionDataList: InspectionData[] = inspections
+        .filter((insp) => selectedInspections.has(insp.id))
+        .map((insp) =>
+          mapWaterReservoirInspectionForPdf(insp as unknown as Record<string, unknown>)
+        );
+
+      if (inspectionDataList.length === 0) {
+        throw new Error('Nenhuma inspeção válida selecionada');
+      }
+
+      inspectionDataList.sort(
+        (a, b) => new Date(a.data_inspecao).getTime() - new Date(b.data_inspecao).getTime()
+      );
+
+      const pdfBlob = await generateMultipleInspectionReport({
+        equipment: equipmentData,
+        inspections: inspectionDataList,
+        responsibleName: profile?.full_name || user.email || undefined,
+      });
+
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const filename = `Relatorio_Multiplas_Inspecoes_${reservoir?.name}_${dateStr}.pdf`;
+      await savePdfToDevice(pdfBlob, filename);
+
+      setShowMultipleReportModal(false);
+      setSelectedInspections(new Set());
+      showSuccess(t('help.equipmentList.reportSuccess'));
+    } catch (error) {
+      handleError(error, 'equipment', t('help.equipmentList.reportError'));
+    } finally {
+      setGeneratingMultiplePdf(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!id) return;
@@ -182,6 +291,17 @@ const WaterReservoirDetailPage = () => {
           {t('inspection.add')}
         </Link>
 
+        {inspections.length > 0 && (
+          <button
+            onClick={() => setShowMultipleReportModal(true)}
+            className="w-full p-3 rounded-lg border flex items-center justify-center space-x-2 hover:border-white/50 transition-colors"
+            style={{ ...cardStyle, color: '#FFFFFF' }}
+          >
+            <FileText size={20} />
+            <span className="font-semibold">{t('help.equipmentList.generateReport')}</span>
+          </button>
+        )}
+
         <div>
           <h2 className="font-bold text-lg mb-2">{t('inspection.history')}</h2>
           {inspections.length === 0 ? (
@@ -194,11 +314,25 @@ const WaterReservoirDetailPage = () => {
                     <p className="font-semibold">
                       {format(new Date(insp.inspected_at), 'dd/MM/yyyy', { locale: dateLocale })}
                     </p>
-                    {insp.overall_status && (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.overall_status)}`}>
-                        {insp.overall_status}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {insp.overall_status && (
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusBadge(insp.overall_status)}`}>
+                          {insp.overall_status}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleGenerateReport(insp.id)}
+                        disabled={generatingPdf === insp.id}
+                        className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+                        aria-label={t('help.equipmentList.generateReport')}
+                      >
+                        {generatingPdf === insp.id ? (
+                          <IconSkeleton size={18} />
+                        ) : (
+                          <FileText size={18} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="text-sm text-gray-300 space-y-1">
                     {insp.level_reading && (
@@ -217,6 +351,61 @@ const WaterReservoirDetailPage = () => {
           )}
         </div>
       </main>
+
+      {showMultipleReportModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4">
+          <div
+            className="w-full max-w-md rounded-lg border p-4 max-h-[80vh] overflow-y-auto"
+            style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', color: '#FFFFFF' }}
+          >
+            <h3 className="font-bold text-lg mb-4">{t('help.equipmentList.generateReport')}</h3>
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-blue-400 mb-3 hover:underline"
+            >
+              {selectedInspections.size === inspections.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
+            </button>
+            <ul className="space-y-2 mb-4">
+              {inspections.map((insp) => (
+                <li key={insp.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedInspections.has(insp.id)}
+                    onChange={() => handleToggleInspection(insp.id)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">
+                    {format(new Date(insp.inspected_at), 'dd/MM/yyyy', { locale: dateLocale })}
+                    {insp.overall_status ? ` — ${insp.overall_status}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-gray-400 mb-4">
+              {selectedInspections.size} de {inspections.length} inspeções selecionadas
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowMultipleReportModal(false);
+                  setSelectedInspections(new Set());
+                }}
+                className="flex-1 p-3 rounded-lg border"
+                style={{ borderColor: '#2A2A2A' }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleGenerateMultipleReport}
+                disabled={selectedInspections.size === 0 || generatingMultiplePdf}
+                className="flex-1 p-3 rounded-lg bg-white text-black font-bold disabled:opacity-50"
+              >
+                {generatingMultiplePdf ? '...' : t('help.equipmentList.generateReport')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={isModalOpen}

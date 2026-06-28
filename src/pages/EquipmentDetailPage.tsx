@@ -17,7 +17,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { parseInspectionDate } from '../utils/dateUtils';
 import { useHaptics } from '../hooks/useHaptics';
 import { getExtinguisherById } from '../utils/extinguisherOperations';
-import { getHoseById } from '../utils/hoseOperations';
+import { getHoseById, getHoseInspections } from '../utils/hoseOperations';
 import { getSCBABySerial } from '../utils/scbaOperations';
 import { getMultigasDetectorById } from '../utils/multigasOperations';
 import { generateInspectionReport, generateMultipleInspectionReport, savePdfToDevice, mapInspectionForPdf, type InspectionData, type EquipmentData } from '../utils/pdfReportGenerator';
@@ -58,11 +58,12 @@ const EquipmentDetailPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // State for PDF generation
-  const [generatingPdf, setGeneratingPdf] = useState<number | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState<number | string | null>(null);
+  const [customTypeId, setCustomTypeId] = useState<string | undefined>();
   
   // State for multiple inspection report
   const [showMultipleReportModal, setShowMultipleReportModal] = useState(false);
-  const [selectedInspections, setSelectedInspections] = useState<Set<number>>(new Set());
+  const [selectedInspections, setSelectedInspections] = useState<Set<number | string>>(new Set());
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [generatingMultiplePdf, setGeneratingMultiplePdf] = useState(false);
 
@@ -395,7 +396,6 @@ const EquipmentDetailPage = () => {
           break;
         }
         case 'mangueira': {
-          // Buscar diretamente por ID em vez de buscar todos
           const hose = await getHoseById(id);
           if (hose) {
             equipmentData = {
@@ -404,7 +404,14 @@ const EquipmentDetailPage = () => {
               name: hose.id_mangueira,
               location: (hose as any).localizacao || undefined,
             };
-            inspectionsData = [];
+            const hoseInspections = await getHoseInspections(id);
+            inspectionsData = hoseInspections.map((insp) => ({
+              id: insp.id || 0,
+              data_inspecao: insp.data_inspecao || '',
+              status_geral: insp.status_geral || insp.resultado || undefined,
+              plano_de_acao: insp.plano_de_acao || undefined,
+              link_foto_nao_conformidade: insp.link_foto_nao_conformidade || undefined,
+            }));
           }
           break;
         }
@@ -418,6 +425,7 @@ const EquipmentDetailPage = () => {
               const foundType = customTypes.find(t => t.slug === slug);
               
               if (foundType) {
+                setCustomTypeId(foundType.id);
                 const customEquipments = await getAllCustomEquipment(foundType.id);
                 const customEq = customEquipments.find((e: any) => e.id_equipamento === id);
                 
@@ -749,6 +757,9 @@ const EquipmentDetailPage = () => {
   };
 
   const getInspectionTableName = (): string => {
+    if (type?.startsWith('custom-')) {
+      return 'custom_equipment_inspections';
+    }
     switch (type) {
       case 'extintor':
         return 'inspecoes_extintores';
@@ -773,22 +784,30 @@ const EquipmentDetailPage = () => {
     }
   };
 
-  const fetchInspectionData = async (inspectionId: number): Promise<any> => {
+  const fetchInspectionData = async (inspectionId: number | string): Promise<any> => {
     const tableName = getInspectionTableName();
     if (!tableName || !user) return null;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from(tableName as any)
       .select('*')
-      .eq('id', inspectionId)
-      .eq('user_id', user.id)
-      .single();
+      .eq('id', inspectionId);
+
+    if (type?.startsWith('custom-') && customTypeId) {
+      query = query.eq('equipment_type_id', customTypeId).eq('user_id', user.id);
+    } else if (tableName !== 'custom_equipment_inspections') {
+      query = query.eq('user_id', user.id);
+    } else {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) throw error;
     return data;
   };
 
-  const handleGenerateReport = async (inspectionId: number) => {
+  const handleGenerateReport = async (inspectionId: number | string) => {
     if (!equipment || !type || !user) return;
     
     setGeneratingPdf(inspectionId);
@@ -861,7 +880,7 @@ const EquipmentDetailPage = () => {
     }
   };
 
-  const handleToggleInspection = (inspectionId: number) => {
+  const handleToggleInspection = (inspectionId: number | string) => {
     const newSelected = new Set(selectedInspections);
     if (newSelected.has(inspectionId)) {
       newSelected.delete(inspectionId);

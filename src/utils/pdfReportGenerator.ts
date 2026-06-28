@@ -20,6 +20,18 @@ import {
 } from './multigasOperations';
 import type { MonthlyExtinguisherReportRow } from './monthlyExtinguisherReport';
 import { formatCapacityDisplay } from './monthlyExtinguisherReport';
+import {
+  flattenChecklistResults,
+  groupChecklistBySection,
+  extractNonConformities,
+  hasSectionedChecklist,
+} from './pdf/checklistPdfUtils';
+import { mapInspectionForPdf as mapInspectionForPdfImpl, mapWaterReservoirInspectionForPdf } from './pdf/inspectionMapper';
+export { mapWaterReservoirInspectionForPdf };
+import { getEquipmentTypeName as getTypeNameFromRegistry, getPdfConfig } from './pdf/pdfConfigRegistry';
+import { formatInventoryExtraInfo as formatInventoryExtraFromRegistry } from './pdf/inventoryPdfUtils';
+import type { MonthlyReportRow } from './pdf/types';
+import type { MonthlyColumnDef } from './pdf/types';
 
 // jspdf-autotable v5 não aplica o plugin via side-effect em bundlers ESM (Vite/Capacitor)
 applyPlugin(jsPDF);
@@ -141,44 +153,12 @@ const MULTIGAS_GAS_CONFIG: Array<{
   },
 ];
 
-/**
- * Mapeia registro de inspeção do Supabase para o formato usado no PDF.
- */
+/** @see mapInspectionForPdfImpl em ./pdf/inspectionMapper.ts */
 export function mapInspectionForPdf(
   inspectionData: Record<string, unknown>,
   equipmentType?: string
 ): InspectionData {
-  const data = inspectionData as Record<string, any>;
-  const mapped: InspectionData & Record<string, unknown> = {
-    id: data.id,
-    data_inspecao: data.data_inspecao || data.data_servico || data.data_teste || '',
-    status_geral: data.status_geral || data.resultado_teste,
-    tipo_servico: data.tipo_servico || data.tipo_inspecao || data.tipo_teste,
-    tipo_inspecao: data.tipo_inspecao || data.tipo_teste,
-    inspetor: data.inspetor || data.inspetor_responsavel,
-    observacoes_gerais: data.observacoes_gerais || data.observacoes,
-    plano_de_acao: data.plano_de_acao,
-    link_foto_nao_conformidade: data.link_foto_nao_conformidade,
-    resultados_json: data.resultados_json,
-    latitude: data.latitude,
-    longitude: data.longitude,
-    data_proxima_inspecao: data.data_proxima_inspecao || data.data_proximo_teste,
-  };
-
-  if (equipmentType === 'multigas') {
-    mapped.tipo_teste = data.tipo_teste;
-    mapped.resultado_teste = data.resultado_teste;
-    mapped.lel_referencia = data.lel_referencia ?? data.LEL_referencia;
-    mapped.o2_referencia = data.o2_referencia ?? data.O2_referencia;
-    mapped.h2s_referencia = data.h2s_referencia ?? data.H2S_referencia;
-    mapped.co_referencia = data.co_referencia ?? data.CO_referencia;
-    mapped.lel_encontrado = data.lel_encontrado ?? data.LEL_encontrado;
-    mapped.o2_encontrado = data.o2_encontrado ?? data.O2_encontrado;
-    mapped.h2s_encontrado = data.h2s_encontrado ?? data.H2S_encontrado;
-    mapped.co_encontrado = data.co_encontrado ?? data.CO_encontrado;
-  }
-
-  return mapped;
+  return mapInspectionForPdfImpl(inspectionData, equipmentType);
 }
 
 function ensurePageSpace(doc: jsPDF, yPos: number, needed = 40): number {
@@ -306,19 +286,84 @@ function formatDateShort(dateString: string): string {
 /**
  * Obtém o nome do tipo de equipamento em português
  */
-function getEquipmentTypeName(type: string): string {
-  const typeMap: Record<string, string> = {
-    extintor: 'Extintor de Incêndio',
-    mangueira: 'Mangueira de Incêndio',
-    scba: 'Conjunto Autônomo de Respiração (SCBA)',
-    multigas: 'Medidor Multigás',
-    camara_espuma: 'Câmara de Espuma',
-    canhao_monitor: 'Canhão Monitor',
-    chuveiro_lavaolhos: 'Chuveiro/Lava-olhos',
-    alarme: 'Sistema de Alarme',
-    abrigo: 'Abrigo de Emergência',
-  };
-  return typeMap[type] || type;
+function getEquipmentTypeName(type: string, customLabel?: string): string {
+  return getTypeNameFromRegistry(type, customLabel);
+}
+
+function renderChecklistTable(
+  doc: jsPDF,
+  yPos: number,
+  resultados: Record<string, any>,
+  options?: { compact?: boolean; sectioned?: boolean }
+): number {
+  const compact = options?.compact ?? false;
+  const useSections = options?.sectioned ?? hasSectionedChecklist(resultados);
+  const flatRows = flattenChecklistResults(resultados);
+
+  if (flatRows.length === 0) return yPos;
+
+  if (useSections) {
+    const sections = groupChecklistBySection(flatRows);
+    for (const section of sections) {
+      if (yPos > PAGE_HEIGHT - 60) {
+        doc.addPage();
+        yPos = PAGE_MARGINS.TOP;
+      }
+      if (section.title) {
+        doc.setFontSize(compact ? 9 : 10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(COLORS.BLACK);
+        doc.text(section.title, PAGE_MARGINS.LEFT, yPos);
+        yPos += compact ? 6 : 8;
+      }
+      const tableData = section.rows
+        .filter((r) => r.item !== 'Observações')
+        .map((r) => [r.item, r.status]);
+      if (tableData.length > 0) {
+        doc.autoTable({
+          startY: yPos,
+          head: [['Item Verificado', 'Status']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+          bodyStyles: { textColor: [0, 0, 0] },
+          alternateRowStyles: { fillColor: [224, 224, 224] },
+          margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+          styles: { fontSize: compact ? 8 : 9, cellPadding: compact ? 2 : 3 },
+        });
+        yPos = (doc as any).lastAutoTable.finalY + 5;
+      }
+      const obs = section.rows.find((r) => r.item === 'Observações');
+      if (obs?.status) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.text(`Observações: ${obs.status}`, PAGE_MARGINS.LEFT, yPos);
+        yPos += 8;
+      }
+    }
+    return yPos;
+  }
+
+  const tableData = flatRows
+    .filter((r) => r.item !== 'Observações')
+    .map((r) => [r.item, r.status]);
+
+  if (tableData.length > 0) {
+    doc.autoTable({
+      startY: yPos,
+      head: [['Item Verificado', 'Status']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+      bodyStyles: { textColor: [0, 0, 0] },
+      alternateRowStyles: { fillColor: [224, 224, 224] },
+      margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+      styles: { fontSize: compact ? 8 : 9, cellPadding: compact ? 2 : 3 },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 5;
+  }
+
+  return yPos;
 }
 
 /**
@@ -481,6 +526,47 @@ function addEquipmentInfo(doc: jsPDF, yPos: number, equipment: EquipmentData): n
       doc.text(`Ano de Fabricação: ${equipment.ano_fabricacao}`, PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
     }
+  } else if (equipment.type === 'reserva_tecnica') {
+    if (equipment.name) {
+      doc.text(`Nome: ${equipment.name}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.code) {
+      doc.text(`Código: ${equipment.code}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.reservoir_type) {
+      doc.text(`Tipo de Reservatório: ${equipment.reservoir_type}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.product_type) {
+      doc.text(`Tipo de Produto: ${equipment.product_type}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.capacity_m3 != null) {
+      doc.text(`Capacidade: ${equipment.capacity_m3} m³`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.inspection_periodicity) {
+      doc.text(`Periodicidade: ${equipment.inspection_periodicity}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+  } else if (equipment.type?.startsWith('custom-') && equipment.custom_fields) {
+    const fields = equipment.custom_fields as Record<string, unknown>;
+    for (const [key, value] of Object.entries(fields)) {
+      if (value != null && value !== '') {
+        doc.text(`${key}: ${String(value)}`, PAGE_MARGINS.LEFT, yPos);
+        yPos += 7;
+      }
+    }
+    if (equipment.marca) {
+      doc.text(`Marca: ${equipment.marca}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
+    if (equipment.modelo) {
+      doc.text(`Modelo: ${equipment.modelo}`, PAGE_MARGINS.LEFT, yPos);
+      yPos += 7;
+    }
   } else {
     // Para outros tipos (chuveiro_lavaolhos, camara_espuma, canhao_monitor, alarme, abrigo)
     if (equipment.marca) {
@@ -552,14 +638,95 @@ function addInspectionInfo(doc: jsPDF, yPos: number, inspection: InspectionData)
     yPos += 7;
   }
 
-  yPos += 8; // Espaço extra antes da próxima seção
+  const inspAny = inspection as Record<string, unknown>;
+  if (inspAny.data_proxima_manutencao_2_nivel) {
+    doc.text(
+      `Próxima Manutenção 2º Nível: ${formatDateShort(String(inspAny.data_proxima_manutencao_2_nivel))}`,
+      PAGE_MARGINS.LEFT,
+      yPos
+    );
+    yPos += 7;
+  }
+  if (inspAny.data_proxima_manutencao_3_nivel) {
+    doc.text(
+      `Próxima Manutenção 3º Nível: ${formatDateShort(String(inspAny.data_proxima_manutencao_3_nivel))}`,
+      PAGE_MARGINS.LEFT,
+      yPos
+    );
+    yPos += 7;
+  }
+  if (inspAny.data_ultimo_ensaio_hidrostatico) {
+    doc.text(
+      `Último Ensaio Hidrostático: ${formatDateShort(String(inspAny.data_ultimo_ensaio_hidrostatico))}`,
+      PAGE_MARGINS.LEFT,
+      yPos
+    );
+    yPos += 7;
+  }
+  if (inspAny.resultado) {
+    doc.text(`Resultado: ${inspAny.resultado}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+  }
+
+  yPos += 8;
+  return yPos;
+}
+
+function addWaterReservoirInspectionSection(
+  doc: jsPDF,
+  yPos: number,
+  inspection: InspectionData
+): number {
+  const insp = inspection as Record<string, unknown>;
+  if (!insp.level_reading && !insp.condition) return yPos;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('3. RESULTADOS NFPA 25', PAGE_MARGINS.LEFT, yPos);
+  yPos += 8;
+
+  const rows: string[][] = [];
+  if (insp.inspection_type) rows.push(['Tipo de Inspeção', String(insp.inspection_type)]);
+  if (insp.level_reading) rows.push(['Leitura de Nível', String(insp.level_reading)]);
+  if (insp.condition) rows.push(['Condição', String(insp.condition)]);
+  if (insp.suction_clean !== undefined) {
+    rows.push(['Sucção Limpa', insp.suction_clean ? 'Sim' : 'Não']);
+  }
+  if (insp.overflow_clear !== undefined) {
+    rows.push(['Transbordo Desobstruído', insp.overflow_clear ? 'Sim' : 'Não']);
+  }
+  if (insp.corrective_action_needed !== undefined) {
+    rows.push(['Ação Corretiva Necessária', insp.corrective_action_needed ? 'Sim' : 'Não']);
+  }
+
+  if (rows.length > 0) {
+    doc.autoTable({
+      startY: yPos,
+      body: rows,
+      theme: 'plain',
+      styles: { fontSize: 10, textColor: COLORS.BLACK },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 70, fillColor: COLORS.LIGHT_GRAY },
+        1: { cellWidth: CONTENT_WIDTH - 70 },
+      },
+      margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
   return yPos;
 }
 
 /**
  * Adiciona resultados do checklist (se houver)
  */
-function addChecklistResults(doc: jsPDF, yPos: number, resultados: Record<string, any>): number {
+function addChecklistResults(
+  doc: jsPDF,
+  yPos: number,
+  resultados: Record<string, any>,
+  equipmentType?: string
+): number {
   if (!resultados || Object.keys(resultados).length === 0) {
     return yPos;
   }
@@ -570,44 +737,10 @@ function addChecklistResults(doc: jsPDF, yPos: number, resultados: Record<string
   doc.text('4. RESULTADOS DA INSPEÇÃO', PAGE_MARGINS.LEFT, yPos);
   yPos += 8;
 
-  // Prepara dados para tabela com ícones visuais
-  const tableData: string[][] = [];
-  for (const [key, value] of Object.entries(resultados)) {
-    const isConforme = value === true || value === 'sim' || value === 'Sim';
-    const isNaoConforme = value === false || value === 'não' || value === 'Não';
-    const status = isConforme ? '✓ Conforme' : 
-                   isNaoConforme ? '✗ Não Conforme' : 
-                   String(value);
-    tableData.push([key, status]);
-  }
-
-  if (tableData.length > 0) {
-    doc.autoTable({
-      startY: yPos,
-      head: [['Item Verificado', 'Status']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [0, 0, 0], // Preto
-        textColor: [255, 255, 255], // Branco
-        fontStyle: 'bold',
-      },
-      bodyStyles: {
-        textColor: [0, 0, 0], // Preto
-      },
-      alternateRowStyles: {
-        fillColor: [224, 224, 224], // Cinza claro
-      },
-      margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
-      },
-    });
-    yPos = (doc as any).lastAutoTable.finalY + 5;
-  }
-
-  return yPos;
+  const config = equipmentType ? getPdfConfig(equipmentType) : null;
+  return renderChecklistTable(doc, yPos, resultados, {
+    sectioned: config?.sectionedChecklist ?? hasSectionedChecklist(resultados),
+  });
 }
 
 /**
@@ -861,14 +994,7 @@ function addNonConformities(doc: jsPDF, yPos: number, inspection: InspectionData
     return yPos;
   }
 
-  // Extrai não conformidades do resultados_json
-  const nonConformities: string[] = [];
-  for (const [key, value] of Object.entries(inspection.resultados_json)) {
-    const isNaoConforme = value === false || value === 'não' || value === 'Não' || value === 'Não Conforme';
-    if (isNaoConforme) {
-      nonConformities.push(key);
-    }
-  }
+  const nonConformities = extractNonConformities(inspection.resultados_json);
 
   // Se não houver não conformidades, não adiciona a seção
   if (nonConformities.length === 0) {
@@ -1149,9 +1275,23 @@ export async function generateInspectionReport(data: ReportData): Promise<Blob> 
     }
   }
 
+  // Resultados NFPA 25 (reserva técnica)
+  if (data.equipment.type === 'reserva_tecnica') {
+    yPos = addWaterReservoirInspectionSection(doc, yPos, data.inspection);
+    if (yPos > PAGE_HEIGHT - 100) {
+      doc.addPage();
+      yPos = PAGE_MARGINS.TOP;
+    }
+  }
+
   // Resultados do checklist (se houver)
   if (data.inspection.resultados_json) {
-    yPos = addChecklistResults(doc, yPos, data.inspection.resultados_json);
+    yPos = addChecklistResults(
+      doc,
+      yPos,
+      data.inspection.resultados_json,
+      data.equipment.type
+    );
   }
 
   // Verifica se precisa de nova página
@@ -1302,6 +1442,14 @@ export async function generateMultipleInspectionReport(
       yPos = addMultigasValues(doc, yPos, inspection, data.equipment);
     }
 
+    if (data.equipment.type === 'extintor') {
+      yPos = addCo2WeighingSection(doc, yPos, inspection);
+    }
+
+    if (data.equipment.type === 'reserva_tecnica') {
+      yPos = addWaterReservoirInspectionSection(doc, yPos, inspection);
+    }
+
     if (inspection.observacoes_gerais) {
       doc.setFont('helvetica', 'bold');
       doc.text('Observações:', PAGE_MARGINS.LEFT, yPos);
@@ -1330,40 +1478,12 @@ export async function generateMultipleInspectionReport(
       doc.text('Resultados:', PAGE_MARGINS.LEFT, yPos);
       yPos += 7;
       doc.setFont('helvetica', 'normal');
-
-      const tableData: string[][] = [];
-      for (const [key, value] of Object.entries(inspection.resultados_json)) {
-        const status = value === true || value === 'sim' || value === 'Sim' ? 'Conforme' :
-                       value === false || value === 'não' || value === 'Não' ? 'Não Conforme' :
-                       String(value);
-        tableData.push([key, status]);
-      }
-
-      if (tableData.length > 0) {
-        doc.autoTable({
-          startY: yPos,
-          head: [['Item', 'Status']],
-          body: tableData,
-          theme: 'striped',
-          headStyles: {
-            fillColor: [0, 0, 0],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-          },
-          bodyStyles: {
-            textColor: [0, 0, 0],
-          },
-          alternateRowStyles: {
-            fillColor: [224, 224, 224],
-          },
-          margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
-          styles: {
-            fontSize: 8,
-            cellPadding: 2,
-          },
-        });
-        yPos = (doc as any).lastAutoTable.finalY + 5;
-      }
+      yPos = renderChecklistTable(doc, yPos, inspection.resultados_json, {
+        compact: true,
+        sectioned:
+          getPdfConfig(data.equipment.type)?.sectionedChecklist ??
+          hasSectionedChecklist(inspection.resultados_json),
+      });
     }
 
     // Foto (se houver) - otimizado para Android
@@ -1431,7 +1551,10 @@ function formatInventoryLocation(item: EquipmentListReportItem): string {
   return item.localizacao || item.local || item.location || '-';
 }
 
-function formatInventoryExtraInfo(item: EquipmentListReportItem): string {
+function formatInventoryExtraInfo(item: EquipmentListReportItem, equipmentType?: string): string {
+  if (equipmentType) {
+    return formatInventoryExtraFromRegistry(item, equipmentType);
+  }
   const parts: string[] = [];
 
   if (item.status_geral) {
@@ -1617,7 +1740,7 @@ export async function generateEquipmentListReport(
     String(index + 1),
     item._reportId,
     formatInventoryLocation(item),
-    formatInventoryExtraInfo(item),
+    formatInventoryExtraInfo(item, equipmentType),
   ]);
 
   doc.autoTable({
@@ -1872,6 +1995,172 @@ async function addMonthlyReportPhoto(
   }
 
   return yPos;
+}
+
+function hasMonthlyRowEvidence(row: MonthlyReportRow | MonthlyExtinguisherReportRow): boolean {
+  return Boolean(
+    row.link_foto_nao_conformidade ||
+      row.observacoes?.trim() ||
+      row.plano_de_acao?.trim()
+  );
+}
+
+function getMonthlyRowEquipmentId(row: MonthlyReportRow | MonthlyExtinguisherReportRow): string {
+  if ('equipmentId' in row) return row.equipmentId;
+  return (row as MonthlyExtinguisherReportRow).numero_identificacao;
+}
+
+async function addGenericMonthlyDetailsAndEvidence(
+  doc: jsPDF,
+  yPos: number,
+  rows: Array<MonthlyReportRow | MonthlyExtinguisherReportRow>
+): Promise<number> {
+  const itemsWithDetails = rows.filter(hasMonthlyRowEvidence);
+  if (itemsWithDetails.length === 0) return yPos;
+
+  yPos = ensureLandscapeSpace(doc, yPos, 20);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text('DETALHES E EVIDÊNCIAS', PAGE_MARGINS.LEFT, yPos);
+  yPos += 10;
+
+  for (const row of itemsWithDetails) {
+    yPos = ensureLandscapeSpace(doc, yPos, 40);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.BLACK);
+    doc.text(`Equipamento: ${getMonthlyRowEquipmentId(row)}`, PAGE_MARGINS.LEFT, yPos);
+    yPos += 7;
+
+    if (row.observacoes?.trim()) {
+      yPos = addMonthlyEvidenceTextBlock(doc, yPos, 'Observações', row.observacoes.trim());
+    }
+
+    if (row.plano_de_acao?.trim()) {
+      yPos = addMonthlyEvidenceTextBlock(doc, yPos, 'Plano de Ação', row.plano_de_acao.trim());
+    }
+
+    if (row.link_foto_nao_conformidade) {
+      yPos = await addMonthlyReportPhoto(
+        doc,
+        yPos,
+        row.link_foto_nao_conformidade,
+        getMonthlyRowEquipmentId(row)
+      );
+    }
+
+    yPos += 4;
+    doc.setDrawColor(COLORS.LIGHT_GRAY);
+    doc.setLineWidth(0.3);
+    doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + LANDSCAPE_CONTENT_WIDTH, yPos);
+    yPos += 8;
+  }
+
+  return yPos;
+}
+
+function addGenericMonthlyHeader(doc: jsPDF, typeName: string, monthYYYYMM: string): number {
+  let yPos = PAGE_MARGINS.TOP;
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  const title = `RELATÓRIO MENSAL DE INSPEÇÕES - ${typeName.toUpperCase()}`;
+  const titleWidth = doc.getTextWidth(title);
+  doc.text(title, PAGE_MARGINS.LEFT + (LANDSCAPE_CONTENT_WIDTH - titleWidth) / 2, yPos);
+  yPos += 10;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const generatedAt = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const generatedText = `Gerado em: ${generatedAt}`;
+  const generatedWidth = doc.getTextWidth(generatedText);
+  doc.text(generatedText, PAGE_MARGINS.LEFT + (LANDSCAPE_CONTENT_WIDTH - generatedWidth) / 2, yPos);
+  yPos += 6;
+
+  const monthLabel = format(
+    parse(`${monthYYYYMM}-01`, 'yyyy-MM-dd', new Date()),
+    "MMMM 'de' yyyy",
+    { locale: ptBR }
+  );
+  const periodText = `Inspeções realizadas em ${monthLabel}`;
+  const periodWidth = doc.getTextWidth(periodText);
+  doc.text(periodText, PAGE_MARGINS.LEFT + (LANDSCAPE_CONTENT_WIDTH - periodWidth) / 2, yPos);
+  yPos += 8;
+
+  doc.setDrawColor(COLORS.GRAY);
+  doc.setLineWidth(0.5);
+  doc.line(PAGE_MARGINS.LEFT, yPos, PAGE_MARGINS.LEFT + LANDSCAPE_CONTENT_WIDTH, yPos);
+  yPos += 10;
+
+  return yPos;
+}
+
+function buildMonthlyColumnStyles(columns: MonthlyColumnDef[]): Record<number, { cellWidth: number | 'auto' }> {
+  const styles: Record<number, { cellWidth: number | 'auto' }> = { 0: { cellWidth: 8 } };
+  columns.forEach((col, index) => {
+    styles[index + 1] = { cellWidth: col.width ?? 'auto' };
+  });
+  return styles;
+}
+
+/**
+ * Gera relatório mensal genérico (A4 paisagem, ABNT) para qualquer tipo configurado.
+ */
+export async function generateMonthlyReport(
+  rows: MonthlyReportRow[],
+  columns: MonthlyColumnDef[],
+  typeName: string,
+  monthYYYYMM: string,
+  responsibleName?: string
+): Promise<Blob> {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true,
+    compress: true,
+  });
+
+  let yPos = addGenericMonthlyHeader(doc, typeName, monthYYYYMM);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.BLACK);
+  doc.text(
+    `INSPEÇÕES DO PERÍODO (${rows.length} equipamento(s) inspecionado(s))`,
+    PAGE_MARGINS.LEFT,
+    yPos
+  );
+  yPos += 8;
+
+  const tableData = rows.map((row, index) => [String(index + 1), ...row.cells]);
+
+  doc.autoTable({
+    startY: yPos,
+    head: [['#', ...columns.map((c) => c.header)]],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [0, 0, 0],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    bodyStyles: { textColor: [0, 0, 0] },
+    alternateRowStyles: { fillColor: [224, 224, 224] },
+    margin: { left: PAGE_MARGINS.LEFT, right: PAGE_MARGINS.RIGHT },
+    styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+    columnStyles: buildMonthlyColumnStyles(columns),
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 12;
+  yPos = await addGenericMonthlyDetailsAndEvidence(doc, yPos, rows);
+  addMonthlyExtinguisherSignature(doc, yPos, responsibleName);
+
+  return doc.output('blob');
 }
 
 /**

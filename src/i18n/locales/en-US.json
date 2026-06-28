@@ -985,8 +985,8 @@
       "generatingReport": "Generating report...",
       "reportSuccess": "Inventory report generated successfully!",
       "reportError": "Failed to generate inventory report.",
-      "monthlyReportSuccess": "Monthly extinguisher report generated successfully!",
-      "monthlyReportError": "Failed to generate monthly extinguisher report."
+      "monthlyReportSuccess": "Monthly inspection report generated successfully!",
+      "monthlyReportError": "Error generating monthly inspection report."
     },
     "photoRequired": {
       "title": "Photo Required",

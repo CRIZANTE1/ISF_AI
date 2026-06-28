@@ -88,20 +88,53 @@ const CONTENT_WIDTH = 150; // 210 - 30 - 30
 
 ## Tipos de Relatórios
 
-### Relatório Mensal de Extintores (Android / Web)
+### Matriz de suporte por tipo de equipamento
+
+| Tipo | Inspeção individual | Inventário | Relatório mensal |
+|------|--------------------|------------|------------------|
+| extintor | Completo (CO₂, checklist, foto) | Enriquecido | A4 paisagem |
+| mangueira | Completo | Enriquecido (diâm./comp.) | A4 paisagem |
+| scba | Checklist seccionado (Cilindro/Máscara/Testes) | Enriquecido | A4 paisagem |
+| multigas | Medições detalhadas | Enriquecido | A4 paisagem |
+| câmara/canhao/chuveiro/alarme/abrigo | Checklist + tipo inspeção | Enriquecido | A4 paisagem |
+| reserva_tecnica | NFPA 25 (nível, condição, sucção) | Enriquecido | A4 paisagem |
+| custom-* | Checklist dinâmico + custom_fields | Enriquecido | A4 paisagem |
+
+**Módulos:** `src/utils/pdf/` — registry (`pdfConfigRegistry.ts`), checklist (`checklistPdfUtils.ts`), mensal (`monthlyReportBuilder.ts`), inventário (`inventoryPdfUtils.ts`).
+
+### Relatório Mensal (todos os tipos configurados)
 
 **Arquivos:**
-- `src/utils/monthlyExtinguisherReport.ts` — consulta Supabase e montagem das linhas
-- `src/utils/pdfReportGenerator.ts` — `generateMonthlyExtinguisherReport()`
-- `src/pages/EquipmentListPage.tsx` — UI na lista `extintor` (seletor de mês + botão)
+- `src/utils/pdf/monthlyReportBuilder.ts` — consulta genérica por tipo via registry
+- `src/utils/pdf/pdfConfigRegistry.ts` — colunas e mapeamento por tipo
+- `src/utils/pdfReportGenerator.ts` — `generateMonthlyReport()` + `generateMonthlyExtinguisherReport()` (extintor)
+- `src/pages/EquipmentListPage.tsx` — seletor de mês + botão para todos os tipos com config
 
 **Fluxo:**
-1. Usuário escolhe o mês (`YYYY-MM`) na lista de extintores
-2. Busca em `inspecoes_extintores` com `user_id`, `data_servico >= YYYY-MM-01` e `< primeiro dia do mês seguinte`
-3. Para cada extintor cadastrado, usa a inspeção mais recente do mês (`data_servico` desc, `created_at` desc)
+1. Usuário escolhe o mês (`YYYY-MM`) na lista do tipo
+2. `buildMonthlyReportData()` busca inspeções do mês na tabela configurada
+3. Uma linha por equipamento (inspeção mais recente do mês)
 4. Se nenhuma linha: erro *"Nenhuma inspeção encontrada para o mês selecionado."*
-5. Gera PDF A4 **paisagem**, margens 30 mm, tabela + seção **DETALHES E EVIDÊNCIAS** (observações, plano de ação e/ou foto quando existirem) + assinatura
-6. Salva/compartilha via `savePdfToDevice()` — nome: `Relatorio_Inspecoes_Extintores_{YYYY-MM}_{YYYY-MM-DD}.pdf`
+5. Gera PDF A4 **paisagem** + seção **DETALHES E EVIDÊNCIAS** + assinatura
+6. Nome: `Relatorio_Inspecoes_{Tipo}_{YYYY-MM}_{YYYY-MM-DD}.pdf`
+
+**Extintores** continuam usando `buildMonthlyExtinguisherReportData` / `generateMonthlyExtinguisherReport` (sem regressão).
+
+```typescript
+import { buildMonthlyReportData } from '@/utils/pdf/monthlyReportBuilder';
+import { generateMonthlyReport } from '@/utils/pdfReportGenerator';
+import { getPdfConfig } from '@/utils/pdf/pdfConfigRegistry';
+
+const config = getPdfConfig('mangueira')!;
+const rows = await buildMonthlyReportData(equipment, 'mangueira', userId, '2026-06');
+const blob = await generateMonthlyReport(rows, config.monthlyColumns, 'Mangueira', '2026-06');
+```
+
+### Relatório Mensal de Extintores (referência legada)
+
+**Arquivos legados:**
+- `src/utils/monthlyExtinguisherReport.ts` — consulta Supabase e montagem das linhas
+- `src/utils/pdfReportGenerator.ts` — `generateMonthlyExtinguisherReport()`
 
 ```typescript
 const rows = await buildMonthlyExtinguisherReportData(equipment, userId, '2026-06', profileName);

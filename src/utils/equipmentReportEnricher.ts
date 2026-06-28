@@ -79,11 +79,11 @@ const INSPECTION_CONFIGS: Record<string, InspectionConfig> = {
     equipmentIdField: 'id_abrigo',
   },
   reserva_tecnica: {
-    table: 'inspecoes_reserva_tecnica',
-    idField: 'id_equipamento',
-    dateField: 'data_inspecao',
-    equipmentIdField: 'id_equipamento',
-    observacoesField: 'observacoes',
+    table: 'water_reservoir_inspections',
+    idField: 'reservoir_id',
+    dateField: 'inspected_at',
+    equipmentIdField: 'id',
+    observacoesField: 'corrective_action_notes',
   },
 };
 
@@ -173,6 +173,20 @@ export async function enrichEquipmentForReport(
     selectFields.push('observacoes_gerais', 'observacoes');
   }
 
+  if (equipmentType === 'reserva_tecnica') {
+    selectFields.length = 0;
+    selectFields.push(
+      'reservoir_id',
+      'inspected_at',
+      'overall_status',
+      'level_reading',
+      'condition',
+      'action_plan',
+      'corrective_action_notes',
+      'created_at'
+    );
+  }
+
   if (equipmentType.startsWith('custom-')) {
     selectFields.push('equipment_type_id', 'id_equipamento');
   }
@@ -181,9 +195,18 @@ export async function enrichEquipmentForReport(
     let query = supabase
       .from(config.table as any)
       .select(selectFields.join(', '))
-      .eq('user_id', userId)
       .order(config.dateField, { ascending: false })
       .order('created_at', { ascending: false });
+
+    if (equipmentType === 'reserva_tecnica') {
+      const reservoirIds = equipmentList.map((item) => String(item.id)).filter(Boolean);
+      if (reservoirIds.length === 0) {
+        return mapWithoutInspection(equipmentList, config.equipmentIdField);
+      }
+      query = query.in('reservoir_id', reservoirIds);
+    } else {
+      query = query.eq('user_id', userId);
+    }
 
     if (config.extraFilter) {
       for (const [key, value] of Object.entries(config.extraFilter)) {
@@ -228,7 +251,10 @@ export async function enrichEquipmentForReport(
         longitude: lastInspection.longitude ?? item.longitude ?? null,
         link_foto_nao_conformidade: lastInspection.link_foto_nao_conformidade ?? null,
         observacoes: extractObservacoes(lastInspection, config.observacoesField),
-        plano_de_acao: lastInspection.plano_de_acao ?? null,
+        plano_de_acao:
+          lastInspection.plano_de_acao ??
+          lastInspection.action_plan ??
+          null,
       };
     });
   } catch (err) {

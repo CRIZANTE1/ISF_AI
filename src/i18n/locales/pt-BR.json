@@ -993,8 +993,8 @@
       "generatingReport": "Gerando relatório...",
       "reportSuccess": "Relatório de inventário gerado com sucesso!",
       "reportError": "Erro ao gerar relatório de inventário.",
-      "monthlyReportSuccess": "Relatório mensal de extintores gerado com sucesso!",
-      "monthlyReportError": "Erro ao gerar relatório mensal de extintores."
+      "monthlyReportSuccess": "Relatório mensal gerado com sucesso!",
+      "monthlyReportError": "Erro ao gerar relatório mensal."
     },
     "photoRequired": {
       "title": "Foto Obrigatória",

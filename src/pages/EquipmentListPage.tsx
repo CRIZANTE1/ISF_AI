@@ -21,8 +21,14 @@ import {
 import {
   generateEquipmentListReport,
   generateMonthlyExtinguisherReport,
+  generateMonthlyReport,
   savePdfToDevice,
 } from '../utils/pdfReportGenerator';
+import {
+  buildMonthlyReportData,
+  MONTHLY_REPORT_EMPTY_MESSAGE,
+} from '../utils/pdf/monthlyReportBuilder';
+import { getPdfConfig } from '../utils/pdf/pdfConfigRegistry';
 import { ButtonSkeleton } from '../components/skeletons';
 
 type EquipmentItem = {
@@ -51,6 +57,7 @@ const EquipmentListPage = () => {
   const [generatingMonthlyReport, setGeneratingMonthlyReport] = useState(false);
   const [reportMonth, setReportMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [customTypeName, setCustomTypeName] = useState<string | null>(null);
+  const [customTypeId, setCustomTypeId] = useState<string | undefined>();
 
   // Memoizar nome do tipo de equipamento
   const equipmentTypeName = useMemo(() => {
@@ -131,6 +138,7 @@ const EquipmentListPage = () => {
           const foundType = customTypes.find(t => t.slug === slug);
           if (foundType) {
             setCustomTypeName(foundType.name);
+            setCustomTypeId(foundType.id);
             const customEquipments = await getAllCustomEquipment(foundType.id);
             setEquipment(customEquipments.map((eq: any) => ({
               ...eq,
@@ -210,38 +218,74 @@ const EquipmentListPage = () => {
   };
 
   const handleGenerateMonthlyReport = async () => {
-    if (!user || type !== 'extintor' || equipment.length === 0 || generatingMonthlyReport) return;
+    if (!user || !type || equipment.length === 0 || generatingMonthlyReport) return;
+
+    const pdfConfig = getPdfConfig(type);
+    if (!pdfConfig) {
+      handleError(new Error('Tipo sem suporte a relatório mensal'), 'equipment', t('help.equipmentList.monthlyReportError'));
+      return;
+    }
 
     setGeneratingMonthlyReport(true);
     try {
-      const rows = await buildMonthlyExtinguisherReportData(
-        equipment,
-        user.id,
-        reportMonth,
-        profile?.full_name || user.email || undefined
-      );
+      const responsibleName = profile?.full_name || user.email || undefined;
+      const reportTypeName = customTypeName || equipmentTypeName;
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const safeTypeName = reportTypeName.replace(/[^a-zA-Z0-9]/g, '_');
 
-      if (rows.length === 0) {
-        handleError(
-          new Error(MONTHLY_EXTINGUISHER_EMPTY_MESSAGE),
-          'equipment',
-          MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
+      let pdfBlob: Blob;
+
+      if (type === 'extintor') {
+        const rows = await buildMonthlyExtinguisherReportData(
+          equipment,
+          user.id,
+          reportMonth,
+          responsibleName
         );
-        return;
+        if (rows.length === 0) {
+          handleError(
+            new Error(MONTHLY_EXTINGUISHER_EMPTY_MESSAGE),
+            'equipment',
+            MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
+          );
+          return;
+        }
+        pdfBlob = await generateMonthlyExtinguisherReport(rows, reportMonth, responsibleName);
+      } else {
+        const rows = await buildMonthlyReportData(
+          equipment,
+          type,
+          user.id,
+          reportMonth,
+          responsibleName,
+          customTypeId
+        );
+        if (rows.length === 0) {
+          handleError(
+            new Error(MONTHLY_REPORT_EMPTY_MESSAGE),
+            'equipment',
+            MONTHLY_REPORT_EMPTY_MESSAGE
+          );
+          return;
+        }
+        pdfBlob = await generateMonthlyReport(
+          rows,
+          pdfConfig.monthlyColumns,
+          reportTypeName,
+          reportMonth,
+          responsibleName
+        );
       }
 
-      const responsibleName = profile?.full_name || user.email || undefined;
-      const pdfBlob = await generateMonthlyExtinguisherReport(rows, reportMonth, responsibleName);
-
-      const dateStr = format(new Date(), 'yyyy-MM-dd');
-      const filename = `Relatorio_Inspecoes_Extintores_${reportMonth}_${dateStr}.pdf`;
-
+      const filename = `Relatorio_Inspecoes_${safeTypeName}_${reportMonth}_${dateStr}.pdf`;
       await savePdfToDevice(pdfBlob, filename);
       showSuccess(t('help.equipmentList.monthlyReportSuccess'));
     } catch (error) {
+      const emptyMsg =
+        type === 'extintor' ? MONTHLY_EXTINGUISHER_EMPTY_MESSAGE : MONTHLY_REPORT_EMPTY_MESSAGE;
       const message =
-        error instanceof Error && error.message === MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
-          ? MONTHLY_EXTINGUISHER_EMPTY_MESSAGE
+        error instanceof Error && error.message === emptyMsg
+          ? emptyMsg
           : t('help.equipmentList.monthlyReportError');
       handleError(error, 'equipment', message);
     } finally {
@@ -249,7 +293,7 @@ const EquipmentListPage = () => {
     }
   };
 
-  const isExtintorList = type === 'extintor';
+  const supportsMonthlyReport = type ? Boolean(getPdfConfig(type)) : false;
 
   return (
     <div className="min-h-screen relative" style={{ zIndex: 10, position: 'relative' }}>
@@ -308,7 +352,7 @@ const EquipmentListPage = () => {
             </button>
           </motion.div>
         )}
-        {!loading && isExtintorList && equipment.length > 0 && (
+        {!loading && supportsMonthlyReport && equipment.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
