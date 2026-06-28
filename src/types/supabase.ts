@@ -1989,6 +1989,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"] | null
           trial_ends_at: string | null
           updated_at: string | null
+          weekly_inspection_goal: number
         }
         Insert: {
           app_tours?: Json
@@ -2000,6 +2001,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           trial_ends_at?: string | null
           updated_at?: string | null
+          weekly_inspection_goal?: number
         }
         Update: {
           app_tours?: Json
@@ -2011,6 +2013,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           trial_ends_at?: string | null
           updated_at?: string | null
+          weekly_inspection_goal?: number
         }
         Relationships: []
       }
@@ -2521,6 +2524,8 @@ export type Database = {
       enviar_relatorio_diario: { Args: never; Returns: undefined }
       enviar_relatorio_mensal: { Args: never; Returns: undefined }
       enviar_relatorio_semanal: { Args: never; Returns: undefined }
+      notify_engagement_streak: { Args: never; Returns: undefined }
+      notify_weekly_summary: { Args: never; Returns: undefined }
       generate_unique_equipment_id: {
         Args: {
           p_id_field_name: string

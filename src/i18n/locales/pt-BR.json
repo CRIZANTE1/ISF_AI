@@ -346,7 +346,11 @@
     "deleteAccountSuccess": "Conta excluída com sucesso",
     "portuguese": "Português (Brasil)",
     "english": "English (US)",
-    "featureInDevelopment": "Funcionalidade em desenvolvimento"
+    "featureInDevelopment": "Funcionalidade em desenvolvimento",
+    "weeklyInspectionGoal": "Meta semanal de inspeções",
+    "weeklyInspectionGoalDescription": "Quantas inspeções você pretende realizar por semana",
+    "weeklyInspectionGoalSaved": "Meta semanal atualizada",
+    "weeklyInspectionGoalError": "Não foi possível salvar a meta semanal"
   },
   "admin": {
     "title": "Administração",
@@ -1131,6 +1135,40 @@
       "maintenanceRequired": {
         "title": "🔧 Manutenção Necessária",
         "body": "{{equipment_type}} ({{equipment_id}}) precisa de manutenção nível {{level}}."
+      }
+    },
+    "suggestions": {
+      "inspectionUpcoming": {
+        "title": "📅 Inspeção se aproximando",
+        "body": "{{equipment_type}} ({{equipment_id}}) vence em {{days}} dias — agende a inspeção."
+      },
+      "weeklyGoal": {
+        "title": "💡 Meta da semana",
+        "body": "Você fez {{done}} de {{target}} inspeções esta semana."
+      },
+      "inactivityNudge": {
+        "title": "👋 Que tal uma visita?",
+        "body": "Faz {{days}} dias sem inspeções. Que tal revisar o mapa?"
+      },
+      "syncSuccess": {
+        "title": "✅ Tudo sincronizado!",
+        "body": "Seus dados estão atualizados e prontos para uso."
+      },
+      "emptyStateTip": {
+        "title": "💡 Dica para começar",
+        "body": "Cadastre seus equipamentos para receber lembretes automáticos."
+      },
+      "weeklySummary": {
+        "title": "📊 Resumo da semana",
+        "body": "Semana passada: {{done}} de {{target}} inspeções. Continue assim!"
+      },
+      "streak": {
+        "title": "🔥 Sequência ativa!",
+        "body": "{{days}} dias consecutivos com inspeções. Parabéns!"
+      },
+      "inactivityPush": {
+        "title": "👋 Sentimos sua falta",
+        "body": "Faz {{days}} dias sem acessar o ISF IA. Volte e mantenha tudo em dia!"
       }
     }
   },

@@ -347,7 +347,11 @@
     "deleteAccountSuccess": "Account deleted successfully",
     "portuguese": "Português (Brasil)",
     "english": "English (US)",
-    "featureInDevelopment": "Feature in development"
+    "featureInDevelopment": "Feature in development",
+    "weeklyInspectionGoal": "Weekly inspection goal",
+    "weeklyInspectionGoalDescription": "How many inspections you aim to complete per week",
+    "weeklyInspectionGoalSaved": "Weekly goal updated",
+    "weeklyInspectionGoalError": "Could not save weekly goal"
   },
   "admin": {
     "title": "Administration",
@@ -1123,6 +1127,40 @@
       "maintenanceRequired": {
         "title": "🔧 Maintenance Required",
         "body": "{{equipment_type}} ({{equipment_id}}) requires level {{level}} maintenance."
+      }
+    },
+    "suggestions": {
+      "inspectionUpcoming": {
+        "title": "📅 Inspection coming up",
+        "body": "{{equipment_type}} ({{equipment_id}}) expires in {{days}} days — schedule the inspection."
+      },
+      "weeklyGoal": {
+        "title": "💡 Weekly goal",
+        "body": "You completed {{done}} of {{target}} inspections this week."
+      },
+      "inactivityNudge": {
+        "title": "👋 Time for a visit?",
+        "body": "It's been {{days}} days without inspections. How about checking the map?"
+      },
+      "syncSuccess": {
+        "title": "✅ All synced!",
+        "body": "Your data is up to date and ready to use."
+      },
+      "emptyStateTip": {
+        "title": "💡 Getting started tip",
+        "body": "Register your equipment to receive automatic reminders."
+      },
+      "weeklySummary": {
+        "title": "📊 Weekly summary",
+        "body": "Last week: {{done}} of {{target}} inspections. Keep it up!"
+      },
+      "streak": {
+        "title": "🔥 Active streak!",
+        "body": "{{days}} consecutive days with inspections. Well done!"
+      },
+      "inactivityPush": {
+        "title": "👋 We miss you",
+        "body": "It's been {{days}} days since you opened ISF IA. Come back and stay on track!"
       }
     }
   },

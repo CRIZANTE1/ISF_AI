@@ -10,6 +10,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { exportUserData, downloadUserDataAsJSON, downloadUserDataAsCSV } from '../utils/dataExport';
 import { importUserData } from '../utils/dataImport';
 import { deleteUserAccount } from '../utils/accountDeletion';
+import { supabase } from '../lib/supabase';
 import { 
   Settings, 
   Moon, 
@@ -58,6 +59,35 @@ const SettingsPage = () => {
   
   // Estado de notificações baseado na permissão
   const notifications = permissionStatus.granted;
+
+  const [weeklyGoal, setWeeklyGoal] = useState(3);
+  const [savingWeeklyGoal, setSavingWeeklyGoal] = useState(false);
+
+  useEffect(() => {
+    setWeeklyGoal(profile?.weekly_inspection_goal ?? 3);
+  }, [profile?.weekly_inspection_goal]);
+
+  const saveWeeklyGoal = async (value: number) => {
+    if (!user) return;
+    const clamped = Math.min(20, Math.max(1, value));
+    setWeeklyGoal(clamped);
+    setSavingWeeklyGoal(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ weekly_inspection_goal: clamped })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      await refreshProfile();
+      showInfo(t('settings.weeklyInspectionGoalSaved'));
+    } catch (error) {
+      handleError(error, 'settings', t('settings.weeklyInspectionGoalError'));
+      setWeeklyGoal(profile?.weekly_inspection_goal ?? 3);
+    } finally {
+      setSavingWeeklyGoal(false);
+    }
+  };
 
   // Sincroniza o estado das notificações quando o componente monta
   useEffect(() => {
@@ -309,6 +339,29 @@ const SettingsPage = () => {
                     }`}
                   />
                 </button>
+              </div>
+
+              {/* Meta semanal de inspeções */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{t('settings.weeklyInspectionGoal')}</p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    {t('settings.weeklyInspectionGoalDescription')}
+                  </p>
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={weeklyGoal}
+                  disabled={savingWeeklyGoal}
+                  onChange={(e) => {
+                    const next = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(next)) setWeeklyGoal(next);
+                  }}
+                  onBlur={() => saveWeeklyGoal(weeklyGoal)}
+                  className="w-16 px-2 py-1.5 bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-lg text-sm text-center focus:ring-2 focus:ring-white/30 focus:outline-none"
+                />
               </div>
 
               {/* Idioma */}

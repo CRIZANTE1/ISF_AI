@@ -14,6 +14,7 @@ export interface Profile {
   trial_ends_at: string | null;
   dev?: boolean; // Quando true, tem bypass em todas as verificações de licença
   app_tours?: Record<string, boolean> | null;
+  weekly_inspection_goal?: number;
 }
 
 interface AuthContextType {

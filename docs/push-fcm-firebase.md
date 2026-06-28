@@ -12,7 +12,7 @@ Guia de configuração do fluxo end-to-end de notificações push Firebase (`com
 
 ```
 App Android → push-register → device_push_tokens
-Cron/Webhook → send-fcm / notify-inspection-due / enviar-atualizacoes-app → FCM → App
+Cron/Webhook → send-fcm / notify-inspection-due / notify-weekly-summary / notify-engagement-streak / enviar-lembrete-inatividade / enviar-atualizacoes-app → FCM → App
 ```
 
 ---
@@ -62,7 +62,8 @@ VITE_ENABLE_PUSH=true
 |---------|--------|
 | `src/lib/pushFlags.ts` | `isPushEnabled()` |
 | `src/lib/pushBackend.ts` | `registerToken()` → `push-register` |
-| `src/lib/inAppNotificationStore.ts` | Fila de notificações em primeiro plano |
+| `src/lib/inAppNotificationStore.ts` | Fila de notificações em primeiro plano + deep links de sugestões |
+| `src/hooks/useEngagementSuggestions.ts` | Gatilhos locais de sugestão (meta semanal, inatividade, etc.) |
 | `src/capacitor/PushNotificationsEffects.tsx` | Registro, listeners, deep links |
 | `src/App.tsx` | Renderiza `<PushNotificationsEffects />` quando push ativo |
 
@@ -91,6 +92,9 @@ plugins: {
 | `push-register` | `true` | JWT do usuário |
 | `send-fcm` | `false` | `Authorization: Bearer <SERVICE_ROLE_KEY>` |
 | `notify-inspection-due` | `false` | `Authorization: Bearer <CRON_SECRET>` |
+| `notify-weekly-summary` | `false` | `Authorization: Bearer <CRON_SECRET>` |
+| `notify-engagement-streak` | `false` | `Authorization: Bearer <CRON_SECRET>` |
+| `enviar-lembrete-inatividade` | `false` | `Authorization: Bearer <CRON_SECRET>` |
 | `enviar-atualizacoes-app` | `false` | `Authorization: Bearer <SERVICE_ROLE_KEY>` |
 
 ### Deploy
@@ -99,6 +103,9 @@ plugins: {
 supabase functions deploy push-register
 supabase functions deploy send-fcm --no-verify-jwt
 supabase functions deploy notify-inspection-due --no-verify-jwt
+supabase functions deploy notify-weekly-summary --no-verify-jwt
+supabase functions deploy notify-engagement-streak --no-verify-jwt
+supabase functions deploy enviar-lembrete-inatividade --no-verify-jwt
 supabase functions deploy enviar-atualizacoes-app --no-verify-jwt
 ```
 
@@ -136,6 +143,60 @@ curl -X POST "$SUPABASE_URL/functions/v1/enviar-atualizacoes-app" \
   -H "Content-Type: application/json" \
   -d '{"version":"1.9.3"}'
 ```
+
+**Cron — resumo semanal de inspeções (segunda 8h UTC):**
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/notify-weekly-summary" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+**Cron — sequência de inspeções (diário 9h UTC):**
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/notify-engagement-streak" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+**Cron — lembrete de inatividade (segunda 11h UTC, email + FCM):**
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/enviar-lembrete-inatividade" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+### Payload `data` — sugestões de engajamento
+
+| `data.type` | `data.route` padrão | Descrição |
+|-------------|---------------------|-----------|
+| `inspection_upcoming` | `/equipment/{tipo}/{id}` | Inspeção em 3–7 dias (local) |
+| `weekly_goal` | `/inspections` | Progresso da meta semanal (local) |
+| `inactivity_nudge` | `/map` | Sem inspeção há 5–7 dias (local) |
+| `sync_success_positive` | `/` | Sync concluída (local) |
+| `empty_state_tip` | `/equipment/add` | Poucos equipamentos (local) |
+| `weekly_summary` | `/inspections` | Resumo da semana anterior (cron) |
+| `streak` | `/history` | Marco de dias consecutivos (cron) |
+| `inactivity_push` | `/map` | Sem login há 7+ dias (cron) |
+
+Todos incluem `category: suggestion` quando aplicável.
+
+### Meta semanal configurável
+
+- Coluna `profiles.weekly_inspection_goal` (padrão 3, intervalo 1–20).
+- Ajustável em **Configurações** no app.
+- Usada por `weekly_goal` (cliente) e `notify-weekly-summary` (servidor).
+
+### Cron jobs (SQL)
+
+Migration `supabase/migrations/20260628_engagement_cron.sql` agenda:
+
+| Job | Horário UTC | Função SQL |
+|-----|-------------|------------|
+| `notify-weekly-summary` | Segunda 8h | `public.notify_weekly_summary()` |
+| `notify-engagement-streak` | Diário 9h | `public.notify_engagement_streak()` |
+| `enviar-lembrete-inatividade` | Segunda 11h | `public.enviar_lembrete_inatividade()` |
+
+Secrets no Vault: `supabase_url`, `cron_secret`.
 
 ---
 

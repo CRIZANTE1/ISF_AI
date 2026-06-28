@@ -11,6 +11,7 @@ import { backgroundSyncService } from './services/backgroundSyncService';
 import { logger } from './utils/logger';
 import { isPushEnabled } from './lib/pushFlags';
 import { PushNotificationsEffects } from './capacitor/PushNotificationsEffects';
+import { EngagementSuggestionsEffects } from './components/EngagementSuggestionsEffects';
 import { GeolocationEffects } from './capacitor/GeolocationEffects';
 import { NetworkEffects } from './capacitor/NetworkEffects';
 
@@ -115,6 +116,7 @@ function App() {
   return (
     <ErrorBoundary>
       {isPushEnabled() && <PushNotificationsEffects />}
+      <EngagementSuggestionsEffects />
       <GeolocationEffects />
       <NetworkEffects />
       <Routes>

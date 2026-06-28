@@ -11,6 +11,7 @@ import { logger } from '../utils/logger';
 import { syncPendingOperations } from '../utils/offlineSync';
 import { getOfflineStats } from '../utils/offlineDB';
 import { notificationService } from './notificationService';
+import { notifySyncSuccessPositive } from '../utils/suggestionNotificationUtils';
 import { checkSupabaseConnection, networkStatusService } from './networkStatusService';
 
 interface PendingOperation {
@@ -297,16 +298,7 @@ class BackgroundSyncService {
     }
 
     if (result.failed === 0) {
-      // Sucesso total
-      await notificationService.showLocalNotification(
-        'Sincronização Concluída',
-        `${result.success} operação(ões) sincronizada(s) com sucesso!`,
-        {
-          tag: 'sync-success',
-          actionTypeId: 'SIMPLE_VIEW',
-          url: '/inspections',
-        }
-      );
+      await notifySyncSuccessPositive();
     } else if (result.success > 0) {
       // Sucesso parcial
       await notificationService.showLocalNotification(

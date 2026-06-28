@@ -49,6 +49,20 @@ export function routeFromPushPayload(data: Record<string, string>): string | nul
     case 'inspecao_pendente':
     case 'equipment':
       return '/inspections';
+    case 'inspection_upcoming':
+    case 'weekly_goal':
+      return data.route?.startsWith('/') ? data.route : '/inspections';
+    case 'inactivity_nudge':
+    case 'inactivity_push':
+      return data.route?.startsWith('/') ? data.route : '/map';
+    case 'empty_state_tip':
+      return data.route?.startsWith('/') ? data.route : '/equipment/add';
+    case 'weekly_summary':
+      return data.route?.startsWith('/') ? data.route : '/inspections';
+    case 'streak':
+      return data.route?.startsWith('/') ? data.route : '/history';
+    case 'sync_success_positive':
+      return data.route?.startsWith('/') ? data.route : '/';
     case 'app_update':
     case 'update':
       return '/profile/settings';
