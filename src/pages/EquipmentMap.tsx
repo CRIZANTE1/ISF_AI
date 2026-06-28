@@ -17,7 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getCurrentLocation } from '../hooks/useGeolocation';
 import { logger } from '../utils/logger';
-import { configureLeafletDefaultIcons, LEAFLET_TILE_DARK } from '../utils/leafletMapConfig';
+import { configureLeafletDefaultIcons, LEAFLET_TILE_DEFAULT } from '../utils/leafletMapConfig';
 
 configureLeafletDefaultIcons();
 
@@ -380,8 +380,8 @@ const EquipmentMap = () => {
             scrollWheelZoom={true}
           >
             <TileLayer
-              attribution={LEAFLET_TILE_DARK.attribution}
-              url={LEAFLET_TILE_DARK.url}
+              attribution={LEAFLET_TILE_DEFAULT.attribution}
+              url={LEAFLET_TILE_DEFAULT.url}
             />
             
             {/* Marcador da localização do usuário */}

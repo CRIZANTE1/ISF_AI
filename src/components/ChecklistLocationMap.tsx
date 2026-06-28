@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from '../hooks/useTranslation';
-import { configureLeafletDefaultIcons, LEAFLET_TILE_DARK } from '../utils/leafletMapConfig';
+import { configureLeafletDefaultIcons, LEAFLET_TILE_DEFAULT } from '../utils/leafletMapConfig';
 
 configureLeafletDefaultIcons();
 
@@ -45,8 +45,8 @@ const ChecklistLocationMap = ({
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution={LEAFLET_TILE_DARK.attribution}
-            url={LEAFLET_TILE_DARK.url}
+            attribution={LEAFLET_TILE_DEFAULT.attribution}
+            url={LEAFLET_TILE_DEFAULT.url}
           />
           <Marker position={position}>
             <Popup>
