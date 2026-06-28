@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logUserAction } from './adminOperations';
+import { getCurrentLocalISOWithTimezone } from './dateUtils';
 import { logger } from './logger';
 import type { WaterReservoir, WaterReservoirInspection } from '../types/equipment';
 
@@ -354,7 +355,7 @@ export async function saveWaterReservoirInspection(
       .from('water_reservoir_inspections')
       .insert({
         ...inspection,
-        inspected_at_ts: inspection.inspected_at_ts || new Date().toISOString(),
+        inspected_at_ts: inspection.inspected_at_ts || getCurrentLocalISOWithTimezone(),
         overall_status: overallStatus,
         action_plan: actionPlan,
         next_inspection_at: nextInspectionAt,

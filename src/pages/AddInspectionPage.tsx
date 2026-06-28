@@ -796,9 +796,8 @@ const AddInspectionPage = () => {
           inspectionDate = formData.data_inspecao;
         }
       } else {
-        // Usar data/hora atual no timezone local
-        const now = new Date();
-        inspectionDateTime = now.toISOString(); // Já está em ISO
+        // Usar data/hora atual no timezone local do dispositivo
+        inspectionDateTime = convertDateTimeLocalToISOWithTimezone(getCurrentDateTimeLocal());
         inspectionDate = inspectionDateTime.split('T')[0];
       }
       let photoLink: string | null = null;

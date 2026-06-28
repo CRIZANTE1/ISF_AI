@@ -102,3 +102,19 @@ export const convertDateTimeLocalToISOWithTimezone = (datetimeLocal: string): st
   }
 };
 
+/**
+ * Retorna data/hora atual no formato datetime-local (YYYY-MM-DDTHH:mm)
+ */
+export const getCurrentDateTimeLocal = (): string => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+};
+
+/**
+ * Retorna ISO string com timezone local do dispositivo para o momento atual
+ */
+export const getCurrentLocalISOWithTimezone = (): string => {
+  return convertDateTimeLocalToISOWithTimezone(getCurrentDateTimeLocal());
+};
+
