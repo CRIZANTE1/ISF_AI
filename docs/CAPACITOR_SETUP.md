@@ -295,6 +295,7 @@ Mais problemas: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 
 | Documento | Conteúdo |
 |-----------|----------|
+| [EMULADORES.md](./EMULADORES.md) | Emulador Android (sem Studio) e simulador iOS |
 | [PERMISSIONS.md](./PERMISSIONS.md) | Permissões Android em detalhe |
 | [push-fcm-firebase.md](./push-fcm-firebase.md) | Firebase + FCM + Edge Functions |
 | [GOOGLE_PLAY_BILLING_SETUP.md](./GOOGLE_PLAY_BILLING_SETUP.md) | Compras in-app |

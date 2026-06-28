@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEquipmentCache } from '../contexts/EquipmentCacheContext';
-import DashboardHeader from '../components/DashboardHeader';
+import DashboardHeader, { DASHBOARD_MAIN_PADDING_TOP } from '../components/DashboardHeader';
 import AlertsList from '../components/AlertsList';
 import Skeleton from '../components/Skeleton';
 import TrialStatusBar from '../components/TrialStatusBar';
@@ -73,7 +73,13 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300 relative" style={{ backgroundColor: '#000000' }}>
       <DashboardHeader />
-      <main className="px-ios-4 flex-grow py-ios-4 pb-32 relative" style={{ backgroundColor: '#000000' }}>
+      <main
+        className="px-ios-4 flex-grow pb-32 relative"
+        style={{
+          backgroundColor: '#000000',
+          paddingTop: DASHBOARD_MAIN_PADDING_TOP,
+        }}
+      >
         <motion.div 
           data-tour="dashboard-welcome"
           initial={{ opacity: 0, y: 20 }}

@@ -176,6 +176,7 @@ Fonte: `icons/web/icon-512.png` → `Assets.xcassets/AppIcon.appiconset/`.
 
 ## Referências
 
+- [EMULADORES.md](./EMULADORES.md) — Emulador Android (sem Studio) e simulador iOS
 - [CAPACITOR_SETUP.md](./CAPACITOR_SETUP.md) — Android
 - [push-fcm-firebase.md](./push-fcm-firebase.md) — Push end-to-end
 - [GOOGLE_AUTH_IMPLEMENTATION.md](./GOOGLE_AUTH_IMPLEMENTATION.md) — OAuth deep links

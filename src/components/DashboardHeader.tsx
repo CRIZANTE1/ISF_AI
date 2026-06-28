@@ -39,6 +39,10 @@ interface Alert {
 
 const ALERTS_NOTIFICATION_KEY = 'isfia_last_alerts_notification';
 
+/** Altura reservada para o header fixo (conteúdo rola por baixo) */
+export const DASHBOARD_HEADER_OFFSET = 'calc(76px + env(safe-area-inset-top, 0px))';
+export const DASHBOARD_MAIN_PADDING_TOP = 'calc(92px + env(safe-area-inset-top, 0px))';
+
 const DashboardHeader = () => {
   const { profile, user } = useAuth();
   const { t, currentLanguage } = useTranslation();
@@ -366,14 +370,14 @@ const DashboardHeader = () => {
 
   return (
     <header 
-      className="sticky left-0 right-0 z-50"
+      className="fixed top-0 left-0 right-0 z-50"
       style={{ 
+        position: 'fixed',
         paddingLeft: '16px',
         paddingRight: '16px',
-        paddingTop: '12px',
+        paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))',
         paddingBottom: '12px',
-        top: 'env(safe-area-inset-top, 0px)',
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
       }}
