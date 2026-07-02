@@ -214,6 +214,12 @@ export async function updateCustomEquipmentType(
  */
 export async function getCustomEquipmentFields(equipmentTypeId: string): Promise<CustomEquipmentField[]> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar campos customizados', 'equipment');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('custom_equipment_fields')
       .select('*')
@@ -544,15 +550,17 @@ export async function saveCustomEquipmentInspection(
       }
     }
 
-    const { error } = await supabase
-      .from('custom_equipment_inspections')
-      .insert({
-        ...inspection,
-        plano_de_acao: planoDeAcao,
-        user_id: user.id,
-      });
+    // Usa wrapper offline para suportar modo offline
+    const { offlineInsert } = await import('./offlineOperations');
+    const result = await offlineInsert('custom_equipment_inspections', {
+      ...inspection,
+      plano_de_acao: planoDeAcao,
+      user_id: user.id,
+    });
 
-    if (error) throw error;
+    if (!result.success) {
+      throw new Error('Falha ao salvar inspeção');
+    }
 
     // Atualiza latitude/longitude no cadastro do equipamento se fornecidas na inspeção
     // NOTA: Isso sobrescreve coordenadas editadas manualmente no cadastro, pois a última inspeção tem prioridade
