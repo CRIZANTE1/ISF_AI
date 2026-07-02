@@ -125,9 +125,11 @@ export async function getAllWaterReservoirs(): Promise<WaterReservoir[]> {
     if (!reservoirs || reservoirs.length === 0) return [];
 
     try {
+      const reservoirIds = reservoirs.map((r) => r.id);
       const { data: inspections, error: inspError } = await supabase
         .from('water_reservoir_inspections')
         .select('reservoir_id, next_inspection_at, overall_status, inspected_at, created_at')
+        .in('reservoir_id', reservoirIds)
         .order('inspected_at', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -312,10 +314,18 @@ export async function deleteWaterReservoir(id: string): Promise<boolean> {
  */
 export async function getWaterReservoirInspections(reservoirId: string): Promise<WaterReservoirInspection[]> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar inspeções de reserva técnica', 'equipment');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('water_reservoir_inspections')
       .select('*')
       .eq('reservoir_id', reservoirId)
+      .eq('inspector_user_id', user.id)
       .order('inspected_at', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -430,10 +440,18 @@ export async function insertWaterReservoirActionLog(
  */
 export async function getWaterReservoirActionLogs(reservoirId: string): Promise<WaterReservoirActionLog[]> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar logs de ação de reserva técnica', 'equipment');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('water_reservoir_action_logs')
       .select('*')
       .eq('reservoir_id', reservoirId)
+      .eq('created_by', user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

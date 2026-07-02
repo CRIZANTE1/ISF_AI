@@ -306,11 +306,19 @@ export async function getCustomChecklistFull(checklistId: string): Promise<{
   sections: Array<CustomChecklistSection & { items: CustomChecklistItem[] }>;
 } | null> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user?.id) {
+      logger.warn('Usuário não autenticado ao buscar checklist completo', 'equipment');
+      return null;
+    }
+
     // Busca checklist
     const { data: checklist, error: checklistError } = await supabase
       .from('custom_checklists')
       .select('*')
       .eq('id', checklistId)
+      .eq('user_id', user.id)
       .single();
 
     if (checklistError || !checklist) return null;
