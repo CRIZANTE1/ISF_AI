@@ -71,7 +71,7 @@ import {
   CANNON_MONITOR_CHECKLIST_FUNCIONAL,
   HOSE_CHECKLIST 
 } from '../constants/checklists';
-import { convertDateTimeLocalToISOWithTimezone } from '../utils/dateUtils';
+import { convertDateTimeLocalToISOWithTimezone, parseInspectionDate } from '../utils/dateUtils';
 
 // Helper para converter File para Base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -948,8 +948,12 @@ const AddInspectionPage = () => {
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proxima_inspecao: (() => {
-              const nextDate = new Date(inspectionDate);
-              nextDate.setDate(nextDate.getDate() + (foamChamberInspectionType === 'Funcional Anual' ? 365 : 180));
+              const nextDate = parseInspectionDate(inspectionDate);
+              if (foamChamberInspectionType === 'Funcional Anual') {
+                nextDate.setFullYear(nextDate.getFullYear() + 1);
+              } else {
+                nextDate.setMonth(nextDate.getMonth() + 6);
+              }
               return nextDate.toISOString().split('T')[0];
             })(),
             latitude: latitude || undefined,
@@ -1106,8 +1110,8 @@ const AddInspectionPage = () => {
             plano_de_acao: planoDeAcao,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
             data_proximo_teste: (() => {
-              const nextDate = new Date(inspectionDate);
-              nextDate.setDate(nextDate.getDate() + 30);
+              const nextDate = parseInspectionDate(inspectionDate);
+              nextDate.setMonth(nextDate.getMonth() + 1);
               return nextDate.toISOString().split('T')[0];
             })(),
             user_id: user.id,

@@ -8,6 +8,7 @@ import { TablesInsert } from '../types/supabase';
 import type { Extinguisher } from '../types/equipment';
 import { logUserAction } from './adminOperations';
 import { logger } from './logger';
+import { parseInspectionDate } from './dateUtils';
 
 // Re-exporta para manter compatibilidade com imports existentes
 export type { Extinguisher } from '../types/equipment';
@@ -170,7 +171,7 @@ export function calculateNextDates(
   }
 
   try {
-    const serviceDate = new Date(serviceDateStr);
+    const serviceDate = parseInspectionDate(serviceDateStr);
     if (isNaN(serviceDate.getTime())) {
       logger.warn('Data de serviço inválida', 'equipment', { serviceDateStr });
       return {};
