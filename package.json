@@ -1,7 +1,7 @@
 {
   "name": "isf-ia-app",
   "private": true,
-  "version": "1.9.3",
+  "version": "3.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

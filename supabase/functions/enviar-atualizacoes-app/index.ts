@@ -10,7 +10,7 @@ import {
   stringifyData,
 } from "../_shared/fcm.ts";
 
-const APP_VERSION = "1.9.3";
+const APP_VERSION = "3.0.1";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

@@ -947,9 +947,11 @@ const AddInspectionPage = () => {
             resultados_json: checklistResults,
             link_foto_nao_conformidade: photoLink || undefined,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proxima_inspecao: foamChamberInspectionType === 'Funcional Anual'
-              ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-              : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            data_proxima_inspecao: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setDate(nextDate.getDate() + (foamChamberInspectionType === 'Funcional Anual' ? 365 : 180));
+              return nextDate.toISOString().split('T')[0];
+            })(),
             latitude: latitude || undefined,
             longitude: longitude || undefined,
             user_id: user.id,
@@ -1103,7 +1105,11 @@ const AddInspectionPage = () => {
             observacoes: autoObservations || observacoes || undefined,
             plano_de_acao: planoDeAcao,
             inspetor: user.user_metadata?.full_name || user.email || 'Usuário',
-            data_proximo_teste: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            data_proximo_teste: (() => {
+              const nextDate = new Date(inspectionDate);
+              nextDate.setDate(nextDate.getDate() + 30);
+              return nextDate.toISOString().split('T')[0];
+            })(),
             user_id: user.id,
           };
 
