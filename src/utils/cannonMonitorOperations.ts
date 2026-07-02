@@ -175,7 +175,7 @@ export async function saveCannonMonitorInspection(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção de canhão monitor', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 

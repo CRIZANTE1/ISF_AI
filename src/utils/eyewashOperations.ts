@@ -160,7 +160,7 @@ export async function saveEyewashInspection(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção de chuveiro/lava-olhos', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 

@@ -261,7 +261,7 @@ export async function saveHoseInspection(inspection: Omit<HoseInspection, 'id' |
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção de mangueira', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 

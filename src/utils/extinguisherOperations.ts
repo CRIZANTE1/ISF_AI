@@ -726,7 +726,12 @@ export async function saveExtinguisherInspection(
     }
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === '23505') {
+      // Violação de unique constraint: inspeção duplicada inserida concorrentemente
+      logger.warn('Constraint única violada em saveExtinguisherInspection — inserção concorrente ignorada', 'equipment', error);
+      return true;
+    }
     logger.error('Erro ao salvar inspeção de extintor', 'equipment', error);
     throw error;
   }

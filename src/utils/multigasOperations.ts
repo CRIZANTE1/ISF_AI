@@ -421,7 +421,7 @@ export async function saveMultigasInspection(
         tipo_teste: inspection.tipo_teste,
       }
     });
-    return false;
+    throw error;
   }
 }
 

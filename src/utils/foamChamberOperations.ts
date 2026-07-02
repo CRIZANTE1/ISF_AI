@@ -157,7 +157,7 @@ export async function saveFoamChamberInspection(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção de câmara de espuma', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 

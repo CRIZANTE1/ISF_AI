@@ -164,6 +164,7 @@ export function getUpcomingInspections(
     { list: cache.eyewashStations as EquipmentRecord[], type: 'chuveiro_lavaolhos', idField: 'id_equipamento', dateFields: ['data_proxima_inspecao'] },
     { list: cache.alarmSystems as EquipmentRecord[], type: 'alarme', idField: 'id_sistema', dateFields: ['data_proxima_inspecao'] },
     { list: cache.shelters as EquipmentRecord[], type: 'abrigo', idField: 'id_abrigo', dateFields: ['data_proxima_inspecao'] },
+    { list: cache.waterReservoirs as EquipmentRecord[], type: 'reservatorio_agua', idField: 'id', dateFields: ['next_inspection_at'] },
   ];
 
   simpleTypes.forEach(({ list, type, idField, dateFields }) => {
@@ -241,6 +242,7 @@ export function hasCriticalAlertsInCache(cache: EquipmentCache): boolean {
   if (checkList(cache.eyewashStations as EquipmentRecord[], ['data_proxima_inspecao'], ['status_geral'])) return true;
   if (checkList(cache.alarmSystems as EquipmentRecord[], ['data_proxima_inspecao'], ['status'])) return true;
   if (checkList(cache.shelters as EquipmentRecord[], ['data_proxima_inspecao'], ['status'])) return true;
+  if (checkList(cache.waterReservoirs as EquipmentRecord[], ['next_inspection_at'], ['overall_status', 'status'])) return true;
 
   return false;
 }

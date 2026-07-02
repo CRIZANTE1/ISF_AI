@@ -41,7 +41,10 @@ export async function saveNewSCBA(scba: Omit<SCBA, 'id' | 'created_at'>): Promis
 
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('conjuntos_autonomos', scba);
+    const result = await offlineInsert('conjuntos_autonomos', {
+      ...scba,
+      user_id: user.id,
+    });
     
     if (!result.success) {
       throw new Error('Falha ao salvar SCBA');
@@ -209,7 +212,7 @@ export async function saveSCBAVisualInspection(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção SCBA', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 

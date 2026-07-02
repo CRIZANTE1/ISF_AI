@@ -393,7 +393,7 @@ export async function saveWaterReservoirInspection(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção de reserva técnica', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 

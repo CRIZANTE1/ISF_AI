@@ -72,9 +72,17 @@ export async function saveShelterInspection(
   inspection: Omit<ShelterInspection, 'id' | 'created_at'>
 ): Promise<boolean> {
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) {
+      throw new Error('Usuário não autenticado');
+    }
+
     // Usa wrapper offline para suportar modo offline
     const { offlineInsert } = await import('./offlineOperations');
-    const result = await offlineInsert('inspecoes_abrigos', inspection);
+    const result = await offlineInsert('inspecoes_abrigos', {
+      ...inspection,
+      user_id: user.id,
+    });
     
     if (!result.success) {
       throw new Error('Falha ao salvar inspeção');
@@ -85,20 +93,17 @@ export async function saveShelterInspection(
     // Se a inspeção não tiver GPS (null/undefined), as coordenadas do cadastro permanecem inalteradas
     if (inspection.latitude != null && inspection.longitude != null) {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (!userError && user?.id) {
-          const { error: updateError } = await supabase
-            .from('abrigos')
-            .update({
-              latitude: inspection.latitude,
-              longitude: inspection.longitude,
-            })
-            .eq('id_abrigo', inspection.id_abrigo)
-            .eq('user_id', user.id);
-          
-          if (updateError) {
-            logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento', 'equipment', updateError);
-          }
+        const { error: updateError } = await supabase
+          .from('abrigos')
+          .update({
+            latitude: inspection.latitude,
+            longitude: inspection.longitude,
+          })
+          .eq('id_abrigo', inspection.id_abrigo)
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento', 'equipment', updateError);
         }
       } catch (updateError) {
         logger.warn('Erro ao atualizar coordenadas no cadastro do equipamento', 'equipment', updateError);
@@ -118,7 +123,7 @@ export async function saveShelterInspection(
     return true;
   } catch (error) {
     logger.error('Erro ao salvar inspeção de abrigo', 'equipment', error);
-    return false;
+    throw error;
   }
 }
 
