@@ -54,3 +54,14 @@ coverage/
 
 # Vitest
 .vitest/
+
+# Cursor plans e agente interno
+.cursor/
+
+# Seeds com dados reais de clientes
+supabase/seed/
+
+# Certificados e chaves
+*.pem
+*.p12
+*.p8
