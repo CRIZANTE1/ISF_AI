@@ -86,6 +86,18 @@ serve(async (req) => {
       })
     }
 
+    const cronSecret = Deno.env.get('CRON_SECRET') || ''
+    const authHeader = req.headers.get('Authorization') || ''
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      })
+    }
+
     const supabaseUrl = Deno.env.get('SUPA_URL') || Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPA_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     

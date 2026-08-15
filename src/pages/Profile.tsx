@@ -288,8 +288,8 @@ const Profile = () => {
           { type: compressedBlob.type }
         );
 
-        // Upload da imagem comprimida para storage
-        const filePath = compressedFile.name;
+        // Upload da imagem comprimida para storage (pasta isolada por uid)
+        const filePath = `${user.id}/${compressedFile.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -300,7 +300,7 @@ const Profile = () => {
 
       if (uploadError) throw uploadError;
 
-      // Obtém URL pública
+      // Obtém URL (bucket privado: leitura via SDK autenticado)
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);

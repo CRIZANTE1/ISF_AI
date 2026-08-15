@@ -7,9 +7,32 @@ import { createThumbnail, compressImage, blobToFile } from './imageCompression';
 import { logger } from './logger';
 
 /**
+ * Resolve o user id da sessão — obrigatório para paths isolados por tenant.
+ */
+async function requireUserId(): Promise<string> {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session?.user?.id) {
+    throw new Error('Usuário não autenticado. Faça login para enviar arquivos.');
+  }
+  return session.user.id;
+}
+
+/**
+ * Prefixo de pasta do usuário: `{uid}/...`
+ */
+function userScopedPath(userId: string, folder: string, fileName: string): string {
+  const cleanFolder = folder.replace(/^\/+|\/+$/g, '');
+  return cleanFolder ? `${userId}/${cleanFolder}/${fileName}` : `${userId}/${fileName}`;
+}
+
+/**
  * Faz upload de uma foto de evidência para o Supabase Storage
  * OBRIGATÓRIO: SEMPRE comprime a imagem antes do upload para garantir otimização
  * Inclui upload da imagem original comprimida e thumbnail
+ * Path: `{userId}/{folder}/{fileName}` (isolamento RLS por pasta)
  */
 export async function uploadEvidencePhoto(
   file: File,
@@ -18,6 +41,8 @@ export async function uploadEvidencePhoto(
   createThumb: boolean = true
 ): Promise<{ url: string; thumbnailUrl?: string } | null> {
   try {
+    const userId = await requireUserId();
+
     // OBRIGATÓRIO: SEMPRE comprime a imagem antes do upload
     logger.info('Comprimindo imagem de evidência (OBRIGATÓRIO)', 'storage', { 
       originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`, 
@@ -53,7 +78,7 @@ export async function uploadEvidencePhoto(
     const timestamp = new Date().getTime();
     const fileExt = compressedFile.name?.split('.').pop() || 'webp';
     const fileName = `${equipmentId}_${timestamp}.${fileExt}`;
-    const filePath = `${folder}/${fileName}`;
+    const filePath = userScopedPath(userId, folder, fileName);
 
     // Faz upload do arquivo comprimido
     const { data, error } = await supabase.storage
@@ -68,7 +93,7 @@ export async function uploadEvidencePhoto(
       return null;
     }
 
-    // Obtém a URL pública do arquivo
+    // URL pública (bucket privado: leitura via SDK autenticado / signed URL)
     const { data: urlData } = supabase.storage
       .from('evidence-photos')
       .getPublicUrl(filePath);
@@ -80,7 +105,7 @@ export async function uploadEvidencePhoto(
       try {
         const thumbnailBlob = await createThumbnail(compressedFile, 200);
         const thumbnailFileName = `${equipmentId}_${timestamp}_thumb.webp`;
-        const thumbnailPath = `${folder}/thumbnails/${thumbnailFileName}`;
+        const thumbnailPath = userScopedPath(userId, `${folder}/thumbnails`, thumbnailFileName);
 
         const thumbnailFile = blobToFile(
           thumbnailBlob,
@@ -121,6 +146,7 @@ export async function uploadEvidencePhoto(
  * Faz upload de um arquivo genérico para o Supabase Storage
  * IMPORTANTE: Imagens são SEMPRE comprimidas antes do upload
  * Documentos são validados quanto ao tamanho máximo (10MB)
+ * Path: `{userId}/{folder}/{fileName}` quando o bucket exige isolamento
  */
 export async function uploadFile(
   file: File,
@@ -129,6 +155,7 @@ export async function uploadFile(
   fileName?: string
 ): Promise<string | null> {
   try {
+    const userId = await requireUserId();
     let fileToUpload = file;
     let finalFileName = fileName;
 
@@ -193,7 +220,11 @@ export async function uploadFile(
 
     const fileExt = fileToUpload.name?.split('.').pop() || 'bin';
     const finalFileNameToUse = finalFileName || fileName || `file_${timestamp}.${fileExt}`;
-    const filePath = folder ? `${folder}/${finalFileNameToUse}` : finalFileNameToUse;
+    // Isolamento por usuário para buckets de evidência/avatares
+    const needsUserScope = bucket === 'evidence-photos' || bucket === 'avatars';
+    const filePath = needsUserScope
+      ? userScopedPath(userId, folder, finalFileNameToUse)
+      : (folder ? `${folder}/${finalFileNameToUse}` : finalFileNameToUse);
 
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -217,4 +248,3 @@ export async function uploadFile(
     return null;
   }
 }
-

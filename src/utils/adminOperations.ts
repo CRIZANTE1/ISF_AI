@@ -73,7 +73,7 @@ export async function getAllUsers(): Promise<UserWithProfile[]> {
   const { data, error } = await supabase.rpc('get_all_users_with_profiles');
 
   if (error) {
-    // Fallback: Get profiles directly (limited info)
+    // Fallback: Get profiles directly (limited info) — RLS permite admins via is_admin()
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*')
@@ -96,7 +96,23 @@ export async function getAllUsers(): Promise<UserWithProfile[]> {
     }));
   }
 
-  return data || [];
+  return (data || []).map((row: any) => {
+    const profile = typeof row.profile === 'string' ? JSON.parse(row.profile) : row.profile;
+    return {
+      id: row.id,
+      email: row.email,
+      created_at: row.created_at,
+      last_sign_in_at: row.last_sign_in_at,
+      profile: profile
+        ? {
+            full_name: profile.full_name ?? null,
+            role: (profile.role as 'admin' | 'user') ?? 'user',
+            plan: (profile.plan as 'trial' | 'premium') ?? 'trial',
+            trial_ends_at: profile.trial_ends_at ?? null,
+          }
+        : null,
+    };
+  });
 }
 
 // Get user statistics
@@ -605,23 +621,42 @@ export async function updateLogRetentionConfig(
   if (error) throw error;
 }
 
-// Executar limpeza manual de logs
+// Executar limpeza manual de logs (Edge Function — requer admin JWT)
 export async function cleanupOldLogs(): Promise<{
   deleted_action_logs: number;
   deleted_access_logs: number;
   retention_days: number;
 } | null> {
   try {
-    const { data, error } = await supabase.rpc('cleanup_old_logs_v2');
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (error) throw error;
-    
-    // A função retorna um array com um objeto
-    if (data && data.length > 0) {
-      return data[0];
+    if (!session?.access_token) {
+      throw new Error('Sessão inválida');
     }
-    
-    return null;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/cleanup-old-logs-v2`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Falha ao limpar logs');
+    }
+
+    return {
+      deleted_action_logs: payload.deleted_action_logs ?? 0,
+      deleted_access_logs: payload.deleted_access_logs ?? 0,
+      retention_days: payload.action_retention_days ?? payload.retention_days ?? 0,
+    };
   } catch (error) {
     logger.error('Failed to cleanup old logs', 'admin', error);
     throw error;
