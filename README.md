@@ -437,5 +437,4 @@ Acesse `http://localhost:5173` no navegador para testar a interface antes de com
 
 ---
 
-Desenvolvido com ❤️ usando React, TypeScript, Vite, Capacitor e Supabase para Android
 
