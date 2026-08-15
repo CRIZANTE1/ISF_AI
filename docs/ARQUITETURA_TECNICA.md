@@ -1,6 +1,6 @@
 # ISF-IA — Arquitetura Técnica
 
-**Versão do app:** 3.0.2 (build 43)  
+**Versão do app:** 3.0.3 (build 44)  
 **App ID:** `com.isfia.app`  
 **Repositório:** https://github.com/CRISTIANCARLOS/ISF-IA
 
