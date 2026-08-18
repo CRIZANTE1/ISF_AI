@@ -97,25 +97,39 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
           return null;
         }
 
-        // Obtém localização com alta precisão (otimizado para Android)
+        // Verifica se apenas localização aproximada (coarse) foi concedida
+        const permissions = await Geolocation.checkPermissions();
+        const onlyCoarse =
+          permissions.location !== 'granted' &&
+          Capacitor.getPlatform() === 'android' &&
+          permissions.coarseLocation === 'granted';
+
         logger.info('Permissão concedida, obtendo posição atual...', 'geolocation');
-        logger.info('Configurações: enableHighAccuracy=true, timeout=30000, maximumAge=10000', 'geolocation');
-        
+
         let position;
         try {
           position = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 30000, // 30 segundos (aumentado para dar mais tempo)
-            maximumAge: 10000, // Aceita localização com até 10 segundos
+            enableHighAccuracy: !onlyCoarse,
+            timeout: 30000,
+            maximumAge: 10000,
           });
-          logger.info(`✅ Localização obtida com sucesso!`, 'geolocation');
+          logger.info(`✅ Localização obtida com sucesso! (highAccuracy=${!onlyCoarse})`, 'geolocation');
           logger.info(`Coordenadas: lat=${position.coords.latitude}, lng=${position.coords.longitude}`, 'geolocation');
           logger.info(`Precisão: ${position.coords.accuracy}m`, 'geolocation');
         } catch (posError: any) {
-          logger.error(`❌ Erro ao obter posição: ${posError.message}`, 'geolocation');
-          logger.error(`Código do erro: ${posError.code || 'N/A'}`, 'geolocation');
-          logger.error(`Stack trace: ${posError.stack || 'N/A'}`, 'geolocation');
-          throw posError;
+          logger.error(`❌ Erro ao obter posição (highAccuracy=${!onlyCoarse}): ${posError.message}`, 'geolocation');
+          // Tenta novamente com baixa precisão se a tentativa de alta precisão falhou
+          if (!onlyCoarse) {
+            logger.info('Tentando novamente com enableHighAccuracy=false...', 'geolocation');
+            position = await Geolocation.getCurrentPosition({
+              enableHighAccuracy: false,
+              timeout: 15000,
+              maximumAge: 30000,
+            });
+            logger.info(`✅ Localização obtida com baixa precisão!`, 'geolocation');
+          } else {
+            throw posError;
+          }
         }
 
         return {

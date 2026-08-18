@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
     const getSession = async () => {
@@ -54,8 +55,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Continua mesmo com erro para não bloquear a aplicação
         setSession(null);
         setUser(null);
+      } finally {
+        setSessionReady(true);
       }
-      // We will set loading to false after the profile is also fetched.
     };
 
     getSession();
@@ -98,13 +100,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!sessionReady) return;
+
       if (user) {
         setLoading(true);
         setProfileError(null); // Limpa erro anterior
         try {
           const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, full_name, avatar_url, role, plan, trial_ends_at, dev, app_tours, weekly_inspection_goal')
             .eq('id', user.id)
             .single();
           
@@ -155,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchProfile();
-  }, [user]);
+  }, [user, sessionReady]);
 
   const refreshProfile = async () => {
     if (!user) {
@@ -168,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, avatar_url, role, plan, trial_ends_at, dev, app_tours, weekly_inspection_goal')
         .eq('id', user.id)
         .single();
       

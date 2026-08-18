@@ -160,6 +160,7 @@ const AddInspectionPage = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [retryingLocation, setRetryingLocation] = useState(false);
 
   // Estado para tipos customizados
   const [isCustomType, setIsCustomType] = useState(false);
@@ -357,29 +358,31 @@ const AddInspectionPage = () => {
   }, [type, setIsCustomType, setCustomTypeId]);
 
   // Captura geolocalização automaticamente quando a página carrega
-  useEffect(() => {
-    const captureLocation = async () => {
-      // Tipos de equipamentos que precisam de geolocalização
-      const needsLocation = ['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') || isCustomType;
-      
-      if (needsLocation) {
-        try {
-          const location = await getCurrentLocation();
-          if (location) {
-            setLatitude(location.latitude);
-            setLongitude(location.longitude);
-            setLocationError(null);
-          } else {
-            setLocationError(t('common.locationError'));
-          }
-        } catch (err: any) {
-          setLocationError(err.message || t('common.locationError'));
-        }
-      }
-    };
+  const captureLocation = useCallback(async () => {
+    const needsLocation = ['extintor', 'abrigo', 'canhao_monitor', 'camara_espuma', 'chuveiro_lavaolhos', 'alarme'].includes(type || '') || isCustomType;
+    if (!needsLocation) return;
 
-    captureLocation();
+    setRetryingLocation(true);
+    setLocationError(null);
+    try {
+      const location = await getCurrentLocation();
+      if (location) {
+        setLatitude(location.latitude);
+        setLongitude(location.longitude);
+        setLocationError(null);
+      } else {
+        setLocationError(t('common.locationError'));
+      }
+    } catch (err: any) {
+      setLocationError(err.message || t('common.locationError'));
+    } finally {
+      setRetryingLocation(false);
+    }
   }, [type, isCustomType, t]);
+
+  useEffect(() => {
+    captureLocation();
+  }, [captureLocation]);
 
   // Busca informações do equipamento baseado no tipo
   useEffect(() => {
@@ -1476,10 +1479,26 @@ const AddInspectionPage = () => {
                 <span>{t('inspection.locationCaptured')} {latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
               </p>
             ) : locationError ? (
-              <p className="text-sm flex items-center gap-2" style={{ color: '#FC3D39' }}>
-                <span>⚠</span>
-                <span>{locationError}</span>
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm flex items-center gap-2" style={{ color: '#FC3D39' }}>
+                  <span>⚠</span>
+                  <span>{locationError}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={captureLocation}
+                  disabled={retryingLocation}
+                  className="text-xs font-medium py-1 px-3 rounded-full self-start"
+                  style={{
+                    backgroundColor: retryingLocation ? 'rgba(252,61,57,0.1)' : 'rgba(252,61,57,0.2)',
+                    color: '#FC3D39',
+                    border: '1px solid rgba(252,61,57,0.4)',
+                    opacity: retryingLocation ? 0.6 : 1,
+                  }}
+                >
+                  {retryingLocation ? t('common.loading', { defaultValue: 'Aguarde...' }) : t('common.retry', { defaultValue: 'Tentar novamente' })}
+                </button>
+              </div>
             ) : (
               <p className="text-sm flex items-center gap-2" style={{ color: '#8E8E93' }}>
                 <span>⟳</span>

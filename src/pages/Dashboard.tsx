@@ -20,7 +20,7 @@ interface Stats {
 }
 
 const Dashboard = () => {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, profileError, loading: authLoading } = useAuth();
   const { getAllEquipment, cache, isStale, refreshCache } = useEquipmentCache();
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
@@ -68,7 +68,10 @@ const Dashboard = () => {
     }
   }, [user, calculatedStats, cache.isLoading, isStale, refreshCache, handleError]);
 
-  const isLoading = authLoading || loadingStats;
+  const waitingProfile = Boolean(user && !profile && !profileError);
+  const isLoading = authLoading || loadingStats || waitingProfile;
+  const rawName = profile?.full_name?.trim() ?? '';
+  const greetingName = rawName.includes('@') ? '' : rawName;
 
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300 relative" style={{ backgroundColor: '#000000' }}>
@@ -97,7 +100,7 @@ const Dashboard = () => {
               className="text-section-title font-semibold text-white mb-2"
               style={{ letterSpacing: '-0.3px' }}
             >
-              {t('dashboard.hello')}, {profile?.full_name ?? t('dashboard.user')}
+              {t('dashboard.hello')}, {greetingName || t('dashboard.user')}
             </motion.h2>
           )}
           <TrialStatusBar profile={profile} />
