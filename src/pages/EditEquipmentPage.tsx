@@ -54,7 +54,7 @@ const EditEquipmentPage = () => {
   const [isCustomType, setIsCustomType] = useState(false);
   const [customTypeId, setCustomTypeId] = useState<string | null>(null);
   
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<EquipmentData>();
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<EquipmentData>();
 
   // Verifica se é tipo customizado
   useEffect(() => {
@@ -379,7 +379,7 @@ const EditEquipmentPage = () => {
     
     switch (type) {
       case 'extintor':
-        return <ExtinguisherForm register={register} errors={errors} watch={watch} />;
+        return <ExtinguisherForm register={register} errors={errors} watch={watch} setValue={setValue} />;
       case 'mangueira':
         return <HoseForm register={register} />;
       case 'scba':
@@ -387,15 +387,15 @@ const EditEquipmentPage = () => {
       case 'multigas':
         return <MultigasForm register={register} />;
       case 'camara_espuma':
-        return <FoamChamberForm register={register} errors={errors} watch={watch} />;
+        return <FoamChamberForm register={register} errors={errors} watch={watch} setValue={setValue} />;
       case 'canhao_monitor':
-        return <CannonMonitorForm register={register} watch={watch} />;
+        return <CannonMonitorForm register={register} watch={watch} setValue={setValue} />;
       case 'chuveiro_lavaolhos':
-        return <EyewashForm register={register} />;
+        return <EyewashForm register={register} setValue={setValue} />;
       case 'alarme':
         return <AlarmForm register={register} />;
       case 'abrigo':
-        return <ShelterForm register={register} />;
+        return <ShelterForm register={register} setValue={setValue} />;
       default:
         return null;
     }

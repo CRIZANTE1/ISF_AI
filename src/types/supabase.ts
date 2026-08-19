@@ -538,6 +538,8 @@ export type Database = {
           capacidade: number | null
           created_at: string
           id: number
+          latitude: number | null
+          longitude: number | null
           marca_fabricante: string | null
           numero_identificacao: string
           numero_serie: string | null
@@ -551,6 +553,8 @@ export type Database = {
           capacidade?: number | null
           created_at?: string
           id?: number
+          latitude?: number | null
+          longitude?: number | null
           marca_fabricante?: string | null
           numero_identificacao: string
           numero_serie?: string | null
@@ -564,6 +568,8 @@ export type Database = {
           capacidade?: number | null
           created_at?: string
           id?: number
+          latitude?: number | null
+          longitude?: number | null
           marca_fabricante?: string | null
           numero_identificacao?: string
           numero_serie?: string | null

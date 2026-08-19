@@ -327,13 +327,12 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
     // Tenta buscar última inspeção de cada extintor para obter as datas atualizadas
     try {
 
-      // Busca última inspeção de cada extintor
-      // Como o Supabase não suporta DISTINCT ON diretamente, vamos buscar todas e agrupar
+      // Busca última inspeção de cada extintor ordenando por created_at DESC
+      // created_at é mais confiável que data_servico (que pode ser nulo)
       const { data: allInspections, error: inspError } = await supabase
         .from('inspecoes_extintores' as any)
         .select('numero_identificacao, data_proxima_inspecao, data_proxima_manutencao_2_nivel, data_proxima_manutencao_3_nivel, data_ultimo_ensaio_hidrostatico, aprovado_inspecao, status_geral, data_servico, latitude, longitude, created_at')
         .eq('user_id', user.id)
-        .order('data_servico', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (inspError) {
@@ -351,7 +350,7 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
       }
 
       // Cria um mapa das últimas inspeções por número de identificação
-      // Como já está ordenado por data_servico DESC e created_at DESC, a primeira de cada extintor é a mais recente
+      // Como já está ordenado por created_at DESC, a primeira de cada extintor é a mais recente
       const inspectionMap = new Map<string, any>();
       if (allInspections && Array.isArray(allInspections)) {
         allInspections.forEach((insp: any) => {
@@ -381,9 +380,9 @@ export async function getAllExtinguishers(): Promise<Extinguisher[]> {
             // IMPORTANTE: aprovado_inspecao e status_geral vêm sempre da última inspeção (não do cadastro)
             aprovado_inspecao: lastInspection.aprovado_inspecao || null,
             status_geral: lastInspection.status_geral || null,
-            // Geolocalização vem da última inspeção
-            latitude: lastInspection.latitude || ext.latitude || null,
-            longitude: lastInspection.longitude || ext.longitude || null,
+            // Geolocalização: prioriza última inspeção com GPS; fallback para coordenadas do cadastro
+            latitude: lastInspection.latitude ?? ext.latitude ?? null,
+            longitude: lastInspection.longitude ?? ext.longitude ?? null,
           };
         }
         // Se não tem inspeção, mantém dados do cadastro mas sem aprovado_inspecao e status_geral (pois não foi inspecionado ainda)
@@ -579,6 +578,32 @@ export async function updateExtinguisher(
 /**
  * Salva uma inspeção de extintor
  */
+/**
+ * Sincroniza o GPS da inspeção com o cadastro do extintor na tabela extintores.
+ * Só atualiza se a inspeção tiver coordenadas válidas.
+ */
+async function syncExtinguisherGPS(
+  numeroIdentificacao: string,
+  latitude: number | null | undefined,
+  longitude: number | null | undefined
+): Promise<void> {
+  if (latitude == null || longitude == null) return;
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.id) return;
+    const { error } = await supabase
+      .from('extintores')
+      .update({ latitude, longitude })
+      .eq('numero_identificacao', numeroIdentificacao)
+      .eq('user_id', user.id);
+    if (error) {
+      logger.warn('Erro ao sincronizar GPS no cadastro do extintor', 'equipment', error);
+    }
+  } catch (err) {
+    logger.warn('Erro ao sincronizar GPS no cadastro do extintor', 'equipment', err);
+  }
+}
+
 export async function saveExtinguisherInspection(
   inspection: Omit<Extinguisher, 'id' | 'created_at'>
 ): Promise<boolean> {
@@ -690,6 +715,9 @@ export async function saveExtinguisherInspection(
           throw updateError;
         }
 
+        // Persiste GPS no cadastro do extintor se a inspeção teve localização
+        await syncExtinguisherGPS(inspection.numero_identificacao, inspection.latitude, inspection.longitude);
+
         // Log action
         try {
           await logUserAction('update', 'inspection', inspection.numero_identificacao, {
@@ -713,6 +741,9 @@ export async function saveExtinguisherInspection(
     if (!result.success) {
       throw new Error('Falha ao salvar inspeção');
     }
+
+    // Persiste GPS no cadastro do extintor se a inspeção teve localização
+    await syncExtinguisherGPS(inspection.numero_identificacao, inspection.latitude, inspection.longitude);
     
     // Log action
     try {

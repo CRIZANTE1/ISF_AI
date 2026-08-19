@@ -644,7 +644,7 @@ const AddEquipmentPage = () => {
   const renderSpecificForm = () => {
     switch (type) {
       case 'extintor':
-        return <ExtinguisherForm register={register} errors={errors} watch={watch} />;
+        return <ExtinguisherForm register={register} errors={errors} watch={watch} setValue={setValue} />;
       case 'mangueira':
         return <HoseForm register={register} />;
       case 'scba':
@@ -652,15 +652,15 @@ const AddEquipmentPage = () => {
       case 'multigas':
         return <MultigasForm register={register} />;
       case 'camara_espuma':
-        return <FoamChamberForm register={register} errors={errors} watch={watch} />;
+        return <FoamChamberForm register={register} errors={errors} watch={watch} setValue={setValue} />;
       case 'canhao_monitor':
-        return <CannonMonitorForm register={register} />;
+        return <CannonMonitorForm register={register} setValue={setValue} />;
       case 'chuveiro_lavaolhos':
-        return <EyewashForm register={register} />;
+        return <EyewashForm register={register} setValue={setValue} />;
       case 'alarme':
         return <AlarmForm register={register} />;
       case 'abrigo':
-        return <ShelterForm register={register} />;
+        return <ShelterForm register={register} setValue={setValue} />;
       default:
         return null;
     }

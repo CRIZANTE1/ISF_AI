@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
+import { UseFormRegister, FieldErrors, UseFormWatch, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import HelpTip from '../HelpTip';
 import { CO2_AGENT_VALUE } from '../../utils/co2Weighing';
+import { getCurrentLocation } from '../../hooks/useGeolocation';
 
 interface ExtinguisherFormProps {
   register: UseFormRegister<any>;
   errors: FieldErrors<any>;
   watch?: UseFormWatch<any>;
+  setValue?: UseFormSetValue<any>;
 }
 
 // Agentes extintores padronizados conforme normas brasileiras
@@ -46,10 +48,32 @@ const EXTINGUISHER_CAPACITIES = [
   { value: 'Outro', label: 'Outro (especificar)' },
 ];
 
-const ExtinguisherForm = ({ register, errors, watch }: ExtinguisherFormProps) => {
+const ExtinguisherForm = ({ register, errors, watch, setValue }: ExtinguisherFormProps) => {
   const { t } = useTranslation();
   const [showManualCapacity, setShowManualCapacity] = useState(false);
+  const [capturandoGPS, setCapturandoGPS] = useState(false);
+  const [gpsMsg, setGpsMsg] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
   const tipoAgente = watch?.('tipo_agente');
+
+  const capturarGPS = async () => {
+    if (!setValue) return;
+    setCapturandoGPS(true);
+    setGpsMsg(null);
+    try {
+      const loc = await getCurrentLocation();
+      if (loc) {
+        setValue('latitude', loc.latitude, { shouldValidate: true });
+        setValue('longitude', loc.longitude, { shouldValidate: true });
+        setGpsMsg({ tipo: 'sucesso', texto: `GPS capturado: ${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)}` });
+      } else {
+        setGpsMsg({ tipo: 'erro', texto: 'Não foi possível obter a localização. Verifique as permissões.' });
+      }
+    } catch {
+      setGpsMsg({ tipo: 'erro', texto: 'Erro ao capturar GPS. Verifique as permissões do navegador.' });
+    } finally {
+      setCapturandoGPS(false);
+    }
+  };
 
   const handleCapacityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -268,9 +292,27 @@ const ExtinguisherForm = ({ register, errors, watch }: ExtinguisherFormProps) =>
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-2 text-gray-300">
-          {t('equipment.formHints.gpsCoordinates')} <span className="text-gray-500 text-xs">{t('equipment.formHints.optional')}</span>
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-300">
+            {t('equipment.formHints.gpsCoordinates')} <span className="text-gray-500 text-xs">{t('equipment.formHints.optional')}</span>
+          </label>
+          {setValue && (
+            <button
+              type="button"
+              onClick={capturarGPS}
+              disabled={capturandoGPS}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{ backgroundColor: capturandoGPS ? '#2A2A2A' : '#157EFB', color: '#FFFFFF', opacity: capturandoGPS ? 0.7 : 1 }}
+            >
+              {capturandoGPS ? '⏳ Capturando...' : '📍 Capturar GPS'}
+            </button>
+          )}
+        </div>
+        {gpsMsg && (
+          <p className="text-xs mb-2 px-2 py-1.5 rounded" style={{ backgroundColor: gpsMsg.tipo === 'sucesso' ? '#1a3a1a' : '#3a1a1a', color: gpsMsg.tipo === 'sucesso' ? '#53D769' : '#FC3D39' }}>
+            {gpsMsg.texto}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="latitude" className="block text-xs text-gray-400 mb-1">{t('equipment.formHints.latitude')}</label>
