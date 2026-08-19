@@ -439,7 +439,13 @@ const EquipmentMap = () => {
                       </p>
                     )}
                     <button
-                      onClick={() => navigate(`/equipment/${marker.type}/${marker.id}`)}
+                      onClick={() => {
+                        if (marker.type === 'reserva_tecnica') {
+                          navigate(`/reservoir/${marker.id}`);
+                        } else {
+                          navigate(`/equipment/${marker.type}/${marker.id}`);
+                        }
+                      }}
                       className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition-colors"
                     >
                       {t('equipmentMap.viewDetails')}
