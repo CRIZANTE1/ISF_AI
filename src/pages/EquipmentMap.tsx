@@ -101,7 +101,7 @@ function MapBounds({ bounds }: { bounds: LatLngBounds | null }) {
 
 const EquipmentMap = () => {
   const { t } = useTranslation();
-  const { getAllEquipment, cache } = useEquipmentCache();
+  const { cache } = useEquipmentCache();
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
   const [markers, setMarkers] = useState<EquipmentMarker[]>([]);
@@ -122,8 +122,6 @@ const EquipmentMap = () => {
           logger.warn('Erro ao obter localização do usuário', 'permission', err);
         });
 
-        // Processar equipamentos de forma otimizada
-        const allEquipment = getAllEquipment();
         const equipmentMarkers: EquipmentMarker[] = [];
 
         // Processar extintores com localização (vem da última inspeção)
@@ -271,9 +269,19 @@ const EquipmentMap = () => {
           console.error('Erro ao carregar equipamentos customizados no mapa:', error);
         }
         
+        // Deduplicar por type+id para evitar marcadores repetidos no mapa
+        // (ocorre quando o banco tem linhas duplicadas para o mesmo equipamento)
+        const seen = new Set<string>();
+        const dedupedMarkers = equipmentMarkers.filter(m => {
+          const key = `${m.type}::${m.id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
         // Limitar processamento para não travar
-        const maxItems = 1000; // Limite de segurança
-        const limitedMarkers = equipmentMarkers.slice(0, maxItems);
+        const maxItems = 1000;
+        const limitedMarkers = dedupedMarkers.slice(0, maxItems);
         
         setMarkers(limitedMarkers);
       } catch (error) {
@@ -284,7 +292,7 @@ const EquipmentMap = () => {
     };
 
     loadEquipment();
-  }, [getAllEquipment, cache]);
+  }, [cache]);
 
   // Calcular bounds para ajustar o zoom (incluindo localização do usuário)
   const bounds = useMemo(() => {
